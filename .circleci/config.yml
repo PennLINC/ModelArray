@@ -23,7 +23,7 @@ steps: &steps
 jobs:
   release:
     docker:
-      - image: rocker/verse:4.1
+      - image: rocker/verse:4.1.0
     <<: *steps
   oldrel:
     docker:
