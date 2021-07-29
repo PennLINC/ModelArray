@@ -1,3 +1,5 @@
+# TODO: remove this file
+
 # this script contains code that initialises the Fixel HDF5 backend
 
 # the goal is to build and execute this docker command

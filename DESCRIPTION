@@ -8,12 +8,15 @@ Authors@R:
            email = "first.last@example.com",
            comment = structure("YOUR-ORCID-ID", .Names = "ORCID"))
 Description: What the package does (one paragraph).
-License: BSD 3-Clause License
+License: BSD 3-Clause License + file LICENSE
 Encoding: UTF-8
 LazyData: true
+Depends: R (>= 4.1.0)
+biocViews:
 Imports: 
     purrr,
     magrittr,
+    methods,
     stevedore,
     dplyr,
     tidyr,
@@ -24,6 +27,13 @@ Imports:
     HDF5Array,
     rhdf5,
     gamm4,
-    mgcv
-Depends: HDF5Array
-RoxygenNote: 7.0.0
+    mgcv,
+    rlang,
+    DelayedArray,
+    broom,
+    pbmcapply,
+    pbapply
+RoxygenNote: 7.1.1
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

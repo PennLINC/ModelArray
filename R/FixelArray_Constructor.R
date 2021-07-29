@@ -1,86 +1,63 @@
+# Exported Functions
+
+### setClass of "FixelArray" #####
+#' An S4 class to represent a bank account.
+#'
+#' @slot fixels A DelayedArray object of fixel data
+#' @slot voxels A DelayedArray object of voxel indeces
+#' @slot results An h5 group of FixelArray analysis outputs
+#' @slot subjects A list of subject labels
+#' @slot scalars A list of scalars measured by the fixels
+#' @slot path Path to the h5 file on disk
+#' @importClassesFrom DelayedArray DelayedArray
+FixelArray <- setClass(
+  "FixelArray",
+  #contains="DelayedArray",
+  slots = c(
+    fixels="DelayedArray",
+    voxels="DelayedArray",
+    results="list",
+    subjects="list",
+    scalars="list",
+    path="character"
+  )
+)
+
+
+#' FixelArraySeed
+#'
+#' Generates a "seed" for the h5 file format. A wrapper around HDF5ArraySeed
+#' used to instantiate a delayed array
+#' 
+#' @param filepath Path to an existing h5 file.
+#' @param name Name of the group/field in the h5 file
+#'
+#' @noRd
 FixelArraySeed <- function(
+  # TODO write a test for this: checks that the h5 file has the right fields
+  
   filepath,
   name = "fixels",
   type = NA) {
-
+  
   if(all(
     c("fixels", "voxels", "scalars")
     %in%
     rhdf5::h5ls(filepath)$name
   )
   ) {
-
+    
     seed = HDF5Array::HDF5ArraySeed(
       filepath, name = name, type = type)
-
+    
     seed
-
+    
   } else {
-
+    
     stop("Improperly formatted Fixel data")
-
+    
   }
-
-}
-
-### setClass of "FixelArray" #####
-setClass(
-  "FixelArray",
-  #contains="DelayedArray",
-   slots = c(
-     fixels="DelayedArray",
-     voxels="DelayedArray",
-     results="list",
-     subjects="list",
-     scalars="list",
-     path="character"
-   )
-)
-
-#' check if an object in .h5 exists
-#' @param fn_h5 filename of the .h5 file
-#' @param group_name full directory of this object in .h5 name
-#' @param object_name name of the object, should be a string without "/"
-flagObjectExistInh5 <- function(fn_h5, group_name="/results",object_name="myAnalysis") {
-  h5closeAll()
-  h5 <- h5ls(fn_h5)
-  h5 %>% filter(.$group==group_name & .$name==object_name) %>% nrow() -> h5.nrow
-  if (h5.nrow==0) {
-    flagObjectExistInh5 <- FALSE
-  } else {
-    flagObjectExistInh5 <- TRUE
-  }
-}
-
-
-
-#' check if h5 group "results" exist in current .h5 file
-#' @param fn_h5 filename of the .h5 file
-
-flagResultsGroupExistInh5 <- function(fn_h5) {
-  h5closeAll()
-  h5 <- h5ls(fn_h5)
-  h5 %>% filter(.$group=="/" & .$name=="results") %>% nrow() -> h5.nrow
-  if (h5.nrow==0) {
-    flagResultsGroupExistInh5 <- FALSE
-  } else {
-    flagResultsGroupExistInh5 <- TRUE
-  }
-}
-
-#' check if a subfolder of results exist in current .h5 file
-#' @param fn_h5 filename of the .h5 file
-#' @param analysis_name The subfolder name in "results" in .h5 file 
-#' 
-flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
-  h5closeAll()
-  h5 <- h5ls(fn_h5)
-  h5 %>% filter(.$group=="/results" & .$name==analysis_name) %>% nrow() -> h5.nrow
-  if (h5.nrow==0) {
-    flagAnalysisExistInh5 <- FALSE
-  } else {
-    flagAnalysisExistInh5 <- TRUE
-  }
+  
 }
 
 
@@ -90,10 +67,14 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
 #' @param scalar_types expected scalars
 #' @param analysis_names the subfolder names for results in .h5 file
 #' @return FixelArray object
+#' @export
+#' @import methods
 #'
 
 FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
   ## fixel_data: 
+  
+  # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
   fixel_data <- FixelArraySeed(filepath, name = "fixels", type = NA) %>%
     DelayedArray::DelayedArray()
 
@@ -180,7 +161,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
           results_data[[x]]$results_matrix <- t(results_data[[x]]$results_matrix)
         }
         
-        colnames(results_data[[x]]$results_matrix) <- as.character(realize(names_results_matrix))    # designate the column names
+        colnames(results_data[[x]]$results_matrix) <- as.character(DelayedArray::realize(names_results_matrix))    # designate the column names
         
 
         # /results/<analysis_name>/lut_col?:   # LOOP OVER # OF COL OF $RESULTS_MATRIX, AND SEE IF THERE IS LUT_COL
@@ -234,13 +215,6 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
   )
 
 }
-
-# FixelMatrix <- function(fa){
-#
-#
-# }
-
-
 
 
 #' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time.
@@ -301,73 +275,3 @@ writeResults <- function(fa, data, analysis_name = "myAnalysis", flag_overwrite=
   message("Results file written!")
 }
 
-setMethod("show", "FixelArray", function(object) {  # , group_name_results="results"
-  
-  # # check if there is a group of results:
-  # flag_results_exist <- flagResultsExist(object, group_name_results)
-  # if (flag_results_exist==TRUE) {
-  #   str_results <- paste0("There is ", group_name_results, " in this FixelArray")
-  # } else {
-  #   str_results <- paste0("There is no ", group_name_results, " in this FixelArray")
-  # }
-
-  cat(is(object)[[1]], " located at ", object@path, "\n\n",
-      format("  Fixel data:", justify = "left", width = 20), dim(fixels(object))[1], " fixels\n",
-      format("  Voxel data:", justify = "left", width = 20), dim(voxels(object))[1], " voxels\n",
-      format("  Subjects:", justify = "left", width = 20), dim(subjects(object)[[1]])[1], "\n",
-      format("  Scalars:", justify = "left", width = 20), paste0(names(scalars(object)), collapse = ", "), "\n",
-      # format("  Results:", justify = "left", width = 20), str_results, "\n",
-      format("  Analyses:", justify = "left", width = 20), paste0(names(results(object)), collapse = ", "), "\n",
-      sep = ""
-  
-  )
-})
-
-
-setGeneric("fixels", function(x) standardGeneric("fixels"))
-setMethod("fixels", "FixelArray", function(x) x@fixels)
-
-setGeneric("voxels", function(x) standardGeneric("voxels"))
-setMethod("voxels", "FixelArray", function(x) x@voxels)
-
-setGeneric("subjects", function(x) standardGeneric("subjects"))
-setMethod("subjects", "FixelArray", function(x) x@subjects)
-
-setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
-setMethod(
-  "scalars",
-  "FixelArray",
-  function(x, ...) {
-
-    dots <- list(...)
-
-    if(length(dots) == 1) {
-
-      scalar <- dots[[1]]
-      x@scalars[[scalar]]
-
-    } else {
-
-      x@scalars
-
-    }
-  }
-)
-
-setGeneric("results", function(x, ...) standardGeneric("results"))
-setMethod(
-  "results", "FixelArray", function(x, ...) {
-    dots <- list(...)
-    
-    if(length(dots) == 1) {
-      
-      analysis_name <- dots[[1]]
-      x@results[[analysis_name]]
-      
-    } else {
-      
-      x@results
-      # message: if the type of $results_matrix is character, this may not be the case for all columns, but for columns that involve look-up table (lut)
-    }
-  }
-)
