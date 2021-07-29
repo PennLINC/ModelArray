@@ -12,9 +12,9 @@ steps: &steps
     - run:
         name: Build package
         command: R CMD build .
-    #- run:
-    #    name: Check package
-    #    command: R CMD check *tar.gz
+    - run:
+        name: Check package
+        command: R CMD check *tar.gz
     - save_cache:
         key: cache-{{ .Environment.CIRCLE_JOB }}
         paths:
@@ -42,10 +42,10 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - oldR3.5.3:
-          filters:
-            tags:
-              only: /.*/
+      #- oldR3.5.3:
+      #    filters:
+      #      tags:
+      #        only: /.*/
       - develR:
           filters:
             tags:
