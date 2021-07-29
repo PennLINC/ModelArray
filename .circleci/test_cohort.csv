@@ -1,0 +1,3 @@
+subject_id,age,sex,scalar_name,scalar_mif
+A,22,F,FD,fixeldata/sub1_afd.mif
+B,22,M,FD,fixeldata/sub2_afd.mif

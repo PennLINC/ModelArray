@@ -1,0 +1,29 @@
+Package: FixelArray
+Title: An interface for fixel data storage, access, and analysis through a HDF5 backend
+Version: 0.0.0.1
+Authors@R: 
+    person(given = "First",
+           family = "Last",
+           role = c("aut", "cre"),
+           email = "first.last@example.com",
+           comment = structure("YOUR-ORCID-ID", .Names = "ORCID"))
+Description: What the package does (one paragraph).
+License: BSD 3-Clause License
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    purrr,
+    magrittr,
+    stevedore,
+    dplyr,
+    tidyr,
+    stringr,
+    glue,
+    sys,
+    parallel,
+    HDF5Array,
+    rhdf5,
+    gamm4,
+    mgcv
+Depends: HDF5Array
+RoxygenNote: 7.0.0
