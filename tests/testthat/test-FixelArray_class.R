@@ -9,3 +9,5 @@ test_that("FixelArray interface works as expected", {
   expect_s4_class(fa, class = "FixelArray")
   
 })
+
+# TODO implement each statistical test
