@@ -10,13 +10,17 @@ printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL) {
     if (is.null(message_default)) {
       message_default <- invisible(eval(formals(FUN)[[argu_name]]))
     }
-    
-    paste0(argu_name, " = ", dots[[argu_name]], " (default: ", message_default, ")") %>% crayon::black() %>% cat()    # or, %>% message()
-    
+    if (is.null(message_default)) {  # if the default is NULL:
+      message_default <- "NULL"
+    } 
+    m1<-paste0(argu_name, " = ", dots[[argu_name]], " (default: ", message_default, ")") %>% crayon::black() %>% cat()    # or, %>% message()
+
   } else {
-    paste0(argu_name, ": default")%>% crayon::black() %>% cat() 
+    m1<-paste0(argu_name, ": default")%>% crayon::black() %>% cat() 
+    
   }
-  
+
+  cat(m1, "\n")
 }
 
 
@@ -25,12 +29,12 @@ printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL) {
 #'
 #' @param formula Formula (passed to `lm()`)
 #' @param data FixelArray dataset
-#' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param phenotypes The cohort file with covariates to be added to the model
-#' @param subset A vector of fixel IDs to subset
+#' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param verbose Print progress messages
-#' @param n_cores The number of cores to run on
+#' @param idx A vector of fixel IDs to subset
 #' @param pbar Print progress bar
+#' @param n_cores The number of cores to run on
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
 FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, write = TRUE, ...){
@@ -40,9 +44,56 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
     stop("Not a fixel array for analysis")
   }
   
-  # ensure we can write to fixelarray$results
+  # NOTE: ensure we can write to fixelarray$results   ???
   
+  ### check additional arguments:
+  dots <- list(...)
   
+  FUN <- lm
+  
+  # subset:
+  m1 <- "no default"  
+  printAdditionalArgu(FUN, "subset", dots, m1)
+  
+  # weights:
+  m1 <- "no default"
+  printAdditionalArgu(FUN, "weights", dots, m1)
+  
+  # na.action:
+  m1 <- "no default"
+  printAdditionalArgu(FUN, "na.action", dots, m1)
+  
+  # method:
+  printAdditionalArgu(FUN, "method", dots)  # default: "qr"
+  
+  # model:
+  m1 <- invisible(eval(formals(FUN)[["model"]])) %>% as.character()   # default: [logical] TRUE
+  printAdditionalArgu(FUN, "model", dots, m1)  
+  
+  # x:
+  m1 <- invisible(eval(formals(FUN)[["x"]])) %>% as.character()   # default: [logical] FALSE
+  printAdditionalArgu(FUN, "x", dots, m1)
+  
+  # y:
+  m1 <- invisible(eval(formals(FUN)[["y"]])) %>% as.character()   # default: [logical] FALSE
+  printAdditionalArgu(FUN, "y", dots, m1)
+  
+  # qr:
+  m1 <- invisible(eval(formals(FUN)[["qr"]])) %>% as.character()   # default: [logical] TRUE
+  printAdditionalArgu(FUN, "qr", dots, m1)
+  
+  # singular.ok:
+  m1 <- invisible(eval(formals(FUN)[["singular.ok"]])) %>% as.character()   # default: [logical] TRUE
+  printAdditionalArgu(FUN, "singular.ok", dots, m1)
+  
+  # contrasts:
+  printAdditionalArgu(FUN, "contrasts", dots)   # default: NULL
+  
+  # offset:
+  m1 <- "no default"   # there is no default
+  printAdditionalArgu(FUN, "offset", dots, m1)
+  
+  ### start the process:
   if(verbose){
     message(glue::glue("Fitting fixel-wise linear models for {scalar}", ))
   }
@@ -404,7 +455,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, verbose = TRUE, id
     stop("Not a fixel array for analysis")
   }
   
-  # ensure we can write to fixelarray$results
+  # NOTES: ensure we can write to fixelarray$results ???
   
   
   if(verbose){
