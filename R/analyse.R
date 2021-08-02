@@ -37,19 +37,17 @@ printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL) {
 #' @param n_cores The number of cores to run on
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
-FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, write = TRUE, ...){
+FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "FixelArray") {
     stop("Not a fixel array for analysis")
   }
   
-  # NOTE: ensure we can write to fixelarray$results   ???
-  
-  ### check additional arguments:
+  ### display additional arguments:
   dots <- list(...)
   
-  FUN <- lm
+  FUN <- stats::lm
   
   # subset:
   m1 <- "no default"  
@@ -117,7 +115,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
         dat <- phenotypes
         dat[[scalar]] <- values
         
-        lm(formula, data = dat, ...) %>%
+        stats::lm(formula, data = dat, ...) %>%
           broom::tidy() %>%
           dplyr::mutate(fixel_id = i-1)
         
@@ -131,7 +129,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
         dat <- phenotypes
         dat[[scalar]] <- values
         
-        lm(formula, data = dat, ...) %>%
+        stats::lm(formula, data = dat, ...) %>%
           broom::tidy() %>%
           dplyr::mutate(fixel_id = i-1)
         
@@ -152,7 +150,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
         dat <- phenotypes
         dat[[scalar]] <- values
         
-        lm(formula, data = dat, ...) %>%
+        stats::lm(formula, data = dat, ...) %>%
           broom::tidy() %>%
           dplyr::mutate(fixel_id = i-1)
         
@@ -167,7 +165,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
         dat <- phenotypes
         dat[[scalar]] <- values
         
-        lm(formula, data = dat, ...) %>%
+        stats::lm(formula, data = dat, ...) %>%
           broom::tidy() %>%
           dplyr::mutate(fixel_id = i-1)
         
@@ -198,14 +196,12 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
 #' @param pbar Print progress bar
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
-FixelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, write = TRUE, ...){
+FixelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "FixelArray") {
     stop("Not a fixel array for analysis")
   }
-  
-  # ensure we can write to fixelarray$results
   
   
   if(verbose){
@@ -338,14 +334,12 @@ FixelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' @param pbar Print progress bar
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
-FixelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, write = TRUE, ...){
+FixelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "FixelArray") {
     stop("Not a fixel array for analysis")
   }
-  
-  # ensure we can write to fixelarray$results
   
   
   if(verbose){
@@ -449,13 +443,11 @@ FixelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
 #' @param pbar Print progress bar
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
-FixelArray.gam <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, write = TRUE, ...){
+FixelArray.gam <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   # data type assertions
   if(class(data) != "FixelArray") {
     stop("Not a fixel array for analysis")
   }
-  
-  # NOTES: ensure we can write to fixelarray$results ???
   
   
   if(verbose){
@@ -613,8 +605,7 @@ FixelArray.model <- function(formula, FUN, data, phenotypes, scalar, verbose = T
     stop("Not a fixel array for analysis")
   }
   
-  # ensure we can write to fixelarray$results
-  
+
   FUN <- match.fun(FUN)
   
   if(verbose){
