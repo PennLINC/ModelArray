@@ -13,7 +13,6 @@ FixelArray.lm(
   idx = NULL,
   pbar = TRUE,
   n_cores = 1,
-  write = TRUE,
   ...
 )
 }

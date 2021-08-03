@@ -4,7 +4,13 @@
 \alias{printAdditionalArgu}
 \title{print the additional arguments settings}
 \usage{
-printAdditionalArgu(FUN, argu_name, dots, message_default = NULL)
+printAdditionalArgu(
+  FUN,
+  argu_name,
+  dots,
+  message_default = NULL,
+  message_usr_input = NULL
+)
 }
 \arguments{
 \item{FUN}{The function, e.g. mgcv::gam, without "()"}
@@ -12,6 +18,8 @@ printAdditionalArgu(FUN, argu_name, dots, message_default = NULL)
 \item{argu_name}{The argument name of the function}
 
 \item{message_default}{The message for default}
+
+\item{message_usr_input}{The message describing user's input}
 
 \item{dots:}{list of additional arguments}
 }

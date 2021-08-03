@@ -72,8 +72,8 @@ test_that("FixelArray's lm works as expected", {
   # NOTE: we can add more tests regarding other lm's arguments
   
   ## TODO: check if "weights" have been successfully passed into lm:
-  FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, idx = 1:100, n_cores = 1, pbar=FALSE,  
-             weights = rep(1,length(phenotypes$subject_id)) )
+  # FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, idx = 1:100, n_cores = 1, pbar=FALSE,  
+  #            weights = rep(1,length(phenotypes$subject_id)) )
   
 })
 

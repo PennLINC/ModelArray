@@ -22,7 +22,7 @@ FixelArray object
 An S4 class to represent a bank account.
 
 Load fixel data output from mrtrix as an h5 file into R as a FixelArray object
-IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
+TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
 }
 \section{Slots}{
 
