@@ -3,8 +3,9 @@
 #' @param argu_name The argument name of the function
 #' @param dots: list of additional arguments
 #' @param message_default The message for default 
+#' @param message_usr_input The message describing user's input
 
-printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL) {
+printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, message_usr_input = NULL) {
   dots_names <- names(dots)
   if (argu_name %in% dots_names) {
     if (is.null(message_default)) {
@@ -13,7 +14,13 @@ printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL) {
     if (is.null(message_default)) {  # if the default is NULL:
       message_default <- "NULL"
     } 
-    m1<-paste0(argu_name, " = ", dots[[argu_name]], " (default: ", message_default, ")") %>% crayon::black() %>% cat()    # or, %>% message()
+    
+    if (is.null(message_usr_input)) {
+      m1 <- paste0(argu_name, " = ", dots[[argu_name]], " (default: ", message_default, ")") %>% crayon::black() %>% cat()    # or, %>% message()  
+    } else {   # specified the message:
+      m1 <- paste0(argu_name, " = ", message_usr_input, " (default: ", message_default, ")") %>% crayon::black() %>% cat()
+    }
+    
 
   } else {
     m1<-paste0(argu_name, ": default")%>% crayon::black() %>% cat() 
@@ -46,6 +53,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
   
   ### display additional arguments:
   dots <- list(...)
+  dots_names <- names(dots)
   
   FUN <- stats::lm
   
@@ -55,7 +63,12 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
   
   # weights:
   m1 <- "no default"
-  printAdditionalArgu(FUN, "weights", dots, m1)
+  if ("weights" %in% dots_names) {  # if user provides weights
+    m_usr_input <- paste0( class(dots$weights), " with length of ", length(dots$weights)) # message describing usr's input; cannot use dim on c(1,2) 
+  } else {
+    m_usr_input <- NULL
+  }
+  printAdditionalArgu(FUN, "weights", dots, m1, m_usr_input)
   
   # na.action:
   m1 <- "no default"
