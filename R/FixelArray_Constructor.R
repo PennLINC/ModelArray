@@ -62,7 +62,7 @@ FixelArraySeed <- function(
 
 
 #' Load fixel data output from mrtrix as an h5 file into R as a FixelArray object
-#' IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
+#' TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
 #' @param filepath file
 #' @param scalar_types expected scalars
 #' @param analysis_names the subfolder names for results in .h5 file
@@ -92,7 +92,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 
   if(dim(voxel_data)[2] != 4) {
 
-    fixel_data <- t(fixel_data)   # Chenying's note: @Tinashe, you wanted to transpose voxel_data?
+    fixel_data <- t(fixel_data)   # TODO: transpose voxel_data? leave it here for now.
 
   }
 
@@ -105,7 +105,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 
   for(x in 1:length(scalar_types)){
     
-    # IT'S BETTER TO CHECK IF THIS SCALAR_TYPE EXISTS OR NOT..... - Chenying
+    # TODO: IT'S BETTER TO CHECK IF THIS SCALAR_TYPE EXISTS OR NOT..... - Chenying
     
     # /scalars/<scalar_type>/values:
     scalar_data[[x]] <- FixelArraySeed(filepath, name = sprintf("scalars/%s/values", scalar_types[x]), type = NA) %>%

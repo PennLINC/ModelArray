@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse.R
 \name{FixelArray.gam}
 \alias{FixelArray.gam}
-\title{Run a GAMM4 model at each fixel location}
+\title{Run a GAM model at each fixel location}
 \usage{
 FixelArray.gam(
   formula,
@@ -28,15 +28,15 @@ FixelArray.gam(
 
 \item{verbose}{Print progress messages}
 
+\item{idx}{A vector of fixel IDs to subset}
+
 \item{pbar}{Print progress bar}
 
 \item{n_cores}{The number of cores to run on}
-
-\item{subset}{A vector of fixel IDs to subset}
 }
 \value{
 Tibble with the summarised model statistics at each fixel location
 }
 \description{
-Run a GAMM4 model at each fixel location
+Run a GAM model at each fixel location
 }
