@@ -1,0 +1,56 @@
+---
+title: "lm_outputs"
+output: html_document
+---
+
+# Testing full statistics of lm:
+## One lm model: all statistics:
+```{r}
+# source("FixelArray_Constructor.R")
+# source("FixelArray_S4Methods.R")
+# source("utils.R")
+# source("analyse.R")
+library(FixelArray)
+library(dplyr)
+
+fn <- "../inst/extdata/n50_fixels.h5"
+fa <- FixelArray(fn)
+fn_csv <- "../inst/extdata/n50_cohort.csv"
+phenotypes <- read.csv(fn_csv)
+
+i <- 1
+scalar <- "FD"
+formula <- FD~age
+values <- scalars(fa)[[scalar]][i,]
+dat <- phenotypes
+dat[[scalar]] <- values
+simplelm <- stats::lm(formula, data = dat, weights=rep(1,50))
+```
+Let's see what the summary() will return:
+```{r}
+summary(simplelm)
+```
+broom::tidy() will return the coefficients:
+```{r}
+simplelm %>% broom::tidy()    # returns coefficients
+```
+broom::glance() will return detailed statistics:
+```{r}
+simplelm %>% broom::glance()  # several summary statistics are computed for the entire regression, such as R^2 and the F-statistic. These can be accessed with the glance function
+```
+<!-- ## How to stack multiple models together: -->
+<!-- ```{r} -->
+<!-- ids <- 1:10 -->
+<!-- data <- fa -->
+<!-- fits <- lapply(ids, function(i){ -->
+
+<!--   values <- scalars(data)[[scalar]][i,] -->
+<!--   dat <- phenotypes -->
+<!--   dat[[scalar]] <- values -->
+
+<!--   stats::lm(formula, data = dat)  -->
+<!--   # %>% broom::tidy() %>% -->
+<!--   #   dplyr::mutate(fixel_id = i-1) -->
+
+<!-- }) -->
+<!-- ``` -->
