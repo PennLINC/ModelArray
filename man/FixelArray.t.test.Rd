@@ -13,7 +13,6 @@ FixelArray.t.test(
   idx = NULL,
   pbar = TRUE,
   n_cores = 1,
-  write = TRUE,
   ...
 )
 }

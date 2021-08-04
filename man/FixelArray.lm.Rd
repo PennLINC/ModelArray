@@ -13,7 +13,6 @@ FixelArray.lm(
   idx = NULL,
   pbar = TRUE,
   n_cores = 1,
-  write = TRUE,
   ...
 )
 }
@@ -28,11 +27,11 @@ FixelArray.lm(
 
 \item{verbose}{Print progress messages}
 
+\item{idx}{A vector of fixel IDs to subset}
+
 \item{pbar}{Print progress bar}
 
 \item{n_cores}{The number of cores to run on}
-
-\item{subset}{A vector of fixel IDs to subset}
 }
 \value{
 Tibble with the summarised model statistics at each fixel location

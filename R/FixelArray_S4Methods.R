@@ -1,5 +1,7 @@
 ### Methods of "FixelArray" ###
 
+### Show FixelArray #####
+#' show FixelArray
 #' @export
 setMethod("show", "FixelArray", function(object) {  # , group_name_results="results"
   
@@ -23,6 +25,7 @@ setMethod("show", "FixelArray", function(object) {  # , group_name_results="resu
   )
 })
 
+### Accessors for FixelArray #####
 setGeneric("fixels", function(x) standardGeneric("fixels"))
 setMethod("fixels", "FixelArray", function(x) x@fixels)
 
@@ -70,3 +73,27 @@ setMethod(
     }
   }
 )
+
+### Statistical tests for FixelArray #####
+# ----------------below works:
+# setGeneric("lm", function(x,...) standardGeneric("lm"))
+# setMethod("lm", 
+#           "FixelArray",    # this can be multiple classes e.g. signature(e1 = "foo", e2 = "numeric"), or signature("A1", "A2") - from: http://adv-r.had.co.nz/S4.html
+#           
+#           function(x, ...) {
+#             message("run FixelArray.lm!")
+#           }
+#           # function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, write = TRUE, ...){
+#           #   print("xyz")
+#           # }
+#           # FixelArray.lm(object, ...)
+#           # FixelArray.lm(formula, object, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, write = TRUE, ...)
+#           )
+# ----------------above works.
+
+# # NOTE: ref: https://stackoverflow.com/questions/56560280/can-i-define-s4-methods-that-dispatch-on-more-than-one-argument-from-an-s3-gener
+# setGeneric("lm", function(formula, fixelarray, phenotypes, scalar, idx, ...) standardGeneric("lm"),
+#            signature = c(formula, fixelarray, phenotypes, scalar, idx)
+#            )
+# setMethod("lm",
+#           signature = c("formula", "FixelArray", "data.frame", "character", "integer"))
