@@ -26,6 +26,7 @@ Imports:
     parallel,
     HDF5Array,
     rhdf5,
+    hdf5r,
     gamm4,
     mgcv,
     rlang,

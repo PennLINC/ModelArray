@@ -2,7 +2,8 @@
 % Please edit documentation in R/FixelArray_Constructor.R
 \name{writeResults}
 \alias{writeResults}
-\title{Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time.}
+\title{analyseNwriteOneFixel <- function()
+Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time.}
 \usage{
 writeResults(fa, data, analysis_name = "myAnalysis", flag_overwrite = TRUE)
 }
@@ -16,5 +17,6 @@ writeResults(fa, data, analysis_name = "myAnalysis", flag_overwrite = TRUE)
 \item{flag_overwrite}{If same analysis_name exists, whether overwrite or not}
 }
 \description{
+analyseNwriteOneFixel <- function()
 Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time.
 }
