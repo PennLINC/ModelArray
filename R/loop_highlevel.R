@@ -15,13 +15,15 @@ library(hdf5r)
 
 # INPUTS: #
 fn <- "inst/extdata/n50_fixels.h5"
-fn.output <- "inst/extdata/n50_fixels_output.h5"
-file.copy(from=fn.h5, to=fn.output, overwrite = TRUE, copy.mode = TRUE, copy.date = FALSE) 
+fn.output <- "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/n50_fixels_output.h5"    # TODO: now have to use the absolute path instead of relative... not sure why | relative:  "../data/data_forCircleCI_n50/n50_fixels_output.h5" 
+file.copy(from=fn, to=fn.output, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE, recursive = TRUE) 
+
+# h5closeAll()
+fa <- FixelArray(fn)  # TODO: error with fa <- FixelArray(fn.output)  ???
 
 fn.output.h5 <- H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
 fn.output.h5
 
-fa <- FixelArray(fn.output)
 fn_csv <- "inst/extdata/n50_cohort.csv"
 phenotypes <- read.csv(fn_csv)
 
@@ -49,7 +51,6 @@ onemodel.glance <- onemodel %>% glance()
 
 # delete columns you don't want:
 var.terms.full <-names(onemodel.tidy)
-# var.terms.full <- var.terms.full[var.terms.full != "term"]   # remove column name of "term", and the order of list will not be changed
 
 var.model.full <- names(onemodel.glance)
 
@@ -79,9 +80,6 @@ onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"  # change
 onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
 
 # flatten .tidy results into one row:
-# onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(names_from = term, 
-#                                                              values_from = c(estimate,p.value),
-#                                                              names_glue = "{term}.{.value}")
 onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(names_from = term,
                                                              values_from = all_of(var.terms.orig),
                                                              names_glue = "{term}.{.value}")
