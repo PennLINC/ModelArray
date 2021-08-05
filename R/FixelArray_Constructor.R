@@ -216,6 +216,15 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 
 }
 
+# #' Analyse (fit statistical model) and write the outputs for 1 fixel
+# #'
+# #' @param fn.output.h5 Opened h5 file (via H5File$new(filename, mode="a"))
+# #' @param i_fixel The i_th fixel
+# #' @param phenotypes The cohort matrix with covariates to be added to the model  
+# #' 
+#' 
+#' 
+#' analyseNwriteOneFixel <- function()
 
 #' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time.
 #' 
