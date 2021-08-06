@@ -171,16 +171,48 @@ registerDoSEQ()
 onemodel <- stats::lm(formula, data = dat)   # raw model results is very big
 object.size(onemodel)    # 26720 bytes
 
-# if we change it into one row:
+# if we only extract what we want (and change it into one row), it will be much smaller:
 onemodel.tidy.onerow <- onemodel %>% tidy() %>% tidyr::pivot_wider(names_from = term,values_from = c(estimate, std.error,statistic, p.value), names_glue="{term}.{.value}")
 onemodel.tidy.onerow
 object.size(onemodel.tidy.onerow)     # 1896 bytes
 
-# if we discard the column names and other info from tibble, and change the tibble to numeric list, the object size will be even smaller!
+# if we discard the column names and other info from tibble, and change the tibble to numeric list, the object size will be even smaller! (as the header size ~ 1KB)
 onemodel.tidy.onerow.numeric <- as.numeric(onemodel.tidy.onerow)
 object.size(onemodel.tidy.onerow.numeric)   # 112 bytes
 
 # if we convert all the fixels' results into a numeric matrix, how large it will be?
 a <- rnorm(1000000*10)    # 1M fixels * 10 columns to save
-object.size(a)     # 80000048 bytes
+object.size(a)     # 80,000,048 bytes
 object.size(a)/1024/1024    # 76.3MB
+
+# turning the result matrix into data.frame (even a tibble) will only increase a little bit of size (of header, ~several KB):
+# considering it's a matrix with 1M of fixels and 10 columns:
+a <- matrix(rnorm(1000000*10, mean=0, sd=1), 1000000,10)
+object.size(a)     # 80,000,216 bytes, around 80MB
+# convert into data.frame:
+a.df <- as.data.frame(a)
+head(a.df)  # first several rows
+colnames(a.df)  # there are already column names
+class(a.df$V10)   # class is still numeric (i.e. double)
+object.size(a.df)    # 80,001,904 bytes     # almost no increase
+object.size(a.df) - object.size(a)     # 1688 bytes
+# even tibble won't increase much size:
+a.tibble <- as_tibble(a)
+head(a.tibble)
+dim(a.tibble)
+library(pryr)
+object_size(a.tibble)   # 80,002,040 B
+
+
+### will a function use variable in main? #####
+mya <- 1
+myadd <- function(mya,b) {
+  mya+b
+}
+myadd(4,5)  # returns 9, using the input value of mya (=4) instead of mya in the outside of function
+myadd(mya=4, b=5)
+
+myadd_wrong <- function(a,b) {  # did not define 
+  mya+b
+}
+myadd_wrong(4,5)   # returns 1+5 = 6, as mya was not defined in the input

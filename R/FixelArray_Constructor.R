@@ -219,7 +219,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 #' Analyse (fit statistical model) and write the outputs for 1 fixel
 #'
 #' @param formula Formula (passed to `lm()`)
-#' @param data FixelArray class
+#' @param fa FixelArray class
 #' @param phenotypes The cohort matrix with covariates to be added to the model  
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param fn.output.h5 Opened h5 file (via H5File$new(filename, mode="a"))
@@ -236,7 +236,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 #' @import hdf5r
  
 analyseNwriteOneFixel.lm <- function(i_fixel, 
-                                     formula, data, phenotypes, scalar, fn.output.h5, analysis_name = "lm", 
+                                     formula, fa, phenotypes, scalar, fn.output.h5, analysis_name = "lm", 
                                      var.terms, var.model, 
                                      flag_initiate = FALSE, overwrite = TRUE,
                                      results.grp = NULL, results.analysis.grp = NULL, results_matrix_ds = NULL,
@@ -353,11 +353,9 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
 #' Analyse (fit statistical model) and write the outputs for 1 fixel
 #'
 #' @param formula Formula (passed to `lm()`)
-#' @param data FixelArray class
+#' @param fa FixelArray class
 #' @param phenotypes The cohort matrix with covariates to be added to the model  
 #' @param scalar The name of the scalar to be analysed fixel-wise
-#' @param fn.output.h5 Opened h5 file (via H5File$new(filename, mode="a"))
-#' @param analysis_name The subgroup name in results, holding the analysis results 
 #' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
 #' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
@@ -368,7 +366,7 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
 #' @import hdf5r
 
 analyseOneFixel.lm <- function(i_fixel, 
-                               formula, data, phenotypes, scalar, fn.output.h5, analysis_name = "lm", 
+                               formula, fa, phenotypes, scalar, 
                                var.terms, var.model, 
                                flag_initiate = FALSE, 
                                verbose = TRUE, ...) {
@@ -405,8 +403,12 @@ analyseOneFixel.lm <- function(i_fixel,
   }
   
   # remove those columns:
-  onemodel.tidy <- select(onemodel.tidy, -all_of(var.terms.remove))
-  onemodel.glance <- select(onemodel.glance, -all_of(var.model.remove))
+  if (length(var.terms.remove) != 0) {    # if length=0, it's list(), nothing to remove
+    onemodel.tidy <- select(onemodel.tidy, -all_of(var.terms.remove))
+  }
+  if (length(var.model.remove) != 0) {
+    onemodel.glance <- select(onemodel.glance, -all_of(var.model.remove))
+  }
   
   # adjust:
   onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
@@ -428,17 +430,17 @@ analyseOneFixel.lm <- function(i_fixel,
   # now you can get the headers, # of columns, etc of the output results
   
   
-  if (flag_initiate == TRUE) { # initiate the saving:
-    # return:
-    output_list <- list(colnames = colnames(onemodel.onerow))
-    return(output_list)
+  if (flag_initiate == TRUE) { # return the column names:
     
-  } else if (flag_initiate == FALSE) {  # to save this fixel:
+    # return:
+    column_names = colnames(onemodel.onerow)
+    column_names
+    
+  } else if (flag_initiate == FALSE) {  # return the one row results:
 
     # return: 
-    output_list <- list(onerow <- as.numeric(onemodel.onerow))   # change from tibble to numeric to save a lot of space!
-    
-    # return(output_list)
+    onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save a lot of space!
+    onerow
   }
   
   

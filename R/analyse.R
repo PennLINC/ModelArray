@@ -205,7 +205,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
 #' @param 
 #' 
 
-FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fn.output.h5, analysis_name = "lm", fixel.subset = NULL, 
+FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, 
                               var.terms = c("estimate", "p.value"), 
                               var.model = c("r.squared", "p.value"), 
                               overwrite = TRUE,
@@ -225,16 +225,12 @@ FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fn.output.h5, a
     message(glue::glue("initiating....", ))
   }
   
-  # initiate
-  temp <- analyseNwriteOneFixel.lm(i_fixel=1, formula, data, phenotypes, scalar, fn.output.h5, analysis_name, 
-                           var.terms, var.model, 
-                           flag_initiate = TRUE, overwrite = overwrite,
-                           results.grp = NULL, results.analysis.grp = NULL, results_matrix_ds = NULL,
-                           verbose = TRUE, ...)
-  results.grp <- temp$results.grp
-  results.analysis.grp <- temp$results.analysis.grp
-  results_matrix_ds <- temp$results_matrix_ds
-  
+  # initiate: get the example of one fixel and get the column names
+  column_names <- analyseOneFixel.lm(i_fixel=1, formula, data, phenotypes, scalar, 
+                                     var.terms, var.model, 
+                                     flag_initiate = TRUE, 
+                                     verbose = TRUE, ...)
+
   # loop (by condition of pbar and n_cores)
   if(verbose){
     message(glue::glue("looping across fixels....", ))
@@ -248,33 +244,31 @@ FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fn.output.h5, a
     
     if (pbar) {
       
-      pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
-                            analyseNwriteOneFixel.lm,  # the function
+      fits <- pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
+                            analyseOneFixel.lm,  # the function
                             mc.cores = n_cores,
-                            formula, data, phenotypes, scalar, fn.output.h5, analysis_name,
+                            formula, data, phenotypes, scalar, 
                             var.terms, var.model,
-                            flag_initiate = FALSE, overwrite = overwrite,
-                            results.grp = results.grp, results.analysis.grp = results.analysis.grp, results_matrix_ds = results_matrix_ds,
+                            flag_initiate = FALSE, 
                             verbose = TRUE,
                             ...
                             )
       
     } else {
       
-      foreach::foreach
+      # foreach::foreach
       
-      parallel::mclapply(fixel.subset,   # a list of i_fixel    # it will perform analysis but not saved to .h5 file
-                         analyseNwriteOneFixel.lm,  # the function
+      fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel    # it will perform analysis but not saved to .h5 file
+                         analyseOneFixel.lm,  # the function
                          mc.cores = n_cores,
-                         formula, data, phenotypes, scalar, fn.output.h5, analysis_name,
+                         formula, data, phenotypes, scalar, 
                          var.terms, var.model,
-                         flag_initiate = FALSE, overwrite = overwrite,
-                         results.grp = results.grp, results.analysis.grp = results.analysis.grp, results_matrix_ds = results_matrix_ds,
+                         flag_initiate = FALSE, 
                          verbose = TRUE,
                          ...
                          )
       # parallel::mclapply(fixel.subset,   # a list of i_fixel   # error?
-      #                    analyseNwriteOneFixel.lm,  # the function
+      #                    analyseOneFixel.lm,  # the function
       #                    mc.cores = n_cores,
       #                    ...
       #                    )
@@ -284,38 +278,34 @@ FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fn.output.h5, a
     
     if (pbar) {
       
-      aa <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
-                        analyseNwriteOneFixel.lm,  # the function
-                        formula, data, phenotypes, scalar, fn.output.h5, analysis_name,
+      fits <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
+                        analyseOneFixel.lm,  # the function
+                        formula, data, phenotypes, scalar, 
                         var.terms, var.model,
-                        flag_initiate = FALSE, overwrite = overwrite,
-                        results.grp = results.grp, results.analysis.grp = results.analysis.grp, results_matrix_ds = results_matrix_ds,
+                        flag_initiate = FALSE, 
                         verbose = TRUE,
                         ...)
       
     } else {
       
-      aa <- lapply(fixel.subset,   # a list of i_fixel
-             analyseNwriteOneFixel.lm,  # the function
-             formula, data, phenotypes, scalar, fn.output.h5, analysis_name,
-             var.terms, var.model,
-             flag_initiate = FALSE, overwrite = overwrite,
-             results.grp = results.grp, results.analysis.grp = results.analysis.grp, results_matrix_ds = results_matrix_ds,
-             verbose = TRUE,
-             ...)
+      fits <- lapply(fixel.subset,   # a list of i_fixel
+                     analyseOneFixel.lm,  # the function
+                     formula, data, phenotypes, scalar,
+                     var.terms, var.model,
+                     flag_initiate = FALSE,
+                     verbose = TRUE,
+                     ...)
     }
   }  
     
   
-    
-
-  # return the results.*:
-  output_list <- list(results.grp = results.grp,    # got from initiation
-                      results.analysis.grp = results.analysis.grp, 
-                      results_matrix_ds = results_matrix_ds,
-                      a = aa$a,
-                      results_matrix_ds.afterflush = aa$results_matrix_ds.afterflush)
-  return(output_list)
+  
+  
+  df_out <- do.call(rbind, fits)    
+  df_out <- as.data.frame(df_out)    # turn into data.frame
+  colnames(df_out) <- column_names     # add column names
+  
+  df_out   # return
 
 }
 
