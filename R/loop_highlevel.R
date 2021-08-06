@@ -110,3 +110,77 @@ results_matrix_ds[i,] <- as.numeric(onemodel.onerow)
 
 # close the file
 fn.output.h5$close_all()
+
+
+### test using multicore to save the results #####
+fn.test <- "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/testsaving.h5"
+fn.test.h5 <- H5File$new(fn.test, mode="a")
+fn.test.h5
+
+mat <- 1:100
+
+if (fn.test.h5$exists("results") == TRUE) {
+  fn.test.h5$link_delete("results")
+}
+
+results.grp <- fn.test.h5$create_group("results")
+# results.grp <- fn.test.h5$open("results")
+
+results.grp[["mat"]] <- matrix(0, nrow=length(mat), ncol = 1) 
+mat_ds <- results.grp[["mat"]]
+
+lapply(1:100, function(i,...){# works
+  mat_ds[i,] <- mat[i]
+})
+
+
+parallel::mclapply(1:100, function(i,...){    # does not work......
+  mat_ds[i,] <- mat[i]
+}, mc.cores = 2)
+
+
+library(foreach)
+library(doParallel)
+
+# registerDoParallel(cores = 2)
+
+cl <- makeCluster(2)
+registerDoParallel(cl)
+
+
+# getDoParWorkers()   # get how many workers foreach is going to use
+
+tic()
+foreach(i = 1:100, .combine=combine, .packages='hdf5r') %dopar%  {    # Seems foreach always throw out outputs... remove it with rm(temp) and call garbage collection gc()
+  mat_ds[i,] <- mat[i]
+  # return(TRUE)
+}
+toc()
+
+fn.test.h5$close_all()
+
+unregister <- function() {
+  env <- foreach:::.foreachGlobals
+  rm(list=ls(name=env), pos=env)
+}
+
+stopCluster(cl)
+registerDoSEQ()
+
+### size of different object #####
+onemodel <- stats::lm(formula, data = dat)   # raw model results is very big
+object.size(onemodel)    # 26720 bytes
+
+# if we change it into one row:
+onemodel.tidy.onerow <- onemodel %>% tidy() %>% tidyr::pivot_wider(names_from = term,values_from = c(estimate, std.error,statistic, p.value), names_glue="{term}.{.value}")
+onemodel.tidy.onerow
+object.size(onemodel.tidy.onerow)     # 1896 bytes
+
+# if we discard the column names and other info from tibble, and change the tibble to numeric list, the object size will be even smaller!
+onemodel.tidy.onerow.numeric <- as.numeric(onemodel.tidy.onerow)
+object.size(onemodel.tidy.onerow.numeric)   # 112 bytes
+
+# if we convert all the fixels' results into a numeric matrix, how large it will be?
+a <- rnorm(1000000*10)    # 1M fixels * 10 columns to save
+object.size(a)     # 80000048 bytes
+object.size(a)/1024/1024    # 76.3MB

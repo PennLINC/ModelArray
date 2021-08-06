@@ -24,6 +24,8 @@ Imports:
     glue,
     sys,
     parallel,
+    foreach,
+    doParallel,
     HDF5Array,
     rhdf5,
     hdf5r,

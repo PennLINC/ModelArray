@@ -1,0 +1,84 @@
+---
+title: "demo of FixelArray's lm"
+output: html_document
+---
+
+This is to show how FixelArray's lm looks like after its updates (including flush results immediately after analysis; better results structure, etc)
+```{r}
+# the working directory of this Demo is where it locates
+source("../R/FixelArray_Constructor.R")
+source("../R/FixelArray_S4Methods.R")
+source("../R/utils.R")
+source("../R/analyse.R")
+# library(FixelArray)
+library(dplyr)
+library(broom)
+library(hdf5r)
+library(foreach)
+library(doParallel)
+```
+Inputs set-ups:
+```{r}
+fn <- "../inst/extdata/n50_fixels.h5"
+fn.output <- "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/n50_fixels_output.h5"    # TODO: now have to use the absolute path instead of relative... not sure why | relative:  "../data/data_forCircleCI_n50/n50_fixels_output.h5" 
+fn_csv <- "../inst/extdata/n50_cohort.csv"
+
+file.copy(from=fn, to=fn.output, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)   # , recursive = TRUE
+# h5closeAll()
+fa <- FixelArray(fn)  # TODO: error with fa <- FixelArray(fn.output)  ???
+```
+Let's create a H5File to access the output .h5 file:
+```{r}
+fn.output.h5 <- H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
+fn.output.h5
+
+fa <-  FixelArray(fn) # TODO: error with fa <- FixelArray(fn.output)  ???
+```
+
+```{r}
+phenotypes <- read.csv(fn_csv)
+
+scalar <- "FD"
+formula <- FD~age
+
+var.terms <- c("estimate", "p.value")   # list of columns to keep
+var.model <- c("r.squared", "p.value", "AIC")
+
+analysis_name <- "lm"
+
+fixel.subset <- 1:100
+```
+
+Run FixelArray.lm:
+```{r}
+# TODO: change the function's name!!
+lm.outputs <- FixelArray.enh.lm(formula = formula, data = fa, phenotypes, scalar, 
+                                fn.output.h5, analysis_name = analysis_name, fixel.subset = fixel.subset, 
+                              var.terms = c("estimate", "p.value"), 
+                              var.model = c("r.squared", "p.value"), 
+                              overwrite = TRUE,
+                              verbose = TRUE, pbar = FALSE, n_cores = 2)
+results.grp <- lm.outputs$results.grp
+results.analysis.grp <- lm.outputs$results.analysis.grp
+results_matrix_ds <- lm.outputs$results_matrix_ds
+
+# TODO: after each run of this block, even though matrix is overwritten, the size keeps adding... This is probably related to hdf5's deleting does not shrink the file's size....
+
+```
+Let's see what the saved outputs look like: The "results" group:
+```{r}
+results.grp
+```
+The "results\lm" group:
+```{r}
+results.analysis.grp
+```
+The results matrix:
+```{r}
+results_matrix_ds
+results_matrix_ds[fixel.subset,]   # elements that were written
+```
+
+```{r}
+fn.output.h5$close_all()
+```

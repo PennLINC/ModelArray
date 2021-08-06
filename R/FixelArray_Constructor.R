@@ -216,16 +216,236 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 
 }
 
-# #' Analyse (fit statistical model) and write the outputs for 1 fixel
-# #'
-# #' @param fn.output.h5 Opened h5 file (via H5File$new(filename, mode="a"))
-# #' @param i_fixel The i_th fixel
-# #' @param phenotypes The cohort matrix with covariates to be added to the model  
-# #' 
+#' Analyse (fit statistical model) and write the outputs for 1 fixel
+#'
+#' @param formula Formula (passed to `lm()`)
+#' @param data FixelArray class
+#' @param phenotypes The cohort matrix with covariates to be added to the model  
+#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param fn.output.h5 Opened h5 file (via H5File$new(filename, mode="a"))
+#' @param analysis_name The subgroup name in results, holding the analysis results 
+#' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
+#' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
+#' @param var.model The list of variables to save for the model (got from lm %>% glance())
+#' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE.
+#' @param results.grp # TODO: to explain
+#' @param results.analysis.grp
 #' 
-#' 
-#' analyseNwriteOneFixel <- function()
+#' @param overwrite Whether to overwrite or not    # TODO: to make this description more clear
+#' @param verbose Print progress messages
+#' @import hdf5r
+ 
+analyseNwriteOneFixel.lm <- function(i_fixel, 
+                                     formula, data, phenotypes, scalar, fn.output.h5, analysis_name = "lm", 
+                                     var.terms, var.model, 
+                                     flag_initiate = FALSE, overwrite = TRUE,
+                                     results.grp = NULL, results.analysis.grp = NULL, results_matrix_ds = NULL,
+                                     verbose = TRUE, ...) {
+  values <- scalars(fa)[[scalar]][i_fixel,]
+  dat <- phenotypes
+  dat[[scalar]] <- values
+  onemodel <- stats::lm(formula, data = dat, ...)   
+  onemodel.tidy <- onemodel %>% tidy()
+  onemodel.glance <- onemodel %>% glance()
+  # Augment accepts a model object and a dataset and adds information about each observation in the dataset. 
+  #   also accepts new data: Users may pass data to augment via either the data argument or the newdata argument. 
+  # onemodel.augment <- onemodel %>% augment()  
+  
+  # delete columns you don't want:
+  var.terms.full <-names(onemodel.tidy)
+  
+  var.model.full <- names(onemodel.glance)
+  
+  # list to remove:
+  var.terms.orig <- var.terms
+  var.terms <- list("term", var.terms) %>% unlist()    # we will always keep "term" column
+  var.terms.remove <- list()   
+  for (l in var.terms.full) {
+    if (!(l %in% var.terms)) {
+      var.terms.remove <- var.terms.remove %>% append(., l) %>% unlist()  # the order will still be kept
+    }
+  }
+  
+  var.model.remove <- list()
+  for (l in var.model.full) {
+    if (!(l %in% var.model)) {
+      var.model.remove <- var.model.remove %>% append(., l) %>% unlist()  # the order will still be kept
+    }
+  }
+  
+  # remove those columns:
+  onemodel.tidy <- select(onemodel.tidy, -all_of(var.terms.remove))
+  onemodel.glance <- select(onemodel.glance, -all_of(var.model.remove))
+  
+  # adjust:
+  onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
+  onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
+  
+  # flatten .tidy results into one row:
+  onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(names_from = term,
+                                                               values_from = all_of(var.terms.orig),
+                                                               names_glue = "{term}.{.value}")
+  onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
+                                                                    values_from = all_of(var.model),
+                                                                    names_glue = "{term}.{.value}")
+  # TODO: change the potential strings in the table into numerics + lut
+  
+  
+  # combine the tables:
+  onemodel.onerow <- bind_cols(onemodel.tidy.onerow, onemodel.glance.onerow)
+  
+  # now you can get the headers, # of columns, etc of the output results
+  
+  
+  if (flag_initiate == TRUE) { # initiate the saving:
+    # check if group "results" already exists!
+    if (fn.output.h5$exists("results") == TRUE) { # group "results" exist
+      results.grp <- fn.output.h5$open("results")
+    } else {
+      results.grp <- fn.output.h5$create_group("results")
+    }
+    
+    # check if group "results\<analysis_name>" exists:
+    if (results.grp$exists(analysis_name) == TRUE & overwrite == FALSE) {
+      warning(paste0(analysis_name, " exists but not to overwrite!"))
+      # TODO: add checker for exisiting analysis_name, esp the matrix size
+      results.analysis.grp <- results.grp$open(analysis_name)
+      results_matrix_ds <- results.analysis.grp[["results_matrix"]]
+      
+    } else {     # not exist; or exist & overwrite: to create
+      if (results.grp$exists(analysis_name) == TRUE & overwrite == TRUE) {  # delete existing one first
+        results.grp$link_delete(analysis_name)   # NOTE: the file size will not shrink after your deletion.. this is because of HDF5, regardless of package of hdf5r or rhdf5
+      }
+      
+      # create:
+      results.analysis.grp <- results.grp$create_group(analysis_name)  # create a subgroup called analysis_name under results.grp
+      results.analysis.grp[["results_matrix"]] <- matrix(0, nrow=nrow(scalars(fa)[[scalar]]), ncol = ncol(onemodel.onerow))   # all 0
+      results_matrix_ds <- results.analysis.grp[["results_matrix"]]   # name it
+      # attach column names:
+      h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(onemodel.onerow)   # TODO: confirm with Matt that this is fine for ConFixel
+      
+    }
+    
+    # return:
+    output_list <- list(results.grp = results.grp,
+                        results.analysis.grp = results.analysis.grp,
+                        results_matrix_ds = results_matrix_ds)
+    return(output_list)
+    
+  } else if (flag_initiate == FALSE) {  # to save this fixel:
+    # assuming group "results", group "results\<analysis_name>", and its "results_matrix" dataset already exist and correctly created; they should be entered into this function
 
+    
+    # then flush into .h5 file: 
+    results_matrix_ds[i_fixel,] <- as.numeric(onemodel.onerow)   # TODO: ask Matt if a column of fixel_id is needed?
+    
+    # # will return nothing (as results.* are just provided in the arguments....)
+    # a = as.numeric(onemodel.onerow)
+    # results_matrix_ds.afterflush <- results_matrix_ds
+    # output_list <- list(a = a, 
+    #                     results_matrix_ds.afterflush = results_matrix_ds.afterflush)
+    # return(output_list)
+  }
+  
+    
+}
+
+#' Analyse (fit statistical model) and write the outputs for 1 fixel
+#'
+#' @param formula Formula (passed to `lm()`)
+#' @param data FixelArray class
+#' @param phenotypes The cohort matrix with covariates to be added to the model  
+#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param fn.output.h5 Opened h5 file (via H5File$new(filename, mode="a"))
+#' @param analysis_name The subgroup name in results, holding the analysis results 
+#' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
+#' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
+#' @param var.model The list of variables to save for the model (got from lm %>% glance())
+#' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE and it will return column names.
+
+#' 
+#' @param verbose Print progress messages
+#' @import hdf5r
+
+analyseOneFixel.lm <- function(i_fixel, 
+                               formula, data, phenotypes, scalar, fn.output.h5, analysis_name = "lm", 
+                               var.terms, var.model, 
+                               flag_initiate = FALSE, 
+                               verbose = TRUE, ...) {
+  values <- scalars(fa)[[scalar]][i_fixel,]
+  dat <- phenotypes
+  dat[[scalar]] <- values
+  onemodel <- stats::lm(formula, data = dat, ...)   
+  onemodel.tidy <- onemodel %>% tidy()
+  onemodel.glance <- onemodel %>% glance()
+  # Augment accepts a model object and a dataset and adds information about each observation in the dataset. 
+  #   also accepts new data: Users may pass data to augment via either the data argument or the newdata argument. 
+  # onemodel.augment <- onemodel %>% augment()  
+  
+  # delete columns you don't want:
+  var.terms.full <-names(onemodel.tidy)
+  
+  var.model.full <- names(onemodel.glance)
+  
+  # list to remove:
+  var.terms.orig <- var.terms
+  var.terms <- list("term", var.terms) %>% unlist()    # we will always keep "term" column
+  var.terms.remove <- list()   
+  for (l in var.terms.full) {
+    if (!(l %in% var.terms)) {
+      var.terms.remove <- var.terms.remove %>% append(., l) %>% unlist()  # the order will still be kept
+    }
+  }
+  
+  var.model.remove <- list()
+  for (l in var.model.full) {
+    if (!(l %in% var.model)) {
+      var.model.remove <- var.model.remove %>% append(., l) %>% unlist()  # the order will still be kept
+    }
+  }
+  
+  # remove those columns:
+  onemodel.tidy <- select(onemodel.tidy, -all_of(var.terms.remove))
+  onemodel.glance <- select(onemodel.glance, -all_of(var.model.remove))
+  
+  # adjust:
+  onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
+  onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
+  
+  # flatten .tidy results into one row:
+  onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(names_from = term,
+                                                               values_from = all_of(var.terms.orig),
+                                                               names_glue = "{term}.{.value}")
+  onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
+                                                                    values_from = all_of(var.model),
+                                                                    names_glue = "{term}.{.value}")
+  # TODO: change the potential strings in the table into numerics + lut
+  
+  
+  # combine the tables:
+  onemodel.onerow <- bind_cols(onemodel.tidy.onerow, onemodel.glance.onerow)
+  
+  # now you can get the headers, # of columns, etc of the output results
+  
+  
+  if (flag_initiate == TRUE) { # initiate the saving:
+    # return:
+    output_list <- list(colnames = colnames(onemodel.onerow))
+    return(output_list)
+    
+  } else if (flag_initiate == FALSE) {  # to save this fixel:
+
+    # return: 
+    output_list <- list(onerow <- as.numeric(onemodel.onerow))   # change from tibble to numeric to save a lot of space!
+    
+    # return(output_list)
+  }
+  
+  
+}  
+  
+  
+  
 #' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time.
 #' 
 #' @param fa FixelArray object

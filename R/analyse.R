@@ -146,6 +146,9 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
           broom::tidy() %>%
           dplyr::mutate(fixel_id = i-1)
         
+        # TODO: remove tibble information and turn into numeric function
+        
+        
         # lm(formula, data = dat, ...) %>%
         #   broom::glance() %>%
         #   print()
@@ -196,6 +199,128 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
   df_out
   
 }
+
+#' Run a linear model at each fixel location, write out each result just after the model fitting 
+#' 
+#' @param 
+#' 
+
+FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fn.output.h5, analysis_name = "lm", fixel.subset = NULL, 
+                              var.terms = c("estimate", "p.value"), 
+                              var.model = c("r.squared", "p.value"), 
+                              overwrite = TRUE,
+                              verbose = TRUE, pbar = TRUE, n_cores = 1, ...) {
+  # data type assertions
+  if(class(data) != "FixelArray") {
+    stop("Not a fixel array for analysis")
+  }
+  
+  # TODO: add lm additional arguments' checker (copy to FixelArray.lm)
+  
+  
+  
+  # star the process
+  if(verbose){
+    message(glue::glue("Fitting fixel-wise linear models for {scalar}", ))
+    message(glue::glue("initiating....", ))
+  }
+  
+  # initiate
+  temp <- analyseNwriteOneFixel.lm(i_fixel=1, formula, data, phenotypes, scalar, fn.output.h5, analysis_name, 
+                           var.terms, var.model, 
+                           flag_initiate = TRUE, overwrite = overwrite,
+                           results.grp = NULL, results.analysis.grp = NULL, results_matrix_ds = NULL,
+                           verbose = TRUE, ...)
+  results.grp <- temp$results.grp
+  results.analysis.grp <- temp$results.analysis.grp
+  results_matrix_ds <- temp$results_matrix_ds
+  
+  # loop (by condition of pbar and n_cores)
+  if(verbose){
+    message(glue::glue("looping across fixels....", ))
+  }
+  
+  # is it a multicore process?
+  flag_initiate <- FALSE
+  if(n_cores > 1){
+    # set up # of cores:
+    registerDoParallel(cores = n_cores)
+    
+    if (pbar) {
+      
+      pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
+                            analyseNwriteOneFixel.lm,  # the function
+                            mc.cores = n_cores,
+                            formula, data, phenotypes, scalar, fn.output.h5, analysis_name,
+                            var.terms, var.model,
+                            flag_initiate = FALSE, overwrite = overwrite,
+                            results.grp = results.grp, results.analysis.grp = results.analysis.grp, results_matrix_ds = results_matrix_ds,
+                            verbose = TRUE,
+                            ...
+                            )
+      
+    } else {
+      
+      foreach::foreach
+      
+      parallel::mclapply(fixel.subset,   # a list of i_fixel    # it will perform analysis but not saved to .h5 file
+                         analyseNwriteOneFixel.lm,  # the function
+                         mc.cores = n_cores,
+                         formula, data, phenotypes, scalar, fn.output.h5, analysis_name,
+                         var.terms, var.model,
+                         flag_initiate = FALSE, overwrite = overwrite,
+                         results.grp = results.grp, results.analysis.grp = results.analysis.grp, results_matrix_ds = results_matrix_ds,
+                         verbose = TRUE,
+                         ...
+                         )
+      # parallel::mclapply(fixel.subset,   # a list of i_fixel   # error?
+      #                    analyseNwriteOneFixel.lm,  # the function
+      #                    mc.cores = n_cores,
+      #                    ...
+      #                    )
+      
+    }
+  } else  {  # n_cores ==1, not multi-core
+    
+    if (pbar) {
+      
+      aa <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
+                        analyseNwriteOneFixel.lm,  # the function
+                        formula, data, phenotypes, scalar, fn.output.h5, analysis_name,
+                        var.terms, var.model,
+                        flag_initiate = FALSE, overwrite = overwrite,
+                        results.grp = results.grp, results.analysis.grp = results.analysis.grp, results_matrix_ds = results_matrix_ds,
+                        verbose = TRUE,
+                        ...)
+      
+    } else {
+      
+      aa <- lapply(fixel.subset,   # a list of i_fixel
+             analyseNwriteOneFixel.lm,  # the function
+             formula, data, phenotypes, scalar, fn.output.h5, analysis_name,
+             var.terms, var.model,
+             flag_initiate = FALSE, overwrite = overwrite,
+             results.grp = results.grp, results.analysis.grp = results.analysis.grp, results_matrix_ds = results_matrix_ds,
+             verbose = TRUE,
+             ...)
+    }
+  }  
+    
+  
+    
+
+  # return the results.*:
+  output_list <- list(results.grp = results.grp,    # got from initiation
+                      results.analysis.grp = results.analysis.grp, 
+                      results_matrix_ds = results_matrix_ds,
+                      a = aa$a,
+                      results_matrix_ds.afterflush = aa$results_matrix_ds.afterflush)
+  return(output_list)
+
+}
+
+
+
 
 #' Run a t.test at each fixel location
 #'
