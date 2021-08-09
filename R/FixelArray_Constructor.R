@@ -130,6 +130,9 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
   
   ## results:
   # first, we need to check if results group exists in this .h5 file
+  
+  
+  
   flag_results_exist <- flagResultsGroupExistInh5(filepath)
   # message(flag_results_exist)
   if (flag_results_exist==FALSE) {
@@ -352,33 +355,30 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
 
 #' Analyse (fit statistical model) and write the outputs for 1 fixel
 #'
+#' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
 #' @param formula Formula (passed to `lm()`)
 #' @param fa FixelArray class
 #' @param phenotypes The cohort matrix with covariates to be added to the model  
 #' @param scalar The name of the scalar to be analysed fixel-wise
-#' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
 #' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
 #' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE and it will return column names.
-
 #' 
-#' @param verbose Print progress messages
+#' @return if flag_initiate==TRUE, returns column names of final results; if flag_initiate==FALSE, returns the final results for a fixel
+#' @export
 #' @import hdf5r
 
 analyseOneFixel.lm <- function(i_fixel, 
                                formula, fa, phenotypes, scalar, 
                                var.terms, var.model, 
                                flag_initiate = FALSE, 
-                               verbose = TRUE, ...) {
+                               ...) {
   values <- scalars(fa)[[scalar]][i_fixel,]
   dat <- phenotypes
   dat[[scalar]] <- values
   onemodel <- stats::lm(formula, data = dat, ...)   
   onemodel.tidy <- onemodel %>% tidy()
   onemodel.glance <- onemodel %>% glance()
-  # Augment accepts a model object and a dataset and adds information about each observation in the dataset. 
-  #   also accepts new data: Users may pass data to augment via either the data argument or the newdata argument. 
-  # onemodel.augment <- onemodel %>% augment()  
   
   # delete columns you don't want:
   var.terms.full <-names(onemodel.tidy)
@@ -426,6 +426,9 @@ analyseOneFixel.lm <- function(i_fixel,
   
   # combine the tables:
   onemodel.onerow <- bind_cols(onemodel.tidy.onerow, onemodel.glance.onerow)
+  # add a column of fixel ids:
+  colnames.temp <- colnames(onemodel.onerow)
+  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(fixel_id = i_fixel-1, .before = colnames.temp[1])   # add as the first column
   
   # now you can get the headers, # of columns, etc of the output results
   
@@ -448,7 +451,7 @@ analyseOneFixel.lm <- function(i_fixel,
   
   
   
-#' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time.
+#' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".old": for writing results with multiple rows for one fixel
 #' 
 #' @param fa FixelArray object
 #' @param data A data.frame object with model results at each fixel
@@ -456,7 +459,7 @@ analyseOneFixel.lm <- function(i_fixel,
 #' @param flag_overwrite If same analysis_name exists, whether overwrite or not
 #'
 
-writeResults <- function(fa, data, analysis_name = "myAnalysis", flag_overwrite=TRUE){ 
+writeResults.old <- function(fa, data, analysis_name = "myAnalysis", flag_overwrite=TRUE){ 
 
   # check if analysis_name subfolder already exists in the .h5 file:
   h5closeAll()
@@ -506,3 +509,83 @@ writeResults <- function(fa, data, analysis_name = "myAnalysis", flag_overwrite=
   message("Results file written!")
 }
 
+#' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
+#' 
+#' TODO: change the description for this function!!
+#' @param fn.output The .h5 filename for the output, including folder directory
+#' @param df.output A data.frame object with model results at each fixel, returned from FixelArray.lm() etc
+#' @param analysis_name The subfolder name in results, holding the analysis results 
+#' @param overwrite If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)
+#'
+
+writeResults.enh <- function(fn.output, df.output, analysis_name = "myAnalysis", overwrite=TRUE){ 
+  
+  # check "df.output"
+  if(!("data.frame" %in% class(df.output))) {
+    stop("Results dataset is not correct; must be data of type `data.frame`")
+  }
+  
+  fn.output.h5 <- H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
+
+  # check if group "results" already exists!
+  if (fn.output.h5$exists("results") == TRUE) { # group "results" exist
+    results.grp <- fn.output.h5$open("results")
+  } else {
+    results.grp <- fn.output.h5$create_group("results")
+  }
+  
+  # check if group "results\<analysis_name>" exists:
+  if (results.grp$exists(analysis_name) == TRUE & overwrite == FALSE) {
+    warning(paste0(analysis_name, " exists but not to overwrite!"))
+    # TODO: add checker for exisiting analysis_name, esp the matrix size
+    results.analysis.grp <- results.grp$open(analysis_name)
+    results_matrix_ds <- results.analysis.grp[["results_matrix"]]
+    
+  } else {     # not exist; or exist & overwrite: to create
+    if (results.grp$exists(analysis_name) == TRUE & overwrite == TRUE) {  # delete existing one first
+      results.grp$link_delete(analysis_name)   # NOTE: the file size will not shrink after your deletion.. this is because of HDF5, regardless of package of hdf5r or rhdf5
+      # TODO: add a garbage collector after saving the results
+    }
+    
+    # create:
+    results.analysis.grp <- results.grp$create_group(analysis_name)  # create a subgroup called analysis_name under results.grp
+    
+    # check "df.output": make sure all columns are floats (i.e. numeric)
+    for (i_col in seq(1, ncol(df.output), by=1)) {     # for each column of df.output
+      col_class <- as.character(sapply(df.output, class)[i_col])    # class of this column
+
+      if ((col_class != "numeric") & (col_class != "integer")) {    # the column class is not numeric or integer
+        message(paste0("the column #", as.character(i_col)," of df.output to save: data class is not numeric or integer...fixing it"))
+        
+        # turn into numeric & write the notes in .h5 file...:
+        factors <- df.output %>% pull(., var=i_col) %>% factor
+        df.output[,i_col] <- df.output %>% pull(., var=i_col) %>% factor %>% as.numeric(.)    # change into numeric of 1,2,3....
+        
+        # write a LUT for this column:
+        results.analysis.grp[[paste0("lut_forcol", as.character(i_col))]] <- levels(factors)   # save lut to .h5/results/<myAnalysis>/lut_col<?>
+        
+      }
+    }
+    
+    # save: 
+    results.analysis.grp[["results_matrix"]] <- as.matrix(df.output)
+    # results_matrix_ds <- results.analysis.grp[["results_matrix"]]   # name it
+    
+    # attach column names:
+    h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)   # TODO: update ConFixel correspondingly
+    
+  }
+  
+  # # return:   # will not work if fn.output.h5$close_all()
+  # output_list <- list(results.grp = results.grp,
+  #                     results.analysis.grp = results.analysis.grp,
+  #                     results_matrix_ds = results_matrix_ds)
+  # return(output_list)
+  
+  fn.output.h5$close_all()
+  
+
+  # message("Results file written!")
+  
+  
+}
