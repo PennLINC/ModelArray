@@ -44,7 +44,7 @@ printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, me
 #' @param n_cores The number of cores to run on
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
-FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
+FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "FixelArray") {
@@ -146,7 +146,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
           broom::tidy() %>%
           dplyr::mutate(fixel_id = i-1)
         
-        # TODO: remove tibble information and turn into numeric function
+        # NOTES: see current FixelArray.lm, after: remove tibble information and turn into numeric function
         
         
         # lm(formula, data = dat, ...) %>%
@@ -205,7 +205,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
 #' @param 
 #' 
 
-FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, 
+FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, 
                               var.terms = c("estimate", "p.value"), 
                               var.model = c("r.squared", "p.value"), 
                               overwrite = TRUE,
@@ -215,11 +215,62 @@ FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fixel.subset = 
     stop("Not a fixel array for analysis")
   }
   
-  # TODO: add lm additional arguments' checker (copy to FixelArray.lm)
+  ### display additional arguments:
+  dots <- list(...)
+  dots_names <- names(dots)
+  
+  FUN <- stats::lm
+  
+  # subset:
+  m1 <- "no default"  
+  printAdditionalArgu(FUN, "subset", dots, m1)
+  
+  # weights:
+  m1 <- "no default"
+  if ("weights" %in% dots_names) {  # if user provides weights
+    m_usr_input <- paste0( class(dots$weights), " with length of ", length(dots$weights)) # message describing usr's input; cannot use dim on c(1,2) 
+  } else {
+    m_usr_input <- NULL
+  }
+  printAdditionalArgu(FUN, "weights", dots, m1, m_usr_input)
+  
+  # na.action:
+  m1 <- "no default"
+  printAdditionalArgu(FUN, "na.action", dots, m1)
+  
+  # method:
+  printAdditionalArgu(FUN, "method", dots)  # default: "qr"
+  
+  # model:
+  m1 <- invisible(eval(formals(FUN)[["model"]])) %>% as.character()   # default: [logical] TRUE
+  printAdditionalArgu(FUN, "model", dots, m1)  
+  
+  # x:
+  m1 <- invisible(eval(formals(FUN)[["x"]])) %>% as.character()   # default: [logical] FALSE
+  printAdditionalArgu(FUN, "x", dots, m1)
+  
+  # y:
+  m1 <- invisible(eval(formals(FUN)[["y"]])) %>% as.character()   # default: [logical] FALSE
+  printAdditionalArgu(FUN, "y", dots, m1)
+  
+  # qr:
+  m1 <- invisible(eval(formals(FUN)[["qr"]])) %>% as.character()   # default: [logical] TRUE
+  printAdditionalArgu(FUN, "qr", dots, m1)
+  
+  # singular.ok:
+  m1 <- invisible(eval(formals(FUN)[["singular.ok"]])) %>% as.character()   # default: [logical] TRUE
+  printAdditionalArgu(FUN, "singular.ok", dots, m1)
+  
+  # contrasts:
+  printAdditionalArgu(FUN, "contrasts", dots)   # default: NULL
+  
+  # offset:
+  m1 <- "no default"   # there is no default
+  printAdditionalArgu(FUN, "offset", dots, m1)
   
   
   
-  # star the process
+  ### start the process:
   if(verbose){
     message(glue::glue("Fitting fixel-wise linear models for {scalar}", ))
     message(glue::glue("initiating....", ))
@@ -229,7 +280,7 @@ FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fixel.subset = 
   column_names <- analyseOneFixel.lm(i_fixel=1, formula, data, phenotypes, scalar, 
                                      var.terms, var.model, 
                                      flag_initiate = TRUE, 
-                                     verbose = TRUE, ...)
+                                     ...)
 
   # loop (by condition of pbar and n_cores)
   if(verbose){
@@ -245,33 +296,24 @@ FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fixel.subset = 
     if (pbar) {
       
       fits <- pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
-                            analyseOneFixel.lm,  # the function
-                            mc.cores = n_cores,
-                            formula, data, phenotypes, scalar, 
-                            var.terms, var.model,
-                            flag_initiate = FALSE, 
-                            verbose = TRUE,
-                            ...
-                            )
+                                    analyseOneFixel.lm,  # the function
+                                    mc.cores = n_cores,
+                                    formula, data, phenotypes, scalar,
+                                    var.terms, var.model,
+                                    flag_initiate = FALSE,
+                                    ...)
       
     } else {
       
       # foreach::foreach
       
-      fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel    # it will perform analysis but not saved to .h5 file
-                         analyseOneFixel.lm,  # the function
-                         mc.cores = n_cores,
-                         formula, data, phenotypes, scalar, 
-                         var.terms, var.model,
-                         flag_initiate = FALSE, 
-                         verbose = TRUE,
-                         ...
-                         )
-      # parallel::mclapply(fixel.subset,   # a list of i_fixel   # error?
-      #                    analyseOneFixel.lm,  # the function
-      #                    mc.cores = n_cores,
-      #                    ...
-      #                    )
+      fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel 
+                                 analyseOneFixel.lm,  # the function
+                                 mc.cores = n_cores,
+                                 formula, data, phenotypes, scalar,
+                                 var.terms, var.model,
+                                 flag_initiate = FALSE,
+                                 ...)
       
     }
   } else  {  # n_cores ==1, not multi-core
@@ -279,12 +321,11 @@ FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fixel.subset = 
     if (pbar) {
       
       fits <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
-                        analyseOneFixel.lm,  # the function
-                        formula, data, phenotypes, scalar, 
-                        var.terms, var.model,
-                        flag_initiate = FALSE, 
-                        verbose = TRUE,
-                        ...)
+                                analyseOneFixel.lm,  # the function
+                                formula, data, phenotypes, scalar,
+                                var.terms, var.model,
+                                flag_initiate = FALSE,
+                                ...)
       
     } else {
       
@@ -293,7 +334,6 @@ FixelArray.enh.lm <- function(formula, data, phenotypes, scalar, fixel.subset = 
                      formula, data, phenotypes, scalar,
                      var.terms, var.model,
                      flag_initiate = FALSE,
-                     verbose = TRUE,
                      ...)
     }
   }  
