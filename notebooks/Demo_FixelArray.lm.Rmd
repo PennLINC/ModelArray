@@ -51,17 +51,31 @@ fixel.subset <- 1:100
 
 Run FixelArray.lm:
 ```{r}
-# TODO: change the function's name!!
-lm.outputs <- FixelArray.enh.lm (formula, data, phenotypes, scalar, fixel.subset = fixel.subset, 
+lm.outputs <- FixelArray.lm (formula, data, phenotypes, scalar, fixel.subset = fixel.subset, 
                               var.terms = var.terms, 
                               var.model = var.model, 
                               overwrite = TRUE,
-                              verbose = TRUE, pbar = FALSE, n_cores = 1)
-# NOTES: I tested with one fixel #6: same with diretly calling lm
+                              verbose = TRUE, pbar = TRUE, n_cores = 2)  # , na.action="na.fail"
+# NOTES: I tested pbar=FALSE (or TRUE), n_cores=1 (or 2);  with one fixel #6: same with directly calling lm
+
+                             
 
 # TODO: garbage collection: after each run of this block, even though matrix is overwritten, the size keeps adding... This is probably related to hdf5's deleting does not shrink the file's size.... So we should close the file, and do garbage cleaning.
 
 ```
+Save to .h5 file:
+```{r}
+writeResults.enh(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE)
+
+```
+Test writing results with string
+```{r}
+df <- data.frame(a = 1:5, b = c("type1","type2", "type1","type2","type3"))
+writeResults.enh(fn.output, df.output = df, analysis_name="test", overwrite=TRUE)     # tested, good
+
+# results.analysis.grp[["lut_forcol2"]][1:3]
+```
+
 Let's see what the saved outputs look like: The "results" group:
 ```{r}
 results.grp
