@@ -241,6 +241,8 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 #' @param overwrite Whether to overwrite or not    # TODO: to make this description more clear
 #' @param verbose Print progress messages
 #' @import hdf5r
+#' @import broom
+#' @import dplyr
  
 analyseNwriteOneFixel.lm <- function(i_fixel, 
                                      formula, fa, phenotypes, scalar, fn.output.h5, analysis_name = "lm", 
@@ -252,8 +254,8 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
   dat <- phenotypes
   dat[[scalar]] <- values
   onemodel <- stats::lm(formula, data = dat, ...)   
-  onemodel.tidy <- onemodel %>% tidy()
-  onemodel.glance <- onemodel %>% glance()
+  onemodel.tidy <- onemodel %>% broom::tidy()
+  onemodel.glance <- onemodel %>% broom::glance()
   # Augment accepts a model object and a dataset and adds information about each observation in the dataset. 
   #   also accepts new data: Users may pass data to augment via either the data argument or the newdata argument. 
   # onemodel.augment <- onemodel %>% augment()  
@@ -281,8 +283,8 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
   }
   
   # remove those columns:
-  onemodel.tidy <- select(onemodel.tidy, -all_of(var.terms.remove))
-  onemodel.glance <- select(onemodel.glance, -all_of(var.model.remove))
+  onemodel.tidy <- dplyr::select(onemodel.tidy, -all_of(var.terms.remove))
+  onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
   
   # adjust:
   onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
@@ -371,6 +373,8 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
 #' @return if flag_initiate==TRUE, returns column names of final results; if flag_initiate==FALSE, returns the final results for a fixel
 #' @export
 #' @import hdf5r
+#' @import broom
+#' @import dplyr
 
 analyseOneFixel.lm <- function(i_fixel, 
                                formula, fa, phenotypes, scalar, 
@@ -381,8 +385,8 @@ analyseOneFixel.lm <- function(i_fixel,
   dat <- phenotypes
   dat[[scalar]] <- values
   onemodel <- stats::lm(formula, data = dat, ...)   
-  onemodel.tidy <- onemodel %>% tidy()
-  onemodel.glance <- onemodel %>% glance()
+  onemodel.tidy <- onemodel %>% broom::tidy()
+  onemodel.glance <- onemodel %>% broom::glance()
   
   # delete columns you don't want:
   var.terms.full <-names(onemodel.tidy)
@@ -408,10 +412,10 @@ analyseOneFixel.lm <- function(i_fixel,
   
   # remove those columns:
   if (length(var.terms.remove) != 0) {    # if length=0, it's list(), nothing to remove
-    onemodel.tidy <- select(onemodel.tidy, -all_of(var.terms.remove))
+    onemodel.tidy <- dplyr::select(onemodel.tidy, -all_of(var.terms.remove))
   }
   if (length(var.model.remove) != 0) {
-    onemodel.glance <- select(onemodel.glance, -all_of(var.model.remove))
+    onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
   }
   
   # adjust:

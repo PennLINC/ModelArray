@@ -2,40 +2,23 @@
 % Please edit documentation in R/analyse.R
 \name{FixelArray.lm}
 \alias{FixelArray.lm}
-\title{Run a linear model at each fixel location}
+\title{Run a linear model at each fixel location, write out each result just after the model fitting}
 \usage{
 FixelArray.lm(
   formula,
   data,
   phenotypes,
   scalar,
+  fixel.subset = NULL,
+  var.terms = c("estimate", "p.value"),
+  var.model = c("r.squared", "p.value"),
+  overwrite = TRUE,
   verbose = TRUE,
-  idx = NULL,
   pbar = TRUE,
   n_cores = 1,
   ...
 )
 }
-\arguments{
-\item{formula}{Formula (passed to `lm()`)}
-
-\item{data}{FixelArray dataset}
-
-\item{phenotypes}{The cohort file with covariates to be added to the model}
-
-\item{scalar}{The name of the scalar to be analysed fixel-wise}
-
-\item{verbose}{Print progress messages}
-
-\item{idx}{A vector of fixel IDs to subset}
-
-\item{pbar}{Print progress bar}
-
-\item{n_cores}{The number of cores to run on}
-}
-\value{
-Tibble with the summarised model statistics at each fixel location
-}
 \description{
-Run a linear model at each fixel location
+Run a linear model at each fixel location, write out each result just after the model fitting
 }

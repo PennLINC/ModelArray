@@ -203,7 +203,7 @@ FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' Run a linear model at each fixel location, write out each result just after the model fitting 
 #' 
 #' @param 
-#' 
+#' @import doParallel
 
 FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, 
                               var.terms = c("estimate", "p.value"), 

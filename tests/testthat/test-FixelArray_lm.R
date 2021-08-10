@@ -1,18 +1,18 @@
 test_that("FixelArray's lm works as expected", {
-  # h5_path <- system.file("extdata", "n50_fixels.h5", package = "FixelArray")   # TODO: ask Tinashe
-  
-  # fa <- FixelArray(h5_path, 
-  #                  "scalar_types" = c("FD"), 
-  #                  analysis_names = c("my_analysis"))
-  
-  h5_path <- paste0(system.file(package = "FixelArray"),
-                    "inst/extdata/","n50_fixels.h5")
+  h5_path <- system.file("extdata", "n50_fixels.h5", package = "FixelArray")   # TODO: ask Tinashe
+ 
   fa <- FixelArray(h5_path,
-                   scalar_types = c("FD"))
+                    "scalar_types" = c("FD"),
+                    analysis_names = c("my_analysis"))
   
-  # csv_path <- system.file("extdata", "n50_cohort.csv", package = "FixelArray")   # TODO: ask Tinashe
-  csv_path <- paste0(system.file(package = "FixelArray"),
-                     "inst/extdata/","n50_cohort.csv")
+  # h5_path <- paste0(system.file(package = "FixelArray"),
+  #                   "inst/extdata/","n50_fixels.h5")
+  # fa <- FixelArray(h5_path,
+                   # scalar_types = c("FD"))
+  
+  csv_path <- system.file("extdata", "n50_cohort.csv", package = "FixelArray")   # TODO: ask Tinashe
+  # csv_path <- paste0(system.file(package = "FixelArray"),
+  #                    "inst/extdata/","n50_cohort.csv")
   
   phenotypes <- read.csv(csv_path)
   scalar_name <- "FD"
@@ -125,7 +125,7 @@ test_that("FixelArray's lm works as expected", {
   
   ## TODO: check var.terms = c(); var.model =c() --> any error
   
-  h5closeAll()
+  rhdf5::h5closeAll()
   
 })
 

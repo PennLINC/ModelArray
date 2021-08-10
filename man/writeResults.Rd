@@ -2,21 +2,24 @@
 % Please edit documentation in R/FixelArray_Constructor.R
 \name{writeResults}
 \alias{writeResults}
-\title{analyseNwriteOneFixel <- function()
-Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time.}
+\title{Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel}
 \usage{
-writeResults(fa, data, analysis_name = "myAnalysis", flag_overwrite = TRUE)
+writeResults(
+  fn.output,
+  df.output,
+  analysis_name = "myAnalysis",
+  overwrite = TRUE
+)
 }
 \arguments{
-\item{fa}{FixelArray object}
+\item{fn.output}{The .h5 filename for the output, including folder directory}
 
-\item{data}{A data.frame object with model results at each fixel}
+\item{df.output}{A data.frame object with model results at each fixel, returned from FixelArray.lm() etc}
 
 \item{analysis_name}{The subfolder name in results, holding the analysis results}
 
-\item{flag_overwrite}{If same analysis_name exists, whether overwrite or not}
+\item{overwrite}{If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)}
 }
 \description{
-analyseNwriteOneFixel <- function()
-Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time.
+TODO: change the description for this function!!
 }

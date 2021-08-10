@@ -2,7 +2,12 @@
 
 export("%>%")
 export(FixelArray)
+export(analyseOneFixel.lm)
 exportMethods(show)
+import(broom)
+import(doParallel)
+import(dplyr)
+import(hdf5r)
 import(methods)
 importClassesFrom(DelayedArray,DelayedArray)
 importFrom(magrittr,"%>%")
