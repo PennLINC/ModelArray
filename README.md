@@ -13,6 +13,8 @@ The goal of FixelArray is to …
 
 ## Installation
 
+Before you install the package, if you are using Linux system, please check if libhdf5-dev has been installed in your system
+
 You can install the released version of FixelArray from
 [CRAN](https://CRAN.R-project.org) with:
 
