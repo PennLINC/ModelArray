@@ -8,15 +8,7 @@ steps: &steps
     - checkout
     - run:
         name: Install libhdf5-dev in linux system
-        command:  |
-          temp=`ldconfig -p | grep libhdf5* | wc -l`
-          if [[ $temp -gt 0 ]]
-          then
-                  echo "libhdf5 exists."
-          else
-                  sudo apt-get update -y
-                  sudo apt-get install -y libhdf5-dev
-          fi
+        command: bash check_libhdf5.sh
     - run:
         name: Install package dependencies
         command: R -e "devtools::install_deps(dep = TRUE)"
