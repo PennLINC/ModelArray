@@ -47,8 +47,8 @@ FixelArraySeed <- function(
   )
   ) {
     
-    seed = HDF5Array::HDF5ArraySeed(
-      filepath, name = name, type = type)
+    seed = HDF5Array::HDF5ArraySeed(    
+      filepath, name = name, type = type)   # HDF5Array is also from BioConductor...
     
     seed
     
@@ -75,8 +75,13 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
   ## fixel_data: 
   
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
+  # fn.h5 <- H5File$new(filepath, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
+  # fixel_data <- fn.h5[["fixels"]]
+  # NOTE: without DelayedArray (Bioconductor), the fixel_data won't look like a regular matrix in R or get transposed; 
+  # NOTE: I also need to test if only using hdf5r can still extract scalars(fa)[["FD"]]
+  
   fixel_data <- FixelArraySeed(filepath, name = "fixels", type = NA) %>%
-    DelayedArray::DelayedArray()
+    DelayedArray::DelayedArray()    # NOTE: without DelayedArray (BioConductor), the fixel_data won't look like a regular matrix in R or get transposed
 
   if(dim(fixel_data)[2] != 5) {
 
@@ -130,9 +135,6 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
   
   ## results:
   # first, we need to check if results group exists in this .h5 file
-  
-  
-  
   flag_results_exist <- flagResultsGroupExistInh5(filepath)
   # message(flag_results_exist)
   if (flag_results_exist==FALSE) {
@@ -150,8 +152,10 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
         stop(paste0("This analysis: ",analysis_name, " does not exist..."))
       } else {    # exists
         # /results/<analysis_name>/has_names:
-        names_results_matrix <- FixelArraySeed(filepath, name = sprintf("results/%s/has_names", analysis_name), type = NA) %>%
-          DelayedArray::DelayedArray()
+        names_results_matrix <- rhdf5::h5readAttributes(filepath, name = sprintf("results/%s/results_matrix", analysis_name))$colnames # after updating writeResults()
+        
+        # names_results_matrix <- FixelArraySeed(filepath, name = sprintf("results/%s/has_names", analysis_name), type = NA) %>%
+        #   DelayedArray::DelayedArray()
         # if (dim(names_results_matrix)[1]<dim(names_results_matrix[2]){
         #   names_results_matrix <- t(names_results_matrix)
         # }
@@ -518,7 +522,7 @@ writeResults.old <- function(fa, data, analysis_name = "myAnalysis", flag_overwr
 #' @param overwrite If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)
 #'
 
-writeResults.enh <- function(fn.output, df.output, analysis_name = "myAnalysis", overwrite=TRUE){ 
+writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", overwrite=TRUE){ 
   
   # check "df.output"
   if(!("data.frame" %in% class(df.output))) {
