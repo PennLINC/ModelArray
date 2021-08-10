@@ -7,6 +7,9 @@ steps: &steps
           - cache-{{ .Environment.CIRCLE_JOB }}
     - checkout
     - run:
+        name: Install libraries
+        command: apt-get update && apt-get install -y --no-install-recommends libhdf5-dev
+    - run:
         name: Install package dependencies
         command: R -e "devtools::install_deps(dep = TRUE)"
     - run:
