@@ -114,7 +114,7 @@ fn.output.h5$close_all()
 
 ### test using multicore to save the results #####
 fn.test <- "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/testsaving.h5"
-fn.test.h5 <- H5File$new(fn.test, mode="a")
+fn.test.h5 <- hdf5r::H5File$new(fn.test, mode="a")
 fn.test.h5
 
 mat <- 1:100
