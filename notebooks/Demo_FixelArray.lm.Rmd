@@ -3,7 +3,7 @@ title: "demo of FixelArray's lm"
 output: html_document
 ---
 
-This is to show how FixelArray's lm looks like after its updates (including flush results immediately after analysis; better results structure, etc)
+This is to show how FixelArray's lm looks like after its updates (including better results structure, trying to use hdf5r(CRAN) instead of rhdf5 (BioConductor) etc)
 ```{r}
 # the working directory of this Demo is where it locates
 source("../R/FixelArray_Constructor.R")
@@ -11,30 +11,30 @@ source("../R/FixelArray_S4Methods.R")
 source("../R/utils.R")
 source("../R/analyse.R")
 # library(FixelArray)
-library(dplyr)
+suppressMessages(library(dplyr))
 library(broom)
 library(hdf5r)
-library(foreach)
-library(doParallel)
+suppressMessages(library(doParallel))
 ```
-Inputs set-ups:
+Inputs set-ups: let's copy the input .h5 file and name it as fn.output; based on it, we create a FixelArray class data:
 ```{r}
 fn <- "../inst/extdata/n50_fixels.h5"
-fn.output <- "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/n50_fixels_output.h5"    # TODO: now have to use the absolute path instead of relative... not sure why | relative:  "../data/data_forCircleCI_n50/n50_fixels_output.h5" 
+fn.output <- "../../data/data_forCircleCI_n50/n50_fixels_output.h5"  # absoluate path: "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/n50_fixels_output.h5" 
+
 fn_csv <- "../inst/extdata/n50_cohort.csv"
 
 file.copy(from=fn, to=fn.output, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)   # , recursive = TRUE
 # h5closeAll()
-fa <- FixelArray(fn)  # TODO: error with fa <- FixelArray(fn.output)  ???
+fa <- FixelArray(fn.output)  
 ```
-Let's create a H5File to access the output .h5 file:
-```{r}
-fn.output.h5 <- H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
-fn.output.h5
+<!-- Let's create a H5File to access the output .h5 file: -->
+<!-- ```{r} -->
+<!-- fn.output.h5 <- H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write -->
+<!-- fn.output.h5 -->
 
-fa <-  FixelArray(fn) # TODO: error with fa <- FixelArray(fn.output)  ???
-```
-
+<!-- fa <-  FixelArray(fn) # TODO: error with fa <- FixelArray(fn.output)  ??? -->
+<!-- ``` -->
+We set up for performing linear regression (lm):
 ```{r}
 phenotypes <- read.csv(fn_csv)
 
@@ -49,47 +49,35 @@ analysis_name <- "lm"
 fixel.subset <- 1:100
 ```
 
-Run FixelArray.lm:
+Run FixelArray.lm():
 ```{r}
-lm.outputs <- FixelArray.lm (formula, data, phenotypes, scalar, fixel.subset = fixel.subset, 
+lm.outputs <- FixelArray.lm (formula, fa, phenotypes, scalar, fixel.subset = fixel.subset, 
                               var.terms = var.terms, 
                               var.model = var.model, 
                               overwrite = TRUE,
                               verbose = TRUE, pbar = TRUE, n_cores = 2)  # , na.action="na.fail"
+head(lm.outputs)
+dim(lm.outputs)
 # NOTES: I tested pbar=FALSE (or TRUE), n_cores=1 (or 2);  with one fixel #6: same with directly calling lm
-
-                             
 
 # TODO: garbage collection: after each run of this block, even though matrix is overwritten, the size keeps adding... This is probably related to hdf5's deleting does not shrink the file's size.... So we should close the file, and do garbage cleaning.
 
 ```
 Save to .h5 file:
 ```{r}
-writeResults.enh(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE)
+writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE)
 
 ```
-Test writing results with string
-```{r}
-df <- data.frame(a = 1:5, b = c("type1","type2", "type1","type2","type3"))
-writeResults.enh(fn.output, df.output = df, analysis_name="test", overwrite=TRUE)     # tested, good
+<!-- Test writing results with string -->
+<!-- ```{r} -->
+<!-- df <- data.frame(a = 1:5, b = c("type1","type2", "type1","type2","type3")) -->
+<!-- writeResults.enh(fn.output, df.output = df, analysis_name="test", overwrite=TRUE)     # tested, good -->
 
-# results.analysis.grp[["lut_forcol2"]][1:3]
-```
+<!-- # results.analysis.grp[["lut_forcol2"]][1:3] -->
+<!-- ``` -->
 
 Let's see what the saved outputs look like: The "results" group:
 ```{r}
-results.grp
-```
-The "results\lm" group:
-```{r}
-results.analysis.grp
-```
-The results matrix:
-```{r}
-results_matrix_ds
-results_matrix_ds[fixel.subset,]   # elements that were written
-```
-
-```{r}
-fn.output.h5$close_all()
+fa_new <- FixelArray(fn.output, scalar_types = c("FD"), analysis_names = c("lm"))
+fa_new@results$lm
 ```
