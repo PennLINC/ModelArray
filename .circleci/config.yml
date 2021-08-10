@@ -10,6 +10,9 @@ steps: &steps
         name: Install libraries
         command: apt-get update && apt-get install -y --no-install-recommends libhdf5-dev
     - run:
+        name: Install libraries for latex
+        command: apt-get install collection-latexrecommended && apt-get install collection-fontsrecommended
+    - run:
         name: Install package dependencies
         command: R -e "devtools::install_deps(dep = TRUE)"
     - run:
