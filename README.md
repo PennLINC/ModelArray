@@ -13,9 +13,17 @@ The goal of FixelArray is to …
 
 ## Installation
 
-Before you install the package, if you are using Linux system, please check if libhdf5-dev has been installed in your system
+Before you install FixelArray R package, if you are using Linux system, please check if libhdf5-dev has been installed in your system:
+```console
+foo@bar:~$ ldconfig -p | grep libhdf5*
+```
+If you got more than one line of outputs, congrats, you have libhdf5-dev installed. Otherwise, please install it. For Ubuntu user, you may install via:
+```console
+foo@bar:~$ sudo apt-get update -y
+foo@bar:~$ sudo apt-get install -y libhdf5-dev
+```
 
-You can install the released version of FixelArray from
+After setting libhdf5 up, you can install the released version of FixelArray from
 [CRAN](https://CRAN.R-project.org) with:
 
 ``` r
