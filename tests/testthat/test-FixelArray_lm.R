@@ -60,6 +60,19 @@ test_that("FixelArray's lm works as expected", {
                                          n_cores = 2, pbar=TRUE)
   expect_equal(mylm, mylm_pbarTRUE_ncores2)
   
+  ## Different output statistics
+  mylm_noTermsOutput <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                              var.terms = c(),
+                              var.model = var.model,
+                              n_cores = 1, pbar=FALSE)
+  expect_equal(as.numeric(dim(mylm_noTermsOutput)), c(100,1+length(var.model))) # check shape
+  
+  mylm_noModelOutput <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                                      var.terms = var.terms,
+                                      var.model = c(),
+                                      n_cores = 1, pbar=FALSE)
+  expect_equal(as.numeric(dim(mylm_noModelOutput)), c(100,1+2*length(var.terms))) # check shape
+  
   
   ## How about other variables as covariate? factorA is literally correlated with age; factorB is another random variable
   # factor A is fully correlated with age, expecting testing results are NA:
@@ -122,8 +135,6 @@ test_that("FixelArray's lm works as expected", {
   # FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, n_cores = 1, pbar=FALSE,  
   #            weights = rep(1,length(phenotypes$subject_id)) )
   
-  
-  ## TODO: check var.terms = c(); var.model =c() --> any error
   
   rhdf5::h5closeAll()
   
