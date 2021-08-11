@@ -207,6 +207,7 @@ FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' @param phenotypes The cohort matrix with covariates to be added to the model  
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param fixel.subset The subset of fixel ids you want to run. Integers. First id starts from 1.
+#' @param full.outputs Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.
 #' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
 #' @param verbose Print verbose message or not
@@ -214,9 +215,9 @@ FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' @param n_cores The number of cores to run on
 #' @import doParallel
 
-FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, 
-                              var.terms = c("estimate", "p.value"), 
-                              var.model = c("r.squared", "p.value"), 
+FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
+                              var.terms = c("estimate", "statistic", "p.value"), 
+                              var.model = c("adj.r.squared", "p.value"), 
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...) {
   # data type assertions
   if(class(data) != "FixelArray") {
@@ -284,6 +285,11 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
   if(verbose){
     message(glue::glue("Fitting fixel-wise linear models for {scalar}", ))
     message(glue::glue("initiating....", ))
+  }
+  
+  if (full.outputs == TRUE) {   # full set of outputs
+    var.terms = c("estimate","std.error","statistic","p.value")
+    var.model = c("r.squared", "adj.r.squared", "sigma", "statistic", "p.value", "df", "logLik", "AIC", "BIC", "deviance", "df.residual", "nobs")
   }
   
   # initiate: get the example of one fixel and get the column names

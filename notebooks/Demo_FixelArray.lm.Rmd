@@ -41,6 +41,7 @@ phenotypes <- read.csv(fn_csv)
 scalar <- "FD"
 formula <- FD~age
 
+full.output <- FALSE
 var.terms <- c("estimate", "p.value")   # list of columns to keep  | , "std.error","statistic"
 var.model <- c("r.squared", "p.value", "AIC")
 
@@ -51,12 +52,13 @@ fixel.subset <- 1:100
 
 Run FixelArray.lm():
 ```{r}
-lm.outputs <- FixelArray.lm (formula, fa, phenotypes, scalar, fixel.subset = fixel.subset, 
+lm.outputs <- FixelArray.lm (formula, fa, phenotypes, scalar, fixel.subset = fixel.subset, full.output = full.output,  # false by default
                               var.terms = var.terms, 
                               var.model = var.model, 
                               verbose = TRUE, pbar = TRUE, n_cores = 2)  # , na.action="na.fail"
 head(lm.outputs)
 dim(lm.outputs)
+
 # NOTES: I tested pbar=FALSE (or TRUE), n_cores=1 (or 2);  with one fixel #6: same with directly calling lm
 
 # TODO: garbage collection: after each run of this block, even though matrix is overwritten, the size keeps adding... This is probably related to hdf5's deleting does not shrink the file's size.... So we should close the file, and do garbage cleaning.

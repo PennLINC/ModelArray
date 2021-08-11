@@ -28,10 +28,20 @@ test_that("FixelArray's lm works as expected", {
   expect_true(is.data.frame(mylm))  # should be data.frame
   expect_equal(as.numeric(dim(mylm)), c(100,1+2*length(var.terms)+length(var.model))) # check shape
   
+  mylm_default <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                                n_cores = 2, pbar=FALSE)   # default full.outputs and var.*
+  expect_equal(as.numeric(dim(mylm_default)), c(100,1+2*3+2)) # check shape  # TODO: update after discussion with Ted
+  
+  mylm_fullOutputs <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                                    full.outputs = TRUE,   # default: FALSE
+                                n_cores = 2, pbar=FALSE)   
+  expect_equal(as.numeric(dim(mylm_fullOutputs)), c(100,21))
+  
+  
   mylm_age_sex <- FixelArray.lm(FD ~ age + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                 var.terms = var.terms,
                                 var.model = var.model,
-                                n_cores = 1, pbar=FALSE)
+                                n_cores = 2, pbar=FALSE)
   expect_equal(mylm_age_sex$fixel_id, 0:99)   # check output$fixel_id 
   expect_equal(as.numeric(dim(mylm_age_sex)), c(100,1+3*length(var.terms)+length(var.model))) 
   
