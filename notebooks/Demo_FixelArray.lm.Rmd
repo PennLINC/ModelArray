@@ -54,7 +54,6 @@ Run FixelArray.lm():
 lm.outputs <- FixelArray.lm (formula, fa, phenotypes, scalar, fixel.subset = fixel.subset, 
                               var.terms = var.terms, 
                               var.model = var.model, 
-                              overwrite = TRUE,
                               verbose = TRUE, pbar = TRUE, n_cores = 2)  # , na.action="na.fail"
 head(lm.outputs)
 dim(lm.outputs)

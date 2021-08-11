@@ -201,19 +201,29 @@ FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 }
 
 #' Run a linear model at each fixel location, write out each result just after the model fitting 
-#' 
-#' @param 
+#'
+#' @param formula Formula (passed to `lm()`)
+#' @param data FixelArray class
+#' @param phenotypes The cohort matrix with covariates to be added to the model  
+#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param fixel.subset The subset of fixel ids you want to run. Integers. First id starts from 1.
+#' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
+#' @param var.model The list of variables to save for the model (got from lm %>% glance())
+#' @param verbose Print verbose message or not
+#' @param pbar Print progress bar
+#' @param n_cores The number of cores to run on
 #' @import doParallel
 
 FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, 
                               var.terms = c("estimate", "p.value"), 
                               var.model = c("r.squared", "p.value"), 
-                              overwrite = TRUE,
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...) {
   # data type assertions
   if(class(data) != "FixelArray") {
     stop("Not a fixel array for analysis")
   }
+  
+  # TODO: add checker for min and max of fixel.subset; and whether elements are integer
   
   ### display additional arguments:
   dots <- list(...)
