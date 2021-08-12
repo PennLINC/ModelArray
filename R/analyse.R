@@ -294,7 +294,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
   # check for p.value correction:
   p.adjust.methods.full <- p.adjust.methods[ p.adjust.methods != "none" ]
     # check for terms:
-  if (correct.p.value.terms != "none") {
+  if ( all(correct.p.value.terms == "none") == FALSE) {    # any element is not "none"
     checker.method.in <- correct.p.value.terms %in% p.adjust.methods.full
     if ( all(checker.method.in) == FALSE) {   # not all "TRUE"
       stop(paste0("Some of elements in correct.p.value.terms are not valid, so not to perform terms's p.value corrections. Valid inputs are: ", paste(p.adjust.methods.full, collapse = ',')))
@@ -306,7 +306,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
   }
   
     # check for model:
-  if (correct.p.value.model != "none") {
+  if ( all(correct.p.value.model == "none") == FALSE ) {    # any element is not "none"
     checker.method.in <- correct.p.value.model %in% p.adjust.methods.full
     if ( all(checker.method.in) == FALSE) {   # not all "TRUE"
       stop(paste0("Some of elements in correct.p.value.model are not valid, so not to perform model's p.value corrections. Valid inputs are: ", paste(p.adjust.methods.full, collapse = ',')))
@@ -407,7 +407,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
             # else, iterate
   
   # add correction of p.values: for terms
-  if ( correct.p.value.terms == "none") {
+  if ( all(correct.p.value.terms == "none") ) {    # all() is to accormodate for multiple elements in correct.p.value.terms: if one of is not "none", FALSE
     # do nothing
     
   } else {
@@ -452,7 +452,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
   
   
   # add correction of p.values: for the model
-  if ( correct.p.value.model == "none") {
+  if (  all(correct.p.value.model == "none") ) {
     # do nothing
     
   } else {
