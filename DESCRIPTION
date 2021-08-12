@@ -36,7 +36,8 @@ Imports:
     DelayedArray,
     broom,
     pbmcapply,
-    pbapply
+    pbapply,
+    tictoc
 RoxygenNote: 7.1.1
 Suggests: 
     testthat (>= 3.0.0)
