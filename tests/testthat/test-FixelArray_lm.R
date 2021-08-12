@@ -8,7 +8,7 @@ test_that("FixelArray's lm works as expected", {
   # h5_path <- paste0(system.file(package = "FixelArray"),
   #                   "inst/extdata/","n50_fixels.h5")
   # fa <- FixelArray(h5_path,
-                   # scalar_types = c("FD"))
+  # scalar_types = c("FD"))
   
   csv_path <- system.file("extdata", "n50_cohort.csv", package = "FixelArray")   # TODO: ask Tinashe
   # csv_path <- paste0(system.file(package = "FixelArray"),
@@ -50,7 +50,7 @@ test_that("FixelArray's lm works as expected", {
                %>% isTRUE())  # expect not identical between two models
 
   
-  ## Test n_cores, pbar work:
+  ## Test n_cores, pbar work: ######
   # n_cores=2:
   mylm_ncores2 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                 var.terms = var.terms,
@@ -70,7 +70,7 @@ test_that("FixelArray's lm works as expected", {
                                          n_cores = 2, pbar=TRUE)
   expect_equal(mylm, mylm_pbarTRUE_ncores2)
   
-  ## Different output statistics
+  ## Different output statistics #####
   mylm_noTermsOutput <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                               var.terms = c(),
                               var.model = var.model,
@@ -83,6 +83,47 @@ test_that("FixelArray's lm works as expected", {
                                       n_cores = 1, pbar=FALSE)
   expect_equal(as.numeric(dim(mylm_noModelOutput)), c(100,1+2*length(var.terms))) # check shape
   
+  ## Whether to correct p.values:   #####
+  # terms:
+  mylm_corr_pvalues_1 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                                       var.terms = var.terms, var.model = var.model,
+                                       correct.p.value.terms = c("fdr","bonferroni"),
+                                       n_cores = 2, pbar=FALSE)
+  
+  expect_equal(mylm_corr_pvalues_1$age.p.value.fdr,
+               mylm_corr_pvalues_1$age.p.value %>% p.adjust("fdr"))
+  expect_equal(mylm_corr_pvalues_1$age.p.value.bonferroni,
+               mylm_corr_pvalues_1$age.p.value %>% p.adjust("bonferroni"))
+  
+  # model:
+  mylm_corr_pvalues_2 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                                       var.terms = var.terms, var.model = var.model,
+                                       correct.p.value.model = c("fdr","bonferroni"),
+                                       n_cores = 2, pbar=FALSE)
+  
+  expect_equal(mylm_corr_pvalues_2$model.p.value.fdr,
+               mylm_corr_pvalues_2$model.p.value %>% p.adjust("fdr"))
+  expect_equal(mylm_corr_pvalues_2$model.p.value.bonferroni,
+               mylm_corr_pvalues_2$model.p.value %>% p.adjust("bonferroni"))
+  
+  
+  expect_error(FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                             var.terms = var.terms, var.model = var.model,
+                             correct.p.value.terms = c("fdr_wrong","bonferroni"),   # wrong name
+                             n_cores = 2, pbar=FALSE))
+  expect_error(FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                             var.terms = var.terms, var.model = var.model,
+                             correct.p.value.model = c("fdr_wrong","bonferroni"),   # wrong name
+                             n_cores = 2, pbar=FALSE))
+  
+  expect_warning( FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                                var.terms = c("estimate"), var.model = var.model,  # did not provide p.value
+                                correct.p.value.terms = c("fdr","bonferroni"),
+                                n_cores = 2, pbar=FALSE))
+  expect_warning( FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                                var.terms = var.terms, var.model = c("AIC"),  # did not provide p.value
+                                correct.p.value.model = c("fdr","bonferroni"),
+                                n_cores = 2, pbar=FALSE))
   
   ## How about other variables as covariate? factorA is literally correlated with age; factorB is another random variable
   # factor A is fully correlated with age, expecting testing results are NA:
@@ -110,7 +151,7 @@ test_that("FixelArray's lm works as expected", {
   expect_false(all(is.na(mylm_age_factorB$factorB.std.error)))
   expect_false(all(is.na(mylm_age_factorB$factorB.statistic)))
   
-  ## Different optional arguments of lm: in order to test that the additional arguments have really been passed into the lm:
+  ## Different optional arguments of lm: in order to test that the additional arguments have really been passed into the lm: #####
   # test "na.action" with inputs with NA
   phenotypes_wNA <- phenotypes
   phenotypes_wNA$age[1] <- NA
