@@ -10,7 +10,13 @@ stats::lm(formula, data = dat, weights=rep(1,50)) %>%   # works..
   broom::tidy() %>%
   dplyr::mutate(fixel_id = i-1)
 
+### test: dots including weights #####
+f1 <- function(i, ...) {
+  i
+}
 
+
+### example: passing weights into lm #####
 # example from: https://stackoverflow.com/questions/38683076/ellipsis-trouble-passing-to-lm
 
 LmWrapper <- function(df, fmla, ...) {
