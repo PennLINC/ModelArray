@@ -91,9 +91,10 @@ Run FixelArray.lm():
 tic.clearlog()
 tic()
 
-lm.outputs <- FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, full.output = full.output,  
-                              var.terms = var.terms, 
-                              var.model = var.model, 
+lm.outputs <- FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
+                             full.output = full.output,  var.terms = var.terms, var.model = var.model, 
+                             correct.p.value.terms = "none",
+                             correct.p.value.model = c("fdr","bonferroni"),
                               verbose = TRUE, pbar = TRUE, n_cores = 2)  # , na.action="na.fixelarrayil"
 lg <- toc(log = TRUE, quiet = TRUE)
 log.lst <- tic.log(format = FALSE)

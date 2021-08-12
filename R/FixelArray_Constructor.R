@@ -370,7 +370,7 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
 #' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE and it will return column names.
 #' 
-#' @return if flag_initiate==TRUE, returns column names of final results; if flag_initiate==FALSE, returns the final results for a fixel
+#' @return if flag_initiate==TRUE, returns column names & list of terms of final results; if flag_initiate==FALSE, returns the final results for a fixel
 #' @export
 #' @import hdf5r
 #' @import broom
@@ -422,6 +422,9 @@ analyseOneFixel.lm <- function(i_fixel,
   onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
   onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
   
+  # get the list of terms:
+  list.terms <- onemodel.tidy$term
+  
   # flatten .tidy results into one row:
   onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(names_from = term,
                                                                values_from = all_of(var.terms.orig),
@@ -445,7 +448,9 @@ analyseOneFixel.lm <- function(i_fixel,
     
     # return:
     column_names = colnames(onemodel.onerow)
-    column_names
+    toreturn <- list(column_names = column_names,
+                     list.terms = list.terms)
+    toreturn
     
   } else if (flag_initiate == FALSE) {  # return the one row results:
 
