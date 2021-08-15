@@ -384,7 +384,25 @@ analyseOneFixel.lm <- function(i_fixel,
   values <- scalars(fa)[[scalar]][i_fixel,]
   dat <- phenotypes
   dat[[scalar]] <- values
-  onemodel <- stats::lm(formula, data = dat, ...)   
+  
+  # dots <- list(...)
+  # dots_names <- names(dots)
+  # if ("weights" %in% dots_names) {
+  #   message(dots$weights)
+  #   myWeights <- dots$weights
+  #   dots$weights <- NULL  # remove weights from 
+  #   
+  #   arguments_lm <- dots
+  #   
+  # }
+  arguments_lm <- list(...)
+  arguments_lm$formula <- formula
+  arguments_lm$data <- dat
+  
+  # onemodel <- stats::lm(formula, data = dat, ...)   
+  # onemodel <- stats::lm(formula, data = dat, weights = myWeights,...)   
+  onemodel <- do.call(lm, arguments_lm)   # explicitly passing arguments into lm, to avoid error of argument "weights"
+  
   onemodel.tidy <- onemodel %>% broom::tidy()
   onemodel.glance <- onemodel %>% broom::glance()
   

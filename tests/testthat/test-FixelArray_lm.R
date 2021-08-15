@@ -180,11 +180,26 @@ test_that("FixelArray's lm works as expected", {
                %>% isTRUE())
   
 
-  # NOTE: we can add more tests regarding other lm's arguments
+  # check if "weights" have been successfully passed into lm:
   
-  ## TODO: check if "weights" have been successfully passed into lm:
-  # FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, n_cores = 1, pbar=FALSE,  
-  #            weights = rep(1,length(phenotypes$subject_id)) )
+  
+  mylm_weights1 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                        var.terms = var.terms, var.model = var.model, 
+                        pbar=FALSE, n_cores = 2, 
+                        weights = rep(1,nrow(phenotypes)) )   # length(phenotypes$subject_id)   # weights = rep(1,nrow(phenotypes))
+  expect_equal(mylm, mylm_weights1)
+  
+  
+  set.seed(5)
+  mylm_weightsRnorm <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+                                     var.terms = var.terms,
+                                     var.model = var.model,
+                                     n_cores = 2, pbar=FALSE, 
+                                     weights = abs(rnorm(nrow(phenotypes))) )  
+  expect_false(all.equal(mylm, mylm_weightsRnorm) %>% isTRUE() )
+  
+  
+  # NOTE: we can add more tests regarding other lm's arguments
   
   
   rhdf5::h5closeAll()
