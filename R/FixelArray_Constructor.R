@@ -331,7 +331,7 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
       results.analysis.grp[["results_matrix"]] <- matrix(0, nrow=nrow(scalars(fa)[[scalar]]), ncol = ncol(onemodel.onerow))   # all 0
       results_matrix_ds <- results.analysis.grp[["results_matrix"]]   # name it
       # attach column names:
-      h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(onemodel.onerow)   # TODO: confirm with Matt that this is fine for ConFixel
+      h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(onemodel.onerow)  
       
     }
     
@@ -450,8 +450,6 @@ analyseOneFixel.lm <- function(i_fixel,
   onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
                                                                     values_from = all_of(var.model),
                                                                     names_glue = "{term}.{.value}")
-  # TODO: change the potential strings in the table into numerics + lut
-  
   
   # combine the tables:
   onemodel.onerow <- bind_cols(onemodel.tidy.onerow, onemodel.glance.onerow)
@@ -542,7 +540,6 @@ writeResults.old <- function(fa, data, analysis_name = "myAnalysis", flag_overwr
 
 #' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
 #' 
-#' TODO: change the description for this function!!
 #' @param fn.output The .h5 filename for the output, including folder directory
 #' @param df.output A data.frame object with model results at each fixel, returned from FixelArray.lm() etc
 #' @param analysis_name The subfolder name in results, holding the analysis results 
@@ -603,7 +600,7 @@ writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", ove
     # results_matrix_ds <- results.analysis.grp[["results_matrix"]]   # name it
     
     # attach column names:
-    h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)   # TODO: update ConFixel correspondingly
+    h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)   # NOTES: update ConFixel correspondingly
     
   }
   

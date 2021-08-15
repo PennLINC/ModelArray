@@ -228,7 +228,17 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
     stop("Not a fixel array for analysis")
   }
   
-  # TODO: add checker for min and max of fixel.subset; and whether elements are integer
+  # checker for min and max of fixel.subset; and whether elements are integer
+  if (min(fixel.subset) < 1) {
+    stop("Minimal value in fixel.subset should >= 1")
+  }
+  if (max(fixel.subset) > nrow(scalars(data)[[scalar]])) {
+    stop(paste0("Maximal value in fixel.subset should <= number of fixels = "), as.character(nrow(scalars(data)[[scalar]])))
+  }
+  if (class(fixel.subset) != "integer") {
+    stop("Please enter integers for fixel.subset!")
+  }
+  
   
   ### display additional arguments:
   dots <- list(...)
