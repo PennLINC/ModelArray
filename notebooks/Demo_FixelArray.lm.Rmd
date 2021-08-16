@@ -1,0 +1,128 @@
+---
+title: "demo of FixelArray's lm"
+output: html_document
+---
+<!-- # ```{r setup, include = fixelarrayLSE} -->
+<!-- # knitr::opts_chunk$set(eval = fixelarrayLSE, cache = TRUE)   # save the cache -->
+<!-- # ``` -->
+This is to show how FixelArray's lm looks like after its updates (including better results structure, trying to use hdf5r(CRAN) instead of rhdf5 (BioConductor) etc)
+```{r}
+# the working directory of this Demo is where it locates
+source("../R/FixelArray_Constructor.R")
+source("../R/FixelArray_S4Methods.R")
+source("../R/utils.R")
+source("../R/analyse.R")
+# library(FixelArray)
+suppressMessages(library(dplyr))
+library(broom)
+library(hdf5r)
+library(tictoc)
+suppressMessages(library(doParallel))
+
+flag_whichdataset <- "val"   # "val" or "test_n50"
+flag_where <- "vmware"   # "CUBIC" or "vmware"
+```
+Inputs set-ups: let's copy the input .h5 file and name it as fn.output; based on it, we create a FixelArray class data:
+```{r}
+if (flag_whichdataset == "test_n50") {
+  fn <- "../inst/extdata/n50_fixels.h5"
+  
+  if (flag_where == "CUBIC") {
+    fn.output <- "../../dropbox/data_forCircleCI_n50/n50_fixels_output.h5"
+  } else if (flag_where == "vmware") {
+    fn.output <- "../../data/data_forCircleCI_n50/n50_fixels_output.h5"  # absoluate path: "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/n50_fixels_output.h5" 
+  }
+  
+  fn_csv <- "../inst/extdata/n50_cohort.csv"
+  
+} else if (flag_whichdataset == "val") {
+  if (flag_where == "CUBIC") {
+    fn <- "../../dropbox/data_from_val/fixels_orig.h5"
+    fn.output <- "../../dropbox/data_from_val/fixels_analysis.h5"
+    fn_csv <- "../../dropbox/data_from_val/cohort_ZAPR01.csv"
+      
+  } else if (flag_where == "vmware") {
+    fn <- "../../data/data_from_Val/fixels_orig.h5"
+    fn.output <- "../../data/data_from_Val/fixels_analysis.h5"
+    fn_csv <- "../../data/data_from_Val/cohort_ZAPR01.csv"
+  }
+}
+
+
+file.copy(from=fn, to=fn.output, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)   # , recursive = TRUE
+# h5closeAll()
+fixelarray <- FixelArray(fn.output)  
+```
+<!-- Let's create a H5File to access the output .h5 file: -->
+<!-- ```{r} -->
+<!-- fn.output.h5 <- H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write -->
+<!-- fn.output.h5 -->
+
+<!-- fixelarray <-  FixelArray(fn) # TODO: error with fixelarray <- FixelArray(fn.output)  ??? -->
+<!-- ``` -->
+A quick overview of this FixelArray object:
+```{r}
+fixelarray
+scalars(fixelarray)[["FD"]]
+```
+
+We set up for performing linear regression (lm):
+```{r}
+phenotypes <- read.csv(fn_csv)
+
+scalar <- "FD"
+if (flag_whichdataset == "test_n50") {
+  formula <- FD ~ age
+} else if (flag_whichdataset == "val") {
+  formula <- FD ~ Age
+}
+
+full.output <- FALSE  # defixelarrayult: FALSE
+var.terms <- c("estimate", "statistic", "p.value")   # list of columns to keep  | , "std.error","statistic"
+var.model <- c("adj.r.squared", "p.value")
+
+analysis_name <- "lm"
+
+fixel.subset <- 1:100   # full: dim(scalars(fixelarray)[[scalar]])[1]
+```
+
+Run FixelArray.lm():
+```{r}
+tic.clearlog()
+tic()
+
+lm.outputs <- FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
+                             full.output = full.output,  var.terms = var.terms, var.model = var.model, 
+                             correct.p.value.terms = "none",
+                             correct.p.value.model = c("fdr","bonferroni"),
+                              verbose = TRUE, pbar = TRUE, n_cores = 2)  # , na.action="na.fixelarrayil"
+lg <- toc(log = TRUE, quiet = TRUE)
+log.lst <- tic.log(format = FALSE)
+log.lst[[1]]$toc - log.lst[[1]]$tic    # in sec
+
+head(lm.outputs)
+dim(lm.outputs)
+
+# NOTES: I tested pbar=fixelarrayLSE (or TRUE), n_cores=1 (or 2);  with one fixel #6: same with directly calling lm
+
+# TODO: garbage collection: after each run of this block, even though matrix is overwritten, the size keeps adding... This is probably related to hdf5's deleting does not shrink the file's size.... So we should close the file, and do garbage cleaning.
+
+```
+Save to .h5 file:
+```{r}
+writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE)
+
+```
+<!-- Test writing results with string -->
+<!-- ```{r} -->
+<!-- df <- data.frame(a = 1:5, b = c("type1","type2", "type1","type2","type3")) -->
+<!-- writeResults.enh(fn.output, df.output = df, analysis_name="test", overwrite=TRUE)     # tested, good -->
+
+<!-- # results.analysis.grp[["lut_forcol2"]][1:3] -->
+<!-- ``` -->
+
+Let's see what the saved outputs look like: The "results" group:
+```{r}
+fixelarray_new <- FixelArray(fn.output, scalar_types = c("FD"), analysis_names = c("lm"))
+fixelarray_new@results$lm
+```

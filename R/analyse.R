@@ -44,7 +44,7 @@ printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, me
 #' @param n_cores The number of cores to run on
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
-FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
+FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "FixelArray") {
@@ -146,6 +146,9 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
           broom::tidy() %>%
           dplyr::mutate(fixel_id = i-1)
         
+        # NOTES: see current FixelArray.lm, after: remove tibble information and turn into numeric function
+        
+        
         # lm(formula, data = dat, ...) %>%
         #   broom::glance() %>%
         #   print()
@@ -196,6 +199,317 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx
   df_out
   
 }
+
+#' Run a linear model at each fixel location, write out each result just after the model fitting 
+#'
+#' @param formula Formula (passed to `lm()`)
+#' @param data FixelArray class
+#' @param phenotypes The cohort matrix with covariates to be added to the model  
+#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param fixel.subset The subset of fixel ids you want to run. Integers. First id starts from 1.
+#' @param full.outputs Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.
+#' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
+#' @param var.model The list of variables to save for the model (got from lm %>% glance())
+#' @param correct.p.value.terms To perform and add a column for p.value correction for each term. Currently "fdr", "bonferroni" are supported, can be more than one. Turn it off by setting to "none".
+#' @param correct.p.value.model To perform and add a column for p.value correction for the model. Currently "fdr", "bonferroni" are supported, can be more than one. Turn it off by setting to "none".
+#' @param verbose Print verbose message or not
+#' @param pbar Print progress bar
+#' @param n_cores The number of cores to run on
+#' @import doParallel
+#' @import tibble
+
+FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
+                              var.terms = c("estimate", "statistic", "p.value"), 
+                              var.model = c("adj.r.squared", "p.value"), 
+                          correct.p.value.terms = "none", correct.p.value.model = "none",
+                              verbose = TRUE, pbar = TRUE, n_cores = 1, ...) {
+  # data type assertions
+  if(class(data) != "FixelArray") {
+    stop("Not a fixel array for analysis")
+  }
+  
+  # checker for min and max of fixel.subset; and whether elements are integer
+  if (min(fixel.subset) < 1) {
+    stop("Minimal value in fixel.subset should >= 1")
+  }
+  if (max(fixel.subset) > nrow(scalars(data)[[scalar]])) {
+    stop(paste0("Maximal value in fixel.subset should <= number of fixels = "), as.character(nrow(scalars(data)[[scalar]])))
+  }
+  if (class(fixel.subset) != "integer") {
+    stop("Please enter integers for fixel.subset!")
+  }
+  
+  
+  ### display additional arguments:
+  dots <- list(...)
+  dots_names <- names(dots)
+  
+  FUN <- stats::lm
+  
+  # subset:
+  m1 <- "no default"  
+  printAdditionalArgu(FUN, "subset", dots, m1)
+  
+  # weights:
+  m1 <- "no default"
+  if ("weights" %in% dots_names) {  # if user provides weights
+    m_usr_input <- paste0( class(dots$weights), " with length of ", length(dots$weights)) # message describing usr's input; cannot use dim on c(1,2) 
+  } else {
+    m_usr_input <- NULL
+  }
+  printAdditionalArgu(FUN, "weights", dots, m1, m_usr_input)
+  
+  # na.action:
+  m1 <- "no default"
+  printAdditionalArgu(FUN, "na.action", dots, m1)
+  
+  # method:
+  printAdditionalArgu(FUN, "method", dots)  # default: "qr"
+  
+  # model:
+  m1 <- invisible(eval(formals(FUN)[["model"]])) %>% as.character()   # default: [logical] TRUE
+  printAdditionalArgu(FUN, "model", dots, m1)  
+  
+  # x:
+  m1 <- invisible(eval(formals(FUN)[["x"]])) %>% as.character()   # default: [logical] FALSE
+  printAdditionalArgu(FUN, "x", dots, m1)
+  
+  # y:
+  m1 <- invisible(eval(formals(FUN)[["y"]])) %>% as.character()   # default: [logical] FALSE
+  printAdditionalArgu(FUN, "y", dots, m1)
+  
+  # qr:
+  m1 <- invisible(eval(formals(FUN)[["qr"]])) %>% as.character()   # default: [logical] TRUE
+  printAdditionalArgu(FUN, "qr", dots, m1)
+  
+  # singular.ok:
+  m1 <- invisible(eval(formals(FUN)[["singular.ok"]])) %>% as.character()   # default: [logical] TRUE
+  printAdditionalArgu(FUN, "singular.ok", dots, m1)
+  
+  # contrasts:
+  printAdditionalArgu(FUN, "contrasts", dots)   # default: NULL
+  
+  # offset:
+  m1 <- "no default"   # there is no default
+  printAdditionalArgu(FUN, "offset", dots, m1)
+  
+  
+  
+  ### other setups:
+  if (full.outputs == TRUE) {   # full set of outputs
+    var.terms = c("estimate","std.error","statistic","p.value")
+    var.model = c("r.squared", "adj.r.squared", "sigma", "statistic", "p.value", "df", "logLik", "AIC", "BIC", "deviance", "df.residual", "nobs")
+  }
+  
+  # check for p.value correction:
+  p.adjust.methods.full <- p.adjust.methods[ p.adjust.methods != "none" ]
+    # check for terms:
+  if ( all(correct.p.value.terms == "none") == FALSE) {    # any element is not "none"
+    checker.method.in <- correct.p.value.terms %in% p.adjust.methods.full
+    if ( all(checker.method.in) == FALSE) {   # not all "TRUE"
+      stop(paste0("Some of elements in correct.p.value.terms are not valid, so not to perform terms's p.value corrections. Valid inputs are: ", paste(p.adjust.methods.full, collapse = ',')))
+    } 
+    
+    if ("p.value" %in% var.terms == FALSE) {  # not in the list | # check whether there is "p.value" in var.terms'
+      warning(paste0("p.value was not included in var.terms, so not to perform terms's p.value corrections"))
+    }
+  }
+  
+    # check for model:
+  if ( all(correct.p.value.model == "none") == FALSE ) {    # any element is not "none"
+    checker.method.in <- correct.p.value.model %in% p.adjust.methods.full
+    if ( all(checker.method.in) == FALSE) {   # not all "TRUE"
+      stop(paste0("Some of elements in correct.p.value.model are not valid, so not to perform model's p.value corrections. Valid inputs are: ", paste(p.adjust.methods.full, collapse = ',')))
+    } 
+    
+    if ("p.value" %in% var.model == FALSE) {  # not in the list | # check whether there is "p.value" in var.model'
+      warning(paste0("p.value was not included in var.model, so not to perform model's p.value corrections"))
+    }
+  }
+  
+
+  
+  ### start the process:
+  if(verbose){
+    message(glue::glue("Fitting fixel-wise linear models for {scalar}", ))
+    message(glue::glue("initiating....", ))
+  }
+  
+
+  
+  # initiate: get the example of one fixel and get the column names
+  outputs_initiator <- analyseOneFixel.lm(i_fixel=1, formula, data, phenotypes, scalar, 
+                                     var.terms, var.model, 
+                                     flag_initiate = TRUE, 
+                                     ...)
+  column_names <- outputs_initiator$column_names
+  list.terms <- outputs_initiator$list.terms
+
+  # loop (by condition of pbar and n_cores)
+  if(verbose){
+    message(glue::glue("looping across fixels....", ))
+  }
+  
+  # is it a multicore process?
+  flag_initiate <- FALSE
+  if(n_cores > 1){
+    # set up # of cores:
+    registerDoParallel(cores = n_cores)
+    
+    if (pbar) {
+      
+      fits <- pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
+                                    analyseOneFixel.lm,  # the function
+                                    mc.cores = n_cores,
+                                    formula, data, phenotypes, scalar,
+                                    var.terms, var.model,
+                                    flag_initiate = FALSE,
+                                    ...)
+      
+    } else {
+      
+      # foreach::foreach
+      
+      fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel 
+                                 analyseOneFixel.lm,  # the function
+                                 mc.cores = n_cores,
+                                 formula, data, phenotypes, scalar,
+                                 var.terms, var.model,
+                                 flag_initiate = FALSE,
+                                 ...)
+      
+    }
+  } else  {  # n_cores ==1, not multi-core
+    
+    if (pbar) {
+      
+      fits <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
+                                analyseOneFixel.lm,  # the function
+                                formula, data, phenotypes, scalar,
+                                var.terms, var.model,
+                                flag_initiate = FALSE,
+                                ...)
+      
+    } else {
+      
+      fits <- lapply(fixel.subset,   # a list of i_fixel
+                     analyseOneFixel.lm,  # the function
+                     formula, data, phenotypes, scalar,
+                     var.terms, var.model,
+                     flag_initiate = FALSE,
+                     ...)
+    }
+  }  
+    
+
+  
+  df_out <- do.call(rbind, fits)    
+  df_out <- as.data.frame(df_out)    # turn into data.frame
+  colnames(df_out) <- column_names     # add column names
+  
+
+  # Add corrections of p.values:
+  
+    # loop over elements in correct.p.value.model
+      # if == "none": do nothing
+        # else, %in% default methods in p.adjust --> all TRUE? if not, error: not support | checker at beginning of this function
+          # else, "p.value" %in% var.model == FALSE: warning: nothing to correct | checker at beginning of this function
+            # else, iterate
+  
+  # add correction of p.values: for terms
+  if ( all(correct.p.value.terms == "none") ) {    # all() is to accormodate for multiple elements in correct.p.value.terms: if one of is not "none", FALSE
+    # do nothing
+    
+  } else {
+    if ("p.value" %in% var.terms == TRUE) {   # check whether there is "p.value" in var.terms' | if FALSE: print warning (see beginning of this function)
+      
+      for (methodstr in correct.p.value.terms) {
+        
+        for (tempstr in list.terms) {
+          tempstr.raw <- paste0(tempstr, ".p.value")
+          tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
+          temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = methodstr)
+          df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
+        }
+        
+      }
+      
+    }
+    
+  }
+  
+
+  # if ( correct.p.value.terms %in% c("fdr", "bonferroni") ) { 
+  #   
+  #   if ("p.value" %in% var.terms == FALSE) {  # not in the list | # check whether there is "p.value" in var.terms
+  #     warning(paste0("p.value was not included in var.terms, so not to perform terms' p.value corrections"))
+  #     
+  #   } else {
+  #     
+  #     for (tempstr in list.terms) {
+  #       tempstr.raw <- paste0(tempstr, ".p.value")
+  #       tempstr.corrected <- paste0(tempstr.raw, ".", correct.p.value.terms)
+  #       temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = correct.p.value.terms)
+  #       df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
+  #     }
+  #   }
+  #   
+  # } else if (correct.p.value.terms == "none") {
+  #   # do nothing
+  # } else {
+  #   warning(paste0("correct.p.value.terms = ", toString(correct.p.value.terms), " is not supported!"))
+  # }
+  
+  
+  # add correction of p.values: for the model
+  if (  all(correct.p.value.model == "none") ) {
+    # do nothing
+    
+  } else {
+    if ("p.value" %in% var.model == TRUE) {   # check whether there is "p.value" in var.model' | if FALSE: print warning (see beginning of this function)
+
+      for (methodstr in correct.p.value.model) {
+        
+        tempstr.raw <- "model.p.value"
+        tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
+        temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = methodstr)
+        df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
+        
+      }
+        
+    }
+      
+  }
+ 
+  # 
+  # if (correct.p.value.model %in% c("fdr", "bonferroni")) {
+  #   
+  #   if ("p.value" %in% var.model == FALSE) {  # not in the list | # check whether there is "p.value" in var.model
+  #     warning(paste0("p.value was not included in var.model, so not to perform model's p.value corrections"))
+  #     
+  #   } else {
+  #     
+  #     tempstr.raw <- "model.p.value"
+  #     tempstr.corrected <- paste0(tempstr.raw, ".", correct.p.value.model)
+  #     temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = correct.p.value.model)
+  #     df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
+  #     
+  #   }
+  #   
+  # } else if (correct.p.value.model == "none") {
+  #   # do nothing
+  # } else {
+  #   warning(paste0('correct.p.value.model = "', toString(correct.p.value.model), '" is not supported!'))
+  # }
+  
+  
+  
+  df_out   # return
+
+}
+
+
+
 
 #' Run a t.test at each fixel location
 #'

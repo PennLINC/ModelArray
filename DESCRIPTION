@@ -20,19 +20,24 @@ Imports:
     stevedore,
     dplyr,
     tidyr,
+    tibble,
     stringr,
     glue,
     sys,
     parallel,
+    foreach,
+    doParallel,
     HDF5Array,
     rhdf5,
+    hdf5r,
     gamm4,
     mgcv,
     rlang,
     DelayedArray,
     broom,
     pbmcapply,
-    pbapply
+    pbapply,
+    tictoc
 RoxygenNote: 7.1.1
 Suggests: 
     testthat (>= 3.0.0)
