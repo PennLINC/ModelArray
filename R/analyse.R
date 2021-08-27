@@ -353,8 +353,6 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
   # is it a multicore process?
   flag_initiate <- FALSE
   if(n_cores > 1){
-    # set up # of cores:
-    registerDoParallel(cores = n_cores)
     
     if (pbar) {
       
