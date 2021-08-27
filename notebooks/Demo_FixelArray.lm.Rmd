@@ -19,8 +19,9 @@ library(hdf5r)
 library(tictoc)
 suppressMessages(library(doParallel))
 
-flag_whichdataset <- "val"   # "val" or "test_n50"
-flag_where <- "vmware"   # "CUBIC" or "vmware"
+flag_whichdataset <- "test_n50"   # "val" or "test_n50"
+flag_which_subset <- ""
+flag_where <- "CUBIC"   # "CUBIC" or "vmware"
 ```
 Inputs set-ups: let's copy the input .h5 file and name it as fn.output; based on it, we create a FixelArray class data:
 ```{r}
@@ -37,14 +38,28 @@ if (flag_whichdataset == "test_n50") {
   
 } else if (flag_whichdataset == "val") {
   if (flag_where == "CUBIC") {
-    fn <- "../../dropbox/data_from_val/fixels_orig.h5"
-    fn.output <- "../../dropbox/data_from_val/fixels_analysis.h5"
-    fn_csv <- "../../dropbox/data_from_val/cohort_ZAPR01.csv"
+    if (flag_which_subset == "28yrAndBelow_only1") {
+      fn <- "../../dropbox/data_from_val/fixels_28yrAndBelow_only1.h5"
+      fn.output <- "../../dropbox/data_from_val/fixels_28yrAndBelow_only1_analysis.h5"
+      fn_csv <- "../../dropbox/data_from_val/cohort_ZAPR01_28yrAndBelow_only1.csv"
+      
+    } else {
+      fn <- "../../dropbox/data_from_val/fixels_orig.h5"
+      fn.output <- "../../dropbox/data_from_val/fixels_analysis.h5"
+      fn_csv <- "../../dropbox/data_from_val/cohort_ZAPR01.csv"
+    }
+    
       
   } else if (flag_where == "vmware") {
-    fn <- "../../data/data_from_Val/fixels_orig.h5"
-    fn.output <- "../../data/data_from_Val/fixels_analysis.h5"
-    fn_csv <- "../../data/data_from_Val/cohort_ZAPR01.csv"
+    if (flag_which_subset == "28yrAndBelow_only1") {
+      error("not supported yet!")
+      
+    } else {
+      fn <- "../../data/data_from_Val/fixels_orig.h5"
+      fn.output <- "../../data/data_from_Val/fixels_analysis.h5"
+      fn_csv <- "../../data/data_from_Val/cohort_ZAPR01.csv"
+    }
+    
   }
 }
 
@@ -83,7 +98,7 @@ var.model <- c("adj.r.squared", "p.value")
 
 analysis_name <- "lm"
 
-fixel.subset <- 1:100   # full: dim(scalars(fixelarray)[[scalar]])[1]
+fixel.subset <- 1:10000   # full: dim(scalars(fixelarray)[[scalar]])[1]
 ```
 
 Run FixelArray.lm():
@@ -91,11 +106,18 @@ Run FixelArray.lm():
 tic.clearlog()
 tic()
 
+Rprof(filename = "Rprof_test.out", interval = 0.01, memory.profiling = TRUE)
 lm.outputs <- FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
-                             full.output = full.output,  var.terms = var.terms, var.model = var.model, 
-                             correct.p.value.terms = "none",
+                             full.outputs = full.outputs,  var.terms = var.terms, var.model = var.model, 
+                             correct.p.value.terms = "fdr",
                              correct.p.value.model = c("fdr","bonferroni"),
                               verbose = TRUE, pbar = TRUE, n_cores = 2)  # , na.action="na.fixelarrayil"
+Rprof(NULL)
+
+Rprofsummary_both <- summaryRprof(filename="Rprof_test.out", memory = "both")
+max(Rprofsummary_both$by.total$mem.total)   
+
+
 lg <- toc(log = TRUE, quiet = TRUE)
 log.lst <- tic.log(format = FALSE)
 log.lst[[1]]$toc - log.lst[[1]]$tic    # in sec
