@@ -25,9 +25,11 @@ message(paste0("number of cores = "), toString(num.cores))
 
 
 ### basics #####
-flag_where <- "CUBIC"   # "CUBIC" or "vmware"
+flag_where <- "vmware"   # "CUBIC" or "vmware"
 if (flag_where =="CUBIC") {
   setwd("/cbica/projects/fixel_db/FixelArray/notebooks")
+} else if (flag_where == "vmware") {
+  setwd("/home/chenying/Desktop/fixel_project/FixelArray/notebooks")
 }
 
 
@@ -99,7 +101,11 @@ if (flag_whichdataset == "test_n50") {
   if (flag_where == "CUBIC") {
     fn <- paste0("../../dropbox/data_from_josiane/ltn_FDC_n", toString(num.subj), ".h5")
     fn.output <- fn  # same as input (to avoid copying)
-    fn_csv <- paste0("../../dropbox/data_from_josiane/df_example_n", toString(num.subj), ".csv")   # TODO
+    fn_csv <- paste0("../../dropbox/data_from_josiane/df_example_n", toString(num.subj), ".csv")
+  } else if (flag_where == "vmware") {
+    fn <- paste0("../../data/data_from_josiane/ltn_FDC_n", toString(num.subj), ".h5")
+    fn.output <- fn  # same as input (to avoid copying)
+    fn_csv <- paste0("../../data/data_from_josiane/df_example_n", toString(num.subj), ".csv")
   }
   
   scalar = c("FDC")
@@ -184,6 +190,10 @@ head(lm.outputs)
 
 message("dimension of lm.outputs:")
 dim(lm.outputs)
+
+message("sleep for 10sec to capture the current memory before existing...")
+Sys.sleep(10)
+
 
 # ### save results #####
 # tic("Running writeResults()")
