@@ -21,5 +21,5 @@ writeResults(
 \item{overwrite}{If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)}
 }
 \description{
-TODO: change the description for this function!!
+Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
 }
