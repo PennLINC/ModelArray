@@ -17,7 +17,13 @@ suppressMessages(library(dplyr))
 library(broom)
 library(hdf5r)
 library(tictoc)
+# library(lineprof)
+# library(profvis)
+# library(peakRAM)
 suppressMessages(library(doParallel))
+
+# Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001) 
+# folder_rprofout <- "/home/chenying/Desktop/fixel_project/FixelArray/notebooks"
 
 flag_whichdataset <- "test_n50"   # "val" or "test_n50"
 flag_which_subset <- ""
@@ -106,7 +112,9 @@ Run FixelArray.lm():
 tic.clearlog()
 tic()
 
-Rprof(filename = "Rprof_test.out", interval = 0.01, memory.profiling = TRUE)
+# Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001) 
+Rprof(filename = "Rprof_test.out", interval = 0.01, memory.profiling = TRUE)   # interval = 0.001
+
 lm.outputs <- FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
                              full.outputs = full.outputs,  var.terms = var.terms, var.model = var.model, 
                              correct.p.value.terms = "fdr",
@@ -114,13 +122,42 @@ lm.outputs <- FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subs
                               verbose = TRUE, pbar = TRUE, n_cores = 2)  # , na.action="na.fixelarrayil"
 Rprof(NULL)
 
-Rprofsummary_both <- summaryRprof(filename="Rprof_test.out", memory = "both")
-max(Rprofsummary_both$by.total$mem.total)   
-
 
 lg <- toc(log = TRUE, quiet = TRUE)
 log.lst <- tic.log(format = FALSE)
 log.lst[[1]]$toc - log.lst[[1]]$tic    # in sec
+
+
+folder_rprofout = "/home/chenying/Desktop/fixel_project/FixelArray"
+Rprofsummary_both <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "both")
+Rprofsummary_tseries <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "tseries")
+Rprofsummary_stats <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "stats")
+
+# a<-summaryRprof(filename = "Rprof.out", lines = "both", memory = "both")   
+max(Rprofsummary_both$by.total$mem.total)   # fixel.subset=1:100: 27.0MB BUT object.size of fixelarray (15.5KB) and phenotypes (11.3KB); 1:1000 = 42.5MB BUT object.size(lm.outputs)=90KB, even object.size(fits)=184KB
+max(Rprofsummary_tseries$nodes)/1024/1024    # in bytes --> MB  # 1:1000: max=502MB; median=0.0834198 MB; mean=2.180295 MB
+# max(Rprofsummary_stats$by.total$mem.total)  # in bytes
+
+# prof  <- lineprof(FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
+#                              full.output = full.output,  var.terms = var.terms, var.model = var.model, 
+#                              correct.p.value.terms = "none",
+#                              correct.p.value.model = c("fdr","bonferroni"),
+#                               verbose = TRUE, pbar = TRUE, n_cores = 2))
+
+# peakRAM_lm <- peakRAM(FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
+#                              full.output = full.output,  var.terms = var.terms, var.model = var.model, 
+#                              correct.p.value.terms = "none",
+#                              correct.p.value.model = c("fdr","bonferroni"),
+#                               verbose = TRUE, pbar = TRUE, n_cores = 2))
+
+# profvis_lm <- profvis({
+#   FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset,
+#                              full.output = full.output,  var.terms = var.terms, var.model = var.model,
+#                              correct.p.value.terms = "none",
+#                              correct.p.value.model = c("fdr","bonferroni"),
+#                               verbose = TRUE, pbar = TRUE, n_cores = 2)
+# })
+
 
 head(lm.outputs)
 dim(lm.outputs)
@@ -132,7 +169,26 @@ dim(lm.outputs)
 ```
 Save to .h5 file:
 ```{r}
+
+# Rprof(filename = "Rprof_write.out", memory.profiling = TRUE)
+# Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001)
+Rprof(filename = "Rprof_write.out", memory.profiling = TRUE, interval=0.001)
+
 writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE)
+
+Rprof(NULL)
+
+# Rprof_write <- summaryRprof(line = "both", memory = "both")
+Rprof_write <- summaryRprof(filename = "Rprof_write.out", memory = "tseries")
+max(Rprof_write$by.total$mem.total)
+
+
+# profvis_write <- profvis({
+#   writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE)
+# })
+
+# peakRAM_write <- peakRAM(writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE))
+
 
 ```
 <!-- Test writing results with string -->
