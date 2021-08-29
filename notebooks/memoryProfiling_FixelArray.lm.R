@@ -10,7 +10,7 @@ args = commandArgs(trailingOnly=TRUE)
 
 flag_whichdataset <- args[1]   # "val" or "test_n50" or "josiane"
 num.fixels <- as.integer(args[2])  # if ==0, set as full set
-num.subj <- as.integer(args[3])   # TODO: load correct files!
+num.subj <- as.integer(args[3])  
 num.cores <- as.integer(args[4])
 # TODO: different variables and formula!
 
@@ -191,8 +191,9 @@ head(lm.outputs)
 message("dimension of lm.outputs:")
 dim(lm.outputs)
 
-message("sleep for 10sec to capture the current memory before existing...")
-Sys.sleep(10)
+sleep_sec <- 5
+message(paste0("sleep for ",toString(sleep_sec)," sec to capture the current memory before existing..."))
+Sys.sleep(sleep_sec)
 
 
 # ### save results #####
