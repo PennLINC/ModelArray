@@ -19,15 +19,31 @@ done
 
 echo "JOB_ID = ${JOB_ID}"
 
-folder_benchmark="/cbica/projects/fixel_db/FixelArray_benchmark"
+printf -v date '%(%Y%m%d-%H%M%S)T' -1   # $date, in YYYYmmdd-HHMMSS
+echo "date variable: ${date}"
+
 foldername_jobid="lm.${dataset_name}.nfixel-${num_fixels}.nsubj-${num_subj}.ncore-${num_cores}.${run_where}"
-if [  "$run_where" = "sge" ]
-then
+
+if [  "$run_where" = "sge" ]; then
+        folder_benchmark="/cbica/projects/fixel_db/FixelArray_benchmark"
+        
         echo "adding JOB_ID to foldername"
         foldername_jobid="${foldername_jobid}.${JOB_ID}"
+
+elif [[ "$run_where" == "interactive"   ]]; then
+        folder_benchmark="/cbica/projects/fixel_db/FixelArray_benchmark"
+
+elif [[ "$run_where" == "vmware"   ]]; then
+        folder_benchmark="/home/chenying/Desktop/fixel_project/FixelArray_benchmark"
+
+        echo "adding date to foldername"
+        foldername_jobid="${foldername_jobid}.${date}"
 fi
 
 folder_jobid="${folder_benchmark}/${foldername_jobid}"
+# echo "folder_jobid: ${folder_jobid}"
+
+
 if [ -d ${folder_jobid} ] && [ "${overwrite}" = "TRUE" ]
 then
         echo "removing existing folder:   ${folder_jobid}"
@@ -38,6 +54,7 @@ echo "output folder:   ${folder_jobid}"
 # echo "output foldername for this job: foldername_jobid"
 
 fn_output_txt="${folder_jobid}/output.txt"
+# echo "fn_output_txt: ${fn_output_txt}"
 
 # call:
 bash benchmark_FixelArray.lm.sh -d $d_memrec -D $dataset_name -f $num_fixels -s $num_subj -c $num_cores -w $run_where -o ${folder_jobid} > $fn_output_txt 2>&1
