@@ -1,19 +1,21 @@
 #!/bin/bash
 
 # example command:
-# bash wrapper_benchmark_FixelArray.lm.sh -d 0.01 -D test_n50 -f 100 -s 100 -c 2 -w interactive -O TRUE
-# qsub -l h_vmem=30G wrapper_benchmark_FixelArray.lm.sh -d 0.01 -D test_n50 -f 100 -s 100 -c 2 -w sge    # this will add ${JOB_ID} to foldername; run at interactive node to determine the memory requirements... # tried 20G, did not run..
+# bash wrapper_benchmark_FixelArray.lm.sh -s 1 -D test_n50 -f 10000 -S 50 -c 2 -w interactive -M TRUE
+# qsub -l h_vmem=30G wrapper_benchmark_FixelArray.lm.sh -s 1 -D test_n50 -f 100 -S 100 -c 2 -w sge -M TRUE   # this will add ${JOB_ID} to foldername; run at interactive node to determine the memory requirements... # tried 20G, did not run..
 
-while getopts d:D:f:s:c:w:O: flag
+while getopts s:D:f:S:c:w:O:M: flag
 do
         case "${flag}" in
-                d) d_memrec=${OPTARG};;
+                s) sample_sec=${OPTARG};;
+                # d) d_memrec=${OPTARG};;
                 D) dataset_name=${OPTARG};;
                 f) num_fixels=${OPTARG};;   # 0 as full
-                s) num_subj=${OPTARG};;
+                S) num_subj=${OPTARG};;
                 c) num_cores=${OPTARG};;
                 w) run_where=${OPTARG};;    # "sge" or "interactive" or "vmware"
                 O) overwrite=${OPTARG};;   # "TRUE"
+                M) run_memoryProfiler=${OPTARG};;   # "TRUE" or "FALSE"
         esac
 done
 
@@ -23,6 +25,12 @@ printf -v date '%(%Y%m%d-%H%M%S)T' -1   # $date, in YYYYmmdd-HHMMSS
 echo "date variable: ${date}"
 
 foldername_jobid="lm.${dataset_name}.nfixel-${num_fixels}.nsubj-${num_subj}.ncore-${num_cores}.${run_where}"
+
+if [[ "$run_memoryProfiler" == "TRUE"  ]]; then
+        foldername_jobid="${foldername_jobid}.runMemProfiler"  
+else 
+        foldername_jobid="${foldername_jobid}.noMemProfiler"
+fi
 
 if [  "$run_where" = "sge" ]; then
         folder_benchmark="/cbica/projects/fixel_db/FixelArray_benchmark"
@@ -57,5 +65,7 @@ fn_output_txt="${folder_jobid}/output.txt"
 # echo "fn_output_txt: ${fn_output_txt}"
 
 # call:
-bash benchmark_FixelArray.lm.sh -d $d_memrec -D $dataset_name -f $num_fixels -s $num_subj -c $num_cores -w $run_where -o ${folder_jobid} > $fn_output_txt 2>&1
-
+# for memrec:
+# bash benchmark_FixelArray.lm.sh -d $d_memrec -D $dataset_name -f $num_fixels -s $num_subj -c $num_cores -w $run_where -o ${folder_jobid} > $fn_output_txt 2>&1
+# for wss:
+bash benchmark_FixelArray.lm.sh -s $sample_sec -D $dataset_name -f $num_fixels -S $num_subj -c $num_cores -w $run_where -o ${folder_jobid} -M ${run_memoryProfiler}  > $fn_output_txt 2>&1
