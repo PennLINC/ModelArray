@@ -2,6 +2,7 @@
 
 # example command:
 # bash wrapper_benchmark_FixelArray.lm.sh -s 1 -D test_n50 -f 10000 -S 50 -c 2 -w interactive -M TRUE
+# bash wrapper_benchmark_FixelArray.lm.sh -s 1 -D josiane -f 0 -S 30 -c 2 -w vmware -M TRUE
 # qsub -l h_vmem=30G wrapper_benchmark_FixelArray.lm.sh -s 1 -D test_n50 -f 100 -S 100 -c 2 -w sge -M TRUE   # this will add ${JOB_ID} to foldername; run at interactive node to determine the memory requirements... # tried 20G, did not run..
 
 while getopts s:D:f:S:c:w:O:M: flag
