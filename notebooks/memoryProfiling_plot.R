@@ -1,8 +1,8 @@
 # analyze results from myMemoryProfiler.sh and plot
 
 library(ggplot2)
-
-
+library(stringr)
+library(R.utils)   # for countLines
 
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
@@ -10,7 +10,46 @@ args = commandArgs(trailingOnly=TRUE)
 folder <- args[1] 
 num.cores <- as.integer(args[2])
 
+
+readWssText <- function(fn) {
+  df <- tryCatch(
+    {
+      df <- read.table(fn, skip=1, header=TRUE)
+      return(df)
+    },
+    error=function(cond) {
+      df <- read.table(fn, skip=1, header=TRUE, 
+                       nrow = R.utils::countLines(fn) -3 )
+      return(df)
+    }
+  )
+  
+  df
+}
+
 ### combine files #####
+fn.parent.single <- paste0(folder,"/","wss_SingleCoreStarts_parent.txt")
+df.parent.single <- readWssText(fn.parent.single)
+
+
+fp <- file(fn.parent.single, "r")
+oneline <- readLines(fp, n=1)
+close(fp)
+
+sample_sec <- as.numeric(str_match(oneline, "every \\s*(.*?)\\s*second")[2])
+
+if (num.cores > 1) {
+  fn.parent.multi <- paste0(folder,"/","wss_MultiCoreStarts_parent.txt")
+  
+  df.parent.multi <- readWssText(fn.parent.multi)
+  
+  for (i in 0:(num.cores-1)) {
+    fn.child.multi <- paste0(folder,"/","wss_MultiCoreStarts_child",toString(i),".txt")
+    # TODO: to a df of child....
+  }
+  
+  
+}
 
 # check there is no big discrepancy
 
