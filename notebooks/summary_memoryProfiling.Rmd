@@ -1,0 +1,344 @@
+---
+title: "summary of memory profiling"
+output: 
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+source("memoryProfiling_plot.R")
+
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(stringr)   # str_match
+suppressMessages(library(egg))   # set ggplot2 panel size --> not shown up in Rmd?
+library(grid)   # plot ggplot2
+```
+
+### Memory increases with time
+#### One-core computing case:
+```{r}
+folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.s-1sec.20210901-215731"
+# folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\manually_source_and_library\\lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.20210830-225914"
+
+temp <- str_match(folder, "ncore-\\s*(.*?)\\s*.")[1]
+num.cores <- as.integer(substr(temp, 7, 20))
+
+num.subj <- as.integer(str_match(folder, "nsubj-\\s*(.*?)\\s*.ncore")[2])
+
+out <- summaryMemProfiling(folder, "devtools", roof.num.child = num.cores)
+# out <- summaryMemProfiling(folder, "source_library", roof.num.child=num.cores, sample_sec = 1)
+df.multi <- out$df.multi
+
+clean.df.multi <- df.multi
+colnames(clean.df.multi) <- gsub(".RSS.MB.", "", colnames(clean.df.multi))
+clean.df.multi$Est.h. <- clean.df.multi$Est.s. / 3600
+clean.df.multi <- clean.df.multi %>% select("Est.h.","parent") %>%
+  tidyr::pivot_longer(!Est.h., names_to = "process", values_to="memory_MB")
+
+clean.df.multi$process <- factor(clean.df.multi$process, 
+                                         levels = c("parent" ) )
+
+ggplot(clean.df.multi, aes(x = Est.h., y = memory_MB, fill = process)) + 
+  geom_area(size = 0.5, color = "white") +  # alpha = 0.6, 
+  scale_fill_manual(values= c("#737373")  ) +
+  theme_bw() +
+  xlab("Time (hour)") +
+  ylab("Memory (MB)") +
+  ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj)))
+
+
+```
+
+#### Multi-core computing case:
+```{r}
+
+folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-938.ncore-4.vmware.runMemProfiler.s-1sec.20210902-053459"
+
+temp <- str_match(folder, "ncore-\\s*(.*?)\\s*.")[1]
+num.cores <- as.integer(substr(temp, 7, 20))
+
+num.subj <- as.integer(str_match(folder, "nsubj-\\s*(.*?)\\s*.ncore")[2])
+
+out <- summaryMemProfiling(folder, "devtools", roof.num.child=num.cores)
+df.multi <- out$df.multi
+
+
+clean.df.multi <- df.multi
+colnames(clean.df.multi) <- gsub(".RSS.MB.", "", colnames(clean.df.multi))
+clean.df.multi$Est.h. <- clean.df.multi$Est.s. / 3600
+clean.df.multi <- clean.df.multi %>% select("Est.h.","parent", "child0", "child1", "child2", "child3") %>%
+  tidyr::pivot_longer(!Est.h., names_to = "process", values_to="memory_MB")
+
+clean.df.multi$process <- factor(clean.df.multi$process, 
+                                         levels = c("parent", "child0", "child1", "child2", "child3" ) %>% rev() )
+
+ggplot(clean.df.multi, aes(x = Est.h., y = memory_MB, fill = process)) + 
+  geom_area(size = 0.5, color = "white") +  # alpha = 0.6, 
+  scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) +
+  theme_bw() +
+  xlab("Time (hour)") +
+  ylab("Memory (MB)") +
+  ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj)))
+
+ggplot(clean.df.multi[clean.df.multi$Est.h.>2, ], aes(x = Est.h., y = memory_MB, fill = process)) + 
+  geom_area(size = 0.5, color = "white") +  # alpha = 0.6, 
+  scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) +
+  theme_bw() +
+  xlab("Time (hour)") +
+  ylab("Memory (MB)") +
+  ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj), " close to end"))
+
+```
+
+
+<!-- ### different number of CPU cores -->
+<!-- Josiane's dataset, all fixels (~600k), num.subj = 30 -->
+<!-- warning: these were set up by sourcing R scripts and loading libraries, instead of the professional choice of install FixelArray package... -->
+<!-- ```{r} -->
+<!-- main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\manually_source_and_library" -->
+<!-- foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.20210830-225914", -->
+<!--                         "lm.josiane.nfixel-0.nsubj-30.ncore-2.vmware.runMemProfiler.20210830-191224", -->
+<!--                         "lm.josiane.nfixel-0.nsubj-30.ncore-3.vmware.runMemProfiler.20210831-113645", -->
+<!--                         "lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.20210831-142758") -->
+
+<!-- folder.list <- file.path(main.folder,  foldername.list) -->
+
+<!-- num.subj <- as.integer(str_match(foldername.list[1], "nsubj-\\s*(.*?)\\s*.ncore")[2]) -->
+
+<!-- for (i_folder in 1:length(folder.list)) { -->
+<!--   message(paste0("start to working on: ", foldername.list[i_folder], "...")) -->
+
+<!--   # number of cores: -->
+<!--   temp <- str_match(foldername.list[i_folder], "ncore-\\s*(.*?)\\s*.")[1] -->
+<!--   num.cores <- as.integer(substr(temp, 7, 20)) -->
+
+<!--   out <- summaryMemProfiling(folder.list[i_folder], "source_library", roof.num.child=4, sample_sec=1) -->
+<!--   when.max <- add_column(out$when.max, num.cores = num.cores, .before = 1) -->
+
+<!--   if (i_folder==1) { -->
+<!--     summary.when.max <- when.max -->
+<!--   } else { -->
+<!--     summary.when.max <- rbind(summary.when.max, when.max) -->
+<!--   } -->
+
+<!--   rownames(summary.when.max)[i_folder] <- toString(i_folder) -->
+
+
+<!-- } -->
+
+
+<!-- summary.when.max -->
+<!-- ``` -->
+### different number of CPU cores
+Josiane's dataset, all fixels (~600k), num.subj = 30, set up by installing FixelArray package (professional way)
+
+```{r}
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark"
+foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.s-1sec.20210901-215731",
+                        "lm.josiane.nfixel-0.nsubj-30.ncore-2.vmware.runMemProfiler.s-1sec.20210901-161652",
+                        "lm.josiane.nfixel-0.nsubj-30.ncore-3.vmware.runMemProfiler.s-1sec.20210901-192437",
+                        "lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-0.1sec.20210901-140053")
+
+folder.list <- file.path(main.folder,  foldername.list)
+
+num.subj <- as.integer(str_match(foldername.list[1], "nsubj-\\s*(.*?)\\s*.ncore")[2])
+
+for (i_folder in 1:length(folder.list)) {
+  message(paste0("start to working on: ", foldername.list[i_folder], "..."))
+  
+  # number of cores:
+  temp <- str_match(foldername.list[i_folder], "ncore-\\s*(.*?)\\s*.")[1]
+  num.cores <- as.integer(substr(temp, 7, 20))
+
+  out <- summaryMemProfiling(folder.list[i_folder], "devtools", roof.num.child=4)
+  when.max <- add_column(out$when.max, num.cores = num.cores, .before = 1)
+  
+  if (i_folder==1) {
+    summary.when.max <- when.max
+  } else {
+    summary.when.max <- rbind(summary.when.max, when.max)
+  }
+  
+  rownames(summary.when.max)[i_folder] <- toString(i_folder)
+  
+  
+}
+
+summary.when.max
+
+# plot:
+clean.summary.when.max <- summary.when.max %>% 
+  select(num.cores, parent.RSS.MB., child0.RSS.MB., child1.RSS.MB., child2.RSS.MB., child3.RSS.MB.) # change accordingly..
+
+colnames(clean.summary.when.max) <- gsub(".RSS.MB.", "",colnames(clean.summary.when.max))
+
+clean.summary.when.max <- clean.summary.when.max %>% 
+  tidyr::pivot_longer(!num.cores, names_to="process", values_to="memory_MB")
+
+clean.summary.when.max$process <- factor(clean.summary.when.max$process, 
+                                         levels = c("parent", "child0", "child1", "child2", "child3" ) %>% rev() )
+
+
+totals <- summary.when.max %>% select(num.cores, total.RSS.MB.)
+colnames(totals) <- gsub(".RSS.MB.", "",colnames(totals))
+
+
+ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB, x=num.cores)) + 
+    geom_bar(position="stack", stat="identity", width = 0.3) + 
+  geom_text(aes(x = num.cores, y = total+2500*0.03, label = round(total, digits = 0), fill = NULL), data = totals) +
+  scale_x_discrete(limits=c("1","2","3","4")) +
+   scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) + # green for child
+  #scale_fill_manual(values = c("#737373", c("#08519E","#006E2D",  "#4292C5", "#40AB5D") ) %>% rev() ) + 
+  theme_bw() + 
+  xlab("Number of CPU cores") +
+  ylab("Memory (MB)") +
+  ggtitle(paste0("# of subjects = ", toString(num.subj)))
+
+# f <- set_panel_size(f, width=unit(5,"cm"), height=unit(5,"cm"))
+# 
+# grid::grid.newpage()
+# grid::grid.draw(f)
+
+```
+
+
+
+
+
+<!-- ### different subjects -->
+<!-- Josiane's dataset, all fixels (~600k), num.cores = 2 -->
+<!-- warning: these were set up by sourcing R scripts and loading libraries, instead of the professional choice of install FixelArray package... -->
+<!-- ```{r} -->
+<!-- main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\manually_source_and_library" -->
+<!-- foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-2.vmware.runMemProfiler.20210830-191224", -->
+<!--                         "lm.josiane.nfixel-0.nsubj-100.ncore-2.vmware.runMemProfiler.20210831-162341", -->
+<!--                         "lm.josiane.nfixel-0.nsubj-300.ncore-2.vmware.runMemProfiler.20210831-190508", -->
+<!--                         "lm.josiane.nfixel-0.nsubj-500.ncore-2.vmware.runMemProfiler.20210831-222207", -->
+<!--                         "lm.josiane.nfixel-0.nsubj-750.ncore-2.vmware.runMemProfiler.20210901-011804", -->
+<!--                         "lm.josiane.nfixel-0.nsubj-938.ncore-2.vmware.runMemProfiler.20210901-041723")  -->
+
+<!-- folder.list <- file.path(main.folder,  foldername.list) -->
+
+<!-- temp <- str_match(foldername.list[1], "ncore-\\s*(.*?)\\s*.")[1] -->
+<!-- num.cores <- as.integer(substr(temp, 7, 20)) -->
+
+<!-- for (i_folder in 1:length(folder.list)) { -->
+<!--   message(paste0("start to working on: ", foldername.list[i_folder], "...")) -->
+
+<!--   # number of subjects: -->
+<!--   num.subj <- as.integer(str_match(foldername.list[i_folder], "nsubj-\\s*(.*?)\\s*.ncore")[2]) -->
+
+<!--   out <- summaryMemProfiling(folder.list[i_folder], "source_library", roof.num.child=num.cores, sample_sec=1) -->
+<!--   when.max <- add_column(out$when.max, num.subj = num.subj, .before = 1) -->
+
+<!--   if (i_folder==1) { -->
+<!--     summary.when.max <- when.max -->
+<!--   } else { -->
+<!--     summary.when.max <- rbind(summary.when.max, when.max) -->
+<!--   } -->
+
+<!--   rownames(summary.when.max)[i_folder] <- toString(i_folder) -->
+
+
+<!-- } -->
+
+<!-- summary.when.max -->
+
+<!-- # plot: -->
+<!-- clean.summary.when.max <- summary.when.max %>%  -->
+<!--   select(num.subj, parent.RSS.MB., child0.RSS.MB., child1.RSS.MB.) # TODO: change according to num.cores!! ++++++++++++ -->
+
+<!-- colnames(clean.summary.when.max) <- gsub(".RSS.MB.", "",colnames(clean.summary.when.max)) -->
+
+<!-- clean.summary.when.max <- clean.summary.when.max %>%  -->
+<!--   tidyr::pivot_longer(!num.subj, names_to="process", values_to="memory_MB") -->
+
+
+<!-- ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB, x=num.subj)) +  -->
+<!--         geom_bar(position="stack", stat="identity") +  -->
+<!--         xlab("Number of subjects") + -->
+<!--         ylab("Memory (MB)") + -->
+<!--         ggtitle(paste0("# of CPU cores = ", toString(num.cores))) -->
+
+
+<!-- # add total value: https://stackoverflow.com/questions/30656846/draw-the-sum-value-above-the-stacked-bar-in-ggplot2 -->
+
+<!-- ``` -->
+### different subjects
+Josiane's dataset, all fixels (~600k), num.cores = 2, set up by installing FixelArray package (professional way)
+```{r}
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark"
+foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-0.1sec.20210901-140053",
+                        "lm.josiane.nfixel-0.nsubj-100.ncore-4.vmware.runMemProfiler.s-1sec.20210902-120841",
+                        "lm.josiane.nfixel-0.nsubj-300.ncore-4.vmware.runMemProfiler.s-1sec.20210902-074849",
+                        "lm.josiane.nfixel-0.nsubj-500.ncore-4.vmware.runMemProfiler.s-1sec.20210902-032658",
+                        "lm.josiane.nfixel-0.nsubj-750.ncore-4.vmware.runMemProfiler.s-1sec.20210902-095649",
+                        "lm.josiane.nfixel-0.nsubj-938.ncore-4.vmware.runMemProfiler.s-1sec.20210902-053459") 
+
+folder.list <- file.path(main.folder,  foldername.list)
+
+temp <- str_match(foldername.list[1], "ncore-\\s*(.*?)\\s*.")[1]
+num.cores <- as.integer(substr(temp, 7, 20))
+
+for (i_folder in 1:length(folder.list)) {
+  message(paste0("start to working on: ", foldername.list[i_folder], "..."))
+  
+  # number of subjects:
+  num.subj <- as.integer(str_match(foldername.list[i_folder], "nsubj-\\s*(.*?)\\s*.ncore")[2])
+
+  out <- summaryMemProfiling(folder.list[i_folder], "devtools", roof.num.child=num.cores)
+  when.max <- add_column(out$when.max, num.subj = num.subj, .before = 1)
+  
+  if (i_folder==1) {
+    summary.when.max <- when.max
+  } else {
+    summary.when.max <- rbind(summary.when.max, when.max)
+  }
+  
+  rownames(summary.when.max)[i_folder] <- toString(i_folder)
+  
+  
+}
+
+summary.when.max
+
+# plot:
+clean.summary.when.max <- summary.when.max %>% 
+  select(num.subj, parent.RSS.MB., child0.RSS.MB., child1.RSS.MB., child2.RSS.MB., child3.RSS.MB.) # change accordingly
+
+colnames(clean.summary.when.max) <- gsub(".RSS.MB.", "",colnames(clean.summary.when.max))
+
+clean.summary.when.max <- clean.summary.when.max %>% 
+  tidyr::pivot_longer(!num.subj, names_to="process", values_to="memory_MB")
+      
+clean.summary.when.max$process <- factor(clean.summary.when.max$process, 
+                                         levels = c("parent", "child0", "child1", "child2", "child3" ) %>% rev() )
+
+totals <- summary.when.max %>% select(num.subj, total.RSS.MB.)
+colnames(totals) <- gsub(".RSS.MB.", "",colnames(totals))
+                      
+
+ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB, x=num.subj)) + 
+    geom_bar(position="stack", stat="identity") + 
+  geom_text(aes(x = num.subj, y = total+2500*0.03, label = round(total, digits = 0), fill = NULL), data = totals) + 
+  scale_x_continuous(breaks = c(0,summary.when.max$num.subj)) +
+  scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) + 
+  theme_bw() +
+  xlab("Number of subjects") +
+  ylab("Memory (MB)") +
+  ggtitle(paste0("# of CPU cores = ", toString(num.cores)))
+
+
+# reason that num.subj=300's total is = num.subj=500 is limited sampling rate and imperfect interpolation: for num.subj=300, the child1 (first return)'s final spike was captured, and parent also received child's output --> imperfect interpolate (i.e. when child1's spike, parent has not received child's output, but next sec it did)
+
+```
+
+
+
+
+
