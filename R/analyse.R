@@ -217,6 +217,7 @@ FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' @param n_cores The number of cores to run on
 #' @import doParallel
 #' @import tibble
+#' @export
 
 FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
                               var.terms = c("estimate", "statistic", "p.value"), 

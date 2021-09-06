@@ -33,6 +33,9 @@ else
         foldername_jobid="${foldername_jobid}.noMemProfiler"
 fi
 
+# add ${sample_sec} to the foldername:
+foldername_jobid="${foldername_jobid}.s-${sample_sec}sec"
+
 if [  "$run_where" = "sge" ]; then
         folder_benchmark="/cbica/projects/fixel_db/FixelArray_benchmark"
         

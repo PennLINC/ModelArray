@@ -4,6 +4,8 @@ library(tictoc)
 tic.clearlog()
 tic("R running")
 
+tic("time before FixelArray.lm()")
+
 ### input arguments #####
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
@@ -12,6 +14,8 @@ flag_whichdataset <- args[1]   # "val" or "test_n50" or "josiane"
 num.fixels <- as.integer(args[2])  # if ==0, set as full set
 num.subj <- as.integer(args[3])  
 num.cores <- as.integer(args[4])
+
+flag_library_what <- "FixelArray"   # "FixelArray" or "manually"
 # TODO: different variables and formula!
 
 # checkers:
@@ -32,20 +36,33 @@ if (flag_where =="CUBIC") {
   setwd("/home/chenying/Desktop/fixel_project/FixelArray/notebooks")
 }
 
+if (flag_library_what == "FixelArray") {
+  message("run: devtools::install() to install FixelArray package")
+  setwd("..")   # change to folder "FixelArray"
+  library(devtools)
+  devtools::install()
+  library(FixelArray)
+  setwd("notebooks")
 
-source("../R/FixelArray_Constructor.R")
-source("../R/FixelArray_S4Methods.R")
-source("../R/utils.R")
-source("../R/analyse.R")
-# library(FixelArray)
-# library(DelayedArray)
-# suppressMessages(library(doParallel))
-# library(rhdf5)
-suppressMessages(library(dplyr))
-library(broom)
-library(hdf5r)
+} else if (flag_library_what == "manually") {
+  message("run: source several R scripts and library some R packages...")
+  source("../R/FixelArray_Constructor.R")
+  source("../R/FixelArray_S4Methods.R")
+  source("../R/utils.R")
+  source("../R/analyse.R")
 
-# library(lobstr)   # for using "mem_used"
+  # library(DelayedArray)
+  # suppressMessages(library(doParallel))
+  # library(rhdf5)
+  suppressMessages(library(dplyr))
+  library(broom)
+  library(hdf5r)
+
+  # library(lobstr)   # for using "mem_used"
+} else {
+  message(paste0("flag_library_what = ", flag_library_what, " is not supported...."))
+}
+
 
 # prev_m <- 0; m <- mem_used(); m - prev_m
 
@@ -168,6 +185,7 @@ if (num.fixels == 0) {
 fixel.subset <- 1:num.fixels   # full: dim(scalars(fixelarray)[[scalar]])[1]
 
 
+toc(log=TRUE)   # pair tic of "time before FixelArray.lm()"
 
 ### Run FixelArray.lm() ####
 
