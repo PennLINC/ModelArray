@@ -8,39 +8,60 @@ output: html_document
 This is to show how FixelArray's lm looks like after its updates (including better results structure, trying to use hdf5r(CRAN) instead of rhdf5 (BioConductor) etc)
 ```{r}
 # the working directory of this Demo is where it locates
-source("../R/FixelArray_Constructor.R")
-source("../R/FixelArray_S4Methods.R")
-source("../R/utils.R")
-source("../R/analyse.R")
-# library(FixelArray)
-suppressMessages(library(dplyr))
-library(broom)
-library(hdf5r)
-library(tictoc)
-# library(lineprof)
-# library(profvis)
-# library(peakRAM)
-suppressMessages(library(doParallel))
 
+flag_library_what <- "FixelArray"   # "FixelArray" or "manually"
+
+if (flag_library_what == "FixelArray") {
+  message("run: devtools::install() to install FixelArray package")
+  library(devtools)
+  devtools::install()
+  library(FixelArray)
+  
+} else if (flag_library_what == "manually") {
+  
+  message("run: source several R scripts and library some R packages...")
+
+  source("../R/FixelArray_Constructor.R")
+  source("../R/FixelArray_S4Methods.R")
+  source("../R/utils.R")
+  source("../R/analyse.R")
+  # library(FixelArray)
+  suppressMessages(library(dplyr))
+  library(broom)
+  library(hdf5r)
+  library(tictoc)
+  # library(lineprof)
+  # library(profvis)
+  # library(peakRAM)
+  suppressMessages(library(doParallel))
+}
 # Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001) 
 # folder_rprofout <- "/home/chenying/Desktop/fixel_project/FixelArray/notebooks"
 
-flag_whichdataset <- "test_n50"   # "val" or "test_n50"
+flag_whichdataset <- "josiane"   # "val" or "test_n50" or "josiane"
+num.subj <- 938  # [integer]   
+num.fixels <- 0
 flag_which_subset <- ""
-flag_where <- "CUBIC"   # "CUBIC" or "vmware"
+flag_where <- "vmware"   # "CUBIC" or "vmware"
 ```
 Inputs set-ups: let's copy the input .h5 file and name it as fn.output; based on it, we create a FixelArray class data:
 ```{r}
+now_str <- format(Sys.time(), "%Y%m%d-%H%M%S")
+
 if (flag_whichdataset == "test_n50") {
   fn <- "../inst/extdata/n50_fixels.h5"
   
   if (flag_where == "CUBIC") {
     fn.output <- "../../dropbox/data_forCircleCI_n50/n50_fixels_output.h5"
   } else if (flag_where == "vmware") {
-    fn.output <- "../../data/data_forCircleCI_n50/n50_fixels_output.h5"  # absoluate path: "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/n50_fixels_output.h5" 
+    fn.output <- "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/n50_fixels_output.h5"  
+    # absoluate path: "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/n50_fixels_output.h5";  
+    # relative path: "../../data/data_forCircleCI_n50/n50_fixels_output.h5"
   }
   
   fn_csv <- "../inst/extdata/n50_cohort.csv"
+  
+   scalar = c("FD")
   
 } else if (flag_whichdataset == "val") {
   if (flag_where == "CUBIC") {
@@ -67,12 +88,31 @@ if (flag_whichdataset == "test_n50") {
     }
     
   }
+  
+   scalar = c("FD")
+  
+} else if (flag_whichdataset == "josiane") {
+  if (flag_where == "CUBIC") {
+    stop("not supported yet...")
+  } else if (flag_where == "vmware") {
+    
+    fn <- paste0("../../data/data_from_josiane/ltn_FDC_n", toString(num.subj), ".h5")
+    fn.output <-  paste0("../../data/data_from_josiane/results/ltn_FDC_n", toString(num.subj), "_wResults_nfixel-",toString(num.fixels), "_",now_str, ".h5")
+    fn_csv <- paste0("../../data/data_from_josiane/df_example_n", toString(num.subj), ".csv")
+    
+  }
+  
+   scalar = c("FDC")
 }
 
 
-file.copy(from=fn, to=fn.output, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)   # , recursive = TRUE
+# generate fn.output:
+if (fn != fn.output) {
+  file.copy(from=fn, to=fn.output, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)   # , recursive = TRUE
+}
+
 # h5closeAll()
-fixelarray <- FixelArray(fn.output)  
+fixelarray <- FixelArray(fn.output, scalar_types = scalar)
 ```
 <!-- Let's create a H5File to access the output .h5 file: -->
 <!-- ```{r} -->
@@ -84,27 +124,40 @@ fixelarray <- FixelArray(fn.output)
 A quick overview of this FixelArray object:
 ```{r}
 fixelarray
-scalars(fixelarray)[["FD"]]
+scalars(fixelarray)[[scalar]]
+
+# check # subjects matches:
+if (dim(scalars(fixelarray)[[scalar]])[2] != num.subj) {
+  stop(paste0("number of subjects in .h5 = ", dim(scalars(fixelarray)[[scalar]])[2], ", is not equal to entered number = ", toString(num.subj)))
+}
 ```
 
 We set up for performing linear regression (lm):
 ```{r}
 phenotypes <- read.csv(fn_csv)
+# check # subjects matches:
+if (nrow(phenotypes) != num.subj) {
+  stop(paste0("number of subjects in .csv = ", toString(nrow(phenotypes)), ", is not equal to entered number = ", toString(num.subj)))
+}
 
-scalar <- "FD"
 if (flag_whichdataset == "test_n50") {
   formula <- FD ~ age
 } else if (flag_whichdataset == "val") {
   formula <- FD ~ Age
+} else if (flag_whichdataset == "josiane") {
+  formula <- FDC ~ Age
 }
 
-full.output <- FALSE  # defixelarrayult: FALSE
+full.outputs <- FALSE  # defixelarrayult: FALSE
 var.terms <- c("estimate", "statistic", "p.value")   # list of columns to keep  | , "std.error","statistic"
 var.model <- c("adj.r.squared", "p.value")
 
 analysis_name <- "lm"
 
-fixel.subset <- 1:10000   # full: dim(scalars(fixelarray)[[scalar]])[1]
+if (num.fixels == 0) {
+  num.fixels <- dim(scalars(fixelarray)[[scalar]])[1]
+}
+fixel.subset <- 1:num.fixels   # full: dim(scalars(fixelarray)[[scalar]])[1]
 ```
 
 Run FixelArray.lm():
@@ -112,15 +165,15 @@ Run FixelArray.lm():
 tic.clearlog()
 tic()
 
-# Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001) 
-Rprof(filename = "Rprof_test.out", interval = 0.01, memory.profiling = TRUE)   # interval = 0.001
+# # Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001) 
+# Rprof(filename = "Rprof_test.out", interval = 0.01, memory.profiling = TRUE)   # interval = 0.001
 
 lm.outputs <- FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
                              full.outputs = full.outputs,  var.terms = var.terms, var.model = var.model, 
-                             correct.p.value.terms = "fdr",
+                             correct.p.value.terms = c("fdr", "bonferroni"),
                              correct.p.value.model = c("fdr","bonferroni"),
-                              verbose = TRUE, pbar = TRUE, n_cores = 2)  # , na.action="na.fixelarrayil"
-Rprof(NULL)
+                              verbose = TRUE, pbar = TRUE, n_cores = 4)  # , na.action="na.fixelarrayil"
+# Rprof(NULL)
 
 
 lg <- toc(log = TRUE, quiet = TRUE)
@@ -128,35 +181,35 @@ log.lst <- tic.log(format = FALSE)
 log.lst[[1]]$toc - log.lst[[1]]$tic    # in sec
 
 
-folder_rprofout = "/home/chenying/Desktop/fixel_project/FixelArray"
-Rprofsummary_both <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "both")
-Rprofsummary_tseries <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "tseries")
-Rprofsummary_stats <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "stats")
-
-# a<-summaryRprof(filename = "Rprof.out", lines = "both", memory = "both")   
-max(Rprofsummary_both$by.total$mem.total)   # fixel.subset=1:100: 27.0MB BUT object.size of fixelarray (15.5KB) and phenotypes (11.3KB); 1:1000 = 42.5MB BUT object.size(lm.outputs)=90KB, even object.size(fits)=184KB
-max(Rprofsummary_tseries$nodes)/1024/1024    # in bytes --> MB  # 1:1000: max=502MB; median=0.0834198 MB; mean=2.180295 MB
-# max(Rprofsummary_stats$by.total$mem.total)  # in bytes
-
-# prof  <- lineprof(FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
-#                              full.output = full.output,  var.terms = var.terms, var.model = var.model, 
-#                              correct.p.value.terms = "none",
-#                              correct.p.value.model = c("fdr","bonferroni"),
-#                               verbose = TRUE, pbar = TRUE, n_cores = 2))
-
-# peakRAM_lm <- peakRAM(FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
-#                              full.output = full.output,  var.terms = var.terms, var.model = var.model, 
-#                              correct.p.value.terms = "none",
-#                              correct.p.value.model = c("fdr","bonferroni"),
-#                               verbose = TRUE, pbar = TRUE, n_cores = 2))
-
-# profvis_lm <- profvis({
-#   FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset,
-#                              full.output = full.output,  var.terms = var.terms, var.model = var.model,
-#                              correct.p.value.terms = "none",
-#                              correct.p.value.model = c("fdr","bonferroni"),
-#                               verbose = TRUE, pbar = TRUE, n_cores = 2)
-# })
+# folder_rprofout = "/home/chenying/Desktop/fixel_project/FixelArray"
+# Rprofsummary_both <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "both")
+# Rprofsummary_tseries <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "tseries")
+# Rprofsummary_stats <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "stats")
+# 
+# # a<-summaryRprof(filename = "Rprof.out", lines = "both", memory = "both")   
+# max(Rprofsummary_both$by.total$mem.total)   # fixel.subset=1:100: 27.0MB BUT object.size of fixelarray (15.5KB) and phenotypes (11.3KB); 1:1000 = 42.5MB BUT object.size(lm.outputs)=90KB, even object.size(fits)=184KB
+# max(Rprofsummary_tseries$nodes)/1024/1024    # in bytes --> MB  # 1:1000: max=502MB; median=0.0834198 MB; mean=2.180295 MB
+# # max(Rprofsummary_stats$by.total$mem.total)  # in bytes
+# 
+# # prof  <- lineprof(FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
+# #                              full.output = full.output,  var.terms = var.terms, var.model = var.model, 
+# #                              correct.p.value.terms = "none",
+# #                              correct.p.value.model = c("fdr","bonferroni"),
+# #                               verbose = TRUE, pbar = TRUE, n_cores = 2))
+# 
+# # peakRAM_lm <- peakRAM(FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
+# #                              full.output = full.output,  var.terms = var.terms, var.model = var.model, 
+# #                              correct.p.value.terms = "none",
+# #                              correct.p.value.model = c("fdr","bonferroni"),
+# #                               verbose = TRUE, pbar = TRUE, n_cores = 2))
+# 
+# # profvis_lm <- profvis({
+# #   FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset,
+# #                              full.output = full.output,  var.terms = var.terms, var.model = var.model,
+# #                              correct.p.value.terms = "none",
+# #                              correct.p.value.model = c("fdr","bonferroni"),
+# #                               verbose = TRUE, pbar = TRUE, n_cores = 2)
+# # })
 
 
 head(lm.outputs)
@@ -170,24 +223,30 @@ dim(lm.outputs)
 Save to .h5 file:
 ```{r}
 
-# Rprof(filename = "Rprof_write.out", memory.profiling = TRUE)
-# Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001)
-Rprof(filename = "Rprof_write.out", memory.profiling = TRUE, interval=0.001)
+# # Rprof(filename = "Rprof_write.out", memory.profiling = TRUE)
+# # Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001)
+# Rprof(filename = "Rprof_write.out", memory.profiling = TRUE, interval=0.001)
+# 
+if (fn == fn.output) {
+  stop("input and output .h5 is the same file!!!")
+}
+
+# h5closeAll()
 
 writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE)
-
-Rprof(NULL)
-
-# Rprof_write <- summaryRprof(line = "both", memory = "both")
-Rprof_write <- summaryRprof(filename = "Rprof_write.out", memory = "tseries")
-max(Rprof_write$by.total$mem.total)
-
-
-# profvis_write <- profvis({
-#   writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE)
-# })
-
-# peakRAM_write <- peakRAM(writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE))
+# 
+# Rprof(NULL)
+# 
+# # Rprof_write <- summaryRprof(line = "both", memory = "both")
+# Rprof_write <- summaryRprof(filename = "Rprof_write.out", memory = "tseries")
+# max(Rprof_write$by.total$mem.total)
+# 
+# 
+# # profvis_write <- profvis({
+# #   writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE)
+# # })
+# 
+# # peakRAM_write <- peakRAM(writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, overwrite=TRUE))
 
 
 ```
@@ -201,6 +260,6 @@ max(Rprof_write$by.total$mem.total)
 
 Let's see what the saved outputs look like: The "results" group:
 ```{r}
-fixelarray_new <- FixelArray(fn.output, scalar_types = c("FD"), analysis_names = c("lm"))
+fixelarray_new <- FixelArray(fn.output, scalar_types = scalar, analysis_names = c("lm"))
 fixelarray_new@results$lm
 ```
