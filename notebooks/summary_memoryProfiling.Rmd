@@ -11,12 +11,20 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 source("memoryProfiling_plot.R")
 
-library(dplyr)
-library(tidyr)
-library(tibble)
-library(stringr)   # str_match
-suppressMessages(library(egg))   # set ggplot2 panel size --> not shown up in Rmd?
-library(grid)   # plot ggplot2
+list.of.packages <- c("dplyr", "tidyr", "tibble", "stringr",   # str_match
+                      "egg", "grid")   #  # set ggplot2 panel size and plot ggplot2 --> not shown up in Rmd?
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+lapply(list.of.packages, require, character.only = TRUE)   # or library
+
+
+# library(dplyr)
+# library(tidyr)
+# library(tibble)
+# library(stringr)   # str_match
+# suppressMessages(library(egg))   # set ggplot2 panel size --> not shown up in Rmd?
+# library(grid)   # plot ggplot2
 ```
 
 ### Memory increases with time
