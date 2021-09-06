@@ -16,7 +16,7 @@ steps: &steps
         name: Install package dependencies
         command: R -e "devtools::install_deps(dep = TRUE)"
     - run:
-        name: Install package dependencies (hdf5r)
+        name: Install package dependencies (hdf5r, HDF5Array, DelayedArray)
         command: R -e "lapply(c('hdf5r','HDF5Array','DelayedArray'), require, character.only=TRUE)"
     - run:
         name: Build package
