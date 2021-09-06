@@ -541,12 +541,14 @@ writeResults.old <- function(fa, data, analysis_name = "myAnalysis", flag_overwr
 }
 
 #' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
+#' debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.
 #' 
 #' @param fn.output The .h5 filename for the output, including folder directory
 #' @param df.output A data.frame object with model results at each fixel, returned from FixelArray.lm() etc
 #' @param analysis_name The subfolder name in results, holding the analysis results 
 #' @param overwrite If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)
-#'
+#' @import hdf5r
+#' @export
 
 writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", overwrite=TRUE){ 
   
@@ -555,7 +557,7 @@ writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", ove
     stop("Results dataset is not correct; must be data of type `data.frame`")
   }
   
-  fn.output.h5 <- H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
+  fn.output.h5 <- hdf5r::H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
 
   # check if group "results" already exists!
   if (fn.output.h5$exists("results") == TRUE) { # group "results" exist
@@ -602,7 +604,7 @@ writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", ove
     # results_matrix_ds <- results.analysis.grp[["results_matrix"]]   # name it
     
     # attach column names:
-    h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)   # NOTES: update ConFixel correspondingly
+    hdf5r::h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)   # NOTES: update ConFixel correspondingly
     
   }
   
