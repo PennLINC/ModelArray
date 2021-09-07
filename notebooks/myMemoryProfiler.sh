@@ -12,12 +12,19 @@ do
 	esac
 done
 
+#echo "parent id: ${parent_id}"
+#echo "num_cores: ${num_cores}"
+#echo "sample_sec: ${sample_sec}"
+#echo "output folder: ${output_folder}"
+
 
 source config.txt
-echo $flag_where    # "cubic_interactive" or "cubic_sge" or "vmware" or "dopamine"
+echo $flag_where    # "cubic" or "vmware" or "dopamine"
 
 if [[ "${flag_where}" == "vmware"   ]]; then
     cmd_wss="/home/chenying/Desktop/Apps/wss-master/wss.pl"
+elif [[ "${flag_where}" == "cubic"  ]]; then
+    cmd_wss="/cbica/projects/fixel_db/Apps/wss/wss.pl"
 fi
 
 # parent_id=`ps -aux | grep "[R] --no-echo --no-restore" | awk '{print $2}'`     # [R] is to remove result of grep search; "awk" is to return pid only
@@ -28,12 +35,17 @@ fn_parent_singlecore="${output_folder}/wss_SingleCoreStarts_parent.txt"
 
 ${cmd_wss} -C ${parent_id} ${sample_sec} > ${fn_parent_singlecore} 2>&1 &
 
+
+#echo "output folder: ${output_folder}"
+#echo "fn_parent_singlecore: ${fn_parent_singlecore}"
+
 # get the id of parent's profiling
 pid_wss_parent_singlecore=$!
 # echo "pid of wss parent = ${pid_wss_parent_singlecore}"
 
 # set up the fn after multiple cores start:
 fn_parent_multicore="${output_folder}/wss_MultiCoreStarts_parent.txt"
+
 
 fn_child_list=()
 for (( i=0; i<${num_cores}; i++ ))
