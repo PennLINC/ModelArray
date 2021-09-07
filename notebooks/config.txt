@@ -1,1 +1,1 @@
-flag_where="vmware"    # "cubic_interactive" or "cubic_sge" or "vmware" or "dopamine"
+flag_where="cubic"    # "cubic" or "vmware" or "dopamine"
