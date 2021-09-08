@@ -41,7 +41,7 @@ if (flag_library_what == "FixelArray") {
 # folder_rprofout <- "/home/chenying/Desktop/fixel_project/FixelArray/notebooks"
 
 flag_whichdataset <- "josiane"   # "val" or "test_n50" or "josiane"
-num.subj <- 30  # [integer]   
+num.subj <- 938  # [integer]   
 num.fixels <- 0
 flag_which_subset <- ""
 flag_where <- "vmware"   # "CUBIC" or "vmware"
@@ -150,7 +150,7 @@ if (flag_whichdataset == "test_n50") {
   formula <- FDC ~ Age
 }
 
-full.outputs <- FALSE  # defixelarrayult: FALSE
+#full.outputs <- FALSE  # defixelarrayult: FALSE
 var.terms <- c("estimate", "statistic", "p.value")   # list of columns to keep  | , "std.error","statistic"
 var.model <- c("adj.r.squared", "p.value")
 
@@ -171,7 +171,8 @@ tic()
 # Rprof(filename = "Rprof_test.out", interval = 0.01, memory.profiling = TRUE)   # interval = 0.001
 
 lm.outputs <- FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
-                             full.outputs = full.outputs,  var.terms = var.terms, var.model = var.model, 
+                             full.outputs = TRUE,   # +++++++++++++++++++++
+                             #var.terms = var.terms, var.model = var.model, 
                              correct.p.value.terms = c("fdr", "bonferroni"),
                              correct.p.value.model = c("fdr","bonferroni"),
                               verbose = TRUE, pbar = TRUE, n_cores = 4)  # , na.action="na.fixelarrayil"
