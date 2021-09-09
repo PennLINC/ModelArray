@@ -12,12 +12,24 @@ do
         o) folder_output=${OPTARG};;
         M) run_memoryProfiler=${OPTARG};;   # "TRUE" or "FALSE"
         s) sample_sec=${OPTARG};;
-        w) run_where=${OPTARG};;  # "interactive" or "vmware"
+        w) run_where=${OPTARG};;  # "interactive" or "vmware" or "sge"
     esac
 done
 
+echo "num_subj = $num_subj"
+echo "nshuffles = $nshuffles"
+echo "nthreads = $nthreads"
+echo "ftests = $ftests"
+echo "fonly = $fonly"
+echo "notest = $notest"
+echo "folder_output = $folder_output"
+echo "run_memoryProfiler = $run_memoryProfiler"
+echo "sample_sec = $sample_sec"
+echo "run_where = $run_where"
+echo ""
 
-if [[ "$run_where" == "interactive"  ]]; then
+
+if [[ "$run_where" == "interactive"  ]] || [[ "$run_where" == "sge"  ]]; then
     folder_main_data="/cbica/projects/fixel_db/dropbox/data_from_josiane/for_fixelcfestats"
 
     source /cbica/projects/fixel_db/miniconda3/etc/profile.d/conda.sh   # found by $ conda info | grep -i 'base environment'
