@@ -1,0 +1,95 @@
+---
+title: "summary of fixelcfestats for lm"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+source("memoryProfiling_plot.R")
+
+list.of.packages <- c("dplyr", "tidyr", "tibble", "stringr")   # str_match
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+lapply(list.of.packages, require, character.only = TRUE)   # or library
+
+
+```
+### get ready: function
+```{r}
+readWssSingleParent <- function(folder) {
+  fn.parent.single <- paste0(folder, "/", "wss_SingleCoreStarts_parent.txt")
+  
+  sample_sec <- as.numeric(str_match(folder, "runMemProfiler.s-\\s*(.*?)\\s*sec.")[2])
+  
+  df.parent.single <- readWssText(fn.parent.single, sample_sec)
+  
+  
+  df.parent.single
+}
+
+```
+
+### do permutation test
+
+```{r}
+folder1 <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC\\nsubj-938.nthreads-1.ftests.nshuffles-100.interactive.runMemProfiler.s-1sec.20210908-131441"
+
+nsubj <- as.numeric(str_match(folder1, "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+nshuffles <- as.numeric(str_match(folder1, "nshuffles-\\s*(.*?)\\s*.interactive")[2])
+
+nthreads <- as.numeric(str_match(folder1, "nthreads-\\s*(.*?)\\s*.ftests")[2])
+
+
+df1 <- readWssSingleParent(folder1)
+
+f1 <- ggplot(df1, aes(x = Est.s.)) +   # [1:1000,]
+  geom_line(aes(y = RSS.MB.), color="black") +
+  theme_bw()+ 
+  xlab("Time (second)") + 
+  ylab("Memory (MB)") + 
+  ggtitle(paste0("MRtrix fixelcfestats: ","nsubj= ", toString(nsubj), ", nthreads= ", toString(nthreads), ", nshuffles=", toString(nshuffles)))
+f1
+
+```
+
+### not to do permutation test
+
+#### interactive node:
+```{r}
+folder2 <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC\\nsubj-938.nthreads-1.ftests.notest.nshuffles-100.interactive.runMemProfiler.s-1sec.20210908-133419"
+
+nsubj <- as.numeric(str_match(folder2, "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+df2 <- readWssSingleParent(folder2)
+
+f2 <- ggplot(df2, aes(x = Est.s.)) + 
+  geom_line(aes(y = RSS.MB.), color="black") + 
+  theme_bw() + 
+  xlab("Time (second)") + 
+  ylab("Memory (MB)") + 
+  ggtitle(paste0("MRtrix fixelcfestats: ","nsubj= ", toString(nsubj), ", no permutations"))
+f2
+
+```
+
+#### vmware:
+```{r}
+folder3<- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC\\nsubj-938.nthreads-1.ftests.notest.nshuffles-100.vmware.runMemProfiler.s-1sec.20210908-161805"
+
+nsubj <- as.numeric(str_match(folder3, "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+
+df3 <- readWssSingleParent(folder3)
+
+f3 <- ggplot(df3, aes(x = Est.s.)) + 
+  geom_line(aes(y = RSS.MB.), color="black") + 
+  theme_bw() + 
+  xlab("Time (second)") + 
+  ylab("Memory (MB)") + 
+  ggtitle(paste0("MRtrix fixelcfestats: ","nsubj= ", toString(nsubj), ", no permutations"))
+f3
+```
