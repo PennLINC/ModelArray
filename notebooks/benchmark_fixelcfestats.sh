@@ -1,6 +1,6 @@
 #!/bin/bash
 
-while getopts S:h:t:f:F:o:M:s:w: flag
+while getopts S:h:t:f:F:n:o:M:s:w: flag
 do
     case "${flag}" in
         S) num_subj=${OPTARG};;
@@ -8,6 +8,7 @@ do
         t) nthreads=${OPTARG};;   # number of threads in fixelcfestats
         f) ftests=${OPTARG};;   # TRUE or FALSE
         F) fonly=${OPTARG};;   # TRUE or FALSE
+        n) notest=${OPTARG};;   # TRUE or FALSE
         o) folder_output=${OPTARG};;
         M) run_memoryProfiler=${OPTARG};;   # "TRUE" or "FALSE"
         s) sample_sec=${OPTARG};;
@@ -45,6 +46,10 @@ fi
 
 if [[ "$fonly" == "TRUE"   ]]; then
     cmd+=" -fonly"
+fi
+
+if [[ "$notest" == "TRUE"   ]]; then
+    cmd+=" -notest"
 fi
 
 echo $cmd

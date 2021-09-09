@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # examples:
-# bash wrapper_benchmark_fixelcfestats.sh -S 938 -h 100 -t 2 -f TRUE -F TRUE -w vmware -M TRUE -s 0.1
+# bash wrapper_benchmark_fixelcfestats.sh -S 938 -h 100 -t 2 -f TRUE -F FALSE -n FALSE -w vmware -M TRUE -s 0.1
+# bash wrapper_benchmark_fixelcfestats.sh -S 938 -h 100 -t 1 -f TRUE -F FALSE -n TRUE -w interactive -M TRUE -s 0.1
 
-while getopts S:h:t:f:F:w:M:s: flag
+while getopts S:h:t:f:F:n:w:M:s: flag
 do
     case "${flag}" in
         S) num_subj=${OPTARG};;
@@ -11,6 +12,7 @@ do
         t) nthreads=${OPTARG};;   # number of threads in fixelcfestats
         f) ftests=${OPTARG};;   # TRUE or FALSE
         F) fonly=${OPTARG};;   # TRUE or FALSE
+        n) notest=${OPTARG};;   # TRUE or FALSE
         w) run_where=${OPTARG};;   # "interactive" or "vmware"
         M) run_memoryProfiler=${OPTARG};;   # "TRUE" or "FALSE"
         s) sample_sec=${OPTARG};;
@@ -26,7 +28,7 @@ elif [[ "$run_where" == "vmware"  ]]; then
     folder_main_output="/home/chenying/Desktop/fixel_project/data/data_from_josiane/for_fixelcfestats/stats_FDC"
 fi
 
-folder_output="${folder_main_output}/nsubj-${num_subj}.nthreads-${nthreads}.nshuffles-${nshuffles}"
+folder_output="${folder_main_output}/nsubj-${num_subj}.nthreads-${nthreads}"
 
 if [[ "$ftests" == "TRUE"   ]]; then
     folder_output+=".ftests"
@@ -36,6 +38,12 @@ fi
 if [[ "$fonly" == "TRUE"   ]]; then
     folder_output+=".fonly"
 fi
+
+if [[ "$notest" == "TRUE"   ]]; then
+    folder_output+=".notest"
+fi
+
+folder_output+=".nshuffles-${nshuffles}"
 
 folder_output+=".${run_where}"
 
@@ -54,4 +62,4 @@ fn_output_txt="${folder_output}/output.txt"
 
 
 
-bash benchmark_fixelcfestats.sh -S $num_subj -h $nshuffles -t $nthreads -f $ftests -F $fonly -o $folder_output -M ${run_memoryProfiler} -s ${sample_sec} -w ${run_where} > $fn_output_txt 2>&1 &
+bash benchmark_fixelcfestats.sh -S $num_subj -h $nshuffles -t $nthreads -f $ftests -F $fonly -n $notest -o $folder_output -M ${run_memoryProfiler} -s ${sample_sec} -w ${run_where} > $fn_output_txt 2>&1 &
