@@ -14,6 +14,39 @@ lapply(list.of.packages, require, character.only = TRUE)   # or library
 # library(dplyr)
 # library(tibble)
 
+#' read wss output text file
+#' 
+readWssText <- function(fn, sample_sec) {
+  # check if matching with sample_sec
+  fp <- file(fn, "r")
+  oneline <- readLines(fp, n=1)
+  close(fp)
+  
+  sample_sec_actual <- as.numeric(str_match(oneline, "every \\s*(.*?)\\s*second")[2])
+  
+  if (sample_sec != sample_sec_actual) {
+    stop(paste0("the sampling frequency in this file is not ", toString(sample_sec), "!"))
+  }
+  
+  
+  # read in
+  df <- tryCatch(
+    {
+      df <- read.table(fn, skip=1, header=TRUE)
+      return(df)
+    },
+    error=function(cond) {
+      df <- read.table(fn, skip=1, header=TRUE, 
+                       nrow = R.utils::countLines(fn) -3 )
+      return(df)
+    }
+  )
+  
+  df
+}
+
+
+
 #' @param profiling.setup The expected setup when profiling: "devtools" or "source_library"
 #' @param roof.num.child The maximum number of child processes expected (useful when summarizing different number of cores)
 #' @param sample_sec Sampling every _ seconds; if the folder includes it, assing "NULL" or not to assign value!
@@ -89,36 +122,6 @@ oneline <- Routput[intersect(grep("sleep", Routput, fixed=TRUE),
                 grep("sec to capture the current memory before existing", Routput, fixed=TRUE))]
 final_sleep_sec <- as.numeric(str_match(oneline, "for \\s*(.*?)\\s* sec ")[2])
 
-
-# read wss output text file:
-readWssText <- function(fn, sample_sec) {
-  # check if matching with sample_sec
-  fp <- file(fn, "r")
-  oneline <- readLines(fp, n=1)
-  close(fp)
-  
-  sample_sec_actual <- as.numeric(str_match(oneline, "every \\s*(.*?)\\s*second")[2])
-  
-  if (sample_sec != sample_sec_actual) {
-    stop(paste0("the sampling frequency in this file is not ", toString(sample_sec), "!"))
-  }
-  
-  
-  # read in
-  df <- tryCatch(
-    {
-      df <- read.table(fn, skip=1, header=TRUE)
-      return(df)
-    },
-    error=function(cond) {
-      df <- read.table(fn, skip=1, header=TRUE, 
-                       nrow = R.utils::countLines(fn) -3 )
-      return(df)
-    }
-  )
-  
-  df
-}
 
 
 ### combine files #####
