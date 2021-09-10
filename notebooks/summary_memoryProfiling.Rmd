@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 source("memoryProfiling_plot.R")
 
 list.of.packages <- c("dplyr", "tidyr", "tibble", "stringr",   # str_match
+                      #"ggrepel",   # for non-overlapping text in ggplot2
                       "egg", "grid")   #  # set ggplot2 panel size and plot ggplot2 --> not shown up in Rmd?
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -195,17 +196,31 @@ clean.summary.when.max$process <- factor(clean.summary.when.max$process,
 totals <- summary.when.max %>% select(num.cores, total.RSS.MB.)
 colnames(totals) <- gsub(".RSS.MB.", "",colnames(totals))
 
+# plot in unit of MB:
+# ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB, x=num.cores)) + 
+#     geom_bar(position="stack", stat="identity", width = 0.3) + 
+#   geom_text(aes(x = num.cores, y = total+2500*0.03, label = round(total, digits = 0), fill = NULL), data = totals) +
+#   scale_x_discrete(limits=c("1","2","3","4")) +
+#    scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) + # green for child
+#   #scale_fill_manual(values = c("#737373", c("#08519E","#006E2D",  "#4292C5", "#40AB5D") ) %>% rev() ) + 
+#   theme_bw() + 
+#   xlab("Number of CPU cores") +
+#   ylab("Memory (MB)") +
+#   ggtitle(paste0("FixelArray.lm(): # of subjects = ", toString(num.subj)))
 
-ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB, x=num.cores)) + 
+ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.cores)) + 
     geom_bar(position="stack", stat="identity", width = 0.3) + 
-  geom_text(aes(x = num.cores, y = total+2500*0.03, label = round(total, digits = 0), fill = NULL), data = totals) +
+  geom_text(aes(x = num.cores, y = total/1024+50*0.05, label = round(total/1024, digits = 2), fill = NULL), data = totals, size=5) +
   scale_x_discrete(limits=c("1","2","3","4")) +
    scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) + # green for child
   #scale_fill_manual(values = c("#737373", c("#08519E","#006E2D",  "#4292C5", "#40AB5D") ) %>% rev() ) + 
   theme_bw() + 
+  ylim(0, 53) + 
+  theme(aspect.ratio = 0.8,
+        text = element_text(size=15)) +
   xlab("Number of CPU cores") +
-  ylab("Memory (MB)") +
-  ggtitle(paste0("# of subjects = ", toString(num.subj)))
+  ylab("Max memory (GB)") +
+  ggtitle(paste0("FixelArray.lm(): nsubj=", toString(num.subj)))
 
 # f <- set_panel_size(f, width=unit(5,"cm"), height=unit(5,"cm"))
 # 
@@ -331,16 +346,32 @@ totals <- summary.when.max %>% select(num.subj, total.RSS.MB.)
 colnames(totals) <- gsub(".RSS.MB.", "",colnames(totals))
                       
 
-ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB, x=num.subj)) + 
+# plot in the unit of MB:
+# ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB, x=num.subj)) + 
+#     geom_bar(position="stack", stat="identity") + 
+#   geom_text(aes(x = num.subj, y = total+2500*0.03, label = round(total, digits = 0), fill = NULL), data = totals) + 
+#   scale_x_continuous(breaks = c(0,summary.when.max$num.subj)) +
+#   scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) + 
+#   theme_bw() +
+#   xlab("Number of subjects") +
+#   ylab("Memory (MB)") +
+#   ggtitle(paste0("# of CPU cores = ", toString(num.cores)))
+
+
+# plot in the unit of GB:
+ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.subj)) + 
     geom_bar(position="stack", stat="identity") + 
-  geom_text(aes(x = num.subj, y = total+2500*0.03, label = round(total, digits = 0), fill = NULL), data = totals) + 
-  scale_x_continuous(breaks = c(0,summary.when.max$num.subj)) +
+  geom_text(aes(x = num.subj, y = total/1024+50*0.08, label = round(total/1024, digits = 2), fill = NULL), data = totals, size=5, angle = 45) + 
+  scale_x_continuous(breaks = c(summary.when.max$num.subj)) +
   scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) + 
   theme_bw() +
+  ylim(0, 53) + 
+  theme(aspect.ratio = 0.8,
+        text = element_text(size=15))+
+        #axis.text.x = element_text(angle=45, hjust=1)) + 
   xlab("Number of subjects") +
-  ylab("Memory (MB)") +
-  ggtitle(paste0("# of CPU cores = ", toString(num.cores)))
-
+  ylab("Max memory (GB)") +
+  ggtitle(paste0("FixelArray.lm(): # of CPU cores = ", toString(num.cores)))
 
 # reason that num.subj=300's total is = num.subj=500 is limited sampling rate and imperfect interpolation: for num.subj=300, the child1 (first return)'s final spike was captured, and parent also received child's output --> imperfect interpolate (i.e. when child1's spike, parent has not received child's output, but next sec it did)
 
