@@ -18,7 +18,7 @@ do
     esac
 done
 
-cmd="qsub -l h_vmem=${h_vmem} -pe threaded 1 wrapper_benchmark_fixelcfestats.sh"
+cmd="qsub -l h_vmem=${h_vmem} wrapper_benchmark_fixelcfestats.sh"  # -pe threaded 1 
 cmd+=" -S $num_subj -h $nshuffles -t $nthreads -f $ftests -F $fonly -n $notest"
 cmd+=" -w sge -M $run_memoryProfiler -s $sample_sec"
 echo $cmd
