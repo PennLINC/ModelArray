@@ -28,7 +28,7 @@ lapply(list.of.packages, require, character.only = TRUE)   # or library
 # library(grid)   # plot ggplot2
 ```
 
-### Memory increases with time
+### Memory increases with time - time series plots
 #### One-core computing case:
 ```{r}
 folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.s-1sec.20210901-215731"
@@ -49,24 +49,32 @@ clean.df.multi$Est.h. <- clean.df.multi$Est.s. / 3600
 clean.df.multi <- clean.df.multi %>% select("Est.h.","parent") %>%
   tidyr::pivot_longer(!Est.h., names_to = "process", values_to="memory_MB")
 
+clean.df.multi$memory_GB <- clean.df.multi$memory_MB / 1024
+
 clean.df.multi$process <- factor(clean.df.multi$process, 
                                          levels = c("parent" ) )
 
-ggplot(clean.df.multi, aes(x = Est.h., y = memory_MB, fill = process)) + 
+ggplot(clean.df.multi, aes(x = Est.h., y = memory_GB, fill = process)) + 
   geom_area(size = 0.5, color = "white") +  # alpha = 0.6, 
   scale_fill_manual(values= c("#737373")  ) +
+  ylim(0,2.5) + 
   theme_bw() +
+  theme(aspect.ratio = 1/1.4,
+        text = element_text(size=15)) +
   xlab("Time (hour)") +
-  ylab("Memory (MB)") +
-  ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj)))
+  ylab("Memory (GB)") +
+  ggtitle(paste0("FixelArray.lm(): ncores=", toString(num.cores), ", nsubj=", toString(num.subj)))
+  #ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj)))
 
 
 ```
 
 #### Multi-core computing case:
 ```{r}
+#folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-0.1sec.20210901-140053"  # s=0.1sec, time is long....
+ folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-1sec.20210903-102106"
 
-folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-938.ncore-4.vmware.runMemProfiler.s-1sec.20210902-053459"
+#folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-938.ncore-4.vmware.runMemProfiler.s-1sec.20210902-053459"
 
 temp <- str_match(folder, "ncore-\\s*(.*?)\\s*.")[1]
 num.cores <- as.integer(substr(temp, 7, 20))
@@ -83,24 +91,34 @@ clean.df.multi$Est.h. <- clean.df.multi$Est.s. / 3600
 clean.df.multi <- clean.df.multi %>% select("Est.h.","parent", "child0", "child1", "child2", "child3") %>%
   tidyr::pivot_longer(!Est.h., names_to = "process", values_to="memory_MB")
 
+clean.df.multi$memory_GB <- clean.df.multi$memory_MB / 1024
+
 clean.df.multi$process <- factor(clean.df.multi$process, 
                                          levels = c("parent", "child0", "child1", "child2", "child3" ) %>% rev() )
 
-ggplot(clean.df.multi, aes(x = Est.h., y = memory_MB, fill = process)) + 
+ggplot(clean.df.multi, aes(x = Est.h., y = memory_GB, fill = process)) + 
   geom_area(size = 0.5, color = "white") +  # alpha = 0.6, 
   scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) +
   theme_bw() +
+  theme(aspect.ratio = 1/1.4,
+        text = element_text(size=15)) +
+  ylim(0,2.5) + 
   xlab("Time (hour)") +
-  ylab("Memory (MB)") +
-  ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj)))
+  ylab("Memory (GB)") +
+  ggtitle(paste0("FixelArray.lm(): ncores=", toString(num.cores), ", nsubj=", toString(num.subj)))
+  #ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj)))
 
-ggplot(clean.df.multi[clean.df.multi$Est.h.>2, ], aes(x = Est.h., y = memory_MB, fill = process)) + 
+ggplot(clean.df.multi[clean.df.multi$Est.h.>1.45, ], aes(x = Est.h., y = memory_GB, fill = process)) + 
   geom_area(size = 0.5, color = "white") +  # alpha = 0.6, 
   scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) +
   theme_bw() +
+  theme(aspect.ratio = 1/1.4,
+        text = element_text(size=15)) +
+  ylim(0,2.5) + 
   xlab("Time (hour)") +
-  ylab("Memory (MB)") +
-  ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj), " close to end"))
+  ylab("Memory (GB)") +
+  ggtitle(paste0("FixelArray.lm(): ncores=", toString(num.cores), ", nsubj=", toString(num.subj), ", close to end"))
+  #ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj), " close to end"))
 
 ```
 
@@ -144,6 +162,7 @@ ggplot(clean.df.multi[clean.df.multi$Est.h.>2, ], aes(x = Est.h., y = memory_MB,
 <!-- summary.when.max -->
 <!-- ``` -->
 ### different number of CPU cores
+#### num.subj = 30 and compare to MRtrix
 Josiane's dataset, all fixels (~600k), num.subj = 30, set up by installing FixelArray package (professional way)
 
 ```{r}
@@ -151,7 +170,8 @@ main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_bench
 foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.s-1sec.20210901-215731",
                         "lm.josiane.nfixel-0.nsubj-30.ncore-2.vmware.runMemProfiler.s-1sec.20210901-161652",
                         "lm.josiane.nfixel-0.nsubj-30.ncore-3.vmware.runMemProfiler.s-1sec.20210901-192437",
-                        "lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-0.1sec.20210901-140053")
+                        "lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-1sec.20210903-102106")
+                        #"lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-0.1sec.20210901-140053")
 
 folder.list <- file.path(main.folder,  foldername.list)
 
@@ -210,12 +230,12 @@ colnames(totals) <- gsub(".RSS.MB.", "",colnames(totals))
 
 ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.cores)) + 
     geom_bar(position="stack", stat="identity", width = 0.3) + 
-  geom_text(aes(x = num.cores, y = total/1024+50*0.05, label = round(total/1024, digits = 2), fill = NULL), data = totals, size=5) +
+  geom_text(aes(x = num.cores, y = total/1024+5*0.03, label = round(total/1024, digits = 2), fill = NULL), data = totals, size=5) +
   scale_x_discrete(limits=c("1","2","3","4")) +
    scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) + # green for child
   #scale_fill_manual(values = c("#737373", c("#08519E","#006E2D",  "#4292C5", "#40AB5D") ) %>% rev() ) + 
   theme_bw() + 
-  ylim(0, 53) + 
+  #ylim(0, 53) + 
   theme(aspect.ratio = 0.8,
         text = element_text(size=15)) +
   xlab("Number of CPU cores") +
@@ -227,8 +247,251 @@ ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.cores))
 # grid::grid.newpage()
 # grid::grid.draw(f)
 
+
+## COMPARISON
+
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC"
+foldername.list <- list("nsubj-30.nthreads-1.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-125839",
+                        "nsubj-30.nthreads-2.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-125847",  # "nsubj-30.nthreads-2.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-200250", 
+                        "nsubj-30.nthreads-3.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-182059",
+                        "nsubj-30.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-184751")
+
+# nthreads=2: # "200250" ran without any other fixelcfestats, similar max.RSS = 8833.29MB
+
+folder.list <- file.path(main.folder,  foldername.list)
+
+nsubj <- as.numeric(str_match(folder.list[1], "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+nshuffles <- as.numeric(str_match(folder.list[1], "nshuffles-\\s*(.*?)\\s*.vmware")[2])
+
+
+myplots <- vector('list', length(folder.list))
+for (i_folder in 1:length(folder.list)) {
+  nthreads <- as.numeric(str_match(folder.list[i_folder], "nthreads-\\s*(.*?)\\s*.ftests")[2])
+  
+  df <- readWssSingleParent(folder.list[i_folder])
+  df$RSS.GB. <- df$RSS.MB. / 1024
+  
+  max.RSS.MB. <- max(df$RSS.MB.)
+  df.max.RSS <- data.frame(nthreads = nthreads,
+                              max.RSS.MB. = max.RSS.MB.,
+                            max.RSS.GB. = max.RSS.MB./1024)
+
+  
+  if (i_folder==1) {
+    summary.max <- df.max.RSS
+    
+  } else {
+    summary.max <- rbind(summary.max, df.max.RSS)
+    
+  }
+  
+
+  myplots[[i_folder]] <- timeSeriesPlot(df, unit.time = "second",
+                      str.title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)) )
+  
+}
+
+## TOGETHER: 
+
+if ((num.subj == nsubj) && (all(summary.when.max$num.cores == summary.max$nthreads))) {
+  together.max.total.GB = data.frame(nparallel = summary.when.max$num.cores,
+                                  FixelArray = summary.when.max$total.RSS.MB./1024,
+                                  MRtrix = summary.max$max.RSS.GB.)
+                      
+  
+} else {
+  message("number of cores/threads are different in profiling FixelArray vs MRtrix!")
+}
+
+together.max.total.GB <- together.max.total.GB %>% tidyr::pivot_longer(!nparallel, names_to="software", values_to="max.total.GB.")
+
+together.max.total.GB$software <- factor(together.max.total.GB$software, 
+                                         levels = c("MRtrix","FixelArray") )
+
+ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nparallel)) + 
+    geom_bar(position="dodge", stat="identity", width=0.6) + 
+  scale_fill_manual(values= c("#909090", "#248B46") ) +
+  geom_text(position = position_dodge(width = 0.6), 
+            aes(y=max.total.GB.+8*0.05, label=sprintf("%0.2f", round(max.total.GB., digits=2)), hjust=0.4), 
+            size=5, angle=0) + 
+  #ylim(0, 53) + 
+  theme_bw() + 
+  theme(aspect.ratio = 0.8,
+        text = element_text(size=15)) +
+  xlab("Number of threads (or cores)") + 
+  ylab("Max memory (GB)") + 
+  ggtitle(paste0("Comparison: nsubj=",toString(nsubj)))
+
 ```
 
+#### num.subj = 938 and compared to MRtrix
+Josiane's dataset, all fixels (~600k), num.subj = 938, set up by installing FixelArray package (professional way)
+```{r}
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark"
+foldername.list <- list("lm.josiane.nfixel-0.nsubj-938.ncore-1.vmware.runMemProfiler.s-1sec.20210910-232632",
+                        "lm.josiane.nfixel-0.nsubj-938.ncore-2.vmware.runMemProfiler.s-1sec.20210911-052105",
+                        "lm.josiane.nfixel-0.nsubj-938.ncore-3.vmware.runMemProfiler.s-1sec.20210910-171646",
+                        "lm.josiane.nfixel-0.nsubj-938.ncore-4.vmware.runMemProfiler.s-1sec.20210910-130052")
+                        #"lm.josiane.nfixel-0.nsubj-938.ncore-4.vmware.runMemProfiler.s-1sec.20210902-053459") # replicated 20210910-130052
+
+# ncore=1,2,3 probably also jumped as nsubj=30 did - the children chunk is bigger than ncore=4's
+
+folder.list <- file.path(main.folder,  foldername.list)
+
+num.subj <- as.integer(str_match(foldername.list[1], "nsubj-\\s*(.*?)\\s*.ncore")[2])
+
+for (i_folder in 1:length(folder.list)) {
+  message(paste0("start to working on: ", foldername.list[i_folder], "..."))
+  
+  # number of cores:
+  temp <- str_match(foldername.list[i_folder], "ncore-\\s*(.*?)\\s*.")[1]
+  num.cores <- as.integer(substr(temp, 7, 20))
+
+  out <- summaryMemProfiling(folder.list[i_folder], "devtools", roof.num.child=4)
+  when.max <- add_column(out$when.max, num.cores = num.cores, .before = 1)
+  
+  if (i_folder==1) {
+    summary.when.max <- when.max
+  } else {
+    summary.when.max <- rbind(summary.when.max, when.max)
+  }
+  
+  rownames(summary.when.max)[i_folder] <- toString(i_folder)
+  
+  
+}
+
+summary.when.max
+
+# plot:
+clean.summary.when.max <- summary.when.max %>% 
+  select(num.cores, parent.RSS.MB., child0.RSS.MB., child1.RSS.MB., child2.RSS.MB., child3.RSS.MB.) # change accordingly..
+
+colnames(clean.summary.when.max) <- gsub(".RSS.MB.", "",colnames(clean.summary.when.max))
+
+clean.summary.when.max <- clean.summary.when.max %>% 
+  tidyr::pivot_longer(!num.cores, names_to="process", values_to="memory_MB")
+
+clean.summary.when.max$process <- factor(clean.summary.when.max$process, 
+                                         levels = c("parent", "child0", "child1", "child2", "child3" ) %>% rev() )
+
+
+totals <- summary.when.max %>% select(num.cores, total.RSS.MB.)
+colnames(totals) <- gsub(".RSS.MB.", "",colnames(totals))
+
+# plot in unit of MB:
+# ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB, x=num.cores)) + 
+#     geom_bar(position="stack", stat="identity", width = 0.3) + 
+#   geom_text(aes(x = num.cores, y = total+2500*0.03, label = round(total, digits = 0), fill = NULL), data = totals) +
+#   scale_x_discrete(limits=c("1","2","3","4")) +
+#    scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) + # green for child
+#   #scale_fill_manual(values = c("#737373", c("#08519E","#006E2D",  "#4292C5", "#40AB5D") ) %>% rev() ) + 
+#   theme_bw() + 
+#   xlab("Number of CPU cores") +
+#   ylab("Memory (MB)") +
+#   ggtitle(paste0("FixelArray.lm(): # of subjects = ", toString(num.subj)))
+
+ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.cores)) + 
+    geom_bar(position="stack", stat="identity", width = 0.3) + 
+  geom_text(aes(x = num.cores, y = total/1024+5*0.03, label = sprintf("%0.2f",round(total/1024, digits = 2)), fill = NULL), data = totals, size=5) +
+  scale_x_discrete(limits=c("1","2","3","4")) +
+   scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) + # green for child
+  #scale_fill_manual(values = c("#737373", c("#08519E","#006E2D",  "#4292C5", "#40AB5D") ) %>% rev() ) + 
+  theme_bw() + 
+  #ylim(0, 53) + 
+  theme(aspect.ratio = 0.8,
+        text = element_text(size=15)) +
+  xlab("Number of CPU cores") +
+  ylab("Max memory (GB)") +
+  ggtitle(paste0("FixelArray.lm(): nsubj=", toString(num.subj)))
+
+
+## MRtrix:
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC"
+foldername.list <- list("nsubj-938.nthreads-1.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210908-221643", 
+                        "nsubj-938.nthreads-2.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-125958",
+                        "nsubj-938.nthreads-3.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-160439",
+                        "nsubj-938.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-210227")  
+
+# note: for nthreads=2, 20210909-125958, 1) first 1h: running with nsubj=30: 20210909-125839 and 20210909-125847; 2) ~6000sec the other profiling nthreads=3 (not the one I'm using here) begins and ends in 7min probably because of too high memory. Not sure if this leads to drop of RSS in threads=2 (20210909-125958)???
+
+# note for nthreads=3, 20210909-160439: also decreased at around 6000sec? to ~36.2GB
+
+
+# nthreads=4: 20210909-210227 reaches max RSS.MB in the first 2000 seconds;
+
+
+folder.list <- file.path(main.folder,  foldername.list)
+
+nsubj <- as.numeric(str_match(folder.list[1], "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+nshuffles <- as.numeric(str_match(folder.list[1], "nshuffles-\\s*(.*?)\\s*.vmware")[2])
+
+
+max.max.Est.s. = 0
+myplots <- vector('list', length(folder.list))
+for (i_folder in 1:length(folder.list)) {
+  message(paste0("running folder: ", foldername.list[i_folder]))
+  nthreads <- as.numeric(str_match(folder.list[i_folder], "nthreads-\\s*(.*?)\\s*.ftests")[2])
+  
+  df <- readWssSingleParent(folder.list[i_folder])
+  df$RSS.GB. <- df$RSS.MB. / 1024
+  
+  max.RSS.MB. <- max(df$RSS.MB.)
+  df.max.RSS <- data.frame(nthreads = nthreads,
+                              max.RSS.MB. = max.RSS.MB.,
+                           max.RSS.GB. = max.RSS.MB./1024)
+  
+  max.max.Est.s. <- max(c(max(df$Est.s.), max.max.Est.s.))
+  
+  if (i_folder==1) {
+    summary.max <- df.max.RSS
+    
+  } else {
+    summary.max <- rbind(summary.max, df.max.RSS)
+    
+  }
+  
+
+  myplots[[i_folder]] <- timeSeriesPlot(df, unit.time = "second",
+                      str.title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)) )
+  
+}
+
+
+## TOGETHER: 
+
+if ((num.subj == nsubj) && (all(summary.when.max$num.cores == summary.max$nthreads))) {
+  together.max.total.GB = data.frame(nparallel = summary.when.max$num.cores,
+                                  FixelArray = summary.when.max$total.RSS.MB./1024,
+                                  MRtrix = summary.max$max.RSS.GB.)
+                      
+  
+} else {
+  message("number of cores/threads are different in profiling FixelArray vs MRtrix!")
+}
+
+together.max.total.GB <- together.max.total.GB %>% tidyr::pivot_longer(!nparallel, names_to="software", values_to="max.total.GB.")
+
+together.max.total.GB$software <- factor(together.max.total.GB$software, 
+                                         levels = c("MRtrix","FixelArray") )
+
+ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nparallel)) + 
+    geom_bar(position="dodge", stat="identity", width=0.6) + 
+  scale_fill_manual(values= c("#909090", "#248B46") ) +
+  geom_text(position = position_dodge(width = 0.6), 
+            aes(y=max.total.GB.+50*0.05, label=sprintf("%0.2f", round(max.total.GB., digits=2)), hjust=0.4), 
+            size=5, angle=0) + 
+  theme_bw() + 
+  theme(aspect.ratio = 0.8,
+        text = element_text(size=15)) +
+  xlab("Number of threads (or cores)") + 
+  ylab("Max memory (GB)") + 
+  ggtitle(paste0("Comparison: nsubj=",toString(nsubj)))
+
+
+```
 
 
 
@@ -293,10 +556,12 @@ ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.cores))
 
 <!-- ``` -->
 ### different subjects
+#### ncores=4 and compare with MRtrix
 Josiane's dataset, all fixels (~600k), num.cores = 2, set up by installing FixelArray package (professional way)
 ```{r}
 main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark"
-foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-0.1sec.20210901-140053",
+foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-1sec.20210903-102106",
+                        #"lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-0.1sec.20210901-140053",
                         "lm.josiane.nfixel-0.nsubj-100.ncore-4.vmware.runMemProfiler.s-1sec.20210902-120841",
                         "lm.josiane.nfixel-0.nsubj-300.ncore-4.vmware.runMemProfiler.s-1sec.20210902-074849",
                         "lm.josiane.nfixel-0.nsubj-500.ncore-4.vmware.runMemProfiler.s-1sec.20210902-032658",
@@ -361,19 +626,101 @@ colnames(totals) <- gsub(".RSS.MB.", "",colnames(totals))
 # plot in the unit of GB:
 ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.subj)) + 
     geom_bar(position="stack", stat="identity") + 
-  geom_text(aes(x = num.subj, y = total/1024+50*0.08, label = round(total/1024, digits = 2), fill = NULL), data = totals, size=5, angle = 45) + 
+  geom_text(aes(x = num.subj, y = total/1024+5*0.04, label = round(total/1024, digits = 2), fill = NULL), data = totals, size=5, angle = 45) + 
   scale_x_continuous(breaks = c(summary.when.max$num.subj)) +
   scale_fill_manual(values= c("#737373", c("#006E2D", "#248B46", "#40AB5D", "#71C574")) %>% rev() ) + 
   theme_bw() +
-  ylim(0, 53) + 
+  #ylim(0, 53) + 
   theme(aspect.ratio = 0.8,
         text = element_text(size=15))+
         #axis.text.x = element_text(angle=45, hjust=1)) + 
   xlab("Number of subjects") +
   ylab("Max memory (GB)") +
-  ggtitle(paste0("FixelArray.lm(): # of CPU cores = ", toString(num.cores)))
+  ggtitle(paste0("FixelArray.lm(): ncores = ", toString(num.cores)))
 
 # reason that num.subj=300's total is = num.subj=500 is limited sampling rate and imperfect interpolation: for num.subj=300, the child1 (first return)'s final spike was captured, and parent also received child's output --> imperfect interpolate (i.e. when child1's spike, parent has not received child's output, but next sec it did)
+
+
+## COMPARISON: 
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC"
+foldername.list <- list("nsubj-30.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-184751",
+                        "nsubj-100.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-183107",
+                        "nsubj-300.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-173706",
+                        "nsubj-500.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-131920",
+                        "nsubj-750.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-143735",
+                        "nsubj-938.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-210227")
+folder.list <- file.path(main.folder,  foldername.list)
+
+nthreads <- as.numeric(str_match(folder.list[1], "nthreads-\\s*(.*?)\\s*.ftests")[2])
+
+nshuffles <- as.numeric(str_match(folder.list[1], "nshuffles-\\s*(.*?)\\s*.vmware")[2])
+
+
+max.max.Est.s. = 0
+myplots <- vector('list', length(folder.list))
+for (i_folder in 1:length(folder.list)) {
+  nsubj <- as.numeric(str_match(folder.list[i_folder], "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+  
+  df <- readWssSingleParent(folder.list[i_folder])
+  df$RSS.GB. <- df$RSS.MB. / 1024
+  
+  max.RSS.MB. <- max(df$RSS.MB.)
+  df.max.RSS <- data.frame(nsubj = nsubj,
+                              max.RSS.MB. = max.RSS.MB.,
+                           max.RSS.GB. = max.RSS.MB./1024)
+  
+  max.max.Est.s. <- max(c(max(df$Est.s.), max.max.Est.s.))
+ 
+  if (i_folder==1) {
+    summary.max <- df.max.RSS
+    
+  } else {
+    summary.max <- rbind(summary.max, df.max.RSS)
+    
+  }
+  
+
+  myplots[[i_folder]] <- timeSeriesPlot(df, unit.time = "second",
+                      str.title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)) )
+   
+}
+
+
+## TOGETHER
+
+if ((num.cores == nthreads) && (all(summary.when.max$num.subj == summary.max$nsubj))) {
+  together.max.total.GB = data.frame(nsubj = summary.when.max$num.subj,
+                                  FixelArray = summary.when.max$total.RSS.MB./1024,
+                                  MRtrix = summary.max$max.RSS.GB.)
+                      
+  
+} else {
+  message("number of cores/threads are different in profiling FixelArray vs MRtrix!")
+}
+
+
+together.max.total.GB <- together.max.total.GB %>% tidyr::pivot_longer(!nsubj, names_to="software", values_to="max.total.GB.")
+
+together.max.total.GB$software <- factor(together.max.total.GB$software, 
+                                         levels = c("MRtrix","FixelArray") )
+
+
+ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nsubj)) + 
+    geom_bar(position="dodge", stat="identity") + 
+  scale_fill_manual(values= c("#909090", "#248B46") ) +
+  geom_text(position = position_dodge(width = 50), 
+            aes(y=max.total.GB.+50*0.05, label=sprintf("%0.2f", round(max.total.GB., digits=2)), hjust=0.4), 
+            size=3.5, angle=45) + 
+  ylim(0, 53) + 
+  scale_x_continuous(breaks = c(summary.max$nsubj)) +
+  theme_bw() + 
+  theme(aspect.ratio = 1/2,
+        text = element_text(size=15)) +
+  xlab("Number of subjects") + 
+  ylab("Max memory (GB)") + 
+  ggtitle(paste0("Comparison: nthreads (ncores) = ",toString(nthreads)))
+
+
 
 ```
 
