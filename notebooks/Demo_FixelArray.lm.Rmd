@@ -42,7 +42,7 @@ if (flag_library_what == "FixelArray") {
 
 flag_whichdataset <- "josiane"   # "val" or "test_n50" or "josiane"
 num.subj <- 938  # [integer]   
-num.fixels <- 0
+num.fixels <- 1000  # 0 = full 
 flag_which_subset <- ""
 flag_where <- "vmware"   # "CUBIC" or "vmware"
 ```
