@@ -45,6 +45,70 @@ readWssText <- function(fn, sample_sec) {
   df
 }
 
+#' only read wss_SingleCoreStarts_parent.txt file
+#' 
+readWssSingleParent <- function(folder) {
+  fn.parent.single <- paste0(folder, "/", "wss_SingleCoreStarts_parent.txt")
+  
+  sample_sec <- as.numeric(str_match(folder, "runMemProfiler.s-\\s*(.*?)\\s*sec.")[2])
+  
+  df.parent.single <- readWssText(fn.parent.single, sample_sec)
+  
+  
+  # check if finished:
+  fn.output.txt <- paste0(folder, "/", "output.txt")
+  flag.permutation <- !grepl("notest", folder, fixed = TRUE)   # if did not find "notest" in folder name, then permutation was done
+  if ( flag.permutation == TRUE ) {
+    # check out if saved the output.mif after permutation:
+    
+    output.txt <- readLines(fn.output.txt)
+    
+    flag.finished <- grep("fixelcfestats: Outputting final results", 
+                          output.txt, fixed = TRUE)
+    
+    if (length(flag.finished) == 0) {   # did not find any line
+      warning("did not finish permutation...")
+    }
+    
+    
+  }
+  
+  
+  df.parent.single
+}
+
+
+
+#' time series plot for one data.frame
+#'  
+timeSeriesPlot <- function(df, unit.time = "second", unit.memory = "MB",str.title = NULL) {
+  if (unit.time == "hour") {
+    df$Est.h. <- df$Est.s. / 3600
+    str.aes.x <- "Est.h."
+  } else if (unit.time == "second") {
+    str.aes.x <- "Est.s."
+  }
+  
+  
+  if (unit.memory == "GB") {
+    df$RSS.GB. <-df$RSS.MB. / 1024
+    str.aes.y <- "RSS.GB."
+  } else if (unit.memory == "MB") {
+    str.aes.y <- "RSS.MB."
+  }
+  
+  
+  f <- ggplot(df, aes_string(x = str.aes.x)) +   # [1:1000,]
+    geom_line(aes_string(y = str.aes.y), color="black") +
+    theme_bw()+ 
+    xlab(paste0("Time (",unit.time,")")) + 
+    ylab(paste0("Memory (",unit.memory,")")) + 
+    ggtitle(str.title)
+  
+  f
+  
+}
+
 
 
 #' @param profiling.setup The expected setup when profiling: "devtools" or "source_library"
@@ -318,11 +382,21 @@ if (num.cores < roof.num.child) {  # add additional columns with 0
 
 
 ### plot #####
- f <- ggplot(df.multi, aes_string(x = paste0("Est.",unit.Est,"."))) + 
-  geom_line(aes_string(y = paste0("parent.RSS.",unit.RSS,".")), color="gray") +
-  geom_line(aes_string(y = paste0("total.child.RSS.",unit.RSS,".")), color="darkgreen") +
-  geom_line(aes_string(y = paste0("total.RSS.",unit.RSS,".")), color="darkred")
+if (num.cores ==1) {
+  
+  f <- ggplot(df.multi, aes_string(x = paste0("Est.",unit.Est,"."))) + 
+    geom_line(aes_string(y = paste0("parent.RSS.",unit.RSS,".")), color="gray") +
+    geom_line(aes_string(y = paste0("total.RSS.",unit.RSS,".")), color="darkred")
+  
+} else if (num.cores > 1) {
+  f <- ggplot(df.multi, aes_string(x = paste0("Est.",unit.Est,"."))) + 
+    geom_line(aes_string(y = paste0("parent.RSS.",unit.RSS,".")), color="gray") +
+    geom_line(aes_string(y = paste0("total.child.RSS.",unit.RSS,".")), color="darkgreen") +
+    geom_line(aes_string(y = paste0("total.RSS.",unit.RSS,".")), color="darkred")
+  
+}
 
+ 
 
 
 
