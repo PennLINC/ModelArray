@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 source("memoryProfiling_plot.R")
 
-list.of.packages <- c("dplyr", "tidyr", "tibble", "stringr",   # str_match
+list.of.packages <- c("dplyr", "tidyr", "tibble", "broom","stringr","ggplot2",   # str_match
                       #"ggrepel",   # for non-overlapping text in ggplot2
                       "egg", "grid")   #  # set ggplot2 panel size and plot ggplot2 --> not shown up in Rmd?
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -724,6 +724,107 @@ ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nsubj)) +
 
 ```
 
+### sanity check of p values vs MRtrix's linear regression
+#### number of shuffles = 100
+
+```{r}
+
+folder_mrtrix <- "/home/chenying/Desktop/fixel_project/data/data_from_josiane/for_fixelcfestats/stats_FDC/nsubj-938.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-210227"
+folder_fixelarray <- "/home/chenying/Desktop/fixel_project/data/data_from_josiane/results/ltn_FDC_n938_wResults_nfixel-0_20210908-135041"
+
+# saved p values as .txt files via Confixel/notebooks/compare_MRtrix_FixelArray.py
+
+f_fixelarray_raw_p <- paste0(folder_fixelarray, "/lm_model.p.value.txt")
+f_fixelarray_p_fdr <- paste0(folder_fixelarray, "/lm_model.p.value.fdr.txt")
+f_fixelarray_p_bonferroni <- paste0(folder_fixelarray, "/lm_model.p.value.bonferroni.txt")
+
+fixelarray_raw_p <- read.csv(f_fixelarray_raw_p) %>% unlist() %>% as.numeric()
+fixelarray_p_fdr <- read.csv(f_fixelarray_p_fdr) %>% unlist() %>% as.numeric()
+fixelarray_p_bonferroni <- read.csv(f_fixelarray_p_bonferroni) %>% unlist() %>% as.numeric()
+
+
+f_mrtrix_p_permu <- paste0(folder_mrtrix, "/uncorrected_pvalue_F1.txt")
+f_mrtrix_p_permu_fwe <- paste0(folder_mrtrix, "/fwe_1mpvalue_F1.txt")
+
+mrtrix_p_permu <- read.csv(f_mrtrix_p_permu) %>% unlist() %>% as.numeric()
+mrtrix_p_permu <- 1 - mrtrix_p_permu
+mrtrix_p_permu_fwe <- read.csv(f_mrtrix_p_permu_fwe) %>% unlist() %>% as.numeric()
+mrtrix_p_permu_fwe <- 1 - mrtrix_p_permu_fwe
+
+
+df <- data.frame(fixelarray_raw_p = fixelarray_raw_p,
+                 fixelarray_p_fdr = fixelarray_p_fdr,
+                 fixelarray_p_bonferroni = fixelarray_p_bonferroni,
+                 mrtrix_p_permu = mrtrix_p_permu,
+                 mrtrix_p_permu_fwe = mrtrix_p_permu_fwe)
+
+cor.df <- cor(df)
+cor.df
+```
+```{r}
+f.all <- vector('list',5*5)
+f.all <- matrix(f.all, nrow = 5)
+#f.all <- matrix('list', nrow=5, ncol = 5)
+
+# for (i in 1:5) {
+#   for (j in 1:5) {
+    
+scatterPlotDF <- function(df,i,j) {
+  cor.df <- cor(df)
+  cor_str <- sprintf("%0.4f", round(cor.df[i,j], digits=4) ) 
+    
+  col.names <- colnames(df)
+  
+  myformula <- as.formula(paste0(col.names[j]," ~ ", col.names[i]))
+  m <- lm(formula = myformula, data = df)
+  
+  print(m)
+  # m %>% broom::tidy()
+  m.glance <- m %>% broom::glance()   # model's statistics
+  print("model p.value = ")
+  print(m.glance$p.value, digits = 16)
+  
+  #f.all[[i,j]]
+  f   <- ggplot(df, aes_string(x = col.names[i], 
+                              y = col.names[j])) +
+            #geom_point()  
+            geom_bin2d(bins = 100) + 
+            geom_smooth(method = "lm", se = FALSE) + 
+            theme_bw() +
+            theme(aspect.ratio = 1,
+                  text = element_text(size=15)) + 
+            xlab(colnames(df)[i]) + 
+            ylab(colnames(df)[j]) + 
+            ggtitle(paste0("corr = ",cor_str))
+  
+  
+  f
+}
+
+f41 <- scatterPlotDF(df,4,1)
+f42 <- scatterPlotDF(df,4,2)
+f43 <- scatterPlotDF(df,4,3)
+
+f51 <- scatterPlotDF(df,5,1)
+f52 <- scatterPlotDF(df,5,2)
+f53 <- scatterPlotDF(df,5,3)
+    
+  
+p5 <- ggplot(df, aes(x = df[,5])) +
+  geom_histogram(binwidth = 0.01) + 
+  ylim(0,100)
+h5 <- hist(df[,5], breaks = 101)
+head(h5)   # has bins (0.01) that without any counts...
+
+
+cor.df.longer <- cor.df %>% as.data.frame() %>% 
+  rownames_to_column("whichpvalue") %>% 
+  pivot_longer(-c("whichpvalue"), names_to = "sample", values_to = "corr")
+f_corr <- ggplot(cor.df.longer, aes(x = sample, y = whichpvalue, fill = corr)) + 
+  geom_raster() +
+  scale_fill_distiller(palette = "YlOrRd")
+f_corr
+```
 
 
 
