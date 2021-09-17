@@ -17,68 +17,6 @@ lapply(list.of.packages, require, character.only = TRUE)   # or library
 
 
 ```
-### get ready: functions
-```{r}
-readWssSingleParent <- function(folder) {
-  fn.parent.single <- paste0(folder, "/", "wss_SingleCoreStarts_parent.txt")
-  
-  sample_sec <- as.numeric(str_match(folder, "runMemProfiler.s-\\s*(.*?)\\s*sec.")[2])
-  
-  df.parent.single <- readWssText(fn.parent.single, sample_sec)
-  
-  
-  # check if finished:
-  fn.output.txt <- paste0(folder, "/", "output.txt")
-  flag.permutation <- !grepl("notest", folder, fixed = TRUE)   # if did not find "notest" in folder name, then permutation was done
-  if ( flag.permutation == TRUE ) {
-    # check out if saved the output.mif after permutation:
-    
-    output.txt <- readLines(fn.output.txt)
-    
-    flag.finished <- grep("fixelcfestats: Outputting final results", 
-         output.txt, fixed = TRUE)
-    
-    if (length(flag.finished) == 0) {   # did not find any line
-      warning("did not finish permutation...")
-    }
-    
-    
-  }
-  
-  
-  df.parent.single
-}
-
-timeSeriesPlot <- function(df, unit.time = "second", unit.memory = "MB",str.title = NULL) {
-  if (unit.time == "hour") {
-    df$Est.h. <- df$Est.s. / 3600
-    str.aes.x <- "Est.h."
-  } else if (unit.time == "second") {
-    str.aes.x <- "Est.s."
-  }
-  
-  
-  if (unit.memory == "GB") {
-    df$RSS.GB. <-df$RSS.MB. / 1024
-    str.aes.y <- "RSS.GB."
-  } else if (unit.memory == "MB") {
-    str.aes.y <- "RSS.MB."
-  }
-  
-  
-  f <- ggplot(df, aes_string(x = str.aes.x)) +   # [1:1000,]
-    geom_line(aes_string(y = str.aes.y), color="black") +
-    theme_bw()+ 
-    xlab(paste0("Time (",unit.time,")")) + 
-    ylab(paste0("Memory (",unit.memory,")")) + 
-    ggtitle(str.title)
-  
-  f
-  
-}
-
-
-```
 
 ### do permutation test
 #### on interactive node, # of shuffles = 100
@@ -220,8 +158,8 @@ for (i_folder in 1:length(folder.list)) {
 summary.max
 
 ggplot(summary.max, aes(x = nthreads,  y = max.RSS.GB.)) + 
-  geom_bar(stat = "identity", width=0.3) + 
-  geom_text(data = summary.max, aes(x = nthreads, y = max.RSS.GB.+50*0.05, label = round(max.RSS.GB., digits = 2), fill = NULL), size=5) + 
+  geom_bar(stat = "identity", width=0.3, fill=c("#909090")) + 
+  geom_text(data = summary.max, aes(x = nthreads, y = max.RSS.GB.+50*0.05, label = sprintf("%0.2f",round(max.RSS.GB., digits = 2)), fill = NULL), size=5) + 
   ylim(0, 53) + 
   scale_x_discrete(limits=c("1","2","3","4")) +
   theme_bw() + 
@@ -289,7 +227,7 @@ for (i_folder in 1:length(folder.list)) {
 
 
 ggplot(summary.max, aes(x = nthreads,  y = max.RSS.GB.)) + 
-  geom_bar(stat = "identity", width=0.3) + 
+  geom_bar(stat = "identity", width=0.3, fill = "#909090") + 
   geom_text(data = summary.max, aes(x = nthreads, y = max.RSS.GB.+50*0.05, label = round(max.RSS.GB., digits = 2), fill = NULL), size=5) + 
   ylim(0, 53) + 
   scale_x_discrete(limits=c("1","2","3","4")) +
@@ -366,8 +304,67 @@ ggplot(summary.max, aes(x = nthreads,  y = max.RSS.GB.)) +
 
 ```
 
-### compare to FixelArray.lm():
+### different number of subjects
+#### nthreads = 4
+```{r}
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC"
+foldername.list <- list("nsubj-30.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-184751",
+                        "nsubj-100.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-183107",
+                        "nsubj-300.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-173706",
+                        "nsubj-500.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-131920",
+                        "nsubj-750.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-143735",
+                        "nsubj-938.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-210227")
+folder.list <- file.path(main.folder,  foldername.list)
 
+nthreads <- as.numeric(str_match(folder.list[1], "nthreads-\\s*(.*?)\\s*.ftests")[2])
+
+nshuffles <- as.numeric(str_match(folder.list[1], "nshuffles-\\s*(.*?)\\s*.vmware")[2])
+
+
+max.max.Est.s. = 0
+myplots <- vector('list', length(folder.list))
+for (i_folder in 1:length(folder.list)) {
+  nsubj <- as.numeric(str_match(folder.list[i_folder], "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+  
+  df <- readWssSingleParent(folder.list[i_folder])
+  df$RSS.GB. <- df$RSS.MB. / 1024
+  
+  max.RSS.MB. <- max(df$RSS.MB.)
+  df.max.RSS <- data.frame(nsubj = nsubj,
+                              max.RSS.MB. = max.RSS.MB.,
+                           max.RSS.GB. = max.RSS.MB./1024)
+  
+  max.max.Est.s. <- max(c(max(df$Est.s.), max.max.Est.s.))
+ 
+  if (i_folder==1) {
+    summary.max <- df.max.RSS
+    
+  } else {
+    summary.max <- rbind(summary.max, df.max.RSS)
+    
+  }
+  
+
+  myplots[[i_folder]] <- timeSeriesPlot(df, unit.time = "second",
+                      str.title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)) )
+   
+}
+
+ggplot(summary.max, aes(x = nsubj,  y = max.RSS.GB.)) + 
+  geom_bar(stat = "identity", fill = "#909090") +   
+  geom_text(data = summary.max, aes(x = nsubj, y = max.RSS.GB.+50*0.05, label = sprintf("%0.2f", round(max.RSS.GB., digits = 2)), fill = NULL), size=5) + 
+  ylim(0, 53) + 
+  scale_x_continuous(breaks = c(summary.max$nsubj)) + 
+  theme_bw() + 
+  theme(aspect.ratio = 0.8,
+        text = element_text(size=15)) + 
+  xlab("Number of subjects") + 
+  ylab("Max memory (GB)") + 
+  labs(title = paste0("MRtrix fixelcfestats: nthreads=", toString(nthreads), ", nshuffles=", toString(nshuffles)))
+      #caption = paste0("Notes: by first ", toString(max.max.Est.s.),"seconds") ) 
+
+
+```
 
 ### not to do permutation test
 
