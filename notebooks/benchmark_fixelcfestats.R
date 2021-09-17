@@ -41,7 +41,7 @@ write.table(contrast.txt, file = fn.contrast.txt, row.names=FALSE, col.names=FAL
 
 
 ### different number of subjects:
-nsubj <- 30  # +++++++++++++++++++++
+nsubj <- 750  # +++++++++++++++++++++
 
 new.file.txt <- paste("sub-",ltn.csv$subject[1:nsubj],".mif", sep="")
 new.fn.file.txt <- paste0("/cbica/projects/fixel_db/dropbox/data_from_josiane/for_fixelcfestats/list_filenames_n",
