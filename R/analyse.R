@@ -201,6 +201,7 @@ FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 }
 
 #' Run a linear model at each fixel location, write out each result just after the model fitting 
+#' For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
 #'
 #' @param formula Formula (passed to `lm()`)
 #' @param data FixelArray class
@@ -210,11 +211,12 @@ FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' @param full.outputs Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.
 #' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
-#' @param correct.p.value.terms To perform and add a column for p.value correction for each term. Currently "fdr", "bonferroni" are supported, can be more than one. Turn it off by setting to "none".
-#' @param correct.p.value.model To perform and add a column for p.value correction for the model. Currently "fdr", "bonferroni" are supported, can be more than one. Turn it off by setting to "none".
+#' @param correct.p.value.terms To perform and add a column for p.value correction for each term. 
+#' @param correct.p.value.model To perform and add a column for p.value correction for the model. 
 #' @param verbose Print verbose message or not
 #' @param pbar Print progress bar
 #' @param n_cores The number of cores to run on
+#' @return Tibble with the summarized model statistics for all fixels requested
 #' @import doParallel
 #' @import tibble
 #' @export
@@ -509,6 +511,71 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 
 
 
+#' Run a GAM model at each fixel location
+#' For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
+#' @param formula Formula (passed to `mgcv::gam()`)
+#' @param data FixelArray class
+#' @param phenotypes The cohort file with covariates to be added to the model
+#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param fixel.subset The subset of fixel ids you want to run. Integers. First id starts from 1.
+#' @param full.outputs Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.
+#' @param var.smoothTerms The list of variables to save for smooth terms (got from gam %>% tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
+#' @param var.parametricTerms The list of variables to save for parametric terms (got from gam %>% tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex"
+#' @param var.model The list of variables to save for the model (got from lm %>% glance())
+#' @param correct.p.value.smoothTerms To perform and add a column for p.value correction for each smooth term. 
+#' @param correct.p.value.parametricTerms To perform and add a column for p.value correction for each parametric term. 
+#' @param correct.p.value.model To perform and add a column for p.value correction for the model. 
+#' @param verbose Print progress messages
+#' @param pbar Print progress bar
+#' @param n_cores The number of cores to run on
+#' @return Tibble with the summarized model statistics for all fixels requested
+#' @import doParallel
+#' @import tibble
+#' @export
+
+FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
+                              var.parametricTerms = c("statistic","p.value"),
+                              var.smoothTerms = c("estimate", "statistic", "p.value"),
+                              var.model = c("adj.r.squared", "p.value"), 
+                              correct.p.value.smoothTerms = "none", correct.p.value.parametricTerms = "none", correct.p.value.model = "none",
+                              verbose = TRUE, pbar = TRUE, n_cores = 1, ...){
+  # data type assertions
+  if(class(data) != "FixelArray") {
+    stop("Not a fixel array for analysis")
+  }
+  
+  
+  if(verbose){
+    message(glue::glue("Fitting fixel-wise GAM for {scalar}", ))
+  }
+  
+  
+  # turn to explicit ones, for checking input arguments are valid
+  dots <- list(...)    
+  dots_names <- names(dots)
+  
+  # if ("family" %in% dots_names) {
+  #   m <- print(eval(formals(mgcv::gam)$family))
+  #   message(paste0("family = ", dots$family, " (default: ", "Family: ", m$family, "; Link function: ", m$link, ")"))    #  eval(formals(mgcv::gam)$family) %>% print()
+  # } else {
+  #   message("family: default")
+  # }
+  
+  FUN <- mgcv::gam
+  
+  m <- invisible(eval(formals(FUN)$family))    # should not use message(), but print() --> but will print out or invisible()
+  m1 <- paste0("Family: ", m$family, "; Link function: ", m$link)
+  printAdditionalArgu(FUN, "family", dots, m1)
+  
+  
+  # eval(formals(mgcv::gam)$data) # return the default setting of argument "data"
+  
+  
+  
+  
+}
+
+
 
 #' Run a t.test at each fixel location
 #'
@@ -757,159 +824,7 @@ FixelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
   
 }
 
-#' Run a GAM model at each fixel location
-#'
-#' @param formula Formula (passed to `gamm4()`)
-#' @param data FixelArray dataset
-#' @param scalar The name of the scalar to be analysed fixel-wise
-#' @param phenotypes The cohort file with covariates to be added to the model
-#' @param verbose Print progress messages
-#' @param idx A vector of fixel IDs to subset
-#' @param n_cores The number of cores to run on
-#' @param pbar Print progress bar
-#' @return Tibble with the summarised model statistics at each fixel location
-#' 
-FixelArray.gam <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
-  # data type assertions
-  if(class(data) != "FixelArray") {
-    stop("Not a fixel array for analysis")
-  }
-  
-  
-  if(verbose){
-    message(glue::glue("Fitting fixel-wise GAM for {scalar}", ))
-  }
 
-  
-  # turn to explicit ones, for checking input arguments are valid
-  dots <- list(...)    
-  dots_names <- names(dots)
-  
-  # if ("family" %in% dots_names) {
-  #   m <- print(eval(formals(mgcv::gam)$family))
-  #   message(paste0("family = ", dots$family, " (default: ", "Family: ", m$family, "; Link function: ", m$link, ")"))    #  eval(formals(mgcv::gam)$family) %>% print()
-  # } else {
-  #   message("family: default")
-  # }
-  
-  FUN <- mgcv::gam
-  
-  m <- invisible(eval(formals(FUN)$family))    # should not use message(), but print() --> but will print out or invisible()
-  m1 <- paste0("Family: ", m$family, "; Link function: ", m$link)
-  printAdditionalArgu(FUN, "family", dots, m1)
-  
-  
-  # eval(formals(mgcv::gam)$data) # return the default setting of argument "data"
-  
-
-  
-  n_models <- length(fixels(data)[,1])
-  
-  if(is.null(idx)){
-    ids <- 1:n_models
-  } else {
-    ids <- idx
-  }
-  
-  
-  # is it a multicore process?
-  if(n_cores > 1){
-    
-    if(pbar){
-      
-      fits <- pbmcapply::pbmclapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        mgcv::gam(formula, data = dat, ...) %>%
-          broom::tidy(parametric = TRUE) %>%
-          dplyr::mutate(fixel_id = i-1)
-        
-      }, mc.cores = n_cores, ...)
-      
-    } else {
-
-      
-      fits <- parallel::mclapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        
-        # dots <- list(...)   # for parallel computing, it will not be print out
-        # print(dots)
-        
-        
-        mgcv::gam(formula, data = dat, ...) %>%
-          broom::tidy(parametric = TRUE) %>%
-          dplyr::mutate(fixel_id = i-1)
-          
-
-        # a <- mgcv::gam(formula, data = dat, ...) 
-        # a
-        
-      }, mc.cores = n_cores, ...)
-      
-    }
-  } else {
-    
-    if(pbar){
-      
-      fits <- pbapply::pblapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        mgcv::gam(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
-        
-      }, ...)
-      
-    }
-    else {
-      
-      # dots <- list(...)    
-      # print(dots)
-      
-      fits <- lapply(ids, function(i, ...){
-
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        #
-        # dots <- list(...)    
-        # print(dots)
-
-        mgcv::gam(formula, data = dat, ...) %>%
-          broom::tidy(parametric = TRUE) %>%
-          dplyr::mutate(fixel_id = i-1)
-
-      }, ...)
-
-      # gamFixelArray <- function(i, data, scalar, , ...) {
-      #   
-      # }
-      # fits <- lapply(ids, gamFixelArray, ...) {
-      #   
-      # }
-      
-    }
-  }
-  
-  df_out <- do.call(rbind, fits)
-  
-  # if(write){
-  #   WriteResult(data, df_out, glue::glue("scalars/{scalar}/results"))
-  # }
-  
-  df_out
-  
-}
 
 #' Run a user-defined function on each fixel location
 #'
