@@ -361,7 +361,7 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
     
 }
 
-#' Analyse (fit statistical model) and write the outputs for 1 fixel
+#' Analyse (fit linear model) and write the outputs for 1 fixel
 #'
 #' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
 #' @param formula Formula (passed to `lm()`)
@@ -473,14 +473,160 @@ analyseOneFixel.lm <- function(i_fixel,
   } else if (flag_initiate == FALSE) {  # return the one row results:
 
     # return: 
-    onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save a lot of space!
+    onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save some space
     onerow
   }
   
   
 }  
+#' Analyse (fit mgcv::gam()) and write the outputs for 1 fixel
+#'
+#' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
+#' @param formula Formula (passed to `mgcv::gam()`)
+#' @param fa FixelArray class
+#' @param phenotypes The cohort matrix with covariates to be added to the model  
+#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param var.smoothTerms The list of variables to save for smooth terms (got from gam %>% tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
+#' @param var.parametricTerms The list of variables to save for parametric terms (got from gam %>% tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex"
+#' @param var.model The list of variables to save for the model (got from gam %>% glance() and gam %>% summary())
+#' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE and it will return column names.
+#' 
+#' @return if flag_initiate==TRUE, returns column names & list of terms of final results; if flag_initiate==FALSE, returns the final results for a fixel
+#' @export
+# #' @import hdf5r
+#' @import mgcv
+#' @import broom
+#' @import dplyr
+
+analyseOneFixel.gam <- function(i_fixel, formula, fa, phenotypes, scalar, 
+                                var.smoothTerms, var.parametricTerms, var.model, 
+                                flag_initiate = FALSE, 
+                                ...) {
+  values <- scalars(fa)[[scalar]][i_fixel,]
+  dat <- phenotypes
+  dat[[scalar]] <- values
   
+  arguments <- list(...)
+  arguments$formula <- formula
+  arguments$data <- dat
   
+  onemodel <- do.call(mgcv::gam, arguments)   # explicitly passing arguments into command, to avoid error of argument "weights"
+  
+  onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
+  onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
+  onemodel.glance <- onemodel %>% broom::glance()
+  onemodel.summary <- onemodel %>% summary()
+  # add additional model's stat to onemodel.glance():
+  onemodel.glance[["adj.r.squared"]] <- onemodel.summary$r.sq
+  onemodel.glance[["dev.expl"]] <- onemodel.summary$dev.expl
+
+  sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name")
+  onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[ sp.criterion.attr.name ]]   # TODO: add this attr name as return, and write to somewhere in .h5 
+  onemodel.glance[["scale"]] <- onemodel.summary$scale   # scale estimate
+
+  
+
+
+  # delete columns you don't want:
+  var.smoothTerms.full <- names(onemodel.tidy.smoothTerms)
+  var.parametricTerms.full <- names(onemodel.tidy.parametricTerms)
+  var.model.full <- names(onemodel.glance)
+
+  # list to remove:
+  var.smoothTerms.orig <- var.smoothTerms
+  var.smoothTerms <- list("term", var.smoothTerms) %>% unlist()  # we will always keep "term" column
+  var.smoothTerms.remove <- list()
+  for (l in var.smoothTerms.full) {
+    if (!(l %in% var.smoothTerms)) {
+      var.smoothTerms.remove <- var.smoothTerms.remove %>% append(., l) %>% unlist()  # the order will still be kept
+    }
+  }
+
+  var.parametricTerms.orig <- var.parametricTerms
+  var.parametricTerms <- list("term", var.parametricTerms) %>% unlist()  # we will always keep "term" column
+  var.parametricTerms.remove <- list()
+  for (l in var.parametricTerms.full) {
+    if (!(l %in% var.parametricTerms)) {
+      var.parametricTerms.remove <- var.parametricTerms.remove %>% append(., l) %>% unlist()  # the order will still be kept
+    }
+  }
+
+  var.model.remove <- list()
+  for (l in var.model.full) {
+    if (!(l %in% var.model)) {
+      var.model.remove <- var.model.remove %>% append(., l) %>% unlist()  # the order will still be kept
+    }
+  }
+
+  # remove those columns:
+  if (length(var.smoothTerms.remove) != 0) {    # if length=0, it's list(), nothing to remove
+    onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -all_of(var.smoothTerms.remove))
+  }
+  if (length(var.parametricTerms.remove) != 0) {    # if length=0, it's list(), nothing to remove
+    onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -all_of(var.parametricTerms.remove))
+  }
+  if (length(var.model.remove) != 0) {
+    onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
+  }
+
+  # adjust:
+  onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
+  onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
+  
+  for (i_row in nrow(onemodel.tidy.smoothTerms)) {  # change from s(age) to s-age
+    term_name <- onemodel.tidy.smoothTerms$term[i_row]
+    str <- strsplit(term_name, split="[()]")[[1]][2]   # extract string between ()
+    onemodel.tidy.smoothTerms$term[i_row] <- paste0("s-",str)
+  }
+  
+  onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
+
+  # get the list of terms:
+  list.smoothTerms <- onemodel.tidy.smoothTerms$term
+  list.parametricTerms <- onemodel.tidy.parametricTerms$term
+
+  # flatten .tidy results into one row:
+  onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(names_from = term,
+                                                                  values_from = all_of(var.smoothTerms.orig),
+                                                                  names_glue = "{term}.{.value}")
+  onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(names_from = term,
+                                                                  values_from = all_of(var.parametricTerms.orig),
+                                                                  names_glue = "{term}.{.value}")
+  onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
+                                                                    values_from = all_of(var.model),
+                                                                    names_glue = "{term}.{.value}")
+
+  # combine the tables:
+  onemodel.onerow <- bind_cols(onemodel.tidy.smoothTerms.onerow, 
+                              onemodel.tidy.parametricTerms.onerow,
+                              onemodel.glance.onerow)
+
+  # add a column of fixel ids:
+  colnames.temp <- colnames(onemodel.onerow)
+  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(fixel_id = i_fixel-1, .before = colnames.temp[1])   # add as the first column
+  
+  # now you can get the headers, # of columns, etc of the output results
+
+
+  if (flag_initiate == TRUE) { # return the column names:
+    
+    # return:
+    column_names = colnames(onemodel.onerow)
+    toreturn <- list(column_names = column_names,
+                     list.smoothTerms = list.smoothTerms,
+                     list.parametricTerms = list.parametricTerms,
+                     sp.criterion.attr.name = sp.criterion.attr.name)
+    toreturn
+
+  } else if (flag_initiate == FALSE) {  # return the one row results:
+
+    # return: 
+    onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save some space
+    onerow
+  }
+}
+
+
   
 #' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".old": for writing results with multiple rows for one fixel
 #' 
