@@ -99,14 +99,14 @@ if (nrow(phenotypes) != num.subj) {
 }
 
 if (flag_whichdataset == "test_n50") {
-  formula <- FD ~ s(age, k=4) + sex # ++++ to do: add motion quantification
+  formula <- FD ~ s(age, k=4) + sex              # ++++ to do: add motion quantification
 } else if (flag_whichdataset == "val") {
   formula <- FD ~ Age
 } else if (flag_whichdataset == "josiane") {
   formula <- FDC ~ Age
 }
 
-gam.method = "REML"   # "GCV.Cp", "REML"  # any other methods usually used?
+gam.method = "GCV.Cp"   # "GCV.Cp", "REML"  # any other methods usually used?
 gam.optimizer = c("outer","newton")   # default: c("outer","newton") | # number of optimizers here will not change number of rows or columns in output gam model
 ```
 
@@ -123,15 +123,15 @@ onemodel <- mgcv::gam(formula, data = dat,
                       optimizer = gam.optimizer)   # output of gam: see gamObject
 onemodel.summary <- summary(onemodel)
 
-onemodel.tidy.smoothTerm <- onemodel %>% broom::tidy()   #  !!! if formula is FD ~ age without s(), onemodel.tidy.smoothTerm will be empty....
-onemodel.tidy.parametric <- onemodel %>% broom::tidy(parametric = TRUE)  # different column names from .smoothTerm....
+onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy()   #  !!! if formula is FD ~ age without s(), onemodel.tidy.smoothTerm will be empty....
+onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)  # different column names from .smoothTerm....
 
 onemodel.glance <- onemodel %>% broom::glance()
 
 
 
-onemodel.tidy.smoothTerm
-onemodel.tidy.parametric
+onemodel.tidy.smoothTerms
+onemodel.tidy.parametricTerms
 onemodel.glance
 onemodel.summary
 
