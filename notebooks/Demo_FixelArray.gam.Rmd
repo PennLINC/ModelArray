@@ -99,7 +99,7 @@ if (nrow(phenotypes) != num.subj) {
 }
 
 if (flag_whichdataset == "test_n50") {
-  formula <- FD ~ s(age, k=4) + sex              # ++++ to do: add motion quantification
+  formula <- FD ~ s(age) + sex         # ++++ to do: add motion quantification   # FD ~ s(age, k=4) + sex  # FD ~ s(age) + sex
 } else if (flag_whichdataset == "val") {
   formula <- FD ~ Age
 } else if (flag_whichdataset == "josiane") {
@@ -108,6 +108,8 @@ if (flag_whichdataset == "test_n50") {
 
 gam.method = "GCV.Cp"   # "GCV.Cp", "REML"  # any other methods usually used?
 gam.optimizer = c("outer","newton")   # default: c("outer","newton") | # number of optimizers here will not change number of rows or columns in output gam model
+
+fixel.subset <- 1:10
 ```
 
 # Play around with mgcv::gam()
@@ -146,4 +148,8 @@ onemodel.summary$scale   # Scale est.
 
 ```
 
-
+# Test out different conditions
+```{r}
+mygam_noSmooth <- FixelArray.gam(FD ~ age, data = fixelarray, phenotypes = phenotypes, scalar = scalar, fixel.subset = fixel.subset,
+                                  n_cores = 2, pbar = FALSE) 
+```
