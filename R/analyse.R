@@ -299,11 +299,27 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
   
   
   ### other setups:
+  var.terms.full = c("estimate","std.error","statistic","p.value")
+  var.model.full = c("r.squared", "adj.r.squared", "sigma", "statistic", "p.value", "df", "logLik", "AIC", "BIC", "deviance", "df.residual", "nobs")
   if (full.outputs == TRUE) {   # full set of outputs
-    var.terms = c("estimate","std.error","statistic","p.value")
-    var.model = c("r.squared", "adj.r.squared", "sigma", "statistic", "p.value", "df", "logLik", "AIC", "BIC", "deviance", "df.residual", "nobs")
+    var.terms = var.terms.full
+    var.model = var.model.full
   }
-  
+  # check on validity of list of vars:
+  var.terms <- var.terms[!duplicated(var.terms)]  # remove duplicated element(s)
+  var.model <- var.model[!duplicated(var.model)]
+  for (var in var.terms) {
+    if (!(var %in% var.terms.full)) {
+      stop(paste0(var, " is not valid!"))
+    }
+  }
+  for (var in var.model) {
+    if (!(var %in% var.model.full)) {
+      stop(paste0(var, " is not valid!"))
+    }
+  }
+
+
   # check for p.value correction:
   p.adjust.methods.full <- p.adjust.methods[ p.adjust.methods != "none" ]
     # check for terms:
@@ -544,25 +560,25 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     stop("Not a fixel array for analysis")
   }
   
-  
-  if(verbose){
-    message(glue::glue("Fitting fixel-wise GAM for {scalar}", ))
+  # checker for min and max of fixel.subset; and whether elements are integer
+  if (min(fixel.subset) < 1) {
+    stop("Minimal value in fixel.subset should >= 1")
+  }
+  if (max(fixel.subset) > nrow(scalars(data)[[scalar]])) {
+    stop(paste0("Maximal value in fixel.subset should <= number of fixels = "), as.character(nrow(scalars(data)[[scalar]])))
+  }
+  if (class(fixel.subset) != "integer") {
+    stop("Please enter integers for fixel.subset!")
   }
   
   
-  # turn to explicit ones, for checking input arguments are valid
+  ### display additional arguments:
   dots <- list(...)    
   dots_names <- names(dots)
   
-  # if ("family" %in% dots_names) {
-  #   m <- print(eval(formals(mgcv::gam)$family))
-  #   message(paste0("family = ", dots$family, " (default: ", "Family: ", m$family, "; Link function: ", m$link, ")"))    #  eval(formals(mgcv::gam)$family) %>% print()
-  # } else {
-  #   message("family: default")
-  # }
-  
   FUN <- mgcv::gam
   
+  # family:
   m <- invisible(eval(formals(FUN)$family))    # should not use message(), but print() --> but will print out or invisible()
   m1 <- paste0("Family: ", m$family, "; Link function: ", m$link)
   printAdditionalArgu(FUN, "family", dots, m1)
@@ -570,8 +586,23 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   
   # eval(formals(mgcv::gam)$data) # return the default setting of argument "data"
   
+  # TODO: finish this part: display additional arguments
   
   
+  
+  # TODO: check if fx=FALSE; if so, add edf to the list of var
+  
+  ### check on validity of arguments: var.term and var.model # TODO: <-
+  
+
+  ### check on arguments: p-values correction methods
+
+  ### run
+
+
+  ### correct p values
+
+  ### return
   
 }
 
