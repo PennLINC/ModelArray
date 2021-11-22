@@ -1,4 +1,4 @@
-test_that("FixelArray's lm works as expected", {
+test_that("FixelArray.lm() works as expected", {
   h5_path <- system.file("extdata", "n50_fixels.h5", package = "FixelArray")   # TODO: ask Tinashe
  
   fa <- FixelArray(h5_path,
