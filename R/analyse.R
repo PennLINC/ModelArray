@@ -514,9 +514,9 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' @export
 
 FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
-                              var.parametricTerms = c("statistic","p.value"),
-                              var.smoothTerms = c("estimate", "statistic", "p.value"),
-                              var.model = c("adj.r.squared", "p.value"), 
+                              var.smoothTerms = c("statistic","p.value"),
+                              var.parametricTerms = c("estimate", "statistic", "p.value"),
+                              var.model = c("dev.expl"), 
                               correct.p.value.smoothTerms = "none", correct.p.value.parametricTerms = "none",
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...){
   # data type assertions
@@ -559,7 +559,8 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   # when full.outputs = TRUE:
   var.smoothTerms.full <- c("edf","ref.df","statistic","p.value","eff.size")
   var.parametricTerms.full <- c("estimate", "std.error","statistic","p.value")
-  var.model.full <- c("df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs")
+  var.model.full <- c("adj.r.squared","dev.expl", "sp.criterion", "scale",
+                      "df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs")
   if (full.outputs == TRUE) {   # full set of outputs
     var.smoothTerms <- var.smoothTerms.full
     var.parametricTerms <- var.parametricTerms.full
@@ -570,7 +571,14 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   var.smoothTerms <- var.smoothTerms[!duplicated(var.smoothTerms)]  # remove duplicated element(s)
   var.parametricTerms <- var.parametricTerms[!duplicated(var.parametricTerms)]
   var.model <- var.model[!duplicated(var.model)]
-  for (var in var.smoothTerms) {
+  
+  # check if all var* are empty:
+  if (length(var.smoothTerms)==0 & length(var.parametricTerms) ==0 & length(var.model) == 0) {
+    stop("All var* [var.smoothTerms, var.parametricTerms, var.model] are empty!")
+  }
+
+  # check if every var is valid:
+  for (var in var.smoothTerms) {   
     if (!(var %in% var.smoothTerms.full)) {
       stop(paste0(var, " is not valid for var.smoothTerms!"))
     }
@@ -586,6 +594,9 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     }
   }
 
+  # temporarily remove eff.size from var.smoothTerms (as that's not valid stat in broom::tidy())
+  var.smoothTerms.orig <- var.smoothTerms
+  var.smoothTerms <- var.smoothTerms[var.smoothTerms != "eff.size"]; # remove eff.size
 
   ### check on arguments: p-values correction methods
   # check for smoothTerms:
@@ -609,8 +620,8 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
                                           flag_initiate = TRUE,
                                           ...)
   column_names <- outputs_initiator$column_names
-  list.smoothTerms = column_names$list.smoothTerms,
-  list.parametricTerms = column_names$list.parametricTerms,
+  list.smoothTerms = outputs_initiator$list.smoothTerms
+  list.parametricTerms = outputs_initiator$list.parametricTerms
 
   # loop (by condition of pbar and n_cores)
   if(verbose){
@@ -672,6 +683,11 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   colnames(df_out) <- column_names     # add column names
   
 
+
+  ### get the effect size for smooth terms:
+  # check if var.smoothTerms.orig contains eff.size:
+
+
   ### correct p values
   # add correction of p.values: for smoothTerms
   if ( all(correct.p.value.smoothTerms == "none") ) {    # all() is to accormodate for multiple elements in correct.p.value.smoothTerms: if one of is not "none", FALSE
@@ -694,7 +710,6 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     }
     
   }
-
 
   # add correction of p.values for parametricTerms
   if ( all(correct.p.value.parametricTerms == "none") ) {    # all() is to accormodate for multiple elements in correct.p.value.parametricTerms: if one of is not "none", FALSE
