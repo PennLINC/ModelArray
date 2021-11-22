@@ -31,6 +31,30 @@ printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, me
 }
 
 
+#' Check if the list of p-value correction methods are valid for a specific type of term/model. 
+#' Can be used for any statistical model. As long as the p.value to be correct is named as "p.value".
+#' 
+#' @param correct.list The list of correction methods for this type of term/model
+#' @param name.correct.list The name of the list of correction methods for this type of term/model
+#' @param var.list The list of statistics to be saved for this type of term/model
+#' @param name.var.list The name of the list of statistics to be saved for this type of term/model
+
+check_validity_correctPValue <- function(correct.list, name.correct.list, 
+                                         var.list, name.var.list) {
+  p.adjust.methods.full <- p.adjust.methods[ p.adjust.methods != "none" ]
+  if ( all(correct.list == "none") == FALSE) {    # any element is not "none"
+    checker.method.in <- correct.list %in% p.adjust.methods.full
+    if ( all(checker.method.in) == FALSE) {   # not all "TRUE"
+      stop(paste0("Some of elements in ",name.correct.list," are not valid. Valid inputs are: ", paste(p.adjust.methods.full, collapse = ', ')))
+    } 
+    
+    if ("p.value" %in% var.list == FALSE) {  # not in the list | # check whether there is "p.value" in var.list
+      warning(paste0("p.value was not included in ",name.var.list,", so not to perform its p.value corrections"))   # TODO: why this warning comes out after FixelArray.aModel is done?
+    }
+  }
+}
+
+
 
 #' Run a linear model at each fixel location
 #'
@@ -310,42 +334,24 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
   var.model <- var.model[!duplicated(var.model)]
   for (var in var.terms) {
     if (!(var %in% var.terms.full)) {
-      stop(paste0(var, " is not valid!"))
+      stop(paste0(var, " is not valid for var.terms!"))
     }
   }
   for (var in var.model) {
     if (!(var %in% var.model.full)) {
-      stop(paste0(var, " is not valid!"))
+      stop(paste0(var, " is not valid for var.model!"))
     }
   }
 
 
   # check for p.value correction:
-  p.adjust.methods.full <- p.adjust.methods[ p.adjust.methods != "none" ]
     # check for terms:
-  if ( all(correct.p.value.terms == "none") == FALSE) {    # any element is not "none"
-    checker.method.in <- correct.p.value.terms %in% p.adjust.methods.full
-    if ( all(checker.method.in) == FALSE) {   # not all "TRUE"
-      stop(paste0("Some of elements in correct.p.value.terms are not valid, so not to perform terms's p.value corrections. Valid inputs are: ", paste(p.adjust.methods.full, collapse = ',')))
-    } 
-    
-    if ("p.value" %in% var.terms == FALSE) {  # not in the list | # check whether there is "p.value" in var.terms'
-      warning(paste0("p.value was not included in var.terms, so not to perform terms's p.value corrections"))
-    }
-  }
-  
+  check_validity_correctPValue(correct.p.value.terms, "correct.p.value.terms",
+                              var.terms, "var.terms")
     # check for model:
-  if ( all(correct.p.value.model == "none") == FALSE ) {    # any element is not "none"
-    checker.method.in <- correct.p.value.model %in% p.adjust.methods.full
-    if ( all(checker.method.in) == FALSE) {   # not all "TRUE"
-      stop(paste0("Some of elements in correct.p.value.model are not valid, so not to perform model's p.value corrections. Valid inputs are: ", paste(p.adjust.methods.full, collapse = ',')))
-    } 
-    
-    if ("p.value" %in% var.model == FALSE) {  # not in the list | # check whether there is "p.value" in var.model'
-      warning(paste0("p.value was not included in var.model, so not to perform model's p.value corrections"))
-    }
-  }
-  
+  check_validity_correctPValue(correct.p.value.model, "correct.p.value.model",
+                              var.model, "var.model")
+
 
   
   ### start the process:
@@ -529,6 +535,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 
 #' Run a GAM model at each fixel location
 #' For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
+#' Please notice that there is no p.value for the model, so no "correct.p.value.model" for GAM model.
 #' @param formula Formula (passed to `mgcv::gam()`)
 #' @param data FixelArray class
 #' @param phenotypes The cohort file with covariates to be added to the model
@@ -540,7 +547,6 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
 #' @param correct.p.value.smoothTerms To perform and add a column for p.value correction for each smooth term. 
 #' @param correct.p.value.parametricTerms To perform and add a column for p.value correction for each parametric term. 
-#' @param correct.p.value.model To perform and add a column for p.value correction for the model. 
 #' @param verbose Print progress messages
 #' @param pbar Print progress bar
 #' @param n_cores The number of cores to run on
@@ -553,7 +559,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
                               var.parametricTerms = c("statistic","p.value"),
                               var.smoothTerms = c("estimate", "statistic", "p.value"),
                               var.model = c("adj.r.squared", "p.value"), 
-                              correct.p.value.smoothTerms = "none", correct.p.value.parametricTerms = "none", correct.p.value.model = "none",
+                              correct.p.value.smoothTerms = "none", correct.p.value.parametricTerms = "none",
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...){
   # data type assertions
   if(class(data) != "FixelArray") {
@@ -592,11 +598,46 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   
   # TODO: check if fx=FALSE; if so, add edf to the list of var
   
-  ### check on validity of arguments: var.term and var.model # TODO: <-
-  
+  # when full.outputs = TRUE:
+  var.smoothTerms.full <- c("edf","ref.df","statistic","p.value","eff.size")
+  var.parametricTerms.full <- c("estimate", "std.error","statistic","p.value")
+  var.model.full <- c("df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs")
+  if (full.outputs == TRUE) {   # full set of outputs
+    var.smoothTerms <- var.smoothTerms.full
+    var.parametricTerms <- var.parametricTerms.full
+    var.model <- var.model.full
+  }
+
+  ### check on validity of arguments: var.term and var.model 
+  var.smoothTerms <- var.smoothTerms[!duplicated(var.smoothTerms)]  # remove duplicated element(s)
+  var.parametricTerms <- var.parametricTerms[!duplicated(var.parametricTerms)]
+  var.model <- var.model[!duplicated(var.model)]
+  for (var in var.smoothTerms) {
+    if (!(var %in% var.smoothTerms.full)) {
+      stop(paste0(var, " is not valid for var.smoothTerms!"))
+    }
+  }
+  for (var in var.parametricTerms) {
+    if (!(var %in% var.parametricTerms.full)) {
+      stop(paste0(var, " is not valid for var.parametricTerms!"))
+    }
+  }
+  for (var in var.model) {
+    if (!(var %in% var.model.full)) {
+      stop(paste0(var, " is not valid!"))
+    }
+  }
+
 
   ### check on arguments: p-values correction methods
-
+  # check for smoothTerms:
+  check_validity_correctPValue(correct.p.value.smoothTerms, "correct.p.value.smoothTerms",
+                              var.smoothTerms, "var.smoothTerms")
+  # check for parametricTerms:
+  check_validity_correctPValue(correct.p.value.parametricTerms, "correct.p.value.parametricTerms",
+                              var.parametricTerms, "var.parametricTerms")
+  
+  
   ### run
 
 
