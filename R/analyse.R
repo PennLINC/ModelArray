@@ -461,29 +461,6 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
     
   }
   
-
-  # if ( correct.p.value.terms %in% c("fdr", "bonferroni") ) { 
-  #   
-  #   if ("p.value" %in% var.terms == FALSE) {  # not in the list | # check whether there is "p.value" in var.terms
-  #     warning(paste0("p.value was not included in var.terms, so not to perform terms' p.value corrections"))
-  #     
-  #   } else {
-  #     
-  #     for (tempstr in list.terms) {
-  #       tempstr.raw <- paste0(tempstr, ".p.value")
-  #       tempstr.corrected <- paste0(tempstr.raw, ".", correct.p.value.terms)
-  #       temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = correct.p.value.terms)
-  #       df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
-  #     }
-  #   }
-  #   
-  # } else if (correct.p.value.terms == "none") {
-  #   # do nothing
-  # } else {
-  #   warning(paste0("correct.p.value.terms = ", toString(correct.p.value.terms), " is not supported!"))
-  # }
-  
-  
   # add correction of p.values: for the model
   if (  all(correct.p.value.model == "none") ) {
     # do nothing
@@ -504,29 +481,10 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
       
   }
  
-  # 
-  # if (correct.p.value.model %in% c("fdr", "bonferroni")) {
-  #   
-  #   if ("p.value" %in% var.model == FALSE) {  # not in the list | # check whether there is "p.value" in var.model
-  #     warning(paste0("p.value was not included in var.model, so not to perform model's p.value corrections"))
-  #     
-  #   } else {
-  #     
-  #     tempstr.raw <- "model.p.value"
-  #     tempstr.corrected <- paste0(tempstr.raw, ".", correct.p.value.model)
-  #     temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = correct.p.value.model)
-  #     df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
-  #     
-  #   }
-  #   
-  # } else if (correct.p.value.model == "none") {
-  #   # do nothing
-  # } else {
-  #   warning(paste0('correct.p.value.model = "', toString(correct.p.value.model), '" is not supported!'))
-  # }
   
   
-  
+
+
   df_out   # return
 
 }
@@ -639,12 +597,131 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   
   
   ### run
+  # start the process:
+  if(verbose){
+    message(glue::glue("Fitting fixel-wise GAMs for {scalar}", ))
+    message(glue::glue("initiating....", ))
+  }
 
+  # initiate: get the example of one fixel and get the column names
+  outputs_initiator <- analyseOneFixel.gam(i_fixel=1, formula, data, phenotypes, scalar,
+                                          var.smoothTerms, var.parametricTerms, var.model,
+                                          flag_initiate = TRUE,
+                                          ...)
+  column_names <- outputs_initiator$column_names
+  list.smoothTerms = column_names$list.smoothTerms,
+  list.parametricTerms = column_names$list.parametricTerms,
+
+  # loop (by condition of pbar and n_cores)
+  if(verbose){
+    message(glue::glue("looping across fixels....", ))
+  }
+
+  # is it a multicore process?
+  flag_initiate <- FALSE
+  if(n_cores > 1){
+    
+    if (pbar) {
+      
+      fits <- pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
+                                    analyseOneFixel.gam,  # the function
+                                    mc.cores = n_cores,
+                                    formula, data, phenotypes, scalar,
+                                    var.smoothTerms, var.parametricTerms, var.model,
+                                    flag_initiate = FALSE,
+                                    ...)
+      
+    } else {
+      
+      # foreach::foreach
+      
+      fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel 
+                                 analyseOneFixel.gam,  # the function
+                                 mc.cores = n_cores,
+                                 formula, data, phenotypes, scalar,
+                                 var.smoothTerms, var.parametricTerms, var.model,
+                                 flag_initiate = FALSE,
+                                 ...)
+      
+    }
+  } else  {  # n_cores ==1, not multi-core
+    
+    if (pbar) {
+      
+      fits <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
+                                analyseOneFixel.gam,  # the function
+                                formula, data, phenotypes, scalar,
+                                var.smoothTerms, var.parametricTerms, var.model,
+                                flag_initiate = FALSE,
+                                ...)
+      
+    } else {
+      
+      fits <- lapply(fixel.subset,   # a list of i_fixel
+                     analyseOneFixel.gam,  # the function
+                     formula, data, phenotypes, scalar,
+                     var.smoothTerms, var.parametricTerms, var.model,
+                     flag_initiate = FALSE,
+                     ...)
+    }
+  }  
+
+
+  df_out <- do.call(rbind, fits)    
+  df_out <- as.data.frame(df_out)    # turn into data.frame
+  colnames(df_out) <- column_names     # add column names
+  
 
   ### correct p values
+  # add correction of p.values: for smoothTerms
+  if ( all(correct.p.value.smoothTerms == "none") ) {    # all() is to accormodate for multiple elements in correct.p.value.smoothTerms: if one of is not "none", FALSE
+    # do nothing
+    
+  } else {
+    if ("p.value" %in% var.smoothTerms == TRUE) {   # check whether there is "p.value" in var.smoothTerms' | if FALSE: print warning (see beginning of this function)
+      
+      for (methodstr in correct.p.value.smoothTerms) {
+        
+        for (tempstr in list.smoothTerms) {
+          tempstr.raw <- paste0(tempstr, ".p.value")
+          tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
+          temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = methodstr)
+          df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
+        }
+        
+      }
+      
+    }
+    
+  }
+
+
+  # add correction of p.values for parametricTerms
+  if ( all(correct.p.value.parametricTerms == "none") ) {    # all() is to accormodate for multiple elements in correct.p.value.parametricTerms: if one of is not "none", FALSE
+    # do nothing
+    
+  } else {
+    if ("p.value" %in% var.parametricTerms == TRUE) {   # check whether there is "p.value" in var.parametricTerms' | if FALSE: print warning (see beginning of this function)
+      
+      for (methodstr in correct.p.value.parametricTerms) {
+        
+        for (tempstr in list.parametricTerms) {
+          tempstr.raw <- paste0(tempstr, ".p.value")
+          tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
+          temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = methodstr)
+          df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
+        }
+        
+      }
+      
+    }
+    
+  }
+
+
 
   ### return
-  
+  df_out
 }
 
 
