@@ -7,9 +7,9 @@ test_that("test that FixelArray.gam() works as expected", {
   
   # h5_path <- paste0(system.file(package = "FixelArray"),
   #                   "inst/extdata/","n50_fixels.h5")
-  # fa <- FixelArray(h5_path,
-  # scalar_types = c("FD"))
-  
+  # fa <- FixelArray(h5_path, scalar_types = c("FD"), analysis_names = c("my_analysis"))
+  # scalar_types = c("FD")
+
   csv_path <- system.file("extdata", "n50_cohort.csv", package = "FixelArray")   # TODO: ask Tinashe
   # csv_path <- paste0(system.file(package = "FixelArray"),
   #                    "inst/extdata/","n50_cohort.csv")
@@ -18,9 +18,10 @@ test_that("test that FixelArray.gam() works as expected", {
   scalar_name <- "FD"
   var.smoothTerms = c("statistic","p.value")
   var.parametricTerms = c("estimate", "statistic", "p.value")
-  var.model = c("dev.expl")
+  var.model = c("dev.expl", "AIC")
   fixel.subset = 1:10
 
+  ### basic checks
   mygam <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                           var.smoothTerms = var.smoothTerms,
                           var.parametricTerms = var.parametricTerms,
@@ -44,6 +45,7 @@ test_that("test that FixelArray.gam() works as expected", {
                                       n_cores = 1, pbar = FALSE)
   expect_equal(as.numeric(dim(mygam_fullOutputs)), c(length(fixel.subset),24))
   
+  ### when there is no term or stat output
   # if there is no explicit parametric term (although there will be term "Intercept") or parametric stat:
   mygam_noExplicitParamTerm <- FixelArray.gam(FD ~ s(age), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                   n_cores = 2, pbar = FALSE)  
@@ -66,5 +68,15 @@ test_that("test that FixelArray.gam() works as expected", {
   expect_error(FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                       var.smoothTerms = c(), var.parametricTerms = c(), var.model = c(),
                                       n_cores = 2, pbar = FALSE))
+  
+  ### Test whether the validity of list of var is checked:
+  expect_error(FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              var.smoothTerms = c("wrong_name"),
+                              n_cores = 2, pbar = FALSE))
+  # duplicated
+  temp <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                         var.parametricTerms = c(var.parametricTerms, "p.value"),
+                         n_cores = 2, pbar = FALSE)
+  expect_equal(temp, mygam_default)
 })
 
