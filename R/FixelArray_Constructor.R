@@ -524,6 +524,7 @@ analyseOneFixel.gam <- function(i_fixel, formula, fa, phenotypes, scalar,
   onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[ sp.criterion.attr.name ]]   # TODO: add this attr name as return, and write to somewhere in .h5 
   onemodel.glance[["scale"]] <- onemodel.summary$scale   # scale estimate
 
+  num.smoothTerms <- onemodel.summary$m   # The number of smooth terms in the model.
   
 
 
@@ -570,36 +571,79 @@ analyseOneFixel.gam <- function(i_fixel, formula, fa, phenotypes, scalar,
   }
 
   # adjust:
-  onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
-  onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
-  
-  for (i_row in nrow(onemodel.tidy.smoothTerms)) {  # change from s(age) to s-age
-    term_name <- onemodel.tidy.smoothTerms$term[i_row]
-    str <- strsplit(term_name, split="[()]")[[1]][2]   # extract string between ()
-    onemodel.tidy.smoothTerms$term[i_row] <- paste0("s-",str)
+  if (num.smoothTerms > 0) {   # if there is any smooth term
+    onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"  
   }
+  if (nrow(onemodel.tidy.parametricTerms) > 0) {  # if there is any parametric term
+    onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
+  }
+  
+    # change from s(age) to s-age:
+  if (num.smoothTerms > 0) {   # if there is any smooth term
+    for (i_row in nrow(onemodel.tidy.smoothTerms)) {  # change from s(age) to s-age
+      term_name <- onemodel.tidy.smoothTerms$term[i_row]
+      str <- strsplit(term_name, split="[()]")[[1]][2]   # extract string between ()
+      onemodel.tidy.smoothTerms$term[i_row] <- paste0("s-",str)
+    }
+  }
+  
   
   onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
 
   # get the list of terms:
-  list.smoothTerms <- onemodel.tidy.smoothTerms$term
-  list.parametricTerms <- onemodel.tidy.parametricTerms$term
+  if (num.smoothTerms >0) {
+    list.smoothTerms <- onemodel.tidy.smoothTerms$term   # if empty, gives warning
+  } else {
+    list.smoothTerms <- NULL
+  }
+  
+  if (nrow(onemodel.tidy.parametricTerms)>0) {
+    list.parametricTerms <- onemodel.tidy.parametricTerms$term  
+  } else {
+    list.parametricTerms <- NULL
+  }
+  
 
   # flatten .tidy results into one row:
-  onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(names_from = term,
-                                                                  values_from = all_of(var.smoothTerms.orig),
-                                                                  names_glue = "{term}.{.value}")
-  onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(names_from = term,
-                                                                  values_from = all_of(var.parametricTerms.orig),
-                                                                  names_glue = "{term}.{.value}")
-  onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
-                                                                    values_from = all_of(var.model),
-                                                                    names_glue = "{term}.{.value}")
+  if (all(dim(onemodel.tidy.smoothTerms))) {   # not empty | if any dim is 0, all=FALSE
+    onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(names_from = term,
+                                                                                         values_from = all_of(var.smoothTerms.orig),
+                                                                                         names_glue = "{term}.{.value}")
+  } else {
+    onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms
+  }
+  
+  if (all(dim(onemodel.tidy.parametricTerms))) {  # not empty
+    onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(names_from = term,
+                                                                                                 values_from = all_of(var.parametricTerms.orig),
+                                                                                                 names_glue = "{term}.{.value}")
+  } else {
+    onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms
+  }
+  
+  if (all(dim(onemodel.glance))) {  # not empty
+    onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
+                                                                      values_from = all_of(var.model),
+                                                                      names_glue = "{term}.{.value}")
+  } else {
+    onemodel.glance.onerow <- onemodel.glance
+  }
+  
 
   # combine the tables:
-  onemodel.onerow <- bind_cols(onemodel.tidy.smoothTerms.onerow, 
-                              onemodel.tidy.parametricTerms.onerow,
-                              onemodel.glance.onerow)
+  if ( ! all(dim(onemodel.tidy.smoothTerms.onerow)) ) {  # empty
+    onemodel.onerow <- onemodel.tidy.parametricTerms.onerow
+  } else {   # combine
+    onemodel.onerow <- bind_cols(onemodel.tidy.smoothTerms.onerow, 
+                                 onemodel.tidy.parametricTerms.onerow)
+  }
+  if ( ! all(dim(onemodel.onerow))   ){   # empty
+    onemodel.onerow <- onemodel.glance.onerow
+  } else {   # combine
+    onemodel.onerow <- bind_cols(onemodel.onerow,
+                                 onemodel.glance.onerow)
+  }
+  
 
   # add a column of fixel ids:
   colnames.temp <- colnames(onemodel.onerow)
