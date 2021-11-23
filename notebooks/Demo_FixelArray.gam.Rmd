@@ -99,7 +99,7 @@ if (nrow(phenotypes) != num.subj) {
 }
 
 if (flag_whichdataset == "test_n50") {
-  formula <- FD ~ s(age, k=4) + s(factorA)         # ++++ to do: add motion quantification   # FD ~ s(age, k=4) + sex  # FD ~ s(age) + sex
+  formula <- FD ~ s(age, k=4, fx=TRUE) + s(factorA)         # ++++ to do: add motion quantification   # FD ~ s(age, k=4) + sex  # FD ~ s(age) + sex
 } else if (flag_whichdataset == "val") {
   formula <- FD ~ Age
 } else if (flag_whichdataset == "josiane") {
@@ -186,6 +186,11 @@ drop.terms(tt, 2:3, keep.response = TRUE)   # this could be used as a new formul
 
 # Test eff.size
 ```{r}
+mygam_effSize <- FixelArray.gam(FD ~ s(age) + s(factorA), data = fixelarray, phenotypes = phenotypes, scalar = scalar, fixel.subset = fixel.subset,
+                                 var.smoothTerms = c("statistic","p.value","eff.size"),
+                                 eff.size.term.index = c(1,2),
+                                  n_cores = 2, pbar = FALSE) 
+
 ```
 
 
