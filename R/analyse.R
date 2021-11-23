@@ -503,7 +503,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' @param var.smoothTerms The list of variables to save for smooth terms (got from gam %>% tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
 #' @param var.parametricTerms The list of variables to save for parametric terms (got from gam %>% tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex"
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
-#' @param eff.size.term.index The i-th term of the formula's right hand side as the term of interest for effect size. Positive integer.
+#' @param eff.size.term.index The i-th term of the formula's right hand side as the term of interest for effect size. Positive integer or integer list. Usually term of interest is smooth term.
 #' @param correct.p.value.smoothTerms To perform and add a column for p.value correction for each smooth term. 
 #' @param correct.p.value.parametricTerms To perform and add a column for p.value correction for each parametric term. 
 #' @param verbose Print progress messages
@@ -605,24 +605,24 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   var.smoothTerms <- var.smoothTerms[var.smoothTerms != "eff.size"]; # remove eff.size
 
   var.model.orig <- var.model
-  if (eff.size.term.index != NULL) & (!("eff.size" %in% var.smoothTerms.orig)) { 
+  if ( (!is.null(eff.size.term.index)) & (!("eff.size" %in% var.smoothTerms.orig))) { 
     warning("although eff.size.term.index is provided, because eff.size is not requested, not to calculate eff.size")
   }
   if ("eff.size" %in% var.smoothTerms.orig) {    # eff.size is requested:
+    # TODO: change below to positive integer or ~ list
+
     # check if the term index is provided and valid:
-    if (eff.size.term.index == NULL) {   # default is NULL
-      stop(paste0(Please provide the term index for effect size! (count from right hand side of formula, a positive integer)))
+    if (is.null(eff.size.term.index)) {   # default is NULL
+      stop(paste0("Please provide the term index for effect size! (count from right hand side of formula, a (list of) positive integer)"))
     }
-    if (!(is.integer(eff.size.term.index))) {
-      stop(paste0("eff.size.term.index provided = ",toString(eff.size.term.index),"is NOT an integer!"))
-    }
-    if (eff.size.term.index <= 0) {   # not positive 
-      stop(paste0("eff.size.term.index = ",toString(eff.size.term.index)," <=0! It should be a positive integer!"))
+
+    if (eff.size.term.index <= 0) {   # not positive | can't really check if it's integer as is.integer(1) is FALSE...
+      stop(paste0("eff.size.term.index = ",toString(eff.size.term.index)," <=0! It should be a (list of) positive integer!"))
     }  
 
 
     # print warning:
-    print("will get effect size (eff.size) so the execution time will be doubled.")
+    message("will get effect size (eff.size) so the execution time will be doubled.")
     # add adj.r.squared into var.model
     if (!("adj.r.squared" %in% var.model)) {
       var.model <- c(var.model, "adj.r.squared")
@@ -718,15 +718,92 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   ### get the effect size for smooth terms:
   # check if var.smoothTerms.orig contains eff.size:
   if ("eff.size" %in% var.smoothTerms.orig) {
-    print("Getting the effect size: running the reduced model...")
+    message("Getting the effect size: running the reduced model...")
 
+    terms.full.formula <- terms(formula, keep.order = TRUE)   # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
+
+    # TODO: loop of each eff.size.term.index (i.e. each term of interest)
+
+    eff.size.term.fullFormat <- labels(terms.full.formula)[eff.size.term.index]  # the term for effect size, in full format
+    message(paste0("* Getting effect size for term: ", eff.size.term.fullFormat))
     # get the formula of reduced model
+    reduced.formula <- drop.terms(terms.full.formula, eff.size.term.index, keep.response = TRUE)  # index on RHS of formula
+    
     # var* for reduced model: only adjusted r sq is enough
+    # initiate:
+    reduced.model.outputs_initiator <- analyseOneFixel.gam(i_fixel=1, reduced.formula, data, phenotypes, scalar,
+                                          var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                          flag_initiate = TRUE,
+                                          ...)
+    reduced.model.column_names <- reduced.model.outputs_initiator$column_names
+
     # run on reduced model, get the adj r sq of reduced model
+    if(n_cores > 1){
+    
+      if (pbar) {
+        
+        reduced.model.fits <- pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
+                                      analyseOneFixel.gam,  # the function
+                                      mc.cores = n_cores,
+                                      reduced.formula, data, phenotypes, scalar,
+                                      var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                      flag_initiate = FALSE,
+                                      ...)
+        
+      } else {
+        
+        # foreach::foreach
+        
+        reduced.model.fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel 
+                                   analyseOneFixel.gam,  # the function
+                                   mc.cores = n_cores,
+                                   reduced.formula, data, phenotypes, scalar,
+                                   var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                   flag_initiate = FALSE,
+                                   ...)
+        
+      }
+    } else  {  # n_cores ==1, not multi-core
+      
+      if (pbar) {
+        
+        reduced.model.fits <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
+                                  analyseOneFixel.gam,  # the function
+                                  reduced.formula, data, phenotypes, scalar,
+                                  var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                  flag_initiate = FALSE,
+                                  ...)
+        
+      } else {
+        
+        reduced.model.fits <- lapply(fixel.subset,   # a list of i_fixel
+                       analyseOneFixel.gam,  # the function
+                       reduced.formula, data, phenotypes, scalar,
+                       var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                       flag_initiate = FALSE,
+                       ...)
+      }
+    }  
+
+    reduced.model.df_out <- do.call(rbind, reduced.model.fits)
+    reduced.model.df_out <- as.data.frame(reduced.model.df_out)
+    colnames(reduced.model.df_out) <- reduced.model.column_names
+    
+    # rename "adj.r.squared" as "redModel.<termname>" before merging into df_out
+    names(reduced.model.df_out)[names(reduced.model.df_out) == 'adj.r.squared'] <- 
+      
+    # combine new df_out to original one:
+    df_out <- merge(df_out, reduced.model.df_out, by = "fixel_id")
     # calculate the eff.size, add to the df_out
     # if adjusted r sq is not requested (see var.model.orig), remove it
   }
 
+  
+  
+  
+  
+  
+  
   ### correct p values
   # add correction of p.values: for smoothTerms
   if ( all(correct.p.value.smoothTerms == "none") ) {    # all() is to accormodate for multiple elements in correct.p.value.smoothTerms: if one of is not "none", FALSE
