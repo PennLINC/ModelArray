@@ -170,7 +170,7 @@ reduced.formula <- drop.terms(ttt, i_term, keep.response = TRUE)
 reduced.formula
 ```
 
-
+# Example from terms(), terms.object, and drop.terms()
 ```{r}
 ff <- y ~ z + x + w
 tt <- terms(ff)
@@ -183,3 +183,10 @@ drop.terms(tt, 2:3, keep.response = TRUE)   # this could be used as a new formul
 # 
 # all.vars(ff[-2])   # extract the term names (without transform such as s); [-2] means excluding LHS of the formula
 ```
+
+# Test eff.size
+```{r}
+```
+
+
+
