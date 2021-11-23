@@ -68,7 +68,17 @@ test_that("test that FixelArray.gam() works as expected", {
                                       var.smoothTerms = c(), var.parametricTerms = c(), var.model = c(),
                                       n_cores = 2, pbar = FALSE))
   
-  ### Test whether the validity of list of var is checked:
+  
+  ## multiple smooth terms:
+  # s(age) + s(factorA)   # cannot use s(sex) as sex are characters (M or F), not values!
+  mygam_sAge_sFactorA <- FixelArray.gam(FD ~ s(age) + s(factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                n_cores = 2, pbar = FALSE)
+  
+  # s(age + factorA)   # should be rare case
+  expect_warning(FixelArray.gam(FD ~ s(age + factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                 n_cores = 2, pbar = FALSE))  # TODO: fix this problem: the column name will be s-age instead of s-age-sex
+  
+  ### Test whether the validity of list of var is checked: #####
   expect_error(FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                               var.smoothTerms = c("wrong_name"),
                               n_cores = 2, pbar = FALSE))
@@ -78,6 +88,24 @@ test_that("test that FixelArray.gam() works as expected", {
                          n_cores = 2, pbar = FALSE)
   expect_equal(temp, mygam_default)
   
+  
+  ### different arguments in GAM #####
+  # s(k=?):
+  mygam_k4 <- FixelArray.gam(FD ~ s(age, k=4) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                             n_cores = 2, pbar = FALSE)
+  expect_false(all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
+                         mygam_k4 %>% dplyr::select("s_age.statistic"))
+               %>% isTRUE())    # should be different when k is different
+  
+  # s(fx=TRUE) vs default (fx=FALSE): 1) different stat; 2) edf is saved or not
+  # TODO here.......
+  
+  # s(bs=?)
+  mygam_bsCR <- FixelArray.gam(FD ~ s(age, bs="cr") + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                               n_cores = 2, pbar = FALSE)
+  expect_false(all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
+                         mygam_bsCR %>% dplyr::select("s_age.statistic"))
+               %>% isTRUE()) 
   
   ### Test n_cores, pbar work: ######
   # n_cores = 2: 
@@ -105,8 +133,8 @@ test_that("test that FixelArray.gam() works as expected", {
   mygam_bonferroni <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                               correct.p.value.smoothTerms = c("bonferroni"),
                               n_cores = 2, pbar = FALSE) 
-  expect_equal(mygam_bonferroni$`s-age.p.value.bonferroni`,
-               mygam_bonferroni$`s-age.p.value` %>% p.adjust("bonferroni"))
+  expect_equal(mygam_bonferroni$s_age.p.value.bonferroni,
+               mygam_bonferroni$s_age.p.value %>% p.adjust("bonferroni"))
   
 })
 
