@@ -99,7 +99,7 @@ if (nrow(phenotypes) != num.subj) {
 }
 
 if (flag_whichdataset == "test_n50") {
-  formula <- FD ~ s(age) + sex         # ++++ to do: add motion quantification   # FD ~ s(age, k=4) + sex  # FD ~ s(age) + sex
+  formula <- FD ~ s(age) + s(factorA)         # ++++ to do: add motion quantification   # FD ~ s(age, k=4) + sex  # FD ~ s(age) + sex
 } else if (flag_whichdataset == "val") {
   formula <- FD ~ Age
 } else if (flag_whichdataset == "josiane") {
