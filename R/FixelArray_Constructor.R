@@ -578,12 +578,14 @@ analyseOneFixel.gam <- function(i_fixel, formula, fa, phenotypes, scalar,
     onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
   }
   
-    # change from s(age) to s-age:
+    # change from s(age) to s_age: (could be s, te, etc)
   if (num.smoothTerms > 0) {   # if there is any smooth term
-    for (i_row in nrow(onemodel.tidy.smoothTerms)) {  # change from s(age) to s-age
+    for (i_row in nrow(onemodel.tidy.smoothTerms)) {  # change from s(age) to s_age
       term_name <- onemodel.tidy.smoothTerms$term[i_row]
-      str <- strsplit(term_name, split="[()]")[[1]][2]   # extract string between ()
-      onemodel.tidy.smoothTerms$term[i_row] <- paste0("s-",str)
+      str_list <- strsplit(term_name, split="[()]")[[1]]
+      str <- str_list[2]   # extract string between ()
+      smooth_name <- str_list[1]   # "s" or some other smooth method type such as "te"
+      onemodel.tidy.smoothTerms$term[i_row] <- paste0(smooth_name, "_",str)
     }
   }
   
