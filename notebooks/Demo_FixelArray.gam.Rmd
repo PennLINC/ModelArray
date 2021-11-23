@@ -99,7 +99,7 @@ if (nrow(phenotypes) != num.subj) {
 }
 
 if (flag_whichdataset == "test_n50") {
-  formula <- FD ~ s(age) + s(factorA)         # ++++ to do: add motion quantification   # FD ~ s(age, k=4) + sex  # FD ~ s(age) + sex
+  formula <- FD ~ s(age, k=4) + s(factorA)         # ++++ to do: add motion quantification   # FD ~ s(age, k=4) + sex  # FD ~ s(age) + sex
 } else if (flag_whichdataset == "val") {
   formula <- FD ~ Age
 } else if (flag_whichdataset == "josiane") {
@@ -152,4 +152,34 @@ onemodel.summary$scale   # Scale est.
 ```{r}
 mygam_noSmooth <- FixelArray.gam(FD ~ age, data = fixelarray, phenotypes = phenotypes, scalar = scalar, fixel.subset = fixel.subset,
                                   n_cores = 2, pbar = FALSE) 
+```
+
+# Test out getting formula for reduced model
+```{r}
+full.formula <- FD ~ s(age, k=4) + s(sex)
+ttt <- terms(full.formula, keep.order = TRUE)   # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
+ttt %>% attr(which = "term.labels")   # attributes: see ?terms.object
+# or:
+labels(ttt)
+ttt
+
+# drop terms:
+i_term <- 1
+print("reduced formula:")
+reduced.formula <- drop.terms(ttt, i_term, keep.response = TRUE)
+reduced.formula
+```
+
+
+```{r}
+ff <- y ~ z + x + w
+tt <- terms(ff)
+#tt
+drop.terms(tt, 2:3, keep.response = TRUE)   # this could be used as a new formula
+# tt[-1]
+# tt[2:3]
+# reformulate(attr(tt, "term.labels"))
+# 
+# 
+# all.vars(ff[-2])   # extract the term names (without transform such as s); [-2] means excluding LHS of the formula
 ```
