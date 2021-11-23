@@ -503,6 +503,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' @param var.smoothTerms The list of variables to save for smooth terms (got from gam %>% tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
 #' @param var.parametricTerms The list of variables to save for parametric terms (got from gam %>% tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex"
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
+#' @param eff.size.term.index The i-th term of the formula's right hand side as the term of interest for effect size. Positive integer.
 #' @param correct.p.value.smoothTerms To perform and add a column for p.value correction for each smooth term. 
 #' @param correct.p.value.parametricTerms To perform and add a column for p.value correction for each parametric term. 
 #' @param verbose Print progress messages
@@ -517,6 +518,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
                               var.smoothTerms = c("statistic","p.value"),
                               var.parametricTerms = c("estimate", "statistic", "p.value"),
                               var.model = c("dev.expl"), 
+                              eff.size.term.index = NULL,
                               correct.p.value.smoothTerms = "none", correct.p.value.parametricTerms = "none",
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...){
   # data type assertions
@@ -601,6 +603,31 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   # temporarily remove eff.size from var.smoothTerms (as that's not valid stat in broom::tidy())
   var.smoothTerms.orig <- var.smoothTerms
   var.smoothTerms <- var.smoothTerms[var.smoothTerms != "eff.size"]; # remove eff.size
+
+  var.model.orig <- var.model
+  if (eff.size.term.index != NULL) & (!("eff.size" %in% var.smoothTerms.orig)) { 
+    warning("although eff.size.term.index is provided, because eff.size is not requested, not to calculate eff.size")
+  }
+  if ("eff.size" %in% var.smoothTerms.orig) {    # eff.size is requested:
+    # check if the term index is provided and valid:
+    if (eff.size.term.index == NULL) {   # default is NULL
+      stop(paste0(Please provide the term index for effect size! (count from right hand side of formula, a positive integer)))
+    }
+    if (!(is.integer(eff.size.term.index))) {
+      stop(paste0("eff.size.term.index provided = ",toString(eff.size.term.index),"is NOT an integer!"))
+    }
+    if (eff.size.term.index <= 0) {   # not positive 
+      stop(paste0("eff.size.term.index = ",toString(eff.size.term.index)," <=0! It should be a positive integer!"))
+    }  
+
+
+    # print warning:
+    print("will get effect size (eff.size) so the execution time will be doubled.")
+    # add adj.r.squared into var.model
+    if (!("adj.r.squared" %in% var.model)) {
+      var.model <- c(var.model, "adj.r.squared")
+    }
+  }
 
   ### check on arguments: p-values correction methods
   # check for smoothTerms:
@@ -690,7 +717,15 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
 
   ### get the effect size for smooth terms:
   # check if var.smoothTerms.orig contains eff.size:
+  if ("eff.size" %in% var.smoothTerms.orig) {
+    print("Getting the effect size: running the reduced model...")
 
+    # get the formula of reduced model
+    # var* for reduced model: only adjusted r sq is enough
+    # run on reduced model, get the adj r sq of reduced model
+    # calculate the eff.size, add to the df_out
+    # if adjusted r sq is not requested (see var.model.orig), remove it
+  }
 
   ### correct p values
   # add correction of p.values: for smoothTerms
