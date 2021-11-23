@@ -136,5 +136,12 @@ test_that("test that FixelArray.gam() works as expected", {
   expect_equal(mygam_bonferroni$s_age.p.value.bonferroni,
                mygam_bonferroni$s_age.p.value %>% p.adjust("bonferroni"))
   
+  
+  ### Test: eff.size
+  # one term of interest:
+  
+  # more than one term of interest:
+  
+  # invalid request - see my checker in FixelArray.gam()
 })
 
