@@ -7,21 +7,21 @@ test_that("test that FixelArray.gam() works as expected", {
   
   # h5_path <- paste0(system.file(package = "FixelArray"),
   #                   "inst/extdata/","n50_fixels.h5")
-  # fa <- FixelArray(h5_path, scalar_types = c("FD"), analysis_names = c("my_analysis"))
-  # scalar_types = c("FD")
+  # scalar_name = c("FD")
+  # fa <- FixelArray(h5_path, scalar_types = scalar_name, analysis_names = c("my_analysis"))
+  
 
   csv_path <- system.file("extdata", "n50_cohort.csv", package = "FixelArray")   # TODO: ask Tinashe
   # csv_path <- paste0(system.file(package = "FixelArray"),
   #                    "inst/extdata/","n50_cohort.csv")
   
   phenotypes <- read.csv(csv_path)
-  scalar_name <- "FD"
   var.smoothTerms = c("statistic","p.value")
   var.parametricTerms = c("estimate", "statistic", "p.value")
   var.model = c("dev.expl", "AIC")
   fixel.subset = 1:10
 
-  ### basic checks
+  ### basic checks #####
   mygam <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                           var.smoothTerms = var.smoothTerms,
                           var.parametricTerms = var.parametricTerms,
@@ -33,10 +33,9 @@ test_that("test that FixelArray.gam() works as expected", {
   expect_equal(as.numeric(dim(mygam)), c(length(fixel.subset), 1+1*length(var.smoothTerms) + 2*length(var.parametricTerms) + length(var.model)))  # check the shape
 
   mygam_default <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
-                                  n_cores = 2, pbar = FALSE)   # default stat outputs
+                                  n_cores = 1, pbar = FALSE)   # default stat outputs
   expect_equal(as.numeric(dim(mygam_default)), c(length(fixel.subset),10))
-  expect_equal(mygam, mygam_default)
-  
+
   mygam_fullOutputs <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                       full.outputs = TRUE,    # overwrites the var* arguments below
                                       var.smoothTerms = var.smoothTerms,
@@ -45,7 +44,7 @@ test_that("test that FixelArray.gam() works as expected", {
                                       n_cores = 1, pbar = FALSE)
   expect_equal(as.numeric(dim(mygam_fullOutputs)), c(length(fixel.subset),24))
   
-  ### when there is no term or stat output
+  ### when there is no term or stat output #####
   # if there is no explicit parametric term (although there will be term "Intercept") or parametric stat:
   mygam_noExplicitParamTerm <- FixelArray.gam(FD ~ s(age), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                   n_cores = 2, pbar = FALSE)  
@@ -78,5 +77,36 @@ test_that("test that FixelArray.gam() works as expected", {
                          var.parametricTerms = c(var.parametricTerms, "p.value"),
                          n_cores = 2, pbar = FALSE)
   expect_equal(temp, mygam_default)
+  
+  
+  ### Test n_cores, pbar work: ######
+  # n_cores = 2: 
+  mygam_pbarFalse_ncores2 <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                           n_cores = 2, pbar = FALSE)   # default stat outputs
+  expect_equal(mygam_default, mygam_pbarFalse_ncores2)
+  
+  # pbar:
+  mygam_pbarTrue_ncores2 <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                  n_cores = 2, pbar = TRUE)   # default stat outputs
+  expect_equal(mygam_default, mygam_pbarTrue_ncores2)
+  
+  mygam_pbarTrue_ncores1 <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                           n_cores = 1, pbar = TRUE)   # default stat outputs
+  expect_equal(mygam_default, mygam_pbarTrue_ncores1)
+  
+  
+  ### Test: p.value correction: #####
+  mygam_fdr <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                 correct.p.value.parametricTerms = c("fdr"),
+                 n_cores = 2, pbar = FALSE) 
+  expect_equal(mygam_fdr$sexM.p.value.fdr,
+               mygam_fdr$sexM.p.value %>% p.adjust("fdr"))
+  
+  mygam_bonferroni <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              correct.p.value.smoothTerms = c("bonferroni"),
+                              n_cores = 2, pbar = FALSE) 
+  expect_equal(mygam_bonferroni$`s-age.p.value.bonferroni`,
+               mygam_bonferroni$`s-age.p.value` %>% p.adjust("bonferroni"))
+  
 })
 
