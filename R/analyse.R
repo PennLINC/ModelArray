@@ -514,6 +514,8 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' @import tibble
 #' @export
 
+# TODO: remove "eff.size" from var.smoothTerms and corresponding scripts. As long as provided in eff.size.term.index, calculate eff.size for this term.
+
 FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
                               var.smoothTerms = c("statistic","p.value"),
                               var.parametricTerms = c("estimate", "statistic", "p.value"),
@@ -560,7 +562,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   
   
   
-  # TODO: check if fx=FALSE; if so, add edf to the list of var
+  # TODO: check if fx=FALSE; if so, add edf to the list of var + warning: fx=TRUE is recommended
   
   # when full.outputs = TRUE:
   var.smoothTerms.full <- c("edf","ref.df","statistic","p.value","eff.size")
@@ -571,6 +573,8 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     var.smoothTerms <- var.smoothTerms.full
     var.parametricTerms <- var.parametricTerms.full
     var.model <- var.model.full
+    
+    # TODO: also add exiting smooth terms' index to eff.size.term.index
   }
 
   ### check on validity of arguments: var.term and var.model 
@@ -609,20 +613,20 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     warning("although eff.size.term.index is provided, because eff.size is not requested, not to calculate eff.size")
   }
   if ("eff.size" %in% var.smoothTerms.orig) {    # eff.size is requested:
-    # TODO: change below to positive integer or ~ list
 
     # check if the term index is provided and valid:
     if (is.null(eff.size.term.index)) {   # default is NULL
       stop(paste0("Please provide the term index for effect size! (count from right hand side of formula, a (list of) positive integer)"))
     }
 
-    if (eff.size.term.index <= 0) {   # not positive | can't really check if it's integer as is.integer(1) is FALSE...
-      stop(paste0("eff.size.term.index = ",toString(eff.size.term.index)," <=0! It should be a (list of) positive integer!"))
-    }  
+    if (min(eff.size.term.index)<=0) {# any of not positive | can't really check if it's integer as is.integer(1) is FALSE...
+      stop(paste0("There is element(s) in eff.size.term.index <= 0. It should be a (list of) positive integer!"))
+    }
 
-
+    # TODO: check how many variables on RHS; if no (but intercept), stop
+    
     # print warning:
-    message("will get effect size (eff.size) so the execution time will be doubled.")
+    message("will get effect size (eff.size) so the execution time will be longer.")
     # add adj.r.squared into var.model
     if (!("adj.r.squared" %in% var.model)) {
       var.model <- c(var.model, "adj.r.squared")
@@ -719,86 +723,118 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   # check if var.smoothTerms.orig contains eff.size:
   if ("eff.size" %in% var.smoothTerms.orig) {
     message("Getting the effect size: running the reduced model...")
-
+    
     terms.full.formula <- terms(formula, keep.order = TRUE)   # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
-
-    # TODO: loop of each eff.size.term.index (i.e. each term of interest)
-
-    eff.size.term.fullFormat <- labels(terms.full.formula)[eff.size.term.index]  # the term for effect size, in full format
-    message(paste0("* Getting effect size for term: ", eff.size.term.fullFormat))
-    # get the formula of reduced model
-    reduced.formula <- drop.terms(terms.full.formula, eff.size.term.index, keep.response = TRUE)  # index on RHS of formula
     
-    # var* for reduced model: only adjusted r sq is enough
-    # initiate:
-    reduced.model.outputs_initiator <- analyseOneFixel.gam(i_fixel=1, reduced.formula, data, phenotypes, scalar,
-                                          var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                                          flag_initiate = TRUE,
-                                          ...)
-    reduced.model.column_names <- reduced.model.outputs_initiator$column_names
-
-    # run on reduced model, get the adj r sq of reduced model
-    if(n_cores > 1){
+    # list of term of interest for eff.size:
+    eff.size.term.fullFormat.list <- labels(terms.full.formula)[eff.size.term.index]  # the term for effect size, in full format
+    # get the short version:
+    eff.size.term.shortFormat.list <- list()
+    for (eff.size.term.fullFormat in eff.size.term.fullFormat.list) {
+      temp <- strsplit(eff.size.term.fullFormat, "[(,)]")[[1]]   # format: s(age, k=xxx) --> s, age, k=xxxx
+      eff.size.term.shortFormat <- paste0(temp[1], "_",temp[2])   # remove optional arguments in s(), replace () with _: get e.g. s_age
+      eff.size.term.shortFormat.list <- append(eff.size.term.shortFormat.list, eff.size.term.shortFormat)
+      # TODO: ask Bart: if it's appropriate to have s(age, k=3) + s(age, k=4). If not, throw out a warning saying it's not good. If not, it's okay to use shortFormat as column name of eff.size
+    }
     
-      if (pbar) {
-        
-        reduced.model.fits <- pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
-                                      analyseOneFixel.gam,  # the function
-                                      mc.cores = n_cores,
-                                      reduced.formula, data, phenotypes, scalar,
-                                      var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                                      flag_initiate = FALSE,
-                                      ...)
-        
-      } else {
-        
-        # foreach::foreach
-        
-        reduced.model.fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel 
-                                   analyseOneFixel.gam,  # the function
-                                   mc.cores = n_cores,
-                                   reduced.formula, data, phenotypes, scalar,
-                                   var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                                   flag_initiate = FALSE,
-                                   ...)
-        
-      }
-    } else  {  # n_cores ==1, not multi-core
+    # loop of each eff.size.term.index (i.e. each term of interest)
+    for (i.eff.size.term in 1:length(eff.size.term.fullFormat.list)) {
+      idx.eff.size.term <- eff.size.term.index[i.eff.size.term]   # index
+      eff.size.term.fullFormat <- eff.size.term.fullFormat.list[i.eff.size.term]
+      eff.size.term.shortFormat <- eff.size.term.shortFormat.list[[i.eff.size.term]][1]   # it's nested
       
-      if (pbar) {
-        
-        reduced.model.fits <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
-                                  analyseOneFixel.gam,  # the function
-                                  reduced.formula, data, phenotypes, scalar,
-                                  var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                                  flag_initiate = FALSE,
-                                  ...)
-        
-      } else {
-        
-        reduced.model.fits <- lapply(fixel.subset,   # a list of i_fixel
-                       analyseOneFixel.gam,  # the function
-                       reduced.formula, data, phenotypes, scalar,
-                       var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                       flag_initiate = FALSE,
-                       ...)
-      }
-    }  
-
-    reduced.model.df_out <- do.call(rbind, reduced.model.fits)
-    reduced.model.df_out <- as.data.frame(reduced.model.df_out)
-    colnames(reduced.model.df_out) <- reduced.model.column_names
-    
-    # rename "adj.r.squared" as "redModel.<termname>" before merging into df_out
-    names(reduced.model.df_out)[names(reduced.model.df_out) == 'adj.r.squared'] <- 
+      message(paste0("* Getting effect size for term: ", eff.size.term.fullFormat, "; will show up as ", eff.size.term.shortFormat, " in final dataframe"))
       
-    # combine new df_out to original one:
-    df_out <- merge(df_out, reduced.model.df_out, by = "fixel_id")
-    # calculate the eff.size, add to the df_out
-    # if adjusted r sq is not requested (see var.model.orig), remove it
-  }
-
+      # get the formula of reduced model
+        # check if there is only one term (after removing it in reduced model, there is no term but intercept in the formula...)
+      if (length(labels(terms.full.formula)) ==1) {
+        toString(formula) %>% strsplit("[, ]")   # TODO: to finish here!!!
+        reduced.formula <- # XXXX ~ 1
+      } else {
+        reduced.formula <- drop.terms(terms.full.formula, idx.eff.size.term, keep.response = TRUE)  # index on RHS of formula
+      }
+      
+      # var* for reduced model: only adjusted r sq is enough
+      # initiate:
+      reduced.model.outputs_initiator <- analyseOneFixel.gam(i_fixel=1, reduced.formula, data, phenotypes, scalar,
+                                            var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                            flag_initiate = TRUE,
+                                            ...)
+      reduced.model.column_names <- reduced.model.outputs_initiator$column_names
   
+      # run on reduced model, get the adj r sq of reduced model
+      if(n_cores > 1){
+      
+        if (pbar) {
+          
+          reduced.model.fits <- pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
+                                        analyseOneFixel.gam,  # the function
+                                        mc.cores = n_cores,
+                                        reduced.formula, data, phenotypes, scalar,
+                                        var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                        flag_initiate = FALSE,
+                                        ...)
+          
+        } else {
+          
+          # foreach::foreach
+          
+          reduced.model.fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel 
+                                     analyseOneFixel.gam,  # the function
+                                     mc.cores = n_cores,
+                                     reduced.formula, data, phenotypes, scalar,
+                                     var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                     flag_initiate = FALSE,
+                                     ...)
+          
+        }
+      } else  {  # n_cores ==1, not multi-core
+        
+        if (pbar) {
+          
+          reduced.model.fits <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
+                                    analyseOneFixel.gam,  # the function
+                                    reduced.formula, data, phenotypes, scalar,
+                                    var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                    flag_initiate = FALSE,
+                                    ...)
+          
+        } else {
+          
+          reduced.model.fits <- lapply(fixel.subset,   # a list of i_fixel
+                         analyseOneFixel.gam,  # the function
+                         reduced.formula, data, phenotypes, scalar,
+                         var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                         flag_initiate = FALSE,
+                         ...)
+        }
+      }  # end of loop for calculating reduced model across fixels
+  
+      reduced.model.df_out <- do.call(rbind, reduced.model.fits)
+      reduced.model.df_out <- as.data.frame(reduced.model.df_out)
+      colnames(reduced.model.df_out) <- reduced.model.column_names
+      
+      # rename "adj.r.squared" as "redModel.adj.r.squared" before merging into df_out
+      names(reduced.model.df_out)[names(reduced.model.df_out) == 'model.adj.r.squared'] <- "redModel.adj.r.squared"
+        
+      # combine new df_out to original one:
+      df_out <- merge(df_out, reduced.model.df_out, by = "fixel_id")
+      
+      # calculate the eff.size, add to the df_out:
+      df_out <- df_out %>% dplyr::mutate("{eff.size.term.shortFormat}.eff.size" := model.adj.r.squared - redModel.adj.r.squared)
+
+      # remove column of redModel
+      df_out <- df_out %>% subset(select = -c(redModel.adj.r.squared))
+    }  # end of for loop across term of interest for effect size
+
+    
+  
+    # if adjusted r sq is not requested (see var.model.orig), remove it:
+    if (!("adj.r.squared" %in% var.model.orig)) {
+      df_out <- df_out %>% subset(select = -c(model.adj.r.squared))
+    }
+    
+  }   # end of if: requesting eff.size
   
   
   
