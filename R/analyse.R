@@ -535,6 +535,9 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     stop("Please enter integers for fixel.subset!")
   }
   
+  ### TODO: print additional arguments in smooth term (s(), te(), etc)
+  # what smooth? s or te or?
+  # additional arguments
   
   ### display additional arguments:
   dots <- list(...)    
@@ -549,6 +552,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   
   
   # eval(formals(mgcv::gam)$data) # return the default setting of argument "data"
+  
   
   # TODO: finish this part: display additional arguments
   
