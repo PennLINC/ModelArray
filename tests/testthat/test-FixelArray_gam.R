@@ -143,5 +143,9 @@ test_that("test that FixelArray.gam() works as expected", {
   # more than one term of interest:
   
   # invalid request - see my checker in FixelArray.gam()
+  
+  # # TODO: test for s(age) without "," in the term label... --> see if the column name (s_age.eff.size) is as expected
+  
+  ### test out te(xxx) instead of s(xxx)
 })
 
