@@ -138,9 +138,33 @@ test_that("test that FixelArray.gam() works as expected", {
   
   
   ### Test: eff.size
-  # one term of interest:
+  # one term of interest: reduced model will be FD ~ 1
+  # also, to test whether the eff.size is calculated correctly
+  mygam_effsize_oneSmoothTerm <- FixelArray.gam(FD ~ s(age), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                               var.model = c("dev.expl", "adj.r.squared"),
+                                               eff.size.term.index = c(1),
+                                               n_cores = 2, pbar = FALSE)
+  mygam_intercept <- FixelArray.gam(FD ~ 1, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                    var.model = c("adj.r.squared"),
+                                    n_cores = 2, pbar = FALSE)
+  expect_equal(mygam_effsize_oneSmoothTerm$s_age.eff.size,
+               mygam_effsize_oneSmoothTerm$model.adj.r.squared - mygam_intercept$model.adj.r.squared)
   
   # more than one term of interest:
+  mygam_effsize_twoSmoothTerm <- FixelArray.gam(FD ~ factorB + s(age) + s(factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                               var.model = c("dev.expl", "adj.r.squared"),
+                                               eff.size.term.index = c(2,3),
+                                               n_cores = 2, pbar = FALSE)
+  mygam_effsize_twoSmoothTerm_red1 <- FixelArray.gam(FD ~ factorB + s(factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                                     var.model = c( "adj.r.squared"),
+                                                     n_cores = 2, pbar = FALSE)
+  mygam_effsize_twoSmoothTerm_red2 <- FixelArray.gam(FD ~ factorB + s(age), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                                     var.model = c( "adj.r.squared"),
+                                                     n_cores = 2, pbar = FALSE)
+  expect_equal(mygam_effsize_twoSmoothTerm$s_age.eff.size,
+               mygam_effsize_twoSmoothTerm$model.adj.r.squared - mygam_effsize_twoSmoothTerm_red1$model.adj.r.squared)
+  expect_equal(mygam_effsize_twoSmoothTerm$s_factorA.eff.size,
+               mygam_effsize_twoSmoothTerm$model.adj.r.squared - mygam_effsize_twoSmoothTerm_red2$model.adj.r.squared)
   
   # invalid request - see my checker in FixelArray.gam()
   
