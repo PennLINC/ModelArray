@@ -47,10 +47,10 @@ workflows:
   version: 2
   build_test_deploy:
     jobs:
-      - releaseR4.1.0:
-          filters:
-            tags:
-              only: /.*/
+      #- releaseR4.1.0:   # temporarily comment out as there is error with matrixStats package
+      #    filters:
+      #      tags:
+      #        only: /.*/
       #- oldR3.5.3:
       #    filters:
       #      tags:
