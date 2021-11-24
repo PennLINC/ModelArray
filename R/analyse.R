@@ -514,8 +514,6 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' @import tibble
 #' @export
 
-# TODO: remove "eff.size" from var.smoothTerms and corresponding scripts. As long as provided in eff.size.term.index, calculate eff.size for this term.
-
 FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
                               var.smoothTerms = c("statistic","p.value"),
                               var.parametricTerms = c("estimate", "statistic", "p.value"),
@@ -565,7 +563,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   # TODO: check if fx=FALSE; if so, add edf to the list of var + warning: fx=TRUE is recommended
   
   # when full.outputs = TRUE:
-  var.smoothTerms.full <- c("edf","ref.df","statistic","p.value","eff.size")
+  var.smoothTerms.full <- c("edf","ref.df","statistic","p.value")
   var.parametricTerms.full <- c("estimate", "std.error","statistic","p.value")
   var.model.full <- c("adj.r.squared","dev.expl", "sp.criterion", "scale",
                       "df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs")
@@ -604,26 +602,24 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     }
   }
 
-  # temporarily remove eff.size from var.smoothTerms (as that's not valid stat in broom::tidy())
-  var.smoothTerms.orig <- var.smoothTerms
-  var.smoothTerms <- var.smoothTerms[var.smoothTerms != "eff.size"]; # remove eff.size
 
   var.model.orig <- var.model
-  if ( (!is.null(eff.size.term.index)) & (!("eff.size" %in% var.smoothTerms.orig))) { 
-    warning("although eff.size.term.index is provided, because eff.size is not requested, not to calculate eff.size")
-  }
-  if ("eff.size" %in% var.smoothTerms.orig) {    # eff.size is requested:
+  if (!is.null(eff.size.term.index)) {    # eff.size is not null --> requested
 
-    # check if the term index is provided and valid:
-    if (is.null(eff.size.term.index)) {   # default is NULL
-      stop(paste0("Please provide the term index for effect size! (count from right hand side of formula, a (list of) positive integer)"))
-    }
-
+    # check if the term index is valid:
     if (min(eff.size.term.index)<=0) {# any of not positive | can't really check if it's integer as is.integer(1) is FALSE...
       stop(paste0("There is element(s) in eff.size.term.index <= 0. It should be a (list of) positive integer!"))
     }
 
-    # TODO: check how many variables on RHS; if no (but intercept), stop
+    terms.full.formula <- terms(formula, keep.order = TRUE)   # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
+    if (max(eff.size.term.index) > length(labels(terms.full.formula))) {  # if max is more than the number of terms on RHS of formula
+      stop(paste0("Largest index in eff.size.term.index is more than the term number on the right hand side of formula!"))
+    }
+    
+    # check how many variables on RHS; if no (but intercept, i.e. xx ~ 1), stop
+    if (length(labels(terms.full.formula)) ==0) {
+      stop(paste0("To analyze effect size but there is no variable (except intercept 1) on right hand side of formula! Please provide at least one valid variable."))
+    }
     
     # print warning:
     message("will get effect size (eff.size) so the execution time will be longer.")
@@ -720,17 +716,15 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
 
 
   ### get the effect size for smooth terms:
-  # check if var.smoothTerms.orig contains eff.size:
-  if ("eff.size" %in% var.smoothTerms.orig) {
+  if (!is.null(eff.size.term.index)) {   # if eff.size is requested
     message("Getting the effect size: running the reduced model...")
-    
-    terms.full.formula <- terms(formula, keep.order = TRUE)   # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
-    
+  
     # list of term of interest for eff.size:
     eff.size.term.fullFormat.list <- labels(terms.full.formula)[eff.size.term.index]  # the term for effect size, in full format
     # get the short version:
     eff.size.term.shortFormat.list <- list()
     for (eff.size.term.fullFormat in eff.size.term.fullFormat.list) {
+      
       temp <- strsplit(eff.size.term.fullFormat, "[(,)]")[[1]]   # format: s(age, k=xxx) --> s, age, k=xxxx
       eff.size.term.shortFormat <- paste0(temp[1], "_",temp[2])   # remove optional arguments in s(), replace () with _: get e.g. s_age
       eff.size.term.shortFormat.list <- append(eff.size.term.shortFormat.list, eff.size.term.shortFormat)
@@ -748,8 +742,8 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
       # get the formula of reduced model
         # check if there is only one term (after removing it in reduced model, there is no term but intercept in the formula...)
       if (length(labels(terms.full.formula)) ==1) {
-        toString(formula) %>% strsplit("[, ]")   # TODO: to finish here!!!
-        reduced.formula <- # XXXX ~ 1
+        temp <- toString(formula) %>% strsplit("[, ]")  
+        reduced.formula <- as.formula(paste0(temp[[1]][3], "~1"))
       } else {
         reduced.formula <- drop.terms(terms.full.formula, idx.eff.size.term, keep.response = TRUE)  # index on RHS of formula
       }
