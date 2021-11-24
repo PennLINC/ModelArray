@@ -148,6 +148,14 @@ onemodel.summary$scale   # Scale est.
 
 ```
 
+# Usual application
+```{r}
+mygam <- FixelArray.gam(FD ~ s(age) + s(factorA), data = fixelarray, phenotypes = phenotypes, scalar = scalar, fixel.subset = fixel.subset,
+                        eff.size.term.index = c(1),
+                        n_cores=2, pbar = TRUE)
+mygam
+```
+
 # Test out different conditions
 ```{r}
 mygam_noSmooth <- FixelArray.gam(FD ~ age, data = fixelarray, phenotypes = phenotypes, scalar = scalar, fixel.subset = fixel.subset,
