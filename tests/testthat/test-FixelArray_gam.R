@@ -1,10 +1,10 @@
 test_that("test that FixelArray.gam() works as expected", {
   h5_path <- system.file("extdata", "n50_fixels.h5", package = "FixelArray")   # TODO: ask Tinashe
  
+  scalar_name <- c("FD")
   fa <- FixelArray(h5_path,
-                    scalar_types = c("FD"),
+                    scalar_types = scalar_name,
                     analysis_names = c("my_analysis"))
-  
   # h5_path <- paste0(system.file(package = "FixelArray"),
   #                   "inst/extdata/","n50_fixels.h5")
   # scalar_name = c("FD")
