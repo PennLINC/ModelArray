@@ -567,6 +567,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   var.parametricTerms.full <- c("estimate", "std.error","statistic","p.value")
   var.model.full <- c("adj.r.squared","dev.expl", "sp.criterion", "scale",
                       "df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs")
+
   if (full.outputs == TRUE) {   # full set of outputs
     var.smoothTerms <- var.smoothTerms.full
     var.parametricTerms <- var.parametricTerms.full
@@ -737,17 +738,18 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
       eff.size.term.fullFormat <- eff.size.term.fullFormat.list[i.eff.size.term]
       eff.size.term.shortFormat <- eff.size.term.shortFormat.list[[i.eff.size.term]][1]   # it's nested
       
-      message(paste0("* Getting effect size for term: ", eff.size.term.fullFormat, "; will show up as ", eff.size.term.shortFormat, " in final dataframe"))
-      
       # get the formula of reduced model
         # check if there is only one term (after removing it in reduced model, there is no term but intercept in the formula...)
       if (length(labels(terms.full.formula)) ==1) {
         temp <- toString(formula) %>% strsplit("[, ]")  
         reduced.formula <- as.formula(paste0(temp[[1]][3], "~1"))
       } else {
-        reduced.formula <- drop.terms(terms.full.formula, idx.eff.size.term, keep.response = TRUE)  # index on RHS of formula
+        reduced.formula <- formula(drop.terms(terms.full.formula, idx.eff.size.term, keep.response = TRUE))  # index on RHS of formula -> change to class of formula (as.formula does not work)
       }
       
+      message(paste0("* Getting effect size for term: ", eff.size.term.fullFormat, " via reduced model as below","; will show up as ", eff.size.term.shortFormat, " in final dataframe"))   # NOTES: it would be great to figure out how to paste and print formula without format changed. May try out stringf?
+      print(reduced.formula)
+
       # var* for reduced model: only adjusted r sq is enough
       # initiate:
       reduced.model.outputs_initiator <- analyseOneFixel.gam(i_fixel=1, reduced.formula, data, phenotypes, scalar,
