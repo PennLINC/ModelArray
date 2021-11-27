@@ -4,6 +4,7 @@ output: html_document
 ---
 ```{r}
 # set ups
+rm(list = ls())
 
 # the working directory of this Demo is where it locates
 
@@ -38,17 +39,18 @@ if (flag_library_what == "FixelArray") {
 }
 
 
-flag_whichdataset <- "test_n50"   # "val" or "test_n50" or "josiane"
-num.subj <- 50  # [integer]   
-num.fixels <- 0  # 0 = full 
+flag_whichdataset <- "josiane"   # "val" or "test_n50" or "josiane"
+num.subj <- 938  # [integer]   
+num.fixels <- 1000  # 0 = full 
 flag_which_subset <- ""
 flag_where <- "vmware"   # "CUBIC" or "vmware"
 
 
 ```
 
-# Load some fake data
+# Inputs set-ups: copy the input .h5 file and name it as fn.output; 
 ```{r}
+now_str <- format(Sys.time(), "%Y%m%d-%H%M%S")
 
 if (flag_whichdataset == "test_n50") {
   fn <- "../inst/extdata/n50_fixels.h5"
@@ -65,6 +67,15 @@ if (flag_whichdataset == "test_n50") {
   
   scalar = c("FD")
   
+} else if (flag_whichdataset == "josiane") {
+  if (flag_where == "vmware") {
+    fn <- paste0("../../data/data_from_josiane/ltn_FDC_n", toString(num.subj), ".h5")
+    fn.output <-  paste0("../../data/data_from_josiane/results/ltn_FDC_n", toString(num.subj), "_wResults_nfixel-",toString(num.fixels), "_",now_str, ".h5")
+    fn_csv <- paste0("../../data/data_from_josiane/df_example_n", toString(num.subj), ".csv")
+    
+  }
+
+  scalar <- c("FDC")
 }
 
 
@@ -90,7 +101,7 @@ if (dim(scalars(fixelarray)[[scalar]])[2] != num.subj) {
 }
 ```
 
-We set up for performing linear regression (lm):
+We set up for performing GAM:
 ```{r}
 phenotypes <- read.csv(fn_csv)
 # check # subjects matches:
@@ -103,14 +114,36 @@ if (flag_whichdataset == "test_n50") {
 } else if (flag_whichdataset == "val") {
   formula <- FD ~ Age
 } else if (flag_whichdataset == "josiane") {
-  formula <- FDC ~ Age
+  formula <- FDC ~ s(Age, k=4, fx = TRUE) + sex
 }
 
-gam.method = "GCV.Cp"   # "GCV.Cp", "REML"  # any other methods usually used?
+gam.method = "REML"   # "GCV.Cp", "REML"  # any other methods usually used?
 gam.optimizer = c("outer","newton")   # default: c("outer","newton") | # number of optimizers here will not change number of rows or columns in output gam model
 
-fixel.subset <- 1:10
+if (num.fixels == 0) {
+  num.fixels <- dim(scalars(fixelarray)[[scalar]])[1]
+}
+fixel.subset <- 1:num.fixels  
 ```
+
+# Running on real data:
+```{r}
+gam_real <- FixelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
+                           fixel.subset = fixel.subset, full.outputs = TRUE,
+                        eff.size.term.index = c(1),
+                        correct.p.value.smoothTerms = c("fdr", "bonferroni"),
+                        correct.p.value.parametricTerms = c("fdr", "bonferroni"),
+                        n_cores=2, pbar = TRUE)
+head(gam_real)
+# write:
+analysis_name <- "gam_allOutputs"
+writeResults(fn.output, df.output = gam_real, analysis_name=analysis_name, overwrite=TRUE)
+
+# read and see
+fixelarray_new <- FixelArray(fn.output, scalar_types = scalar, analysis_names = analysis_name)
+fixelarray_new@results$gam_allOutputs
+```
+
 
 # Play around with mgcv::gam()
 ```{r}
