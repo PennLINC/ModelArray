@@ -539,7 +539,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   
   ### TODO: print additional arguments in smooth term (s(), te(), etc)
   # what smooth? s or te or?
-  # additional arguments
+  # additional arguments in the smooth term, and are they valid for this specific term type?
   
   ### display additional arguments:
   dots <- list(...)    
@@ -557,8 +557,6 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   
   
   # TODO: finish this part: display additional arguments
-  
-  
   
   # TODO: check if fx=FALSE; if so, add edf to the list of var + warning: fx=TRUE is recommended
   
