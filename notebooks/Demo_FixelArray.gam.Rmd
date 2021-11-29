@@ -39,9 +39,9 @@ if (flag_library_what == "FixelArray") {
 }
 
 
-flag_whichdataset <- "josiane"   # "val" or "test_n50" or "josiane"
-num.subj <- 938  # [integer]   
-num.fixels <- 1000  # 0 = full 
+flag_whichdataset <- "test_n50"   # "val" or "test_n50" or "josiane"
+num.subj <- 50  # [integer]   
+num.fixels <- 100  # 0 = full 
 flag_which_subset <- ""
 flag_where <- "vmware"   # "CUBIC" or "vmware"
 
@@ -110,7 +110,7 @@ if (nrow(phenotypes) != num.subj) {
 }
 
 if (flag_whichdataset == "test_n50") {
-  formula <- FD ~ s(age, k=4, fx=TRUE) + s(factorA)         # ++++ to do: add motion quantification   # FD ~ s(age, k=4) + sex  # FD ~ s(age) + sex
+  formula <- FD ~ s(age, k=4, fx=TRUE) + sex        # ++++ to do: add motion quantification   # FD ~ s(age, k=4) + sex  # FD ~ s(age) + sex
 } else if (flag_whichdataset == "val") {
   formula <- FD ~ Age
 } else if (flag_whichdataset == "josiane") {
@@ -143,7 +143,14 @@ writeResults(fn.output, df.output = gam_real, analysis_name=analysis_name, overw
 fixelarray_new <- FixelArray(fn.output, scalar_types = scalar, analysis_names = analysis_name)
 fixelarray_new@results$gam_allOutputs
 ```
+# check out the results of PNC dataset
+```{r}
+fn.josiane.full <- "/home/chenying/Desktop/fixel_project/data/data_from_josiane/results/ltn_FDC_n938_wResults_nfixel-0_20211126-182543.h5"
+fixelarray_josiane_full <- FixelArray(fn.josiane.full, scalar_types = c("FDC"), analysis_names = "gam_allOutputs")
+fixelarray_josiane_full@results$gam_allOutputs$results_matrix 
+colnames(fixelarray_josiane_full@results$gam_allOutputs$results_matrix )
 
+```
 
 # Play around with mgcv::gam()
 ```{r}
