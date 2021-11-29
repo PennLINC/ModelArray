@@ -191,10 +191,10 @@ test_that("test that FixelArray.gam() works as expected", {
                                      n_cores = 2, pbar = FALSE)
   expect_true("te_age.eff.size" %in% colnames(mygam_effsize_te))
   
-  # TODO: invalid parameters in s such as d = ?
-  # FixelArray.gam(FD ~ s(age, d=1), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
-  #                eff.size.term.index = c(1),  
-  #                n_cores = 2, pbar = FALSE)
+  # invalid formula: invalid parameters in s such as d = ?
+  expect_error(FixelArray.gam(FD ~ s(age, d=1), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                 eff.size.term.index = c(1),
+                 n_cores = 2, pbar = FALSE))
   
   
   
