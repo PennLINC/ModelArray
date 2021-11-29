@@ -55,6 +55,55 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 }
 
 
+#' Check on smooth terms s() in mgcv::gam() formula
+#' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/s
+#' TODO: finish the description
+#' @import mgcv
+#' 
+checker_gam_s <- function(formula, gam.formula.breakdown, ofInterest) {
+
+  # check k: bs.dim   # TODO: finish here
+}
+
+#' Check on smooth term te() in mgcv::gam() formula
+#' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/te
+#' TODO: finish the description
+#' @import mgcv
+#' 
+
+
+#' A checker for formula in gam for FixelArray.gam()
+#' TODO: finish the description
+#' 
+checker_gam_formula <- function(formula, gam.formula.breakdown) {
+  if (length(gam.formula.breakdown$smooth.spec) != 0) {   # if there is smooth term
+    for (i_smoothTerm in 1:length(gam.formula.breakdown$smooth.spec)) {
+      ofInterest <- gam.formula.breakdown$smooth.spec[[i_smoothTerm]]
+      msg <- gam.formula.breakdown$smooth.spec[[i_smoothTerm]]$label
+      
+      # check what class of smooth term (s or ti or ?); then call the corresponding function - throw out the message for important argument for this class
+      # ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/smooth.terms
+      smooth.class <- strsplit(ofInterest$label, "[(]")[[1]][1]
+      if (smooth.class == "s") {
+        # TODO
+        #checker_gam_s(formula, gam.formula.breakdown, ofInterest)
+      } else if (smooth.class == "te") {
+        # TODO
+      } else if (smooth.class == "ti") {
+        # TODO
+      } else if (smooth.class == "t2") {
+        # TODO
+      } else {
+        stop(paste0("invalid smooth class for term ", ofInterest$label))
+      }
+
+      message(msg)  # TODO: to finish!
+    }
+  } else {   # no smooth term
+    message("there is no smooth term in the requested formula")
+    
+  }
+}
 
 #' Run a linear model at each fixel location
 #'
@@ -512,6 +561,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' @return Tibble with the summarized model statistics for all fixels requested
 #' @import doParallel
 #' @import tibble
+#' @import mgcv
 #' @export
 
 FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
@@ -537,7 +587,19 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     stop("Please enter integers for fixel.subset!")
   }
   
-  ### TODO: print additional arguments in smooth term (s(), te(), etc)
+  ### TODO: print additional arguments in smooth term (s(), te(), etc) - only displaying the important arguments
+  # check if the formula is valid in terms of mgcv::gam()
+  tryCatch(
+    {
+      # try
+      gam.formula.breakdown <- mgcv::interpret.gam(formula)  # if error, it means the formula is not valid in terms of mgcv::gam()
+    },
+    error = stop(paste0("The formula is not valid for mgcv::gam()! Please check and revise."))
+
+  )
+  
+  checker_gam_formula(formula, gam.formula.breakdown)
+    
   # what smooth? s or te or?
   # additional arguments in the smooth term, and are they valid for this specific term type?
   
