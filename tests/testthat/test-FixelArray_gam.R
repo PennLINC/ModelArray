@@ -140,6 +140,7 @@ test_that("test that FixelArray.gam() works as expected", {
   ### Test: eff.size
   # one term of interest: reduced model will be FD ~ 1
   # also, to test whether the eff.size is calculated correctly
+  # also, to test whether without "," in s(), the column name could be correctly "s_age.eff.size"
   mygam_effsize_oneSmoothTerm <- FixelArray.gam(FD ~ s(age), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                                var.model = c("dev.expl", "adj.r.squared"),
                                                eff.size.term.index = c(1),
@@ -165,11 +166,42 @@ test_that("test that FixelArray.gam() works as expected", {
                mygam_effsize_twoSmoothTerm$model.adj.r.squared - mygam_effsize_twoSmoothTerm_red1$model.adj.r.squared)
   expect_equal(mygam_effsize_twoSmoothTerm$s_factorA.eff.size,
                mygam_effsize_twoSmoothTerm$model.adj.r.squared - mygam_effsize_twoSmoothTerm_red2$model.adj.r.squared)
+
+  # test that s(age, k=4) with "," in the term label --> see if the column name (s_age.eff.size) is as expected
+  mygam_effsize_withComma <- FixelArray.gam(FD ~ s(age, k=4), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                 var.model = c("dev.expl", "adj.r.squared"),
+                 eff.size.term.index = c(1),
+                 n_cores = 2, pbar = FALSE)
+  expect_true("s_age.eff.size" %in% colnames(mygam_effsize_withComma))
   
   # invalid request - see my checker in FixelArray.gam()
-  
-  # # TODO: test for s(age) without "," in the term label... --> see if the column name (s_age.eff.size) is as expected
+  expect_error(FixelArray.gam(FD ~ s(age, k=4), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              eff.size.term.index = c(0),   # index is < 1
+                              n_cores = 2, pbar = FALSE))
+  expect_error(FixelArray.gam(FD ~ s(age, k=4), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              eff.size.term.index = c(2),   # index is more than # of terms
+                              n_cores = 2, pbar = FALSE))
+  expect_error(FixelArray.gam(FD ~ 1, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              eff.size.term.index = c(1),   # invalid formula for effect size
+                              n_cores = 2, pbar = FALSE))
   
   ### test out te(xxx) instead of s(xxx)
+  mygam_effsize_te <- FixelArray.gam(FD ~ te(age), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                     eff.size.term.index = c(1),  
+                                     n_cores = 2, pbar = FALSE)
+  expect_true("te_age.eff.size" %in% colnames(mygam_effsize_te))
+  
+  # TODO: invalid parameters in s such as d = ?
+  # FixelArray.gam(FD ~ s(age, d=1), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+  #                eff.size.term.index = c(1),  
+  #                n_cores = 2, pbar = FALSE)
+  
+  
+  
+  ### debugging:
+  #  Error in term[i] <- attr(terms(reformulate(term[i])), "term.labels") : 
+  #   replacement has length zero 
+  # may because of invalid arguments in smooth term (e.g. d in s(age, d = 1))
+  
 })
 
