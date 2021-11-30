@@ -594,8 +594,9 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
       # try
       gam.formula.breakdown <- mgcv::interpret.gam(formula)  # if error, it means the formula is not valid in terms of mgcv::gam()
     },
-    error = stop(paste0("The formula is not valid for mgcv::gam()! Please check and revise."))
-
+    error = function(cond) {
+      stop(paste0("The formula is not valid for mgcv::gam()! Please check and revise."))
+    }
   )
   
   checker_gam_formula(formula, gam.formula.breakdown)
