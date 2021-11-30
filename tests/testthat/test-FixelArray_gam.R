@@ -185,7 +185,8 @@ test_that("test that FixelArray.gam() works as expected", {
                               eff.size.term.index = c(1),   # invalid formula for effect size
                               n_cores = 2, pbar = FALSE))
   
-  ### test out te(xxx) instead of s(xxx)
+  ### output of arguments in smooth terms:
+  # test out te(xxx) instead of s(xxx)
   mygam_effsize_te <- FixelArray.gam(FD ~ te(age), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                      eff.size.term.index = c(1),  
                                      n_cores = 2, pbar = FALSE)
@@ -196,8 +197,50 @@ test_that("test that FixelArray.gam() works as expected", {
                  eff.size.term.index = c(1),
                  n_cores = 2, pbar = FALSE))
   
+  ## whether the printed output is as expected (not able to automatically test via expect_output, probably due to crayon package)
+  formula <- FD ~ s(age, factorA, fx = FALSE, bs = c("tp", "cr"))   # s(), two terms in s()
+  FixelArray.gam(formula = formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                 eff.size.term.index = c(1),
+                 n_cores = 2, pbar = FALSE)
+  # to expect: "s(age,factorA):   k = -1 (default);   fx = FALSE (default);   bs = tp, cr"
+  
+  formula <- FD ~ s(age, factorA, k=4, bs = c("tp", "tp"))   # s(), two terms in s()
+  FixelArray.gam(formula = formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                         eff.size.term.index = c(1),
+                          n_cores = 2, pbar = FALSE)
+  # to expect: "s(age,factorA):   k = 4;   fx = FALSE (default);   bs = tp, tp (default)"
+
+  formula <- FD ~ ti(age, fx = FALSE, bs = c("cr"))   # ti()
+  FixelArray.gam(formula = formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                 eff.size.term.index = c(1),
+                 n_cores = 2, pbar = FALSE)
+  # to expect: "ti(age):   fx = FALSE (default);   bs = cr (default)"
+  
+  formula <- FD ~ ti(age, factorA, fx = TRUE, bs = c("cr", "tp"))   # ti(), two terms in ti()
+  FixelArray.gam(formula = formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                 eff.size.term.index = c(1),
+                 n_cores = 2, pbar = FALSE)
+  # to expect: "ti(age,factorA):   fx = TRUE, TRUE;   bs = cr, tp"
+  
+  # fx should only has one value; otherwise there will be a warning from mgcv::gam()
   
   
+  
+  # formula <- FD ~ s()
+  # gam.formula.breakdown <- interpret.gam(formula)
+  # ofInterest <- gam.formula.breakdown$smooth.spec[[1]]
+  
+  
+  # s(age * factorA) and s(age + factorA): 
+  # mgcv::gam throws a warning; column name is NOT correct for .statistics etc; but correct for eff.size; also need to test out writing to .h5
+  # may try out interpret.gam(formula) to fix .statistics
+  # FixelArray.gam(FD ~ s(age * factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+  #                eff.size.term.index = c(1),
+  #                n_cores = 2, pbar = FALSE)
+  # FixelArray.gam(FD ~ s(age + factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+  #                eff.size.term.index = c(1),
+  #                n_cores = 2, pbar = FALSE)
+  # 
   ### debugging:
   #  Error in term[i] <- attr(terms(reformulate(term[i])), "term.labels") : 
   #   replacement has length zero 
