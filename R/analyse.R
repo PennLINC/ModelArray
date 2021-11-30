@@ -4,7 +4,9 @@
 #' @param dots: list of additional arguments
 #' @param message_default The message for default 
 #' @param message_usr_input The message describing user's input
-
+#' @import crayon
+#' @import dplyr   # for %>%
+#' 
 printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, message_usr_input = NULL) {
   dots_names <- names(dots)
   if (argu_name %in% dots_names) {
@@ -59,10 +61,29 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 #' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/s
 #' TODO: finish the description
 #' @import mgcv
+#' @import dplyr # for %>%
+#' @import crayon
 #' 
 checker_gam_s <- function(formula, gam.formula.breakdown, ofInterest) {
-
-  # check k: bs.dim   # TODO: finish here
+  paste0(ofInterest$label, ": ") %>% crayon::black() %>% cat()
+  
+  if (ofInterest$bs.dim == invisible(eval(formals(mgcv::s)[["k"]])) %>% as.character()) msg_k <- " (default)" else msg_k <- ""
+  paste0("  k = ", toString(ofInterest$bs.dim), msg_k, "; ") %>% crayon::black() %>% cat()
+  
+  if (ofInterest$fixed == invisible(eval(formals(mgcv::s)[["fx"]])) %>% as.character()) msg_fx <- " (default)" else msg_fx <- ""
+  paste0("  fx = ", toString(ofInterest$fixed), msg_fx, "; ") %>% crayon::black() %>% cat()
+  
+  mybs <- gsub(".smooth.spec", "",class(ofInterest))
+  if (mybs == invisible(eval(formals(mgcv::s)[["fx"]])) %>% as.character()) msg_bs <- " (default)" else msg_bs <- ""
+  paste0("  bs = ", mybs, msg_bs) %>% crayon::black() %>% cat()
+  
+  cat("\n")
+  
+  # msg <- paste0(ofInterest$label, ": ", 
+  #               "k = ", toString(ofInterest$bs.dim), msg_k, "; ",
+  #               "fx = ", toString(ofInterest$fixed), msg_fx, "; ",
+  #               "bs = ", mybs, msg_bs)
+  # print(msg)
 }
 
 #' Check on smooth term te() in mgcv::gam() formula
@@ -79,14 +100,13 @@ checker_gam_formula <- function(formula, gam.formula.breakdown) {
   if (length(gam.formula.breakdown$smooth.spec) != 0) {   # if there is smooth term
     for (i_smoothTerm in 1:length(gam.formula.breakdown$smooth.spec)) {
       ofInterest <- gam.formula.breakdown$smooth.spec[[i_smoothTerm]]
-      msg <- gam.formula.breakdown$smooth.spec[[i_smoothTerm]]$label
-      
+
       # check what class of smooth term (s or ti or ?); then call the corresponding function - throw out the message for important argument for this class
       # ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/smooth.terms
       smooth.class <- strsplit(ofInterest$label, "[(]")[[1]][1]
       if (smooth.class == "s") {
         # TODO
-        #checker_gam_s(formula, gam.formula.breakdown, ofInterest)
+        checker_gam_s(formula, gam.formula.breakdown, ofInterest)
       } else if (smooth.class == "te") {
         # TODO
       } else if (smooth.class == "ti") {
@@ -97,7 +117,6 @@ checker_gam_formula <- function(formula, gam.formula.breakdown) {
         stop(paste0("invalid smooth class for term ", ofInterest$label))
       }
 
-      message(msg)  # TODO: to finish!
     }
   } else {   # no smooth term
     message("there is no smooth term in the requested formula")
