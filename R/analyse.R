@@ -57,41 +57,109 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 }
 
 
-#' Check on smooth terms s() in mgcv::gam() formula
+#' Print out important arguments in smooth terms s() in mgcv::gam() formula
 #' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/s
 #' TODO: finish the description
+#' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula); ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
 #' @import mgcv
 #' @import dplyr # for %>%
 #' @import crayon
 #' 
-checker_gam_s <- function(formula, gam.formula.breakdown, ofInterest) {
+checker_gam_s <- function(ofInterest) {
+  FUN <- mgcv::s
+  
   paste0(ofInterest$label, ": ") %>% crayon::black() %>% cat()
   
-  if (ofInterest$bs.dim == invisible(eval(formals(mgcv::s)[["k"]])) %>% as.character()) msg_k <- " (default)" else msg_k <- ""
-  paste0("  k = ", toString(ofInterest$bs.dim), msg_k, "; ") %>% crayon::black() %>% cat()
+  ### k (or bs.dim):   # could be multiple values
+  m1 <- invisible(eval(formals(FUN)[["k"]]))  # default
+  m2 <- ofInterest$bs.dim   # could be a list of multiple values
+  if ((length(unique(m2)) == 1) & (m1 %in% unique(m2))) {  # default
+    msg_k <- " (default)"
+  } else {
+    msg_k <- ""
+  }
   
-  if (ofInterest$fixed == invisible(eval(formals(mgcv::s)[["fx"]])) %>% as.character()) msg_fx <- " (default)" else msg_fx <- ""
+  paste0("  k = ", 
+         paste(as.character(m2), collapse = ", "), msg_k, "; ") %>% crayon::black() %>% cat()
+  
+  ### fx:
+  m1 <- invisible(eval(formals(FUN)[["fx"]])) %>% as.character()  # default
+  m2 <- ofInterest$fixed   # actual
+  
+  if (as.character(!as.logical(m1)) %in% m2) {  # there is an opposite logical value in m2 (actual)
+    msg_fx <- ""
+  } else {
+    msg_fx <- " (default)"
+  }
+  
   paste0("  fx = ", toString(ofInterest$fixed), msg_fx, "; ") %>% crayon::black() %>% cat()
   
-  mybs <- gsub(".smooth.spec", "",class(ofInterest))
-  if (mybs == invisible(eval(formals(mgcv::s)[["fx"]])) %>% as.character()) msg_bs <- " (default)" else msg_bs <- ""
-  paste0("  bs = ", mybs, msg_bs) %>% crayon::black() %>% cat()
+  ### bs: 
+  m1 <- invisible(eval(formals(FUN)[["bs"]]))   # default
+  # actual:
+  mybs <- gsub(".smooth.spec", "",class(ofInterest))  # if there are multiple elements in bs, mybs will be a list
+  if ((length(unique(mybs)) == 1) & (m1 %in% unique(mybs))) {  # default
+    msg_bs <- " (default)"
+  } else {
+    msg_bs <- ""
+  }
+  
+  paste0("  bs = ",
+         paste(as.character(mybs), collapse = ", "), msg_bs) %>% crayon::black() %>% cat()
   
   cat("\n")
   
-  # msg <- paste0(ofInterest$label, ": ", 
-  #               "k = ", toString(ofInterest$bs.dim), msg_k, "; ",
-  #               "fx = ", toString(ofInterest$fixed), msg_fx, "; ",
-  #               "bs = ", mybs, msg_bs)
-  # print(msg)
+
 }
 
-#' Check on smooth term te() in mgcv::gam() formula
-#' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/te
+#' Print out important arguments in smooth term te() or ti() or t2() in mgcv::gam() formula
+#' Why a separate function is needed for t(), cannot using s(): in ofInterest, "fx" is "fx" for t(), but "fixed" for s() - so they are different.
+#' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/te or /t2()
 #' TODO: finish the description
+#' @param FUN could be mgcv::te(), ti() or t2()
+#' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula); ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
 #' @import mgcv
+#' @import dplyr # for %>%
+#' @import crayon
 #' 
+checker_gam_t <- function(FUN, ofInterest) {
+  paste0(ofInterest$label, ": ") %>% crayon::black() %>% cat()
+  
+  # t()'s interpret.gam()'s smooth.spec does not have k or bs.dim as s() does; may provided in ofInterest$margin[[i-xx]]$bs.dim but not fully clear
 
+  ### fx:
+  m1 <- invisible(eval(formals(FUN)[["fx"]])) %>% as.character()  # default
+  m2 <- ofInterest$fx   # actual
+
+  if (as.character(!as.logical(m1)) %in% m2) {  # there is an opposite logical value in m2 (actual)
+    msg_fx <- ""
+  } else {
+    msg_fx <- " (default)"
+  }
+  
+  paste0("  fx = ", toString(ofInterest$fx), msg_fx, "; ") %>% crayon::black() %>% cat()
+  
+  ### bs:  # also different way of extracting from s()'s
+  m1 <- invisible(eval(formals(FUN)[["bs"]])) %>% as.character()   # default
+
+  mybs <- list()  # actual, as a list
+  for (i in 1:length(ofInterest$margin)) {
+    temp <- gsub(".smooth.spec", "", ofInterest$margin[[i]] %>% class() )
+    mybs[i] <- temp
+  }
+
+  # then check if all elements are default value of bs
+  if ((length(unique(mybs)) == 1) & (m1 %in% unique(mybs))) {   # all elements are the same, and = default
+    msg_bs <- " (default)"
+  } else {
+    msg_bs <- ""
+  }
+  # print out
+  paste0("  bs = ", 
+         paste(as.character(mybs), collapse = ", "), msg_bs) %>% crayon::black() %>% cat()
+  
+  cat("\n")
+}
 
 #' A checker for formula in gam for FixelArray.gam()
 #' TODO: finish the description
@@ -105,14 +173,13 @@ checker_gam_formula <- function(formula, gam.formula.breakdown) {
       # ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/smooth.terms
       smooth.class <- strsplit(ofInterest$label, "[(]")[[1]][1]
       if (smooth.class == "s") {
-        # TODO
-        checker_gam_s(formula, gam.formula.breakdown, ofInterest)
+        checker_gam_s(ofInterest)
       } else if (smooth.class == "te") {
-        # TODO
+        checker_gam_t(mgcv::te, ofInterest)
       } else if (smooth.class == "ti") {
-        # TODO
+        checker_gam_t(mgcv::ti, ofInterest)
       } else if (smooth.class == "t2") {
-        # TODO
+        checker_gam_t(mgcv::t2, ofInterest)
       } else {
         stop(paste0("invalid smooth class for term ", ofInterest$label))
       }
