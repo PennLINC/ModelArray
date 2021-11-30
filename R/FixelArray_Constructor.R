@@ -71,7 +71,7 @@ FixelArraySeed <- function(
 #' @return FixelArray object
 #' @export
 #' @import methods
-#'
+#' @import dplyr  # for %>%
 
 FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
   ## fixel_data: 
