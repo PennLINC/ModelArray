@@ -186,7 +186,7 @@ checker_gam_formula <- function(formula, gam.formula.breakdown) {
 
     }
   } else {   # no smooth term
-    message("there is no smooth term in the requested formula")
+    message("Warning: there is no smooth term in the requested formula")
     
   }
 }
