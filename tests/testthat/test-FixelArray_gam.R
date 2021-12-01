@@ -53,10 +53,13 @@ test_that("test that FixelArray.gam() works as expected", {
                                   n_cores = 2, pbar = FALSE)  
   # if there is no smooth term or stat:
   mygam_noSmoothTerm <- FixelArray.gam(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
-                                  n_cores = 2, pbar = FALSE) 
+                                  n_cores = 2, pbar = FALSE)   # should without error # expect_output() to test output "there is no smooth term in the requested formula" does not work
+  expect_true(c("age.statistic", "age.estimate") %in% colnames(mygam_noSmoothTerm) %>% all())
+  
   mygam_noSmoothStat <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                        var.smoothTerms = c(),
                                        n_cores = 2, pbar = FALSE) 
+  expect_false("age.statistic" %in% colnames(mygam_noSmoothStat))
   
   # if there is no model stat:
   mygam_noModelStat <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
