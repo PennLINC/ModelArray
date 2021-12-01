@@ -107,6 +107,9 @@ checker_gam_s <- function(ofInterest) {
   paste0("  bs = ",
          paste(as.character(mybs), collapse = ", "), msg_bs) %>% crayon::black() %>% cat()
   
+  ### TODO: add "by" - interaction terms | if the factor after by is not listed in the "label"
+  
+  
   cat("\n")
   
 
@@ -157,6 +160,8 @@ checker_gam_t <- function(FUN, ofInterest) {
   # print out
   paste0("  bs = ", 
          paste(as.character(mybs), collapse = ", "), msg_bs) %>% crayon::black() %>% cat()
+  
+  ### TODO: add "by" - interaction terms | first check if "by" is accepted by t()
   
   cat("\n")
 }
