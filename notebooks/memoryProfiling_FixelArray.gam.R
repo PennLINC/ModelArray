@@ -120,6 +120,7 @@ fixel.subset <- 1:num.fixels
 ### running on real data #####
 print(formula)
 tic("Running FixelArray.gam()")
+# ++++++++++++++= NEXT TIME: include method = gam.method!!! ++++++++++++++++++++=
 gam_real <- FixelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
                            fixel.subset = fixel.subset, full.outputs = TRUE,
                            eff.size.term.index = c(1),
