@@ -117,34 +117,56 @@ if (flag_whichdataset == "test_n50") {
   formula <- FDC ~ s(Age, k=4, fx = TRUE) + sex
 }
 
-gam.method = "REML"   # "GCV.Cp", "REML"  # any other methods usually used?
-gam.optimizer = c("outer","newton")   # default: c("outer","newton") | # number of optimizers here will not change number of rows or columns in output gam model
-
 if (num.fixels == 0) {
   num.fixels <- dim(scalars(fixelarray)[[scalar]])[1]
 }
 fixel.subset <- 1:num.fixels  
 ```
 
-# Running on real data:
+# Start to run FixelArray.gam():
 ```{r}
-gam_real <- FixelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
-                           fixel.subset = fixel.subset, full.outputs = TRUE,
-                        eff.size.term.index = c(1),
-                        correct.p.value.smoothTerms = c("fdr", "bonferroni"),
+cat("formula is: ")
+formula
+cat(paste0("number of fixels to analyze = ", toString(num.fixels), "\n"))
+
+# defaults:
+mygam <- FixelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
+                           fixel.subset = fixel.subset, 
+                        eff.size.term.index = c(1),  
+                        n_cores=2, pbar = TRUE)
+mygam[1:6, ]
+print("column names of returned dataframe:")
+colnames(mygam)
+```
+
+# full.outputs = TRUE:
+```{r}
+mygam_allOutputs <- FixelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
+                           fixel.subset = fixel.subset, 
+                           full.outputs = TRUE,
+                        eff.size.term.index = c(1),   # eff.size's request is separated from full.outputs (user may not know it may run for an unexpected long time)
+                        correct.p.value.smoothTerms = c("fdr", "bonferroni"),   # this is also separated from full.outputs
                         correct.p.value.parametricTerms = c("fdr", "bonferroni"),
                         n_cores=2, pbar = TRUE)
-head(gam_real)
+mygam_allOutputs[1:6, ]
+print("column names of returned dataframe:")
+colnames(mygam_allOutputs)
 # write:
 analysis_name <- "gam_allOutputs"
-writeResults(fn.output, df.output = gam_real, analysis_name=analysis_name, overwrite=TRUE)
+writeResults(fn.output, df.output = mygam_allOutputs, analysis_name=analysis_name, overwrite=TRUE)
 
-# read and see
-fixelarray_new <- FixelArray(fn.output, scalar_types = scalar, analysis_names = analysis_name)
-fixelarray_new@results$gam_allOutputs
+# # read and see
+# fixelarray_new <- FixelArray(fn.output, scalar_types = scalar, analysis_names = analysis_name)
+# fixelarray_new@results$gam_allOutputs
 ```
 # check out the results of PNC dataset
 ```{r}
+cat("formula for PNC's dataset: ")
+FDC ~ s(Age, k = 4, fx = TRUE) + sex
+cat("used default method='GCV.Cp' \n")
+cat("time needed: nearly 9h (including another run of reduced model without smooth term); requested ncores=4 (4 child processes), but all 8 CPU cores were in,  \n")
+# time required: 
+# 
 fn.josiane.full <- "/home/chenying/Desktop/fixel_project/data/data_from_josiane/results/ltn_FDC_n938_wResults_nfixel-0_20211126-182543.h5"
 fixelarray_josiane_full <- FixelArray(fn.josiane.full, scalar_types = c("FDC"), analysis_names = "gam_allOutputs")
 fixelarray_josiane_full@results$gam_allOutputs$results_matrix 
@@ -152,13 +174,18 @@ colnames(fixelarray_josiane_full@results$gam_allOutputs$results_matrix )
 
 ```
 
-# Play around with mgcv::gam()
+# Play around with mgcv::gam() - blocks in analyseOneFixel.gam()
 ```{r}
 
 i_fixel <- 1
 values <- scalars(fixelarray)[[scalar]][i_fixel,]
 dat <- phenotypes
 dat[[scalar]] <- values
+
+
+gam.method = "REML"   # "GCV.Cp", "REML"  # any other methods usually used?
+gam.optimizer = c("outer","newton")   # default: c("outer","newton") | # number of optimizers here will not change number of rows or columns in output gam model
+
 
 onemodel <- mgcv::gam(formula, data = dat,
                       method = gam.method,
@@ -180,7 +207,7 @@ onemodel.summary
 # last two rows of output of summary():
 onemodel.summary$r.sq   # adjusted r square
 onemodel.summary$dev.expl   # Deviance explained
-onemodel.summary$sp.criterion[["GCV.Cp"]]    # e.g. GCV when method is GCV    # test out other methods!
+onemodel.summary$sp.criterion    # e.g. GCV when method is GCV    # test out other methods!  # [["GCV.Cp"]]
 onemodel.summary$scale   # Scale est.
 
 # for those values in summary() but not appear in onemodel.tidy or glance: see onemodel.summary and documentations of summary.gam()
@@ -188,19 +215,7 @@ onemodel.summary$scale   # Scale est.
 
 ```
 
-# Usual application
-```{r}
-mygam <- FixelArray.gam(FD ~ s(age) + s(factorA), data = fixelarray, phenotypes = phenotypes, scalar = scalar, fixel.subset = fixel.subset,
-                        eff.size.term.index = c(1),
-                        n_cores=2, pbar = TRUE)
-mygam
-```
 
-# Test out different conditions
-```{r}
-mygam_noSmooth <- FixelArray.gam(FD ~ age, data = fixelarray, phenotypes = phenotypes, scalar = scalar, fixel.subset = fixel.subset,
-                                  n_cores = 2, pbar = FALSE) 
-```
 
 # Test out getting formula for reduced model
 ```{r}
@@ -232,14 +247,6 @@ drop.terms(tt, 2:3, keep.response = TRUE)   # this could be used as a new formul
 # all.vars(ff[-2])   # extract the term names (without transform such as s); [-2] means excluding LHS of the formula
 ```
 
-# Test eff.size
-```{r}
-mygam_effSize <- FixelArray.gam(FD ~ s(age) + s(factorA), data = fixelarray, phenotypes = phenotypes, scalar = scalar, fixel.subset = fixel.subset,
-                                 var.smoothTerms = c("statistic","p.value","eff.size"),
-                                 eff.size.term.index = c(1,2),
-                                  n_cores = 2, pbar = FALSE) 
-
-```
 
 
 
