@@ -1,14 +1,22 @@
 " This script is to analyze the fixel cluster of significance.
 Steps:
-1. Run python file: ConFixel/notebooks/analyze_signi_cluster.py
+  // python file = ConFixel/notebooks/analyze_signi_cluster.py
+1. [python]: function: convert_voxelMask_to_fixelIndex()
   This will generate the list of fixel's ids that included in manually drawn mask (ROI.mif)
   
-Then, run this R script:
-2. All significant fixels: the list 
+2. [R] All significant fixels: the list 
     - load in the .h5 file (with output such as p.value after bonferroni correction)
     - threshold, get the list of all significant fixels
-3. take the intersect of 1 and 2; save it.
-4. Analyze the intersect
+3. [R] take the intersect of 1 and 2; save it.
+
+4. [python]: function: save_selectedFixel_mask()
+  This is to verify that the intersect list we saved is visually correct. 
+  The function will save a 'mask' of intersected fixels we just saved.
+  You should visually verify it in mrview. See instructions at the end of the function.
+  
+5. [R] Analyze the intersect
+
+
 "
 
 
@@ -24,12 +32,12 @@ source("R/analyse.R")
 
 step2_thresholding <- function(fn.h5.results, scalar_name, analysis_name, stat_name_thr, thr, flag_compare, folder.h5.results,
                                results_matrix,
-                               flag_run) {
+                               flag_run_step2) {
   fn.fixel_id_list_thr <- paste0(folder.h5.results, "/", analysis_name, "_", stat_name_thr, "_",
                                  flag_compare, "_", toString(thr),
                                  "_fixelIdList.txt")
   
-  if (flag_run == TRUE) {
+  if (flag_run_step2 == TRUE) {
     # after thresholding, the fixel_id list:
     if (flag_compare == "gt") {
       fixel_id_list_thr <- results_matrix[(results_matrix[,stat_name_thr] > thr), "fixel_id"]  
@@ -48,31 +56,89 @@ step2_thresholding <- function(fn.h5.results, scalar_name, analysis_name, stat_n
   return(fn.fixel_id_list_thr)
 }
 
-
+step_intersect <- function(folder.h5.results, 
+                           filename.fixelIdListMask, fn.fixel_id_list_thr,
+                           flag_flipFixel_roi, flag_flipFixel_signi, num_fixel_total,
+                           flag_run_step3){
+  # filename for saving the list of fixel ids of the intersection:
+  fn.fixel_id_list_intersect <- gsub("_fixelIdList.txt",
+                                     paste0("__Intersect__", filename.fixelIdListMask),
+                                     fn.fixel_id_list_thr)
+  
+  if (flag_run_step3 == TRUE) {
+    # load: list of fixels' ids after thresholding (without manually drawn mask)
+    fixel_id_list_thr <- scan(fn.fixel_id_list_thr, what="", sep="\n") %>% as.integer()
+    if (flag_flipFixel_signi == TRUE) {
+      fixel_id_list_thr <- num_fixel_total - 1 - fixel_id_list_thr  # "-1": because the fixel id starts from 0
+    }
+    
+    # load: list of fixels' ids within manually drawn mask:
+    fn.fixelIdListMask <- file.path(folder.h5.results, filename.fixelIdListMask)
+    fixel_id_list_mask <- scan(fn.fixelIdListMask, what = "", sep = "\n") %>% as.integer()
+    if (flag_flipFixel_roi == TRUE) {
+      fixel_id_list_mask <- num_fixel_total - 1 - fixel_id_list_mask  # "-1": because the fixel id starts from 0
+    }
+    
+    # get the intersection:
+    
+    fixel_id_list_intersect <- intersect(fixel_id_list_thr, fixel_id_list_mask)
+    length(fixel_id_list_intersect)
+    
+    # save the intersection:
+    
+    if (fn.fixel_id_list_intersect == fn.fixel_id_list_thr) {
+      stop("The filename for fixel intersection is not correct and will overwrite another file!")
+    }
+    write.table(fixel_id_list_intersect, fn.fixel_id_list_intersect, row.names=FALSE, col.names=FALSE, quote = FALSE)
+  } 
+  
+  return(fn.fixel_id_list_intersect)
+}
+  
+  
 ### inputs: #####
-fn.h5.results <- "/home/chenying/Desktop/fixel_project/data/data_from_josiane/results/ltn_FDC_n938_wResults_nfixel-0_20211126-182543.h5"
+num.subj <- 938
+fn.h5.results <- paste0("/home/chenying/Desktop/fixel_project/data/data_from_josiane/results/ltn_FDC_n",toString(num.subj),"_wResults_nfixel-0_20211126-182543.h5")
+fn_csv <- paste0("../data/data_from_josiane/df_example_n", toString(num.subj), ".csv")
 scalar_name <- c("FDC")
 
 analysis_name <- "gam_allOutputs"
-# stat_name_thr <- "s_Age.p.value.bonferroni"  # the stat name for thresholding
-# flag_compare <- "lt"
-# thr <- 1e-20
+stat_name_thr <- "s_Age.p.value.bonferroni"  # the stat name for thresholding
+flag_compare <- "lt"
+thr <- 1e-20
 
-stat_name_thr <- "s_Age.eff.size"
-flag_compare <- "gt"
-thr <- 0.2
+# stat_name_thr <- "s_Age.eff.size"
+# flag_compare <- "gt"
+# thr <- 0.2
 
-flag_run_step2 <- TRUE   # run once is enough; independent from python's output
+## step 2: 
+flag_run_step2 <- FALSE   # run once is enough; independent from python's output
 
+flag_flipFixel_roi <- TRUE
+flag_flipFixel_signi <- FALSE
+
+## step 3:
+flag_run_step3 <- FALSE
 filename.fixelIdListMask <- "ROI_x65_sage_p_bonfer_lt_1e-20_fixelIdList.txt"  # for step 3
 
+## step 5:
+stat_toPlot <- "s_Age.eff.size"
+
+### load data #####
 folder.h5.results <- gsub(".h5", "", fn.h5.results, fixed=TRUE)
-
-### load the output .h5 data #####
-
 fixelarray <- FixelArray(fn.h5.results, scalar_types = scalar_name, analysis_names = analysis_name)
+num_fixel_total <- nrow(fixelarray@fixels)
+if (num.subj != fixelarray@subjects[[scalar_name]] %>% length()) {
+  stop("number of subjects in fixelarray is not equal to requested one!")
+}
 results_matrix <- fixelarray@results[[analysis_name]]$results_matrix 
 # colnames(fixelarray@results$gam_allOutputs$results_matrix )
+
+phenotypes <- read.csv(fn_csv)
+# check # subjects matches:
+if (nrow(phenotypes) != num.subj) {
+  stop(paste0("number of subjects in .csv = ", toString(nrow(phenotypes)), ", is not equal to entered number = ", toString(num.subj)))
+}
 
 ### Step 2: Thresholding #####
 
@@ -82,15 +148,28 @@ fn.fixel_id_list_thr <- step2_thresholding(fn.h5.results, scalar_name, analysis_
 
 
 ### Step 3: get intersection #####
-# load: list of fixels' ids after thresholding (without manually drawn mask)
-fixel_id_list_thr <- scan(fn.fixel_id_list_thr, what="", sep="\n") %>% as.integer()
+fn.fixel_id_list_intersect <- step_intersect(folder.h5.results, 
+                           filename.fixelIdListMask, fn.fixel_id_list_thr,
+                           flag_flipFixel_roi, flag_flipFixel_signi, num_fixel_total,
+                           flag_run_step3)
 
-# load: list of fixels' ids within manually drawn mask:
+### Step 4: Please verify selected fixel ids! See python file. #####
 
-fn.fixelIdListMask <- file.path(folder.h5.results, filename.fixelIdListMask)
-fixel_id_list_mask <- scan(fn.fixelIdListMask, what = "", sep = "\n") %>% as.integer()
- 
-# get the intersection:
+### Step 5: Average and plot #####
+# load the final list:
+fixel_id_list_intersect <- scan(fn.fixel_id_list_intersect, what="", sep="\n") %>% as.integer()
 
-fixel_id_list_intersect <- intersect(fixel_id_list_thr, fixel_id_list_mask)
-length(fixel_id_list_intersect)
+# avg
+scalar_matrix <- scalars(fixelarray)[[scalar_name]]
+if (nrow(scalar_matrix) != num_fixel_total) {
+  stop("scalar_matrix does not contain full list of fixels!")
+}
+matrix_selected <- scalar_matrix[fixel_id_list_intersect, ]    # # of selected fixels x # of subjects
+# averaged across fixels x # of subjects:
+#avgFixel_subj = list of number of subjects
+# then loop across subjects (columns), get the avg 
+
+dat <- phenotypes
+dat[[scalar_name]] <- values
+
+ <- 
