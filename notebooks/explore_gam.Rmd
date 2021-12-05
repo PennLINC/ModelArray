@@ -1,0 +1,136 @@
+---
+title: "explore mgcv::gam() and term names"
+output: html_document
+---
+
+```{r setup, included = FALSE}
+# #, include=FALSE
+#knitr::opts_chunk$set(echo = TRUE)
+
+
+
+rm(list = ls())
+
+library(mgcv)
+library(dplyr)
+
+source("../R/FixelArray_Constructor.R")
+source("../R/FixelArray_S4Methods.R")
+source("../R/utils.R")
+source("../R/analyse.R")
+
+flag_whichdataset <- "test_n50"   # "val" or "test_n50" or "josiane"
+num.subj <- 50  # [integer]   
+num.fixels <- 100  # 0 = full 
+flag_which_subset <- ""
+flag_where <- "vmware"   # "CUBIC" or "vmware"
+
+
+now_str <- format(Sys.time(), "%Y%m%d-%H%M%S")
+
+if (flag_whichdataset == "test_n50") {
+  fn <- "../inst/extdata/n50_fixels.h5"
+  
+  if (flag_where == "CUBIC") {
+    fn.output <- "../../dropbox/data_forCircleCI_n50/n50_fixels_output.h5"
+  } else if (flag_where == "vmware") {
+    fn.output <- "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/n50_fixels_output.h5"  
+    # absoluate path: "/home/chenying/Desktop/fixel_project/data/data_forCircleCI_n50/n50_fixels_output.h5";  
+    # relative path: "../../data/data_forCircleCI_n50/n50_fixels_output.h5"
+  }
+  
+  fn_csv <- "../inst/extdata/n50_cohort.csv"
+  
+  scalar = c("FD")
+  
+} else if (flag_whichdataset == "josiane") {
+  if (flag_where == "vmware") {
+    fn <- paste0("v../data/data_from_josiane/ltn_FDC_n", toString(num.subj), ".h5")
+    fn.output <-  paste0("../../data/data_from_josiane/results/ltn_FDC_n", toString(num.subj), "_wResults_nfixel-",toString(num.fixels), "_",now_str, ".h5")
+    fn_csv <- paste0("../../data/data_from_josiane/df_example_n", toString(num.subj), ".csv")
+    
+  }
+  
+  scalar <- c("FDC")
+}
+
+
+# generate fn.output:
+if (fn != fn.output) {
+  file.copy(from=fn, to=fn.output, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)   # , recursive = TRUE
+}
+
+
+
+
+```
+# Set up one fixel as an example; also set up the function for testing out
+```{r}
+
+# h5closeAll()
+fixelarray <- FixelArray(fn.output, scalar_types = scalar)
+phenotypes <- read.csv(fn_csv)
+phenotypes$oSex <- ordered(phenotypes$sex, levels = c("F","M")) # Females will be the reference group
+
+### one fixel to test out #####
+i_fixel <- 1
+values <- scalars(fixelarray)[[scalar]][i_fixel,]
+dat <- phenotypes
+dat[[scalar]] <- values
+
+### test out
+key_names <- function(formula, dat, i_smooth_term) {
+  onemodel <- mgcv::gam(formula = formula, data = dat)
+  
+  onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
+  onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
+  onemodel.glance <- onemodel %>% broom::glance()
+  onemodel.summary <- onemodel %>% summary()
+  
+  smooth_term_name <- onemodel.tidy.smoothTerms$term[i_smooth_term]
+  smooth_term_label <- mgcv::interpret.gam(formula)$smooth.spec[[i_smooth_term]]$label
+  
+  to_return <- list(smooth_term_name = smooth_term_name,
+                    smooth_term_label = smooth_term_label)
+  
+  print(paste0("smooth term name in broom::tidy(): ", smooth_term_name))
+  print(paste0("smooth term label in mgcv::interpret.gam(): ", smooth_term_label))
+  if (smooth_term_name != smooth_term_label) {
+    warning("not matched...")
+  }
+  print("")
+  #to_return
+}
+```
+# Let's run on different conditions: First, good practices:
+```{r}
+formula <- FD ~ s(age)
+print(formula)
+results <- key_names(formula, dat, 1)
+#results$smooth_term_name
+#results$smooth_term_label
+
+formula <- FD ~ s(age) + s(age, by=oSex)
+print(formula)
+key_names(formula, dat, 1)
+key_names(formula, dat, 2)
+
+formula <- FD ~ ti(age) + ti(factorA) + ti(age, factorA)
+print(formula)
+key_names(formula, dat, 1)
+key_names(formula, dat, 2)
+key_names(formula, dat, 3)
+
+
+
+
+```
+# Then, not good practices:
+```{r}
+formula <- FD ~ s(age, factorA)
+print(formula)
+key_names(formula, dat, 1)
+
+# TODO: try out other weird formula! also check if term names will be the same (even though original one in formula are not, but after changing, they are the same...)
+
+```
