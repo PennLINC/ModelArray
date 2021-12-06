@@ -27,7 +27,10 @@ library("dplyr")  # for %>%
 library("mgcv")
 library("broom")
 library("testthat")
+library("gratia")
+library("ggplot2")
 
+source("notebooks/GAMM_plotting.R")   # Bart Larsen's function for visualizing gam results
 source("R/FixelArray_Constructor.R")
 source("R/FixelArray_S4Methods.R")
 source("R/utils.R")
@@ -127,6 +130,7 @@ filename.fixelIdListMask <- "ROI_x65_sage_p_bonfer_lt_1e-20_fixelIdList.txt"  # 
 ## step 5:
 stat_toPlot <- "s_Age.eff.size"
 formula <- FDC ~ s(Age, k=4, fx=TRUE) + sex
+method.gam.refit <- "GCV.Cp"   # +++++++++++++++
 
 ### load data #####
 folder.h5.results <- gsub(".h5", "", fn.h5.results, fixed=TRUE)
@@ -168,7 +172,7 @@ scalar_matrix <- scalars(fixelarray)[[scalar_name]]
 if (nrow(scalar_matrix) != num_fixel_total) {
   stop("scalar_matrix does not contain full list of fixels!")
 }
-matrix_selected <- scalar_matrix[fixel_id_list_intersect, ]    # # of selected fixels x # of subjects
+matrix_selected <- scalar_matrix[fixel_id_list_intersect+1, ]    # # of selected fixels x # of subjects | !! fixel_id starts from 0 so need to +1 !!!
 
 
 # double check they are the "selected" fixels: meeting the criteria when selecting
@@ -184,7 +188,8 @@ for (i_fixel_selected in 1:length(fixel_id_list_intersect)) {
   dat <- phenotypes
   dat[[scalar_name]] <- values
   
-  onemodel <- mgcv::gam(formula = formula, data = dat)
+  onemodel <- mgcv::gam(formula = formula, data = dat,
+                        method = method.gam.refit)
   onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
   onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
   onemodel.glance <- onemodel %>% broom::glance()
@@ -210,25 +215,91 @@ testthat::expect_equal(dat_selectedFixels_metric$s_Age_p.value * num_fixel_total
                        dat_selectedFixels_metric$selecting_metric)   
 
 
-### plot ######
-# averaged across fixels x # of subjects:
+### take the average within the cluster (selected fixels) ########
+# # averaged across fixels x # of subjects:
 #avgFixel_subj = list of number of subjects
 # then loop across subjects (columns), get the avg 
 
+avgFixel_subj <- numeric(num.subj)
+for (i_subj in 1:num.subj) {
+  # take the average:
+  avgFixel_subj[i_subj] <- mean(matrix_selected[,i_subj])
+}
+df_avgFixel <- phenotypes
+df_avgFixel[[scalar_name]] <- avgFixel_subj
+
+### plot ######
+
 #' @param fixel_id starting from 0!
 plot_oneFixel <- function(fixelarray, fixel_id, scalar_name,
-                          phenotypes) {
-  values <- scalars(fixelarray)[[scalar_name]][(fixel_id + 1),]    # fixel_id starts from 0
-  
-  dat <- phenotypes
-  dat[[scalar_name]] <- values
-  
-  onemodel <- mgcv::gam(formula = formula, data = dat)
-  
-  f <- vis.gam(onemodel)
+                          phenotypes,
+                          dat = NULL, return_else = FALSE) {
+  if (is.null(dat)) {
+    values <- scalars(fixelarray)[[scalar_name]][(fixel_id + 1),]    # fixel_id starts from 0
     
-  f
+    dat <- phenotypes
+    dat[[scalar_name]] <- values
+    
+  } else {
+    # directly using dat
+    
+  }
+  
+  onemodel <- mgcv::gam(formula = formula, data = dat,
+                        method = method.gam.refit)
+  
+  
+  #f <- vis.gam(onemodel)
+    
+  f <- visualize_model(onemodel, smooth_var = 'Age')
+  
+  ## below: tried but there is an offset in y (Bart: y is centered at 0)
+  #f <- gratia::draw(onemodel, select = "s(Age)", residuals=TRUE, rug = FALSE)   # rug is at the bottom - for displaying the data density on x-axis
+  #f + theme_classic()
+  
+  if (return_else == FALSE) {
+    return(f)
+  } else {
+    results = list(f = f,
+                   onemodel = onemodel)
+    return(results)
+  }
+  
   
 }
 
-f <- plot_oneFixel(fixelarray, fixel_id_list_intersect[1], scalar_name, phenotypes)
+# plot one fixel:
+f_1 <- plot_oneFixel(fixelarray, fixel_id_list_intersect[1], scalar_name, phenotypes)
+f_last <- plot_oneFixel(fixelarray, fixel_id_list_intersect[length(fixel_id_list_intersect)], scalar_name, phenotypes)
+
+results <- plot_oneFixel(fixelarray=NULL, NULL, scalar_name, phenotypes, dat=df_avgFixel, return_else = TRUE)
+f_avgFixel <- results$f
+onemodel_avgFixel <- results$onemodel
+f_avgFixel
+
+onemodel_avgFixel.summary <- summary(onemodel_avgFixel)
+onemodel_avgFixel.smoothTerm <- broom::tidy(onemodel_avgFixel, parametric=FALSE)
+onemodel_avgFixel.parametricTerm <- broom::tidy(onemodel_avgFixel, parametric=TRUE) 
+onemodel_avgFixel.model <- broom::glance(onemodel_avgFixel)
+
+red.formula <- formula(drop.terms(terms(formula, keep.order = TRUE), 
+                                  c(1), keep.response = TRUE))   # drop the first term, i.e. smooth of age
+redmodel_avgFixel <- mgcv::gam(formula=red.formula, data = dat,
+                               method = method.gam.refit)
+redmodel_avgFixel.summary <- summary(redmodel_avgFixel)
+eff.size.avgFixel <- onemodel_avgFixel.summary$r.sq - redmodel_avgFixel.summary$r.sq  
+
+s_Age.p.value_avgFixel <- onemodel_avgFixel.smoothTerm[onemodel_avgFixel.smoothTerm$term=="s(Age)","p.value"]
+
+onemodel_avgFixel.summary
+print(paste0("s(Age)'s p.value of re-fit after avg in this cluster = ", toString(s_Age.p.value_avgFixel)))  # if =0, it means <1e-16
+print(paste0("s(Age)'s effect size of re-fit after avg in this cluster = ", sprintf("%.3f",eff.size.avgFixel)))  
+
+# and add to the plot!
+f_avgFixel + geom_text(x=12, y=1.65, size = 6,
+                       label=paste0("s(Age)'s p.value = ", sprintf("%.3f",s_Age.p.value_avgFixel), "\n",
+                                    "s(Age)'s effect size = ", sprintf("%.3f",eff.size.avgFixel)))
+
+# NOTE: as there is more sex=2 than sex=1, and sex is numeric, so the median(df[,sex]) = 2, the gam curve is fitted upon sex=2
+# TODO: check how many fixels' model: sex is significant
+
