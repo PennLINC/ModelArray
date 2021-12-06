@@ -13,6 +13,7 @@ rm(list = ls())
 
 library(mgcv)
 library(dplyr)
+library(testthat)
 
 source("../R/FixelArray_Constructor.R")
 source("../R/FixelArray_S4Methods.R")
@@ -121,15 +122,24 @@ key_names(formula, dat, 1)
 key_names(formula, dat, 2)
 key_names(formula, dat, 3)
 
-
-
-
 ```
 # Then, not good practices:
 ```{r}
 formula <- FD ~ s(age, factorA)
 print(formula)
 key_names(formula, dat, 1)
+
+formula <- FD ~ s(age) + s(factorA) + s(age * factorA)
+print(formula)
+expect_error(key_names(formula, dat, 1))
+# key_names(formula, dat, 2)
+# key_names(formula, dat, 3)
+
+
+formula <- FD ~ s(age) + s(factorA) + s(age + factorA)
+print(formula)
+expect_error(key_names(formula, dat, 1))
+
 
 # TODO: try out other weird formula! also check if term names will be the same (even though original one in formula are not, but after changing, they are the same...)
 
