@@ -24,6 +24,9 @@ Steps:
 rm(list=ls())
 # set up
 library("dplyr")  # for %>%
+library("mgcv")
+library("broom")
+library("testthat")
 
 source("R/FixelArray_Constructor.R")
 source("R/FixelArray_S4Methods.R")
@@ -123,6 +126,7 @@ filename.fixelIdListMask <- "ROI_x65_sage_p_bonfer_lt_1e-20_fixelIdList.txt"  # 
 
 ## step 5:
 stat_toPlot <- "s_Age.eff.size"
+formula <- FDC ~ s(Age, k=4, fx=TRUE) + sex
 
 ### load data #####
 folder.h5.results <- gsub(".h5", "", fn.h5.results, fixed=TRUE)
@@ -165,11 +169,66 @@ if (nrow(scalar_matrix) != num_fixel_total) {
   stop("scalar_matrix does not contain full list of fixels!")
 }
 matrix_selected <- scalar_matrix[fixel_id_list_intersect, ]    # # of selected fixels x # of subjects
+
+
+# double check they are the "selected" fixels: meeting the criteria when selecting
+dat_selectedFixels_metric <- data.frame(fixel_id = fixel_id_list_intersect,
+                                        selecting_metric = numeric(length(fixel_id_list_intersect)),
+                                        s_Age_p.value = numeric(length(fixel_id_list_intersect)))   # all zeros
+for (i_fixel_selected in 1:length(fixel_id_list_intersect)) {
+  # re-fit:
+  fixel_id <- fixel_id_list_intersect[i_fixel_selected]
+  
+  values <- scalars(fixelarray)[[scalar_name]][(fixel_id + 1),]    # fixel_id starts from 0
+  
+  dat <- phenotypes
+  dat[[scalar_name]] <- values
+  
+  onemodel <- mgcv::gam(formula = formula, data = dat)
+  onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
+  onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
+  onemodel.glance <- onemodel %>% broom::glance()
+  onemodel.summary <- onemodel %>% summary()
+  
+  temp <- results_matrix[fixel_id + 1, stat_name_thr]   # fixel_id starts from 0
+  dat_selectedFixels_metric[i_fixel_selected, "selecting_metric"] <- temp   # from results_matrix
+  
+  dat_selectedFixels_metric[i_fixel_selected, "s_Age_p.value"] <- onemodel.tidy.smoothTerms$p.value
+}
+
+
+print("max p.value after bonferroni:")
+dat_selectedFixels_metric$s_Age_p.value %>% max() * num_fixel_total
+if (flag_compare == "lt") {
+  expect_true(max(dat_selectedFixels_metric$selecting_metric) < thr)
+} else if (flag_compare == "gt") {
+  expect_true(min(dat_selectedFixels_metric$selecting_metric) > thr)
+}
+  
+# if selecting_metric == s_Age.p.value.bonferroni
+testthat::expect_equal(dat_selectedFixels_metric$s_Age_p.value * num_fixel_total,
+                       dat_selectedFixels_metric$selecting_metric)   
+
+
+### plot ######
 # averaged across fixels x # of subjects:
 #avgFixel_subj = list of number of subjects
 # then loop across subjects (columns), get the avg 
 
-dat <- phenotypes
-dat[[scalar_name]] <- values
+#' @param fixel_id starting from 0!
+plot_oneFixel <- function(fixelarray, fixel_id, scalar_name,
+                          phenotypes) {
+  values <- scalars(fixelarray)[[scalar_name]][(fixel_id + 1),]    # fixel_id starts from 0
+  
+  dat <- phenotypes
+  dat[[scalar_name]] <- values
+  
+  onemodel <- mgcv::gam(formula = formula, data = dat)
+  
+  f <- vis.gam(onemodel)
+    
+  f
+  
+}
 
- <- 
+f <- plot_oneFixel(fixelarray, fixel_id_list_intersect[1], scalar_name, phenotypes)
