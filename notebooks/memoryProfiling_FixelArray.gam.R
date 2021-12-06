@@ -121,6 +121,7 @@ fixel.subset <- 1:num.fixels
 print(formula)
 tic("Running FixelArray.gam()")
 # ++++++++++++++= NEXT TIME: include method = gam.method!!! ++++++++++++++++++++=
+# +++++++++++++++ NEXT TIME: sex --> ordered factor, and use oSex in formula! (this may make the plots - e.g. Bart's function more making sense? as there will be a reference level of female or male)++++++++++++++++++++++++++
 gam_real <- FixelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
                            fixel.subset = fixel.subset, full.outputs = TRUE,
                            eff.size.term.index = c(1),
