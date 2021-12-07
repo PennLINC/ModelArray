@@ -228,6 +228,10 @@ test_that("test that FixelArray.gam() works as expected", {
   # fx should only has one value; otherwise there will be a warning from mgcv::gam()
   
   
+  ### invalid formula: invalid interaction term:
+  formula <- FD ~ s(age*factorA)
+  expect_error(FixelArray.gam(formula = formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              n_cores = 2, pbar = FALSE))
   
   # formula <- FD ~ s()
   # gam.formula.breakdown <- interpret.gam(formula)
