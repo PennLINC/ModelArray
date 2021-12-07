@@ -2,7 +2,8 @@
 % Please edit documentation in R/analyse.R
 \name{FixelArray.lm}
 \alias{FixelArray.lm}
-\title{Run a linear model at each fixel location, write out each result just after the model fitting}
+\title{Run a linear model at each fixel location, write out each result just after the model fitting 
+For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".}
 \usage{
 FixelArray.lm(
   formula,
@@ -38,9 +39,9 @@ FixelArray.lm(
 
 \item{var.model}{The list of variables to save for the model (got from lm %>% glance())}
 
-\item{correct.p.value.terms}{To perform and add a column for p.value correction for each term. Currently "fdr", "bonferroni" are supported, can be more than one. Turn it off by setting to "none".}
+\item{correct.p.value.terms}{To perform and add a column for p.value correction for each term.}
 
-\item{correct.p.value.model}{To perform and add a column for p.value correction for the model. Currently "fdr", "bonferroni" are supported, can be more than one. Turn it off by setting to "none".}
+\item{correct.p.value.model}{To perform and add a column for p.value correction for the model.}
 
 \item{verbose}{Print verbose message or not}
 
@@ -48,6 +49,10 @@ FixelArray.lm(
 
 \item{n_cores}{The number of cores to run on}
 }
+\value{
+Tibble with the summarized model statistics for all fixels requested
+}
 \description{
-Run a linear model at each fixel location, write out each result just after the model fitting
+Run a linear model at each fixel location, write out each result just after the model fitting 
+For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
 }

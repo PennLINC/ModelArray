@@ -2,40 +2,65 @@
 % Please edit documentation in R/analyse.R
 \name{FixelArray.gam}
 \alias{FixelArray.gam}
-\title{Run a GAM model at each fixel location}
+\title{Run a GAM model at each fixel location
+For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
+Please notice that there is no p.value for the model, so no "correct.p.value.model" for GAM model.}
 \usage{
 FixelArray.gam(
   formula,
   data,
   phenotypes,
   scalar,
+  fixel.subset = NULL,
+  full.outputs = FALSE,
+  var.smoothTerms = c("statistic", "p.value"),
+  var.parametricTerms = c("estimate", "statistic", "p.value"),
+  var.model = c("dev.expl"),
+  eff.size.term.index = NULL,
+  correct.p.value.smoothTerms = "none",
+  correct.p.value.parametricTerms = "none",
   verbose = TRUE,
-  idx = NULL,
   pbar = TRUE,
   n_cores = 1,
   ...
 )
 }
 \arguments{
-\item{formula}{Formula (passed to `gamm4()`)}
+\item{formula}{Formula (passed to `mgcv::gam()`)}
 
-\item{data}{FixelArray dataset}
+\item{data}{FixelArray class}
 
 \item{phenotypes}{The cohort file with covariates to be added to the model}
 
 \item{scalar}{The name of the scalar to be analysed fixel-wise}
 
-\item{verbose}{Print progress messages}
+\item{fixel.subset}{The subset of fixel ids you want to run. Integers. First id starts from 1.}
 
-\item{idx}{A vector of fixel IDs to subset}
+\item{full.outputs}{Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.}
+
+\item{var.smoothTerms}{The list of variables to save for smooth terms (got from gam %>% tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".}
+
+\item{var.parametricTerms}{The list of variables to save for parametric terms (got from gam %>% tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex"}
+
+\item{var.model}{The list of variables to save for the model (got from lm %>% glance())}
+
+\item{eff.size.term.index}{The i-th term of the formula's right hand side as the term of interest for effect size. Positive integer or integer list. Usually term of interest is smooth term.}
+
+\item{correct.p.value.smoothTerms}{To perform and add a column for p.value correction for each smooth term.}
+
+\item{correct.p.value.parametricTerms}{To perform and add a column for p.value correction for each parametric term.}
+
+\item{verbose}{Print progress messages}
 
 \item{pbar}{Print progress bar}
 
 \item{n_cores}{The number of cores to run on}
 }
 \value{
-Tibble with the summarised model statistics at each fixel location
+Tibble with the summarized model statistics for all fixels requested
 }
 \description{
 Run a GAM model at each fixel location
+For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
+Please notice that there is no p.value for the model, so no "correct.p.value.model" for GAM model.
 }
