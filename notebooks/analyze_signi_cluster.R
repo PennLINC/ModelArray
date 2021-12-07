@@ -62,7 +62,7 @@ step2_thresholding <- function(fn.h5.results, scalar_name, analysis_name, stat_n
   return(fn.fixel_id_list_thr)
 }
 
-step_intersect <- function(folder.h5.results, 
+step3_intersect <- function(folder.h5.results, 
                            filename.fixelIdListMask, fn.fixel_id_list_thr,
                            flag_flipFixel_roi, flag_flipFixel_signi, num_fixel_total,
                            flag_run_step3){
@@ -109,9 +109,14 @@ fn_csv <- paste0("../data/data_from_josiane/df_example_n", toString(num.subj), "
 scalar_name <- c("FDC")
 
 analysis_name <- "gam_allOutputs"
-stat_name_thr <- "s_Age.p.value.bonferroni"  # the stat name for thresholding
+
+stat_name_thr <- "s_Age.p.value.bonferroni"   # the stat name for thresholding
 flag_compare <- "lt"
 thr <- 1e-20
+
+# stat_name_thr <- "s_Age.p.value"  # the stat name for thresholding
+# flag_compare <- "lt"
+# thr <- 1e-15
 
 # stat_name_thr <- "s_Age.eff.size"
 # flag_compare <- "gt"
@@ -126,6 +131,7 @@ flag_flipFixel_signi <- FALSE
 ## step 3:
 flag_run_step3 <- FALSE
 filename.fixelIdListMask <- "ROI_x65_sage_p_bonfer_lt_1e-20_fixelIdList.txt"  # for step 3
+#filename.fixelIdListMask <- "ROI_x69_sage_p_lt_1e-15_fixelIdList.txt"  # for step 3
 
 ## step 5:
 stat_toPlot <- "s_Age.eff.size"
@@ -156,7 +162,7 @@ fn.fixel_id_list_thr <- step2_thresholding(fn.h5.results, scalar_name, analysis_
 
 
 ### Step 3: get intersection #####
-fn.fixel_id_list_intersect <- step_intersect(folder.h5.results, 
+fn.fixel_id_list_intersect <- step3_intersect(folder.h5.results, 
                            filename.fixelIdListMask, fn.fixel_id_list_thr,
                            flag_flipFixel_roi, flag_flipFixel_signi, num_fixel_total,
                            flag_run_step3)
@@ -210,9 +216,9 @@ if (flag_compare == "lt") {
   expect_true(min(dat_selectedFixels_metric$selecting_metric) > thr)
 }
   
-# if selecting_metric == s_Age.p.value.bonferroni
-testthat::expect_equal(dat_selectedFixels_metric$s_Age_p.value * num_fixel_total,
-                       dat_selectedFixels_metric$selecting_metric)   
+# # if selecting_metric == s_Age.p.value.bonferroni
+# testthat::expect_equal(dat_selectedFixels_metric$s_Age_p.value * num_fixel_total,
+#                        dat_selectedFixels_metric$selecting_metric)   
 
 
 ### take the average within the cluster (selected fixels) ########
@@ -296,8 +302,17 @@ print(paste0("s(Age)'s p.value of re-fit after avg in this cluster = ", toString
 print(paste0("s(Age)'s effect size of re-fit after avg in this cluster = ", sprintf("%.3f",eff.size.avgFixel)))  
 
 # and add to the plot!
-f_avgFixel + geom_text(x=12, y=1.65, size = 6,
-                       label=paste0("s(Age)'s p.value = ", sprintf("%.3f",s_Age.p.value_avgFixel), "\n",
+x = 12; y = 1.65
+# x = 20; y = 0.55
+if (s_Age.p.value_avgFixel < 0.001) {
+  txt.s_Age.p.value_avgFixel = "s(Age)'s p.value < 0.001"
+} else {
+  txt.s_Age.p.value_avgFixel = paste0("s(Age)'s p.value = ", sprintf("%.3f",s_Age.p.value_avgFixel))
+}
+
+ 
+f_avgFixel + geom_text(x=x, y=y, size = 6,
+                       label=paste0(txt.s_Age.p.value_avgFixel, "\n",
                                     "s(Age)'s effect size = ", sprintf("%.3f",eff.size.avgFixel)))
 
 # NOTE: as there is more sex=2 than sex=1, and sex is numeric, so the median(df[,sex]) = 2, the gam curve is fitted upon sex=2
