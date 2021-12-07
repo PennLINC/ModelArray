@@ -72,6 +72,7 @@ if (fn != fn.output) {
 fixelarray <- FixelArray(fn.output, scalar_types = scalar)
 phenotypes <- read.csv(fn_csv)
 phenotypes$oSex <- ordered(phenotypes$sex, levels = c("F","M")) # Females will be the reference group
+fixel.subset <- 1:num.fixels
 
 ### one fixel to test out #####
 i_fixel <- 1
@@ -142,5 +143,14 @@ expect_error(key_names(formula, dat, 1))
 
 
 # TODO: try out other weird formula! also check if term names will be the same (even though original one in formula are not, but after changing, they are the same...)
+
+```
+
+# test out checker for formula in analyse.R:
+```{r}
+formula <- FD ~ oSex + s(age) + s(age, by=oSex)
+gam.formula.breakdown <- mgcv::interpret.gam(formula)
+onemodel <- mgcv::gam(formula, data = dat) 
+
 
 ```
