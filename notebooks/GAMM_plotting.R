@@ -1,5 +1,5 @@
 "
-Author: Bart Larse
+Author: Bart Larsen
 Date: 12/6/2021
 
 The most basic way to use this is to do:
