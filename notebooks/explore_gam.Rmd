@@ -154,3 +154,26 @@ onemodel <- mgcv::gam(formula, data = dat)
 
 
 ```
+
+# test out: formula generator:
+## formula #1: factor-smooth:
+```{r}
+source("../R/analyse.R")
+phenotypes <- read.csv(fn_csv)
+
+out_default <- generator_gamFormula_factorXsmooth(response.var = "FD", factor.var = "sex", smooth.var = "age", phenotypes = phenotypes,
+                                          reference.group = "F")
+phenotypes <- out_default$phenotypes
+formula_default <- out_default$formula
+message("default:")
+formula_default
+head(phenotypes)
+
+out <- generator_gamFormula_factorXsmooth(response.var = "FD", factor.var = "osex", smooth.var = "age", phenotypes = phenotypes,
+                                          k=4)
+message("custom:")
+out$formula
+```
+
+
+
