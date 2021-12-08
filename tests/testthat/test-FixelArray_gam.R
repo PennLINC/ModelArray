@@ -229,9 +229,19 @@ test_that("test that FixelArray.gam() works as expected", {
   
   
   ### invalid formula: invalid interaction term:
+  
+  
   formula <- FD ~ s(age*factorA)
   expect_error(FixelArray.gam(formula = formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                               n_cores = 2, pbar = FALSE))
+  
+  formula <- FD ~ s(age*factorA) + s(age)  # will generate duplicated smooth terms of s(age) (as it cannot digest * or +)
+  expect_error(FixelArray.gam(formula = formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              n_cores = 2, pbar = FALSE))
+  
+  formula <- FD ~ s(age + factorA) + s(age)  # will generate duplicated smooth terms of s(age) (as it cannot digest * or +)
+  
+  formula <- FD ~ s(age + factorA)     # TODO: HOW TO DEAL WITH THIS?
   
   # formula <- FD ~ s()
   # gam.formula.breakdown <- interpret.gam(formula)
