@@ -5,7 +5,7 @@
 #' @param message_default The message for default 
 #' @param message_usr_input The message describing user's input
 #' @import crayon
-#' @import dplyr   # for %>%
+#' @import dplyr
 #' 
 printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, message_usr_input = NULL) {
   dots_names <- names(dots)
@@ -62,7 +62,7 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 #' TODO: finish the description
 #' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula); ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
 #' @import mgcv
-#' @import dplyr # for %>%
+#' @import dplyr
 #' @import crayon
 #' 
 checker_gam_s <- function(ofInterest) {
@@ -122,7 +122,7 @@ checker_gam_s <- function(ofInterest) {
 #' @param FUN could be mgcv::te(), ti() or t2()
 #' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula); ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
 #' @import mgcv
-#' @import dplyr # for %>%
+#' @import dplyr
 #' @import crayon
 #' 
 checker_gam_t <- function(FUN, ofInterest) {
@@ -202,9 +202,11 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel) {
   ### duplicated terms: 
   # duplicated terms: s(age*factorA)+s(age) --> two s(age); s(age+factorA) + s(age) --> two s(age)
   # use gam.formula.breakdown; compare the smooth term names
-  if (length(unique(list_smooth_terms)) < length(list_smooth_terms)) {  # there is duplicated one
-    stop(paste0("There are duplicated smooth terms: ", paste(list_smooth_terms, collapse = ", ")))
-    # tip: s(age*factorA)+s(age); s(age+factorA) + s(age) can also cause this error
+  if (length(gam.formula.breakdown$smooth.spec) != 0) {   # if there is smooth term
+    if (length(unique(list_smooth_terms)) < length(list_smooth_terms)) {  # there is duplicated one
+      stop(paste0("There are duplicated smooth terms: ", paste(list_smooth_terms, collapse = ", ")))
+      # tip: s(age*factorA)+s(age); s(age+factorA) + s(age) can also cause this error
+    }
   }
   
   # TODO: duplicated terms: s(age) + ti(age); 
@@ -843,7 +845,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   dat[[scalar]] <- values
   onemodel <- mgcv::gam(formula = formula, data = dat)
     
-  checker_gam_formula(formula, gam.formula.breakdown, onemodel)
+  #checker_gam_formula(formula, gam.formula.breakdown, onemodel)
     
   # what smooth? s or te or?
   # additional arguments in the smooth term, and are they valid for this specific term type?
