@@ -168,12 +168,16 @@ checker_gam_t <- function(FUN, ofInterest) {
 
 #' A checker for formula in gam for FixelArray.gam()
 #' TODO: finish the description
-#' 
+#' @import mgcv
+#' @import dplyr
+#' @import rlang
 checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel) {
   if (length(gam.formula.breakdown$smooth.spec) != 0) {   # if there is smooth term
+    list_smooth_terms <- character(length(gam.formula.breakdown$smooth.spec))
     for (i_smoothTerm in 1:length(gam.formula.breakdown$smooth.spec)) {
       ofInterest <- gam.formula.breakdown$smooth.spec[[i_smoothTerm]]
-
+      list_smooth_terms[i_smoothTerm] <- ofInterest$label
+      
       # check what class of smooth term (s or ti or ?); then call the corresponding function - throw out the message for important argument for this class
       # ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/smooth.terms
       smooth.class <- strsplit(ofInterest$label, "[(]")[[1]][1]
@@ -195,34 +199,60 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel) {
     
   }
   
-  ### fit for one fixel, get the summarized stat:
+  ### duplicated terms: 
+  # duplicated terms: s(age*factorA)+s(age) --> two s(age); s(age+factorA) + s(age) --> two s(age)
+  # use gam.formula.breakdown; compare the smooth term names
+  if (length(unique(list_smooth_terms)) < length(list_smooth_terms)) {  # there is duplicated one
+    stop(paste0("There are duplicated smooth terms: ", paste(list_smooth_terms, collapse = ", ")))
+    # tip: s(age*factorA)+s(age); s(age+factorA) + s(age) can also cause this error
+  }
+  
+  # TODO: duplicated terms: s(age) + ti(age); 
+  
+  ### if there is interactions in smooth term, check which formula it belongs to
+  invalid_patternInteract_in_s <- c("*", "+",",")   # invalid: s(a*b), s(a+b), s(a,b)  # however s(a*b) or s(a+b) will become s(a) after brooming...
+  invalid_patternInteract_in_t <- c("*", "+",":")   # invalid: t(a*b), t(a+b), t(a, by=b) --> t(a):b
+  invalid_smoothClass_interact <- c("te", "t2")
+  
+  valid_patternInteract_s <- c(":")   # valid: s(a):b <-- got from s(a,by=b)
+  valid_patternInteract_t <- c(",")   # valid: t(a,b)
+  
+  ## check via formula as a string
+  # any "*":
+  str_var <- as.character(formula)[3]
+  if (grepl("*", str_var, fixed=TRUE)) {  # any "*" in the RHS of the formula
+    stop("The right hand side of formula should not contain *")
+  }
+  #strsplit(str_var, "[()]")# split by ( and )  # however not 
+  # TODO: any "+":
+  for (smooth.class in c("s","ti","te","t2")) {
+    # 1. find the smooth term from str_var, including smooth.class   # trying out str_match and strsplit.....
+    # 2. fun_call <- quo(<smooth_term>)   # e.g. mgcv::s(age+factorA, k=4)
+    # 3. user_args <- call_args(call_standardise(fun_call))  # and get the string for the first argument, age + factorA
+  }
+  
+  ## check via term name after model fitting:
+  # fit for one fixel, get the summarized stat:
   onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
   onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
   onemodel.glance <- onemodel %>% broom::glance()
   onemodel.summary <- onemodel %>% summary()
   
-  ### if there is interactions in smooth term, check which formula it belongs to
-  
   if (nrow(onemodel.tidy.smoothTerms) != 0) {   # there is smooth term(s)
     list_smoothTerms_name <- onemodel.tidy.smoothTerms$term   # list of names of smooth terms
-    
-    wrong_patternInteract_s <- c("*", "+",",")   # invalid: s(a*b), s(a+b), s(a,b)
-    wrong_patternInteract_t <- c("*", "+",":")   # invalid: t(a*b), t(a+b), t(a, by=b) --> t(a):b
-    wrong_smoothClass_interact <- c("te", "t2")
-    
-    valid_patternInteract_s <- c(":")   # valid: s(a):b <-- got from s(a,by=b)
-    valid_patternInteract_t <- c(",")   # valid: t(a,b)
     
     num.interact.term <- 0   # any finding of more than one smooth term has interaction term; or a smooth term contains more than two variable to be interacted with   # e.g. two ","
     for (i_smoothTerm in 1:length(list_smoothTerms_name)) {
       smoothTerm_name <- list_smoothTerms_name[i_smoothTerm]
       smooth.class <- strsplit(smoothTerm_name, "[(]")[[1]][1]
         
-      # check if there is any sign of WRONG pattern of interaction:
+      print(smoothTerm_name)
+      
+      ## check if there is any sign of WRONG pattern of interaction - via term name after model fitting:
       if (smooth.class == "s") {
-        for (wrong_pattern in wrong_patternInteract_s) {
-          if (grepl(wrong_pattern, smoothTerm_name)) {   # contains the wrong pattern of interaction
-            stop(paste0(smoothTerm_name, " contains the invalid interaction pattern for ", smooth.class, "(): one of ", paste(wrong_patternInteract_s, collapse = ', ')))
+        for (invalid_pattern in invalid_patternInteract_in_s) {
+          if (grepl(invalid_pattern, smoothTerm_name, fixed = TRUE)) {   # contains the wrong pattern of interaction
+            stop(paste0(smoothTerm_name, " contains the invalid interaction pattern for ", smooth.class, "(): one of ", paste(invalid_patternInteract_in_s, collapse = ', ')))
           }  
         }
         # now, it's s() and there is no invalid pattern of interaction; check if there is valid one:
@@ -230,9 +260,9 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel) {
           num.interact.term <- num.interact.term + 1
         }
       } else if (smooth.class == "ti") {
-        for (wrong_pattern in wrong_patternInteract_t) {
-          if (grepl(wrong_pattern, smoothTerm_name)) {   # contains the wrong pattern of interaction
-            stop(paste0(smoothTerm_name, " contains the invalid interaction pattern for ", smooth.class, "(): one of ", paste(wrong_patternInteract_t, collapse = ', ')))
+        for (invalid_pattern in invalid_patternInteract_in_t) {
+          if (grepl(invalid_pattern, smoothTerm_name, fixed = TRUE)) {   # contains the wrong pattern of interaction
+            stop(paste0(smoothTerm_name, " contains the invalid interaction pattern for ", smooth.class, "(): one of ", paste(invalid_patternInteract_in_t, collapse = ', ')))
           }  
         }
         # now, it's t() and there is no invalid pattern of interaction; check if there is valid one:
@@ -249,7 +279,9 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel) {
       }
     }
     
-  }  
+  } else {
+    num.interact.term <- 0
+  }
   
   
 }
