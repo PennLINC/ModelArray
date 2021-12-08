@@ -286,6 +286,63 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel) {
   
 }
 
+#' Generate GAM formula with interaction term: factor-smooth interaction
+#' Example 
+#' `factor.var` and `smooth.var` should come from data.frame `phenotypes`
+#' TODO: finish description
+#' @param response.var character class, the variable name for response
+#' @param factor.var character class, the variable name for factor. It should be an ordered factor. If not, it will generate it as a new column in `phenotypes`, which requires `reference.group`.
+#' @param smooth.var character class, the variable name in smooth term as main effect
+#' @param phenotypes data.frame class, the cohort matrix with covariates to be added to the model 
+#' @param reference.group character class, the reference group for ordered factor of `factor.var`; required when `factor.var` in `phenotypes` is not an ordered factor. 
+#' @param prefix.ordered.factor character class, the prefix for ordered factor; required when `factor.var` in `phenotypes` is not an ordered factor.
+#' @param fx TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.
+#' @param k integer, to be used in smooth term s(). Default is -1 as in mgcv::s()
+#' @return a list, including: 1) formula generated; 2) data.frame phenotypes - updated if argument factor.var is not an ordered factor
+#' @import mgcv
+#' 
+generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.var, phenotypes, 
+                                               reference.group = NULL, prefix.ordered.factor = "o",
+                                               fx=TRUE, k=-1) {
+  class.factor.var <- class(phenotypes[[factor.var]])
+  if (  !( (length(class.factor.var) == 2) & (class.factor.var[1] == "ordered") & (class.factor.var[2] == "factor")  )  ) {   # class is not c("ordered", "factor")
+
+    message("input `factor.var` is not an ordered factor; will generate one in `phenotypes` which will be returned")
+    if (is.null(reference.group)) {
+      stop("requires a reference.group to generate the ordered factor")
+    }
+    
+    # name of the ordered factor:
+    unordered.factor.var <- factor.var
+    factor.var <- paste0(prefix.ordered.factor, unordered.factor.var)
+    
+    message(paste0("the ordered factor will be named as: ", factor.var))
+    
+    # check if factor.var already exists:
+    if (factor.var %in% colnames(phenotypes)) {
+      stop(paste0("a column with the same name '", factor.var,"' already exists in `phenotypes` data frame! Please change the `prefix.ordered.factor`!"))
+    }
+    
+    # add the column to phenotypes:
+    list.groups <- unique(phenotypes[[unordered.factor.var]])
+    list.groups <- list.groups[list.groups != reference.group]# temporarily drop the reference group
+    list.groups <- c(reference.group, list.groups)   # add as first
+    phenotypes[[factor.var]] <- ordered(phenotypes[[unordered.factor.var]], levels = list.groups)   # the first element in the list.groups would be the reference group
+
+  }
+  
+  # generate the formula:
+  formula <- paste0(response.var, "~", factor.var, "+")
+  formula <- paste0(formula, "s(", smooth.var, ",k=",toString(k),",fx=", toString(fx), ")", "+")
+  formula <- paste0(formula, "s(", smooth.var, ",k=",toString(k),",by=", factor.var,",fx=", toString(fx), ")")
+  
+  # return
+  formula <- as.formula(formula)  # when printing formula, it could be shown in more than one lines...
+  toReturn = list(formula = formula,
+                  phenotypes = phenotypes)
+  return(toReturn)
+}
+
 #' Run a linear model at each fixel location
 #'
 #' @param formula Formula (passed to `lm()`)
