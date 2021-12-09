@@ -199,91 +199,15 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel) {
     
   }
   
-  ### duplicated terms: 
-  # duplicated terms: s(age*factorA)+s(age) --> two s(age); s(age+factorA) + s(age) --> two s(age)
-  # use gam.formula.breakdown; compare the smooth term names
-  if (length(gam.formula.breakdown$smooth.spec) != 0) {   # if there is smooth term
-    if (length(unique(list_smooth_terms)) < length(list_smooth_terms)) {  # there is duplicated one
-      stop(paste0("There are duplicated smooth terms: ", paste(list_smooth_terms, collapse = ", ")))
-      # tip: s(age*factorA)+s(age); s(age+factorA) + s(age) can also cause this error
-    }
-  }
+  # TODO: delete any other checkers:
+
+
   
-  # TODO: duplicated terms: s(age) + ti(age); 
-  
-  ### if there is interactions in smooth term, check which formula it belongs to
-  invalid_patternInteract_in_s <- c("*", "+",",")   # invalid: s(a*b), s(a+b), s(a,b)  # however s(a*b) or s(a+b) will become s(a) after brooming...
-  invalid_patternInteract_in_t <- c("*", "+",":")   # invalid: t(a*b), t(a+b), t(a, by=b) --> t(a):b
-  invalid_smoothClass_interact <- c("te", "t2")
-  
-  valid_patternInteract_s <- c(":")   # valid: s(a):b <-- got from s(a,by=b)
-  valid_patternInteract_t <- c(",")   # valid: t(a,b)
-  
-  ## check via formula as a string
-  # any "*":
-  str_var <- as.character(formula)[3]
-  if (grepl("*", str_var, fixed=TRUE)) {  # any "*" in the RHS of the formula
-    stop("The right hand side of formula should not contain *")
-  }
-  #strsplit(str_var, "[()]")# split by ( and )  # however not 
-  # TODO: any "+":
-  for (smooth.class in c("s","ti","te","t2")) {
-    # 1. find the smooth term from str_var, including smooth.class   # trying out str_match and strsplit.....
-    # 2. fun_call <- quo(<smooth_term>)   # e.g. mgcv::s(age+factorA, k=4)
-    # 3. user_args <- call_args(call_standardise(fun_call))  # and get the string for the first argument, age + factorA
-  }
-  
-  ## check via term name after model fitting:
-  # fit for one fixel, get the summarized stat:
-  onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
-  onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
-  onemodel.glance <- onemodel %>% broom::glance()
-  onemodel.summary <- onemodel %>% summary()
-  
-  if (nrow(onemodel.tidy.smoothTerms) != 0) {   # there is smooth term(s)
-    list_smoothTerms_name <- onemodel.tidy.smoothTerms$term   # list of names of smooth terms
-    
-    num.interact.term <- 0   # any finding of more than one smooth term has interaction term; or a smooth term contains more than two variable to be interacted with   # e.g. two ","
-    for (i_smoothTerm in 1:length(list_smoothTerms_name)) {
-      smoothTerm_name <- list_smoothTerms_name[i_smoothTerm]
-      smooth.class <- strsplit(smoothTerm_name, "[(]")[[1]][1]
-        
-      print(smoothTerm_name)
-      
-      ## check if there is any sign of WRONG pattern of interaction - via term name after model fitting:
-      if (smooth.class == "s") {
-        for (invalid_pattern in invalid_patternInteract_in_s) {
-          if (grepl(invalid_pattern, smoothTerm_name, fixed = TRUE)) {   # contains the wrong pattern of interaction
-            stop(paste0(smoothTerm_name, " contains the invalid interaction pattern for ", smooth.class, "(): one of ", paste(invalid_patternInteract_in_s, collapse = ', ')))
-          }  
-        }
-        # now, it's s() and there is no invalid pattern of interaction; check if there is valid one:
-        for (valid_pattern in valid_patternInteract_s) {
-          num.interact.term <- num.interact.term + 1
-        }
-      } else if (smooth.class == "ti") {
-        for (invalid_pattern in invalid_patternInteract_in_t) {
-          if (grepl(invalid_pattern, smoothTerm_name, fixed = TRUE)) {   # contains the wrong pattern of interaction
-            stop(paste0(smoothTerm_name, " contains the invalid interaction pattern for ", smooth.class, "(): one of ", paste(invalid_patternInteract_in_t, collapse = ', ')))
-          }  
-        }
-        # now, it's t() and there is no invalid pattern of interaction; check if there is valid one:
-        for (valid_pattern in valid_patternInteract_t) {
-          num.interact.term <- num.interact.term + 1
-        }
-      }
-      # after above checking, there is no WRONG pattern; but 
-      
-      
-      
-      if (num.interact.term >1) {
-        stop("there is more than one interaction term! Either there is more than one smooth term with interaction component, or there is smooth term that contains more than two variables to be interacted with")
-      }
-    }
-    
-  } else {
-    num.interact.term <- 0
-  }
+  # # fit for one fixel, get the summarized stat:
+  # onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
+  # onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
+  # onemodel.glance <- onemodel %>% broom::glance()
+  # onemodel.summary <- onemodel %>% summary()
   
   
 }
