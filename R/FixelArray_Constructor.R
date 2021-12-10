@@ -1,7 +1,7 @@
 # Exported Functions
 
 ### setClass of "FixelArray" #####
-#' An S4 class to represent a bank account.
+#' An S4 class to represent fixel-wise scalar data and statistics.
 #'
 #' @slot fixels A DelayedArray object of fixel data
 #' @slot voxels A DelayedArray object of voxel indeces
@@ -578,15 +578,29 @@ analyseOneFixel.gam <- function(i_fixel, formula, fa, phenotypes, scalar,
     onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
   }
   
-    # change from s(age) to s_age: (could be s, te, etc)
+    # change from s(x) to s_x: (could be s, te, etc); from s(x):oFactor to s_x_BYoFactor; from ti(x,z) to ti_x_z
   if (num.smoothTerms > 0) {   # if there is any smooth term
-    for (i_row in 1:nrow(onemodel.tidy.smoothTerms)) {  # change from s(age) to s_age
+    for (i_row in 1:nrow(onemodel.tidy.smoothTerms)) {  
+      # step 1: change from s(x) to s_x
       term_name <- onemodel.tidy.smoothTerms$term[i_row]
       str_list <- strsplit(term_name, split="[()]")[[1]]
       
       str <- str_list[2]   # extract string between ()
       smooth_name <- str_list[1]   # "s" or some other smooth method type such as "te"
-      onemodel.tidy.smoothTerms$term[i_row] <- paste0(smooth_name, "_",str)
+      str_valid <- paste0(smooth_name, "_",str)
+      
+      if (length(str_list)>2) {   # there is string after variable name
+        str_valid <- paste0(str_valid, "_",
+                            paste(str_list[3:length(str_list)], collapse=""))   # combine rest of strings
+      }   
+        
+      # detect ":", and change to "BY"   # there is "_" replacing for ")" in "s()" already
+      str_valid <- gsub(":", "BY", str_valid, fixed=TRUE)
+      
+      # detect ",", and change to "_"
+      str_valid <- gsub(",", "_", str_valid, fixed=TRUE)
+      
+      onemodel.tidy.smoothTerms$term[i_row] <- str_valid
     }
   }
   
