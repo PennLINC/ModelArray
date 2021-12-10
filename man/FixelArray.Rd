@@ -2,7 +2,7 @@
 % Please edit documentation in R/FixelArray_Constructor.R
 \name{FixelArray}
 \alias{FixelArray}
-\title{An S4 class to represent a bank account.}
+\title{An S4 class to represent fixel-wise scalar data and statistics.}
 \usage{
 FixelArray(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis"))
 
@@ -19,7 +19,7 @@ FixelArray(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis"))
 FixelArray object
 }
 \description{
-An S4 class to represent a bank account.
+An S4 class to represent fixel-wise scalar data and statistics.
 
 Load fixel data output from mrtrix as an h5 file into R as a FixelArray object
 Tips for debugging: 
