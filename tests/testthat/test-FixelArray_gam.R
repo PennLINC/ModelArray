@@ -16,9 +16,12 @@ test_that("test that FixelArray.gam() works as expected", {
   #                    "inst/extdata/","n50_cohort.csv")
   
   phenotypes <- read.csv(csv_path)
+  phenotypes$oSex <- ordered(phenotypes$sex, levels = c("F", "M"))  # ordered factor, "F" as reference group
+  phenotypes$sexFactor <- factor(phenotypes$sex, levels = unique(phenotypes$sex))   # factor but not ordered
+  
   var.smoothTerms = c("statistic","p.value")
   var.parametricTerms = c("estimate", "statistic", "p.value")
-  var.model = c("dev.expl", "AIC")
+  var.model = c("dev.expl", "adj.r.squared")
   fixel.subset = 1:10
 
   ### basic checks #####
@@ -140,7 +143,7 @@ test_that("test that FixelArray.gam() works as expected", {
                mygam_bonferroni$s_age.p.value %>% p.adjust("bonferroni"))
   
   
-  ### Test: eff.size
+  ### Test: eff.size #####
   # one term of interest: reduced model will be FD ~ 1
   # also, to test whether the eff.size is calculated correctly
   # also, to test whether without "," in s(), the column name could be correctly "s_age.eff.size"
@@ -154,10 +157,10 @@ test_that("test that FixelArray.gam() works as expected", {
   expect_equal(mygam_effsize_oneSmoothTerm$s_age.eff.size,
                mygam_effsize_oneSmoothTerm$model.adj.r.squared - mygam_intercept$model.adj.r.squared)
   
-  # more than one term of interest:
+  # more than one term of interest; also, parametric term or smooth term:
   mygam_effsize_twoSmoothTerm <- FixelArray.gam(FD ~ factorB + s(age) + s(factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                                var.model = c("dev.expl", "adj.r.squared"),
-                                               eff.size.term.index = c(2,3),
+                                               eff.size.term.index = c(1,2,3),
                                                n_cores = 2, pbar = FALSE)
   mygam_effsize_twoSmoothTerm_red1 <- FixelArray.gam(FD ~ factorB + s(factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                                      var.model = c( "adj.r.squared"),
@@ -165,10 +168,15 @@ test_that("test that FixelArray.gam() works as expected", {
   mygam_effsize_twoSmoothTerm_red2 <- FixelArray.gam(FD ~ factorB + s(age), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                                      var.model = c( "adj.r.squared"),
                                                      n_cores = 2, pbar = FALSE)
+  mygam_effsize_twoSmoothTerm_red3 <- FixelArray.gam(FD ~ s(age) + s(factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                                     var.model = c( "adj.r.squared"),
+                                                     n_cores = 2, pbar = FALSE)
   expect_equal(mygam_effsize_twoSmoothTerm$s_age.eff.size,
                mygam_effsize_twoSmoothTerm$model.adj.r.squared - mygam_effsize_twoSmoothTerm_red1$model.adj.r.squared)
   expect_equal(mygam_effsize_twoSmoothTerm$s_factorA.eff.size,
                mygam_effsize_twoSmoothTerm$model.adj.r.squared - mygam_effsize_twoSmoothTerm_red2$model.adj.r.squared)
+  expect_equal(mygam_effsize_twoSmoothTerm$factorB.eff.size,
+               mygam_effsize_twoSmoothTerm$model.adj.r.squared - mygam_effsize_twoSmoothTerm_red3$model.adj.r.squared)
 
   # test that s(age, k=4) with "," in the term label --> see if the column name (s_age.eff.size) is as expected
   mygam_effsize_withComma <- FixelArray.gam(FD ~ s(age, k=4), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
@@ -258,6 +266,78 @@ test_that("test that FixelArray.gam() works as expected", {
   #                eff.size.term.index = c(1),
   #                n_cores = 2, pbar = FALSE)
   # 
+  
+  ### check for formula with interaction term #####
+  ## s(age, by=oSex):
+  formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB  # ordered factor
+  mygam_sby <- FixelArray.gam(formula = formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                        eff.size.term.index = c(1,2,3), var.model = c("dev.expl","adj.r.squared"),
+                        n_cores = 2, pbar = FALSE)
+  # column names as expected:
+  expect_true("oSex.L.estimate" %in% colnames(mygam_sby))   # parametric term | L: linear parameter (vs Q: quadratic; C: cubic)
+  expect_true("s_age.statistic" %in% colnames(mygam_sby))   # (regular) smooth term
+  expect_true("s_age_BYoSexM.p.value" %in% colnames(mygam_sby))  # interaction term | ordered factor, displayed group other than reference group
+  expect_true("s_age_BYoSex.eff.size" %in% colnames(mygam_sby))  # interaction term's effect size, as it's the term itself, there is no label for group name (such as "M")
+  
+  red.formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + factorB
+  mygam_sby.red1 <- FixelArray.gam(formula = red.formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                  var.model = c("dev.expl","adj.r.squared"),
+                                  n_cores = 2, pbar = FALSE)
+  # check if effect size is as expected for interaction term (manually calculate the diff of adj.r.sq):
+  expect_equal(mygam_sby$model.adj.r.squared - mygam_sby.red1$model.adj.r.squared,   
+               mygam_sby$s_age_BYoSex.eff.size)  
+  
+  red.formula <- FD ~ oSex + s(age, by=oSex, fx=TRUE) + factorB
+  mygam_sby.red2 <- FixelArray.gam(formula = red.formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                  var.model = c("dev.expl","adj.r.squared"),
+                                  n_cores = 2, pbar = FALSE)
+  # check if effect size is as expected for regular smooth term (manually calculate the diff of adj.r.sq):
+  # HOWEVER IT MAY DEVIATED FROM ITS TRUE DEFINITION WHEN FORMULA CONTAINS INTERACTION VARIABLES....
+  expect_equal(mygam_sby$model.adj.r.squared - mygam_sby.red2$model.adj.r.squared,   
+               mygam_sby$s_age.eff.size)  
+  
+  red.formula <- FD ~ s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB
+  mygam_sby.red3 <- FixelArray.gam(formula = red.formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                   var.model = c("dev.expl","adj.r.squared"),
+                                   n_cores = 2, pbar = FALSE)
+  # check if effect size is as expected for parametric term (ordered factor) (manually calculate the diff of adj.r.sq):
+  # HOWEVER IT MAY DEVIATED FROM ITS TRUE DEFINITION WHEN FORMULA CONTAINS INTERACTION VARIABLES....
+  expect_equal(mygam_sby$model.adj.r.squared - mygam_sby.red3$model.adj.r.squared,   
+               mygam_sby$oSex.eff.size)  
+  
+  
+  ## ti(x,z):
+  formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
+  mygam_tiInteract <- FixelArray.gam(formula = formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              eff.size.term.index = c(3), var.model = c("dev.expl","adj.r.squared"),
+                              n_cores = 2, pbar = FALSE)
+  expect_true("ti_age.statistic" %in% colnames(mygam_tiInteract))
+  expect_true("ti_age_factorB.p.value" %in% colnames(mygam_tiInteract))
+  expect_true("ti_age_factorB.eff.size" %in% colnames(mygam_tiInteract))
+
+  red.formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE)+ factorA
+  mygam_tiInteract_red1 <- FixelArray.gam(formula = red.formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                          var.model = c("adj.r.squared"),
+                                          n_cores = 2, pbar = FALSE)
+  expect_equal(mygam_tiInteract$model.adj.r.squared -mygam_tiInteract_red1$model.adj.r.squared,
+               mygam_tiInteract$ti_age_factorB.eff.size)  
+
+  
+  ## factorized, but not ordered: - NOT RECOMMEND
+  formula <- FD ~ sexFactor + s(age) + s(age, by=sexFactor, fx=TRUE)
+  mygam_sby_unordered <- FixelArray.gam(formula = formula, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              eff.size.term.index = c(1,2,3), var.model = c("dev.expl","adj.r.squared"),
+                              n_cores = 2, pbar = FALSE)
+  
+  expect_true("s_age.eff.size" %in% colnames(mygam_sby_unordered))  # check if correct colname - without other specification in s()
+  expect_true("s_age_BYsexFactorF.statistic" %in% colnames(mygam_sby_unordered))  # as unordered, there are terms ending with "F" and "M" afer var name "sex_factor"
+  expect_true("sexFactorM.estimate" %in% colnames(mygam_sby_unordered)) 
+  expect_true("s_age_BYsexFactor.eff.size" %in% colnames(mygam_sby_unordered)) 
+
+  
+  ### TODO: test out the functions for generating gam functions:
+  
+  
   ### debugging:
   #  Error in term[i] <- attr(terms(reformulate(term[i])), "term.labels") : 
   #   replacement has length zero 
