@@ -479,19 +479,25 @@ analyseOneFixel.lm <- function(i_fixel,
   
   
 }  
-#' Analyse (fit mgcv::gam()) and write the outputs for 1 fixel
+#' Fit GAM for one fixel data
 #'
-#' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
-#' @param formula Formula (passed to `mgcv::gam()`)
-#' @param fa FixelArray class
-#' @param phenotypes The cohort matrix with covariates to be added to the model  
-#' @param scalar The name of the scalar to be analysed fixel-wise
-#' @param var.smoothTerms The list of variables to save for smooth terms (got from gam %>% tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
-#' @param var.parametricTerms The list of variables to save for parametric terms (got from gam %>% tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex"
-#' @param var.model The list of variables to save for the model (got from gam %>% glance() and gam %>% summary())
-#' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE and it will return column names.
+#' @description 
+#' `analyseOneFixel.gam` fits a GAM model for one fixel data, and returns requested model statistics.
 #' 
-#' @return if flag_initiate==TRUE, returns column names & list of terms of final results; if flag_initiate==FALSE, returns the final results for a fixel
+#' @details 
+#' `FixelArray.gam` iteratively calls this function to get statistics for all requested fixels.
+#'
+#' @param i_fixel An integer, the i_th fixel, starting from 1. For initiating (flag_initiate = TRUE), use i_fixel=1
+#' @param formula A formula (passed to `mgcv::gam()`)
+#' @param fa FixelArray class
+#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
+#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param var.smoothTerms The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
+#' @param var.parametricTerms The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".
+#' @param var.model The list of variables to save for the model (got from broom::glance() and summary()). 
+#' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
+#' @param ... Arguments for `mgcv::gam()`
+#' @return If flag_initiate==TRUE, returns column names ,and list of term names of final results and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a fixel.
 #' @export
 # #' @import hdf5r
 #' @import mgcv
@@ -521,7 +527,7 @@ analyseOneFixel.gam <- function(i_fixel, formula, fa, phenotypes, scalar,
   onemodel.glance[["dev.expl"]] <- onemodel.summary$dev.expl
 
   sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name")
-  onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[ sp.criterion.attr.name ]]   # TODO: add this attr name as return, and write to somewhere in .h5 
+  onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[ sp.criterion.attr.name ]] 
   onemodel.glance[["scale"]] <- onemodel.summary$scale   # scale estimate
 
   num.smoothTerms <- onemodel.summary$m   # The number of smooth terms in the model.
