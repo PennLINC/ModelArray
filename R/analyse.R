@@ -161,8 +161,6 @@ checker_gam_t <- function(FUN, ofInterest) {
   paste0("  bs = ", 
          paste(as.character(mybs), collapse = ", "), msg_bs) %>% crayon::black() %>% cat()
   
-  ### TODO: add "by" - interaction terms | first check if "by" is accepted by t()
-  
   cat("\n")
 }
 
@@ -200,14 +198,13 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel) {
   }
   
   
-  # fit for one fixel, get the summarized stat:
-  onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
-  onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
-  onemodel.glance <- onemodel %>% broom::glance()
-  onemodel.summary <- onemodel %>% summary()
+  # # fit for one fixel, get the summarized stat:
+  # onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
+  # onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
+  # onemodel.glance <- onemodel %>% broom::glance()
+  # onemodel.summary <- onemodel %>% summary()
   
-  # check if there is interaction term:
-  
+
 }
 
 #' Generate GAM formula with interaction term: factor-smooth interaction
@@ -702,15 +699,21 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 
 
 
-#' Run GAM model for fixel-wise data
+#' Run GAM for fixel-wise data
 #' 
 #' @description 
 #' `FixelArray.gam` fits gam model for each of fixels requested, and returns a tibble dataframe of requested model statistics.
 #' 
 #' @details 
 #' You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
-#' Note that statistics covered by \code{full.outputs} or \code{var.*} are the one from broom::tidy() and glance() only, and do not include effect size or corrected p values.
-#' Regarding complex formula: So far these kinds of formula are tested:
+#' Note that statistics covered by \code{full.outputs} or \code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only, and do not include effect size or corrected p values.
+#' List of acceptable statistic names for each of \code{var.*}:
+#' \itemize{
+#'  \item \code{var.smoothTerms}: c("edf","ref.df","statistic","p.value"); For interpretation please see `broom::tidy(parametric=FALSE)`.
+#'  \item \code{var.parametricTerms}: c("estimate", "std.error","statistic","p.value"); For interpretation please see `broom::tidy(parametric=TRUE)`.
+#'  \item \code{var.model}: c("adj.r.squared","dev.expl", "sp.criterion", "scale", "df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs"); "adj.r.squared" is \code{r.sq} from `summary()`; "sp.criterion" is \code{sp.criterion} from `summary()`; For interpretation please see `broom::glance()` and `summary()`.
+#' }
+#' Regarding formula: So far these kinds of formula are tested:
 #' \itemize{
 #'   \item formula with smooth term, but without any interactions. Examples like \code{y ~ s(x) + orderedFactor}; \code{y ~ s(x) + s(z)}
 #'   \item formula with interaction, but limited to only one interaction term, and in the formats of:
@@ -719,7 +722,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #'       \item Formula #2: \code{y ~ ti(x) + ti(z) + ti(x,z) + other_covariate}, where \code{x} and \code{z} should be continuous variables.
 #'   }
 #' }
-#' Effect size is calculated by the difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the term requested in \code{eff.size.term.index})
+#' Effect size is calculated by the difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the term requested)
 #' \itemize{
 #'   \item When requesting effect size, \code{fx} should be set as \code{TRUE}, so that degree of freedom is fixed.
 #'   \item For formula with interactions, only formula in above formats are tested, and only effect size for interaction term is validated. The effect size for main effect (such as s(x) in Formula #1) may not "functionally" be its effect size, as the definition should be changed to reduced formula without both main effect and interaction term.
@@ -728,19 +731,20 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' Please notice that different from `FixelArray.lm`, there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model.
 #' @param formula Formula (passed to `mgcv::gam()`)
 #' @param data FixelArray class
-#' @param phenotypes The cohort file with covariates to be added to the model
-#' @param scalar The name of the scalar to be analysed fixel-wise
-#' @param fixel.subset The subset of fixel ids you want to run. Integers. First id starts from 1.
-#' @param full.outputs Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.
-#' @param var.smoothTerms The list of variables to save for smooth terms (got from tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
-#' @param var.parametricTerms The list of variables to save for parametric terms (got from tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex"
-#' @param var.model The list of variables to save for the model (got from glance())
+#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
+#' @param scalar A character. The name of the scalar to be analysed fixel-wise
+#' @param fixel.subset A list of positive integers. The subset of fixel ids you want to run. Integers. First id starts from 1.
+#' @param full.outputs TRUE or FALSE, Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.
+#' @param var.smoothTerms A list of characters. The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.
+#' @param var.parametricTerms A list of characters. The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.
+#' @param var.model A list of characters. The list of variables to save for the model (got from broom::glance() and summary()). See "Details" section for more.
 #' @param eff.size.term.index A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.
-#' @param correct.p.value.smoothTerms To perform and add a column for p.value correction for each smooth term. 
-#' @param correct.p.value.parametricTerms To perform and add a column for p.value correction for each parametric term. 
-#' @param verbose Print progress messages
-#' @param pbar Print progress bar
-#' @param n_cores The number of CPU cores to run with
+#' @param correct.p.value.smoothTerms A list of characters. To perform and add a column for p.value correction for each smooth term. See "Details" section for more.
+#' @param correct.p.value.parametricTerms A list of characters. To perform and add a column for p.value correction for each parametric term. See "Details" section for more.
+#' @param verbose TRUE or FALSE, to print progress messages
+#' @param pbar TRUE or FALSE, to print progress bar
+#' @param n_cores Positive integer, The number of CPU cores to run with
+#' @param ... Arguments for 'mgcv::gam()'
 #' @return Tibble with the summarized model statistics for all fixels requested
 #' @import dplyr
 #' @import doParallel
@@ -824,7 +828,6 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     var.parametricTerms <- var.parametricTerms.full
     var.model <- var.model.full
     
-    # TODO: also add exiting smooth terms' index to eff.size.term.index
   }
 
   ### check on validity of arguments: var.term and var.model 
