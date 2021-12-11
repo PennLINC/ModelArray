@@ -2,7 +2,7 @@
 % Please edit documentation in R/FixelArray_Constructor.R
 \name{analyseOneFixel.gam}
 \alias{analyseOneFixel.gam}
-\title{Analyse (fit mgcv::gam()) and write the outputs for 1 fixel}
+\title{Fit GAM for one fixel data}
 \usage{
 analyseOneFixel.gam(
   i_fixel,
@@ -18,27 +18,32 @@ analyseOneFixel.gam(
 )
 }
 \arguments{
-\item{i_fixel}{The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1}
+\item{i_fixel}{An integer, the i_th fixel, starting from 1. For initiating (flag_initiate = TRUE), use i_fixel=1}
 
-\item{formula}{Formula (passed to `mgcv::gam()`)}
+\item{formula}{A formula (passed to `mgcv::gam()`)}
 
 \item{fa}{FixelArray class}
 
-\item{phenotypes}{The cohort matrix with covariates to be added to the model}
+\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model}
 
 \item{scalar}{The name of the scalar to be analysed fixel-wise}
 
-\item{var.smoothTerms}{The list of variables to save for smooth terms (got from gam %>% tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".}
+\item{var.smoothTerms}{The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".}
 
-\item{var.parametricTerms}{The list of variables to save for parametric terms (got from gam %>% tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex"}
+\item{var.parametricTerms}{The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".}
 
-\item{var.model}{The list of variables to save for the model (got from gam %>% glance() and gam %>% summary())}
+\item{var.model}{The list of variables to save for the model (got from broom::glance() and summary()).}
 
-\item{flag_initiate}{Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE and it will return column names.}
+\item{flag_initiate}{TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.}
+
+\item{...}{Arguments for `mgcv::gam()`}
 }
 \value{
-if flag_initiate==TRUE, returns column names & list of terms of final results; if flag_initiate==FALSE, returns the final results for a fixel
+If flag_initiate==TRUE, returns column names ,and list of term names of final results and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a fixel.
 }
 \description{
-Analyse (fit mgcv::gam()) and write the outputs for 1 fixel
+`analyseOneFixel.gam` fits a GAM model for one fixel data, and returns requested model statistics.
+}
+\details{
+`FixelArray.gam` iteratively calls this function to get statistics for all requested fixels.
 }

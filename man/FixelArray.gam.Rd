@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse.R
 \name{FixelArray.gam}
 \alias{FixelArray.gam}
-\title{Run GAM model for fixel-wise data}
+\title{Run GAM for fixel-wise data}
 \usage{
 FixelArray.gam(
   formula,
@@ -28,31 +28,33 @@ FixelArray.gam(
 
 \item{data}{FixelArray class}
 
-\item{phenotypes}{The cohort file with covariates to be added to the model}
+\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model}
 
-\item{scalar}{The name of the scalar to be analysed fixel-wise}
+\item{scalar}{A character. The name of the scalar to be analysed fixel-wise}
 
-\item{fixel.subset}{The subset of fixel ids you want to run. Integers. First id starts from 1.}
+\item{fixel.subset}{A list of positive integers. The subset of fixel ids you want to run. Integers. First id starts from 1.}
 
-\item{full.outputs}{Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.}
+\item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.}
 
-\item{var.smoothTerms}{The list of variables to save for smooth terms (got from tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".}
+\item{var.smoothTerms}{A list of characters. The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.}
 
-\item{var.parametricTerms}{The list of variables to save for parametric terms (got from tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex"}
+\item{var.parametricTerms}{A list of characters. The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.}
 
-\item{var.model}{The list of variables to save for the model (got from glance())}
+\item{var.model}{A list of characters. The list of variables to save for the model (got from broom::glance() and summary()). See "Details" section for more.}
 
 \item{eff.size.term.index}{A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.}
 
-\item{correct.p.value.smoothTerms}{To perform and add a column for p.value correction for each smooth term.}
+\item{correct.p.value.smoothTerms}{A list of characters. To perform and add a column for p.value correction for each smooth term. See "Details" section for more.}
 
-\item{correct.p.value.parametricTerms}{To perform and add a column for p.value correction for each parametric term.}
+\item{correct.p.value.parametricTerms}{A list of characters. To perform and add a column for p.value correction for each parametric term. See "Details" section for more.}
 
-\item{verbose}{Print progress messages}
+\item{verbose}{TRUE or FALSE, to print progress messages}
 
-\item{pbar}{Print progress bar}
+\item{pbar}{TRUE or FALSE, to print progress bar}
 
-\item{n_cores}{The number of CPU cores to run with}
+\item{n_cores}{Positive integer, The number of CPU cores to run with}
+
+\item{...}{Arguments for 'mgcv::gam()'}
 }
 \value{
 Tibble with the summarized model statistics for all fixels requested
@@ -63,7 +65,13 @@ Tibble with the summarized model statistics for all fixels requested
 \details{
 You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
 Note that statistics covered by \code{full.outputs} or \code{var.*} are the one from broom::tidy() and glance() only, and do not include effect size or corrected p values.
-Regarding complex formula: So far these kinds of formula are tested:
+List of acceptable statistic names for each of \code{var.*}:
+\itemize{
+ \item \code{var.smoothTerms}: c("edf","ref.df","statistic","p.value"); For interpretation please see `broom::tidy(parametric=FALSE)`.
+ \item \code{var.parametricTerms}: c("estimate", "std.error","statistic","p.value"); For interpretation please see `broom::tidy(parametric=TRUE)`.
+ \item \code{var.model}: c("adj.r.squared","dev.expl", "sp.criterion", "scale", "df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs"); "adj.r.squared" is \code{r.sq} from `summary()`; "sp.criterion" is \code{sp.criterion} from `summary()`; For interpretation please see `broom::glance()` and `summary()`.
+}
+Regarding formula: So far these kinds of formula are tested:
 \itemize{
   \item formula with smooth term, but without any interactions. Examples like \code{y ~ s(x) + orderedFactor}; \code{y ~ s(x) + s(z)}
   \item formula with interaction, but limited to only one interaction term, and in the formats of:
