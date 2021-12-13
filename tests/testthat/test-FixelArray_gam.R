@@ -1,5 +1,5 @@
 test_that("test that FixelArray.gam() works as expected", {
-  h5_path <- system.file("extdata", "n50_fixels.h5", package = "FixelArray")   # TODO: ask Tinashe
+  h5_path <- system.file("extdata", "n50_fixels.h5", package = "FixelArray")
  
   scalar_name <- c("FD")
   fa <- FixelArray(h5_path,
@@ -11,7 +11,7 @@ test_that("test that FixelArray.gam() works as expected", {
   # fa <- FixelArray(h5_path, scalar_types = scalar_name, analysis_names = c("my_analysis"))
   
 
-  csv_path <- system.file("extdata", "n50_cohort.csv", package = "FixelArray")   # TODO: ask Tinashe
+  csv_path <- system.file("extdata", "n50_cohort.csv", package = "FixelArray")
   # csv_path <- paste0(system.file(package = "FixelArray"),
   #                    "inst/extdata/","n50_cohort.csv")
   
@@ -80,9 +80,11 @@ test_that("test that FixelArray.gam() works as expected", {
   mygam_sAge_sFactorA <- FixelArray.gam(FD ~ s(age) + s(factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                 n_cores = 2, pbar = FALSE)
   
-  # s(age + factorA)   # should be rare case
-  expect_warning(FixelArray.gam(FD ~ s(age + factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
-                 n_cores = 2, pbar = FALSE))  # TODO: fix this problem: the column name will be s-age instead of s-age-sex
+  # # s(age + factorA)   # not good example
+  # expect_warning(FixelArray.gam(FD ~ s(age + factorA), data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+  #                n_cores = 2, pbar = FALSE))  # note: the column name will be s-age instead of s-age-sex
+  
+  
   
   ### Test whether the validity of list of var is checked: #####
   expect_error(FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
@@ -95,7 +97,9 @@ test_that("test that FixelArray.gam() works as expected", {
   expect_equal(temp, mygam_default)
   
   
+  
   ### different arguments in GAM #####
+  ## different settings in formula:
   # s(k=?):
   mygam_k4 <- FixelArray.gam(FD ~ s(age, k=4) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                              n_cores = 2, pbar = FALSE)
@@ -103,9 +107,15 @@ test_that("test that FixelArray.gam() works as expected", {
                          mygam_k4 %>% dplyr::select("s_age.statistic"))
                %>% isTRUE())    # should be different when k is different
   
-  # s(fx=TRUE) vs default (fx=FALSE): 1) different stat; 2) edf is saved or not
-  # TODO here.......
+  # s(fx=TRUE) vs default (fx=FALSE): 1) different stat; 
+  mygam_fxTRUE <- FixelArray.gam(FD ~ s(age, fx=TRUE) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                 n_cores = 2, pbar = FALSE)
+  expect_false(all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
+                         mygam_fxTRUE %>% dplyr::select("s_age.statistic"))
+               %>% isTRUE())
   
+  # TODO: if force saving edf when fx=FALSE: 2) check if it's saved or not
+
   # s(bs=?)
   mygam_bsCR <- FixelArray.gam(FD ~ s(age, bs="cr") + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
                                n_cores = 2, pbar = FALSE)
@@ -113,6 +123,14 @@ test_that("test that FixelArray.gam() works as expected", {
                          mygam_bsCR %>% dplyr::select("s_age.statistic"))
                %>% isTRUE()) 
   
+  ## different settings in mgcv::gam()'s additional arguments: test if the arguments have been passed into analyseOneFixel.gam()
+  # method: 
+  mygam_methodREML <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                     method = "REML",  # default = "GCV.Cp"
+                                     n_cores = 2, pbar = FALSE)
+  expect_false(all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
+                         mygam_methodREML %>% dplyr::select("s_age.statistic"))
+               %>% isTRUE())
   ### Test n_cores, pbar work: ######
   # n_cores = 2: 
   mygam_pbarFalse_ncores2 <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
@@ -130,18 +148,29 @@ test_that("test that FixelArray.gam() works as expected", {
   
   
   ### Test: p.value correction: #####
-  mygam_fdr <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
-                 correct.p.value.parametricTerms = c("fdr"),
+  mygam_parametric_pCorrect <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                 correct.p.value.parametricTerms = c("fdr","bonferroni"),
                  n_cores = 2, pbar = FALSE) 
-  expect_equal(mygam_fdr$sexM.p.value.fdr,
-               mygam_fdr$sexM.p.value %>% p.adjust("fdr"))
+  expect_equal(mygam_parametric_pCorrect$sexM.p.value.fdr,
+               mygam_parametric_pCorrect$sexM.p.value %>% p.adjust("fdr"))
+  expect_equal(mygam_parametric_pCorrect$sexM.p.value.bonferroni,
+               mygam_parametric_pCorrect$sexM.p.value %>% p.adjust("bonferroni"))
   
-  mygam_bonferroni <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
-                              correct.p.value.smoothTerms = c("bonferroni"),
+  mygam_smooth_pCorrect <- FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              correct.p.value.smoothTerms = c("fdr","bonferroni"),
                               n_cores = 2, pbar = FALSE) 
-  expect_equal(mygam_bonferroni$s_age.p.value.bonferroni,
-               mygam_bonferroni$s_age.p.value %>% p.adjust("bonferroni"))
-  
+  expect_equal(mygam_smooth_pCorrect$s_age.p.value.fdr,
+               mygam_smooth_pCorrect$s_age.p.value %>% p.adjust("fdr"))
+  expect_equal(mygam_smooth_pCorrect$s_age.p.value.bonferroni,
+               mygam_smooth_pCorrect$s_age.p.value %>% p.adjust("bonferroni"))
+
+  expect_error(FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                              correct.p.value.parametricTerms = c("wrong_correct"),
+                              n_cores = 2, pbar = FALSE))
+  expect_warning(FixelArray.gam(FD ~ s(age) + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = fixel.subset,
+                                var.smoothTerms = c("statistic"),  # no p.value
+                                correct.p.value.smoothTerms = c("fdr"),
+                                n_cores = 2, pbar = FALSE))
   
   ### Test: eff.size #####
   # one term of interest: reduced model will be FD ~ 1
@@ -249,7 +278,7 @@ test_that("test that FixelArray.gam() works as expected", {
   # 
   # formula <- FD ~ s(age + factorA) + s(age)  # will generate duplicated smooth terms of s(age) (as it cannot digest * or +)
   # 
-  # formula <- FD ~ s(age + factorA)     # TODO: HOW TO DEAL WITH THIS?
+  # formula <- FD ~ s(age + factorA)    
   
   # formula <- FD ~ s()
   # gam.formula.breakdown <- interpret.gam(formula)
@@ -335,8 +364,37 @@ test_that("test that FixelArray.gam() works as expected", {
   expect_true("s_age_BYsexFactor.eff.size" %in% colnames(mygam_sby_unordered)) 
 
   
-  ### TODO: test out the functions for generating gam functions:
+  ### test out the functions for generating gam functions: #####
+  ## Formula #1:
+  myFormula_1 <- generator_gamFormula_factorXsmooth(response.var = "FD", factor.var = "oSex", smooth.var = "age",
+                                                    phenotypes = phenotypes)
+  myFormula_1$formula # requires visually check
   
+  myFormula_2 <- generator_gamFormula_factorXsmooth(response.var = "FD", factor.var = "sex", smooth.var = "age",
+                                                    phenotypes = phenotypes, reference.group = "F")
+  myFormula_2$formula # requires visually check
+  expect_true("osex" %in% colnames(myFormula_2$phenotypes))
+  phenotypes_updated <- myFormula_2$phenotypes
+  osex.class <- class(phenotypes_updated[["osex"]])
+  expect_true(  (length(osex.class) == 2) & (osex.class[1] == "ordered") & (osex.class[2] == "factor")  )
+  
+  expect_error(generator_gamFormula_factorXsmooth(response.var = "FD", factor.var = "sex", smooth.var = "age",
+                                                     phenotypes = phenotypes))   # not ordered factor, and did not provide reference.group
+  
+  # change k and fx:
+  myFormula_3 <- generator_gamFormula_factorXsmooth(response.var = "FD", factor.var = "oSex", smooth.var = "age",
+                                                    phenotypes = phenotypes, fx=FALSE, k=4)
+  myFormula_3$formula   # requires visually check
+   
+  
+  ## Formula #2:
+  myFormula_4 <- generator_gamFormula_continuousInteraction(response.var = "FD", cont1.var = "age", cont2.var = "factorA")
+  myFormula_4  # requires visually check
+  
+  # change k and fx:
+  myFormula_5 <- generator_gamFormula_continuousInteraction(response.var = "FD", cont1.var = "age", cont2.var = "factorA",
+                                                            fx=FALSE, k=3)
+  myFormula_5  # requires visually check
   
   ### debugging:
   #  Error in term[i] <- attr(terms(reformulate(term[i])), "term.labels") : 
