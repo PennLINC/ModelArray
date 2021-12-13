@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # example command:
-# bash qsub_wrapper_benchmark_FixelArray.lm.sh -h 20G -s 1 -D test_n50 -f 100 -S 50 -c 2 -w sge
+# bash qsub_wrapper_benchmark_ModelArray.lm.sh -h 20G -s 1 -D test_n50 -f 100 -S 50 -c 2 -w sge
 
 while getopts h:s:D:f:S:c:w:O:M: flag
 do
@@ -19,7 +19,7 @@ do
         esac
 done
 
-cmd="qsub -l h_vmem=${h_vmem} -pe threaded ${num_cores} wrapper_benchmark_FixelArray.lm.sh"
+cmd="qsub -l h_vmem=${h_vmem} -pe threaded ${num_cores} wrapper_benchmark_ModelArray.lm.sh"
 cmd+=" -s $sample_sec -D $dataset_name -f $num_fixels -S $num_subj -c $num_cores -w $run_where -O ${overwrite} -M ${run_memoryProfiler}"
 echo $cmd
 $cmd

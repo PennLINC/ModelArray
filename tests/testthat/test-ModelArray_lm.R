@@ -1,17 +1,17 @@
-test_that("FixelArray.lm() works as expected", {
-  h5_path <- system.file("extdata", "n50_fixels.h5", package = "FixelArray")
+test_that("ModelArray.lm() works as expected", {
+  h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
  
-  fa <- FixelArray(h5_path,
+  modelarray <- ModelArray(h5_path,
                     "scalar_types" = c("FD"),
                     analysis_names = c("my_analysis"))
   
-  # h5_path <- paste0(system.file(package = "FixelArray"),
+  # h5_path <- paste0(system.file(package = "ModelArray"),
   #                   "inst/extdata/","n50_fixels.h5")
-  # fa <- FixelArray(h5_path,
+  # modelarray <- ModelArray(h5_path,
   # scalar_types = c("FD"))
   
-  csv_path <- system.file("extdata", "n50_cohort.csv", package = "FixelArray")
-  # csv_path <- paste0(system.file(package = "FixelArray"),
+  csv_path <- system.file("extdata", "n50_cohort.csv", package = "ModelArray")
+  # csv_path <- paste0(system.file(package = "ModelArray"),
   #                    "inst/extdata/","n50_cohort.csv")
   
   phenotypes <- read.csv(csv_path)
@@ -22,7 +22,7 @@ test_that("FixelArray.lm() works as expected", {
   
   
   ### basic check #####
-  mylm <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                         var.terms = var.terms,
                         var.model = var.model,
                         n_cores = 1, pbar=FALSE)
@@ -31,17 +31,17 @@ test_that("FixelArray.lm() works as expected", {
   expect_true(is.data.frame(mylm))  # should be data.frame
   expect_equal(as.numeric(dim(mylm)), c(100,1+2*length(var.terms)+length(var.model))) # check shape
   
-  mylm_default <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_default <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                 n_cores = 2, pbar=FALSE)   # default full.outputs and var.*
   expect_equal(as.numeric(dim(mylm_default)), c(100,1+2*3+2)) # check shape  
   
-  mylm_fullOutputs <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_fullOutputs <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                     full.outputs = TRUE,   # default: FALSE
                                 n_cores = 2, pbar=FALSE)   
   expect_equal(as.numeric(dim(mylm_fullOutputs)), c(100,21))
   
   
-  mylm_age_sex <- FixelArray.lm(FD ~ age + sex, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_age_sex <- ModelArray.lm(FD ~ age + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                 var.terms = var.terms,
                                 var.model = var.model,
                                 n_cores = 2, pbar=FALSE)
@@ -54,11 +54,11 @@ test_that("FixelArray.lm() works as expected", {
 
   
   ## Test whether the validity of list of var is checked:
-  expect_error(FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                              var.terms = c("estimator"),    # misspelling
                              var.model = var.model, 
                              n_cores = 2, pbar=FALSE))
-  temp <- (FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  temp <- (ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                              var.terms = var.terms,
                              var.model = c(var.model, "AIC"),   # duplicated, should be handled
                              n_cores = 2, pbar=FALSE))
@@ -67,32 +67,32 @@ test_that("FixelArray.lm() works as expected", {
   
   ### Test n_cores, pbar work #####
   # n_cores=2:
-  mylm_ncores2 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_ncores2 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                 var.terms = var.terms,
                                 var.model = var.model, 
                                 n_cores = 2, pbar=FALSE)
   expect_equal(mylm, mylm_ncores2)
   # pbar=TRUE & n_cores=1
-  mylm_pbarTRUE_ncores1 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_pbarTRUE_ncores1 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                          var.terms = var.terms,
                                          var.model = var.model,
                                          n_cores = 1, pbar=TRUE)
   expect_equal(mylm, mylm_pbarTRUE_ncores1)
   # pbar=TRUE & n_cores=2
-  mylm_pbarTRUE_ncores2 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_pbarTRUE_ncores2 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                          var.terms = var.terms,
                                          var.model = var.model,
                                          n_cores = 2, pbar=TRUE)
   expect_equal(mylm, mylm_pbarTRUE_ncores2)
   
   ## Different output statistics #####
-  mylm_noTermsOutput <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_noTermsOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                               var.terms = c(),
                               var.model = var.model,
                               n_cores = 1, pbar=FALSE)
   expect_equal(as.numeric(dim(mylm_noTermsOutput)), c(100,1+length(var.model))) # check shape
   
-  mylm_noModelOutput <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_noModelOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                       var.terms = var.terms,
                                       var.model = c(),
                                       n_cores = 1, pbar=FALSE)
@@ -100,7 +100,7 @@ test_that("FixelArray.lm() works as expected", {
   
   ## Whether to correct p.values:   #####
   # terms:
-  mylm_corr_pvalues_1 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_corr_pvalues_1 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                        var.terms = var.terms, var.model = var.model,
                                        correct.p.value.terms = c("fdr","bonferroni"),
                                        n_cores = 2, pbar=FALSE)
@@ -111,7 +111,7 @@ test_that("FixelArray.lm() works as expected", {
                mylm_corr_pvalues_1$age.p.value %>% p.adjust("bonferroni"))
   
   # model:
-  mylm_corr_pvalues_2 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_corr_pvalues_2 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                        var.terms = var.terms, var.model = var.model,
                                        correct.p.value.model = c("fdr","bonferroni"),
                                        n_cores = 2, pbar=FALSE)
@@ -122,27 +122,27 @@ test_that("FixelArray.lm() works as expected", {
                mylm_corr_pvalues_2$model.p.value %>% p.adjust("bonferroni"))
   
   
-  expect_error(FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                              var.terms = var.terms, var.model = var.model,
                              correct.p.value.terms = c("fdr_wrong","bonferroni"),   # wrong name
                              n_cores = 2, pbar=FALSE))
-  expect_error(FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                              var.terms = var.terms, var.model = var.model,
                              correct.p.value.model = c("fdr_wrong","bonferroni"),   # wrong name
                              n_cores = 2, pbar=FALSE))
   
-  expect_warning( FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  expect_warning( ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                 var.terms = c("estimate"), var.model = var.model,  # did not provide p.value
                                 correct.p.value.terms = c("fdr","bonferroni"),
                                 n_cores = 2, pbar=FALSE))
-  expect_warning( FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  expect_warning( ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                 var.terms = var.terms, var.model = c("AIC"),  # did not provide p.value
                                 correct.p.value.model = c("fdr","bonferroni"),
                                 n_cores = 2, pbar=FALSE))
   
   ## How about other variables as covariate? factorA is literally correlated with age; factorB is another random variable
   # factor A is fully correlated with age, expecting testing results are NA:
-  mylm_age_factorA <- FixelArray.lm(FD ~ age + factorA, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_age_factorA <- ModelArray.lm(FD ~ age + factorA, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                     var.terms = var.terms.full,
                                     var.model = var.model, 
                                     n_cores = 2, pbar=FALSE)
@@ -156,7 +156,7 @@ test_that("FixelArray.lm() works as expected", {
 
   
   # factor B is not correlated with age, so not expecting NA:
-  mylm_age_factorB <- FixelArray.lm(FD ~ age + factorB, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_age_factorB <- ModelArray.lm(FD ~ age + factorB, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                     var.terms = var.terms.full,
                                     var.model = var.model, 
                                     n_cores = 2, pbar=FALSE)
@@ -170,23 +170,23 @@ test_that("FixelArray.lm() works as expected", {
   # test "na.action" with inputs with NA
   phenotypes_wNA <- phenotypes
   phenotypes_wNA$age[1] <- NA
-  expect_error(FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, 
+  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, 
                              var.terms = var.terms, var.model = var.model, n_cores = 1, pbar=FALSE,
                              na.action="na.fail"))  # expect error of "missing values in object". If na.action was not passed into lm, there will not be error
     # with different n_cores: (n_cores = either 1 or 2: additional arguments of lm have been passed into)
-  expect_error(FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, 
+  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, 
                                var.terms = var.terms, var.model = var.model, n_cores = 2, pbar=FALSE,
-                               na.action="na.fail"))  # NOTE: after updating FixelArray.lm with one row, specifying column names to keep, expect error (instead of warning for each core with error, expect_warning) 
+                               na.action="na.fail"))  # NOTE: after updating ModelArray.lm with one row, specifying column names to keep, expect error (instead of warning for each core with error, expect_warning) 
     # with different pbar: (TRUE or FALSE: additional arguments of lm have been passed into)
-  expect_error(FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, 
+  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, 
                              var.terms = var.terms, var.model = var.model, n_cores = 1, pbar=TRUE,
                              na.action="na.fail"))  
-  expect_error(FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, 
+  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, 
                                var.terms = var.terms, var.model = var.model, n_cores = 2, pbar=TRUE,
-                               na.action="na.fail"))   # after updating FixelArray.lm with one row, specifying column names to keep, expect error (instead of warning for each core with error, expect_warning) 
+                               na.action="na.fail"))   # after updating ModelArray.lm with one row, specifying column names to keep, expect error (instead of warning for each core with error, expect_warning) 
   
-  #mylm_phenotypes_naActionDefault <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, n_cores = 2, pbar=FALSE)
-  mylm_phenotypes_naActionOmit <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, 
+  #mylm_phenotypes_naActionDefault <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, n_cores = 2, pbar=FALSE)
+  mylm_phenotypes_naActionOmit <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, fixel.subset = 1:100, 
                                                 var.terms = var.terms, var.model = var.model, n_cores = 2, pbar=FALSE, 
                                                 na.action="na.omit")
   # there should be differences in results, after changing one value to NA:
@@ -198,7 +198,7 @@ test_that("FixelArray.lm() works as expected", {
   # check if "weights" have been successfully passed into lm:
   
   
-  mylm_weights1 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_weights1 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                         var.terms = var.terms, var.model = var.model, 
                         pbar=FALSE, n_cores = 2, 
                         weights = rep(1,nrow(phenotypes)) )   # length(phenotypes$subject_id)   # weights = rep(1,nrow(phenotypes))
@@ -206,7 +206,7 @@ test_that("FixelArray.lm() works as expected", {
   
   
   set.seed(5)
-  mylm_weightsRnorm <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
+  mylm_weightsRnorm <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                      var.terms = var.terms,
                                      var.model = var.model,
                                      n_cores = 2, pbar=FALSE, 

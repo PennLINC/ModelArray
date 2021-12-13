@@ -13,34 +13,34 @@ knitr::opts_chunk$set(
 )
 ```
 
-# FixelArray
+# ModelArray
 
 <!-- badges: start -->
-[![CircleCI build status](https://circleci.com/gh/PennLINC/FixelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/FixelArray)
+[![CircleCI build status](https://circleci.com/gh/PennLINC/ModelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/ModelArray)
 <!-- badges: end -->
 
-The goal of FixelArray is to ...
+The goal of ModelArray is to ...
 
 ## Installation
 
-You can install the released version of FixelArray from [CRAN](https://CRAN.R-project.org) with:
+You can install the released version of ModelArray from [CRAN](https://CRAN.R-project.org) with:
 
 ``` r
-install.packages("FixelArray")
+install.packages("ModelArray")
 ```
 
 And the development version from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("PennLINC/FixelArray")
+devtools::install_github("PennLINC/ModelArray")
 ```
 ## Example
 
 This is a basic example which shows you how to solve a common problem:
 
 ```{r example}
-library(FixelArray)
+library(ModelArray)
 ## basic example code
 ```
 

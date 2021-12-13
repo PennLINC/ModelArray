@@ -15,8 +15,8 @@ library(mgcv)
 library(dplyr)
 library(testthat)
 
-source("../R/FixelArray_Constructor.R")
-source("../R/FixelArray_S4Methods.R")
+source("../R/ModelArray_Constructor.R")
+source("../R/ModelArray_S4Methods.R")
 source("../R/utils.R")
 source("../R/analyse.R")
 
@@ -69,7 +69,7 @@ if (fn != fn.output) {
 ```{r}
 
 # h5closeAll()
-fixelarray <- FixelArray(fn.output, scalar_types = scalar)
+fixelarray <- ModelArray(fn.output, scalar_types = scalar)
 phenotypes <- read.csv(fn_csv)
 phenotypes$oSex <- ordered(phenotypes$sex, levels = c("F","M")) # Females will be the reference group
 fixel.subset <- 1:num.fixels

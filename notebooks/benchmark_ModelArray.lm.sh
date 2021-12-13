@@ -25,9 +25,9 @@ echo "run_where: $run_where"
 echo "output_folder: $output_folder"
 
 
-#singularity instance start -e -B $TMPDIR:/var -B $HOME:/root    /cbica/projects/fixel_db/myr_r4.1.0forFixelArray.sif myr_r4.1.0forFixelArray
+#singularity instance start -e -B $TMPDIR:/var -B $HOME:/root    /cbica/projects/fixel_db/myr_r4.1.0forModelArray.sif myr_r4.1.0forModelArray
 #singularity instance list
-#singularity exec instance://myr_r4.1.0forFixelArray Rscript /cbica/projects/fixel_db/FixelArray/notebooks/memoryProfiling_FixelArray.lm.R
+#singularity exec instance://myr_r4.1.0forModelArray Rscript /cbica/projects/fixel_db/ModelArray/notebooks/memoryProfiling_ModelArray.lm.R
 
 if [[ "$run_where" == "vmware" ]]
 then
@@ -47,17 +47,17 @@ fn_myMemProf="${output_folder}/output_myMemoryProfiler.txt"
 
 echo ""
 # if [[ "$run_where" == "sge"  ]] || [[ "$run_where" == "interactive"   ]]; then
-	# cmd="${cmd_memrec} -d $d_memrec -M -o ${fn_memrec_output} singularity run --cleanenv /cbica/projects/fixel_db/myr_r4.1.0forFixelArray.sif Rscript /cbica/projects/fixel_db/FixelArray/notebooks/memoryProfiling_FixelArray.lm.R $dataset_name $num_fixels $num_subj $num_cores"
+	# cmd="${cmd_memrec} -d $d_memrec -M -o ${fn_memrec_output} singularity run --cleanenv /cbica/projects/fixel_db/myr_r4.1.0forModelArray.sif Rscript /cbica/projects/fixel_db/ModelArray/notebooks/memoryProfiling_ModelArray.lm.R $dataset_name $num_fixels $num_subj $num_cores"
 # elif [[  "$run_where" == "vmware"  ]]; then
 	# which R
-	# cmd="${cmd_memrec} -d $d_memrec -M -o ${fn_memrec_output} Rscript ./memoryProfiling_FixelArray.lm.R $dataset_name $num_fixels $num_subj $num_cores"  # /home/chenying/Desktop/fixel_project/FixelArray/notebooks
+	# cmd="${cmd_memrec} -d $d_memrec -M -o ${fn_memrec_output} Rscript ./memoryProfiling_ModelArray.lm.R $dataset_name $num_fixels $num_subj $num_cores"  # /home/chenying/Desktop/fixel_project/ModelArray/notebooks
 # fi
 # echo $cmd
 # $cmd
 
-cmd="Rscript ./memoryProfiling_FixelArray.lm.R $dataset_name $num_fixels $num_subj $num_cores > ${fn_R_output}  2>&1 &"
+cmd="Rscript ./memoryProfiling_ModelArray.lm.R $dataset_name $num_fixels $num_subj $num_cores > ${fn_R_output}  2>&1 &"
 echo $cmd
-Rscript ./memoryProfiling_FixelArray.lm.R $dataset_name $num_fixels $num_subj $num_cores > ${fn_R_output}  2>&1 &     # cannot run at background if using $cmd to execuate..
+Rscript ./memoryProfiling_ModelArray.lm.R $dataset_name $num_fixels $num_subj $num_cores > ${fn_R_output}  2>&1 &     # cannot run at background if using $cmd to execuate..
 
 parent_id=$!  # get the pid of last execuated command
 
@@ -91,6 +91,6 @@ fi
 
 #echo ""
 
-# /cbica/projects/fixel_db/FixelArray/notebooks/
+# /cbica/projects/fixel_db/ModelArray/notebooks/
 
 #date

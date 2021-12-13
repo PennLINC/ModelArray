@@ -1,4 +1,4 @@
 library(testthat)
-library(FixelArray)
+library(ModelArray)
 
-test_check("FixelArray")
+test_check("ModelArray")

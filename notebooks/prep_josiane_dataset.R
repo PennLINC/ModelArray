@@ -1,7 +1,7 @@
 # preparation for Josiane's dataset
 
-source("../R/FixelArray_Constructor.R")
-source("../R/FixelArray_S4Methods.R")
+source("../R/ModelArray_Constructor.R")
+source("../R/ModelArray_S4Methods.R")
 source("../R/utils.R")
 source("../R/analyse.R")
 
@@ -47,7 +47,7 @@ ids_tokeep <- setdiff(1:941, setdiff_b_a_ids)
 # by removing 3 subjects from ltn_FDC.h5
 fn_fa_n941 <- paste0(folder_josiane, "/", "ltn_FDC_n941.h5")
 h5ls(fn_fa_n941)
-fa_n941 <- FixelArray(fn_fa_n941, scalar_types=c("FDC"))   # number of subjects: 941
+fa_n941 <- ModelArray(fn_fa_n941, scalar_types=c("FDC"))   # number of subjects: 941
 # n941.h5 <- H5File$new(fn_fa_n941, mode="a")
 # n941.fixels_ds <- n941.h5[["fixels"]]
 

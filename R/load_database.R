@@ -6,7 +6,7 @@
 # docker run -ti --rm --name=fixeldb -v $PWD/:/inputs pennbbl/fixeldb:latest --index-file /inputs/FD/index.mif --directions-file /inputs/FD/directions.mif --cohort-file /inputs/fd_inputs_all.csv
 
 
-CreateFixelArrayFile <- function(index_file, directions_file, cohort_file, output_h5 = 'fixels.h5',
+CreateModelArrayFile <- function(index_file, directions_file, cohort_file, output_h5 = 'fixels.h5',
                           fixel_directory='/', img_name = "pennbbl/fixeldb", remove_img = TRUE) {
 
   # check if the image already exists
@@ -23,7 +23,7 @@ CreateFixelArrayFile <- function(index_file, directions_file, cohort_file, outpu
   
   img_exists <- docker_available(img_name, tag="latest", docker)
   if(!img_exists){
-    stop("Unable to pull docker image to create FixelArray Backend!")
+    stop("Unable to pull docker image to create ModelArray Backend!")
   }
   
   # create the docker command
@@ -47,9 +47,9 @@ CreateFixelArrayFile <- function(index_file, directions_file, cohort_file, outpu
 
   # ensure it worked
   if(out != 0){
-    message("Error creating FixelArray File!")
+    message("Error creating ModelArray File!")
   } else {
-    message(glue::glue("FixelArray file created in fixel directory as {fixel_directory}/{output_h5}. You can now read this into R with FixelArray()"))
+    message(glue::glue("ModelArray file created in fixel directory as {fixel_directory}/{output_h5}. You can now read this into R with ModelArray()"))
   }
 
 }

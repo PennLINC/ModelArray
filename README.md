@@ -1,19 +1,19 @@
 
 <!-- TODO README.md is generated from README.Rmd. Please edit that file -->
 
-# FixelArray
+# ModelArray
 
 <!-- badges: start -->
 
 [![CircleCI build
-status](https://circleci.com/gh/PennLINC/FixelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/FixelArray)
+status](https://circleci.com/gh/PennLINC/ModelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/ModelArray)
 <!-- badges: end -->
 
-The goal of FixelArray is to …
+The goal of ModelArray is to …
 
 ## Installation
 
-Before you install FixelArray R package, if you are using Linux system, please check if libhdf5-dev has been installed in your system:
+Before you install ModelArray R package, if you are using Linux system, please check if libhdf5-dev has been installed in your system:
 ```console
 foo@bar:~$ ldconfig -p | grep libhdf5*
 ```
@@ -23,18 +23,18 @@ foo@bar:~$ sudo apt-get update -y
 foo@bar:~$ sudo apt-get install -y libhdf5-dev
 ```
 
-After setting libhdf5 up, you can install the released version of FixelArray from
+After setting libhdf5 up, you can install the released version of ModelArray from
 [CRAN](https://CRAN.R-project.org) with:
 
 ``` r
-install.packages("FixelArray")
+install.packages("ModelArray")
 ```
 
 And the development version from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("PennLINC/FixelArray")
+devtools::install_github("PennLINC/ModelArray")
 ```
 
 ## Example
@@ -42,7 +42,7 @@ devtools::install_github("PennLINC/FixelArray")
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
-library(FixelArray)
+library(ModelArray)
 ## basic example code
 ```
 

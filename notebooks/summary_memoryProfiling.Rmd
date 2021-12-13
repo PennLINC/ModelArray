@@ -31,8 +31,8 @@ lapply(list.of.packages, require, character.only = TRUE)   # or library
 ### Memory increases with time - time series plots
 #### One-core computing case:
 ```{r}
-folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.s-1sec.20210901-215731"
-# folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\manually_source_and_library\\lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.20210830-225914"
+folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\ModelArray_benchmark\\lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.s-1sec.20210901-215731"
+# folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\ModelArray_benchmark\\manually_source_and_library\\lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.20210830-225914"
 
 temp <- str_match(folder, "ncore-\\s*(.*?)\\s*.")[1]
 num.cores <- as.integer(substr(temp, 7, 20))
@@ -63,7 +63,7 @@ ggplot(clean.df.multi, aes(x = Est.h., y = memory_GB, fill = process)) +
         text = element_text(size=15)) +
   xlab("Time (hour)") +
   ylab("Memory (GB)") +
-  ggtitle(paste0("FixelArray.lm(): ncores=", toString(num.cores), ", nsubj=", toString(num.subj)))
+  ggtitle(paste0("ModelArray.lm(): ncores=", toString(num.cores), ", nsubj=", toString(num.subj)))
   #ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj)))
 
 
@@ -71,10 +71,10 @@ ggplot(clean.df.multi, aes(x = Est.h., y = memory_GB, fill = process)) +
 
 #### Multi-core computing case:
 ```{r}
-#folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-0.1sec.20210901-140053"  # s=0.1sec, time is long....
- folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-1sec.20210903-102106"
+#folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\ModelArray_benchmark\\lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-0.1sec.20210901-140053"  # s=0.1sec, time is long....
+ folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\ModelArray_benchmark\\lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-1sec.20210903-102106"
 
-#folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\lm.josiane.nfixel-0.nsubj-938.ncore-4.vmware.runMemProfiler.s-1sec.20210902-053459"
+#folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\ModelArray_benchmark\\lm.josiane.nfixel-0.nsubj-938.ncore-4.vmware.runMemProfiler.s-1sec.20210902-053459"
 
 temp <- str_match(folder, "ncore-\\s*(.*?)\\s*.")[1]
 num.cores <- as.integer(substr(temp, 7, 20))
@@ -105,7 +105,7 @@ ggplot(clean.df.multi, aes(x = Est.h., y = memory_GB, fill = process)) +
   ylim(0,2.5) + 
   xlab("Time (hour)") +
   ylab("Memory (GB)") +
-  ggtitle(paste0("FixelArray.lm(): ncores=", toString(num.cores), ", nsubj=", toString(num.subj)))
+  ggtitle(paste0("ModelArray.lm(): ncores=", toString(num.cores), ", nsubj=", toString(num.subj)))
   #ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj)))
 
 ggplot(clean.df.multi[clean.df.multi$Est.h.>1.45, ], aes(x = Est.h., y = memory_GB, fill = process)) + 
@@ -117,7 +117,7 @@ ggplot(clean.df.multi[clean.df.multi$Est.h.>1.45, ], aes(x = Est.h., y = memory_
   ylim(0,2.5) + 
   xlab("Time (hour)") +
   ylab("Memory (GB)") +
-  ggtitle(paste0("FixelArray.lm(): ncores=", toString(num.cores), ", nsubj=", toString(num.subj), ", close to end"))
+  ggtitle(paste0("ModelArray.lm(): ncores=", toString(num.cores), ", nsubj=", toString(num.subj), ", close to end"))
   #ggtitle(paste0("# of cores = ", toString(num.cores), ", # of subjects = ", toString(num.subj), " close to end"))
 
 ```
@@ -125,9 +125,9 @@ ggplot(clean.df.multi[clean.df.multi$Est.h.>1.45, ], aes(x = Est.h., y = memory_
 
 <!-- ### different number of CPU cores -->
 <!-- Josiane's dataset, all fixels (~600k), num.subj = 30 -->
-<!-- warning: these were set up by sourcing R scripts and loading libraries, instead of the professional choice of install FixelArray package... -->
+<!-- warning: these were set up by sourcing R scripts and loading libraries, instead of the professional choice of install ModelArray package... -->
 <!-- ```{r} -->
-<!-- main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\manually_source_and_library" -->
+<!-- main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\ModelArray_benchmark\\manually_source_and_library" -->
 <!-- foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.20210830-225914", -->
 <!--                         "lm.josiane.nfixel-0.nsubj-30.ncore-2.vmware.runMemProfiler.20210830-191224", -->
 <!--                         "lm.josiane.nfixel-0.nsubj-30.ncore-3.vmware.runMemProfiler.20210831-113645", -->
@@ -163,10 +163,10 @@ ggplot(clean.df.multi[clean.df.multi$Est.h.>1.45, ], aes(x = Est.h., y = memory_
 <!-- ``` -->
 ### different number of CPU cores
 #### num.subj = 30 and compare to MRtrix
-Josiane's dataset, all fixels (~600k), num.subj = 30, set up by installing FixelArray package (professional way)
+Josiane's dataset, all fixels (~600k), num.subj = 30, set up by installing ModelArray package (professional way)
 
 ```{r}
-main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark"
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\ModelArray_benchmark"
 foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-1.vmware.runMemProfiler.s-1sec.20210901-215731",
                         "lm.josiane.nfixel-0.nsubj-30.ncore-2.vmware.runMemProfiler.s-1sec.20210901-161652",
                         "lm.josiane.nfixel-0.nsubj-30.ncore-3.vmware.runMemProfiler.s-1sec.20210901-192437",
@@ -226,7 +226,7 @@ colnames(totals) <- gsub(".RSS.MB.", "",colnames(totals))
 #   theme_bw() + 
 #   xlab("Number of CPU cores") +
 #   ylab("Memory (MB)") +
-#   ggtitle(paste0("FixelArray.lm(): # of subjects = ", toString(num.subj)))
+#   ggtitle(paste0("ModelArray.lm(): # of subjects = ", toString(num.subj)))
 
 ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.cores)) + 
     geom_bar(position="stack", stat="identity", width = 0.3) + 
@@ -240,7 +240,7 @@ ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.cores))
         text = element_text(size=15)) +
   xlab("Number of CPU cores") +
   ylab("Max memory (GB)") +
-  ggtitle(paste0("FixelArray.lm(): nsubj=", toString(num.subj)))
+  ggtitle(paste0("ModelArray.lm(): nsubj=", toString(num.subj)))
 
 # f <- set_panel_size(f, width=unit(5,"cm"), height=unit(5,"cm"))
 # 
@@ -296,18 +296,18 @@ for (i_folder in 1:length(folder.list)) {
 
 if ((num.subj == nsubj) && (all(summary.when.max$num.cores == summary.max$nthreads))) {
   together.max.total.GB = data.frame(nparallel = summary.when.max$num.cores,
-                                  FixelArray = summary.when.max$total.RSS.MB./1024,
+                                  ModelArray = summary.when.max$total.RSS.MB./1024,
                                   MRtrix = summary.max$max.RSS.GB.)
                       
   
 } else {
-  message("number of cores/threads are different in profiling FixelArray vs MRtrix!")
+  message("number of cores/threads are different in profiling ModelArray vs MRtrix!")
 }
 
 together.max.total.GB <- together.max.total.GB %>% tidyr::pivot_longer(!nparallel, names_to="software", values_to="max.total.GB.")
 
 together.max.total.GB$software <- factor(together.max.total.GB$software, 
-                                         levels = c("MRtrix","FixelArray") )
+                                         levels = c("MRtrix","ModelArray") )
 
 ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nparallel)) + 
     geom_bar(position="dodge", stat="identity", width=0.6) + 
@@ -326,9 +326,9 @@ ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nparallel)) 
 ```
 
 #### num.subj = 938 and compared to MRtrix
-Josiane's dataset, all fixels (~600k), num.subj = 938, set up by installing FixelArray package (professional way)
+Josiane's dataset, all fixels (~600k), num.subj = 938, set up by installing ModelArray package (professional way)
 ```{r}
-main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark"
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\ModelArray_benchmark"
 foldername.list <- list("lm.josiane.nfixel-0.nsubj-938.ncore-1.vmware.runMemProfiler.s-1sec.20210910-232632",
                         "lm.josiane.nfixel-0.nsubj-938.ncore-2.vmware.runMemProfiler.s-1sec.20210911-052105",
                         "lm.josiane.nfixel-0.nsubj-938.ncore-3.vmware.runMemProfiler.s-1sec.20210910-171646",
@@ -390,7 +390,7 @@ colnames(totals) <- gsub(".RSS.MB.", "",colnames(totals))
 #   theme_bw() + 
 #   xlab("Number of CPU cores") +
 #   ylab("Memory (MB)") +
-#   ggtitle(paste0("FixelArray.lm(): # of subjects = ", toString(num.subj)))
+#   ggtitle(paste0("ModelArray.lm(): # of subjects = ", toString(num.subj)))
 
 ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.cores)) + 
     geom_bar(position="stack", stat="identity", width = 0.3) + 
@@ -404,7 +404,7 @@ ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.cores))
         text = element_text(size=15)) +
   xlab("Number of CPU cores") +
   ylab("Max memory (GB)") +
-  ggtitle(paste0("FixelArray.lm(): nsubj=", toString(num.subj)))
+  ggtitle(paste0("ModelArray.lm(): nsubj=", toString(num.subj)))
 
 
 ## MRtrix:
@@ -464,18 +464,18 @@ for (i_folder in 1:length(folder.list)) {
 
 if ((num.subj == nsubj) && (all(summary.when.max$num.cores == summary.max$nthreads))) {
   together.max.total.GB = data.frame(nparallel = summary.when.max$num.cores,
-                                  FixelArray = summary.when.max$total.RSS.MB./1024,
+                                  ModelArray = summary.when.max$total.RSS.MB./1024,
                                   MRtrix = summary.max$max.RSS.GB.)
                       
   
 } else {
-  message("number of cores/threads are different in profiling FixelArray vs MRtrix!")
+  message("number of cores/threads are different in profiling ModelArray vs MRtrix!")
 }
 
 together.max.total.GB <- together.max.total.GB %>% tidyr::pivot_longer(!nparallel, names_to="software", values_to="max.total.GB.")
 
 together.max.total.GB$software <- factor(together.max.total.GB$software, 
-                                         levels = c("MRtrix","FixelArray") )
+                                         levels = c("MRtrix","ModelArray") )
 
 ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nparallel)) + 
     geom_bar(position="dodge", stat="identity", width=0.6) + 
@@ -498,9 +498,9 @@ ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nparallel)) 
 
 <!-- ### different subjects -->
 <!-- Josiane's dataset, all fixels (~600k), num.cores = 2 -->
-<!-- warning: these were set up by sourcing R scripts and loading libraries, instead of the professional choice of install FixelArray package... -->
+<!-- warning: these were set up by sourcing R scripts and loading libraries, instead of the professional choice of install ModelArray package... -->
 <!-- ```{r} -->
-<!-- main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark\\manually_source_and_library" -->
+<!-- main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\ModelArray_benchmark\\manually_source_and_library" -->
 <!-- foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-2.vmware.runMemProfiler.20210830-191224", -->
 <!--                         "lm.josiane.nfixel-0.nsubj-100.ncore-2.vmware.runMemProfiler.20210831-162341", -->
 <!--                         "lm.josiane.nfixel-0.nsubj-300.ncore-2.vmware.runMemProfiler.20210831-190508", -->
@@ -557,9 +557,9 @@ ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nparallel)) 
 <!-- ``` -->
 ### different subjects
 #### ncores=4 and compare with MRtrix
-Josiane's dataset, all fixels (~600k), num.cores = 2, set up by installing FixelArray package (professional way)
+Josiane's dataset, all fixels (~600k), num.cores = 2, set up by installing ModelArray package (professional way)
 ```{r}
-main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\FixelArray_benchmark"
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\ModelArray_benchmark"
 foldername.list <- list("lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-1sec.20210903-102106",
                         #"lm.josiane.nfixel-0.nsubj-30.ncore-4.vmware.runMemProfiler.s-0.1sec.20210901-140053",
                         "lm.josiane.nfixel-0.nsubj-100.ncore-4.vmware.runMemProfiler.s-1sec.20210902-120841",
@@ -636,7 +636,7 @@ ggplot(clean.summary.when.max, aes(fill=process, y=memory_MB/1024, x=num.subj)) 
         #axis.text.x = element_text(angle=45, hjust=1)) + 
   xlab("Number of subjects") +
   ylab("Max memory (GB)") +
-  ggtitle(paste0("FixelArray.lm(): ncores = ", toString(num.cores)))
+  ggtitle(paste0("ModelArray.lm(): ncores = ", toString(num.cores)))
 
 # reason that num.subj=300's total is = num.subj=500 is limited sampling rate and imperfect interpolation: for num.subj=300, the child1 (first return)'s final spike was captured, and parent also received child's output --> imperfect interpolate (i.e. when child1's spike, parent has not received child's output, but next sec it did)
 
@@ -690,19 +690,19 @@ for (i_folder in 1:length(folder.list)) {
 
 if ((num.cores == nthreads) && (all(summary.when.max$num.subj == summary.max$nsubj))) {
   together.max.total.GB = data.frame(nsubj = summary.when.max$num.subj,
-                                  FixelArray = summary.when.max$total.RSS.MB./1024,
+                                  ModelArray = summary.when.max$total.RSS.MB./1024,
                                   MRtrix = summary.max$max.RSS.GB.)
                       
   
 } else {
-  message("number of cores/threads are different in profiling FixelArray vs MRtrix!")
+  message("number of cores/threads are different in profiling ModelArray vs MRtrix!")
 }
 
 
 together.max.total.GB <- together.max.total.GB %>% tidyr::pivot_longer(!nsubj, names_to="software", values_to="max.total.GB.")
 
 together.max.total.GB$software <- factor(together.max.total.GB$software, 
-                                         levels = c("MRtrix","FixelArray") )
+                                         levels = c("MRtrix","ModelArray") )
 
 
 ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nsubj)) + 
@@ -732,7 +732,7 @@ ggplot(together.max.total.GB, aes(fill=software, y=max.total.GB., x=nsubj)) +
 folder_mrtrix <- "/home/chenying/Desktop/fixel_project/data/data_from_josiane/for_fixelcfestats/stats_FDC/nsubj-938.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-210227"
 folder_fixelarray <- "/home/chenying/Desktop/fixel_project/data/data_from_josiane/results/ltn_FDC_n938_wResults_nfixel-0_20210908-135041"
 
-# saved p values as .txt files via Confixel/notebooks/compare_MRtrix_FixelArray.py
+# saved p values as .txt files via Confixel/notebooks/compare_MRtrix_ModelArray.py
 
 f_fixelarray_raw_p <- paste0(folder_fixelarray, "/lm_model.p.value.txt")
 f_fixelarray_p_fdr <- paste0(folder_fixelarray, "/lm_model.p.value.fdr.txt")

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # example command:
-# bash wrapper_benchmark_FixelArray.lm.sh -s 1 -D test_n50 -f 10000 -S 50 -c 2 -w interactive -M TRUE
-# bash wrapper_benchmark_FixelArray.lm.sh -s 1 -D josiane -f 0 -S 30 -c 2 -w vmware -M TRUE
-# qsub -l h_vmem=30G wrapper_benchmark_FixelArray.lm.sh -s 1 -D test_n50 -f 100 -S 100 -c 2 -w sge -M TRUE   # this will add ${JOB_ID} to foldername; run at interactive node to determine the memory requirements... # tried 20G, did not run..
+# bash wrapper_benchmark_ModelArray.lm.sh -s 1 -D test_n50 -f 10000 -S 50 -c 2 -w interactive -M TRUE
+# bash wrapper_benchmark_ModelArray.lm.sh -s 1 -D josiane -f 0 -S 30 -c 2 -w vmware -M TRUE
+# qsub -l h_vmem=30G wrapper_benchmark_ModelArray.lm.sh -s 1 -D test_n50 -f 100 -S 100 -c 2 -w sge -M TRUE   # this will add ${JOB_ID} to foldername; run at interactive node to determine the memory requirements... # tried 20G, did not run..
 
 while getopts s:D:f:S:c:w:O:M: flag
 do
@@ -37,16 +37,16 @@ fi
 foldername_jobid="${foldername_jobid}.s-${sample_sec}sec"
 
 if [  "$run_where" = "sge" ]; then
-        folder_benchmark="/cbica/projects/fixel_db/FixelArray_benchmark"
+        folder_benchmark="/cbica/projects/fixel_db/ModelArray_benchmark"
         
         echo "adding JOB_ID to foldername"
         foldername_jobid="${foldername_jobid}.${JOB_ID}"
 
 elif [[ "$run_where" == "interactive"   ]]; then
-        folder_benchmark="/cbica/projects/fixel_db/FixelArray_benchmark"
+        folder_benchmark="/cbica/projects/fixel_db/ModelArray_benchmark"
 
 elif [[ "$run_where" == "vmware"   ]]; then
-        folder_benchmark="/home/chenying/Desktop/fixel_project/FixelArray_benchmark"
+        folder_benchmark="/home/chenying/Desktop/fixel_project/ModelArray_benchmark"
 
         echo "adding date to foldername"
         foldername_jobid="${foldername_jobid}.${date}"
@@ -70,6 +70,6 @@ fn_output_txt="${folder_jobid}/output.txt"
 
 # call:
 # for memrec:
-# bash benchmark_FixelArray.lm.sh -d $d_memrec -D $dataset_name -f $num_fixels -s $num_subj -c $num_cores -w $run_where -o ${folder_jobid} > $fn_output_txt 2>&1
+# bash benchmark_ModelArray.lm.sh -d $d_memrec -D $dataset_name -f $num_fixels -s $num_subj -c $num_cores -w $run_where -o ${folder_jobid} > $fn_output_txt 2>&1
 # for wss:
-bash benchmark_FixelArray.lm.sh -s $sample_sec -D $dataset_name -f $num_fixels -S $num_subj -c $num_cores -w $run_where -o ${folder_jobid} -M ${run_memoryProfiler}  > $fn_output_txt 2>&1
+bash benchmark_ModelArray.lm.sh -s $sample_sec -D $dataset_name -f $num_fixels -S $num_subj -c $num_cores -w $run_where -o ${folder_jobid} -M ${run_memoryProfiler}  > $fn_output_txt 2>&1

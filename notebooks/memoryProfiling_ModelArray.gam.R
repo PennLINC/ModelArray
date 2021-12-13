@@ -1,7 +1,7 @@
 
 # HOW TO RUN:
 # in bash, same folder as this current file:
-# $ Rscript ./memoryProfiling_FixelArray.gam.R  > xxx.txt 2>&1 &
+# $ Rscript ./memoryProfiling_ModelArray.gam.R  > xxx.txt 2>&1 &
 
 
 # set ups
@@ -9,13 +9,13 @@ rm(list = ls())
 
 # the working directory of this Demo is where it locates
 
-flag_library_what <- "manually"   # "FixelArray" or "manually"
+flag_library_what <- "manually"   # "ModelArray" or "manually"
 
-if (flag_library_what == "FixelArray") {
-  message("run: devtools::install() to install FixelArray package")
+if (flag_library_what == "ModelArray") {
+  message("run: devtools::install() to install ModelArray package")
   library(devtools)
   devtools::install()
-  library(FixelArray)
+  library(ModelArray)
   
   library(tictoc)
   
@@ -23,11 +23,11 @@ if (flag_library_what == "FixelArray") {
   
   message("run: source several R scripts and library some R packages...")
   
-  source("../R/FixelArray_Constructor.R")
-  source("../R/FixelArray_S4Methods.R")
+  source("../R/ModelArray_Constructor.R")
+  source("../R/ModelArray_S4Methods.R")
   source("../R/utils.R")
   source("../R/analyse.R")
-  # library(FixelArray)
+  # library(ModelArray)
   suppressMessages(library(dplyr))
   library(broom)
   library(hdf5r)
@@ -83,7 +83,7 @@ if (fn != fn.output) {
 }
 
 # h5closeAll()
-fixelarray <- FixelArray(fn.output, scalar_types = scalar)
+fixelarray <- ModelArray(fn.output, scalar_types = scalar)
 
 
 #fixelarray
@@ -119,10 +119,10 @@ fixel.subset <- 1:num.fixels
 
 ### running on real data #####
 print(formula)
-tic("Running FixelArray.gam()")
+tic("Running ModelArray.gam()")
 # ++++++++++++++= NEXT TIME: include method = gam.method!!! ++++++++++++++++++++=
 # +++++++++++++++ NEXT TIME: sex --> ordered factor, and use oSex in formula! (this may make the plots - e.g. Bart's function more making sense? as there will be a reference level of female or male)++++++++++++++++++++++++++
-gam_real <- FixelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
+gam_real <- ModelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
                            fixel.subset = fixel.subset, full.outputs = TRUE,
                            eff.size.term.index = c(1),
                            correct.p.value.smoothTerms = c("fdr", "bonferroni"),
@@ -138,7 +138,7 @@ analysis_name <- "gam_allOutputs"
 writeResults(fn.output, df.output = gam_real, analysis_name=analysis_name, overwrite=TRUE)
 
 # read and see
-fixelarray_new <- FixelArray(fn.output, scalar_types = scalar, analysis_names = analysis_name)
+fixelarray_new <- ModelArray(fn.output, scalar_types = scalar, analysis_names = analysis_name)
 message("after saving to .h5:")
 fixelarray_new@results$gam_allOutputs
 

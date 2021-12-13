@@ -1,16 +1,16 @@
-### Methods of "FixelArray" ###
+### Methods of "ModelArray" ###
 
-### Show FixelArray #####
-#' show FixelArray
+### Show ModelArray #####
+#' show ModelArray
 #' @export
-setMethod("show", "FixelArray", function(object) {  # , group_name_results="results"
+setMethod("show", "ModelArray", function(object) {  # , group_name_results="results"
   
   # # check if there is a group of results:
   # flag_results_exist <- flagResultsExist(object, group_name_results)
   # if (flag_results_exist==TRUE) {
-  #   str_results <- paste0("There is ", group_name_results, " in this FixelArray")
+  #   str_results <- paste0("There is ", group_name_results, " in this ModelArray")
   # } else {
-  #   str_results <- paste0("There is no ", group_name_results, " in this FixelArray")
+  #   str_results <- paste0("There is no ", group_name_results, " in this ModelArray")
   # }
   
   cat(is(object)[[1]], " located at ", object@path, "\n\n",
@@ -25,35 +25,35 @@ setMethod("show", "FixelArray", function(object) {  # , group_name_results="resu
   )
 })
 
-### Accessors for FixelArray #####
+### Accessors for ModelArray #####
 setGeneric("fixels", function(x) standardGeneric("fixels"))
 
-#' fixels of FixelArray
+#' fixels of ModelArray
 #' @export
-setMethod("fixels", "FixelArray", function(x) x@fixels)
+setMethod("fixels", "ModelArray", function(x) x@fixels)
 
 
 setGeneric("voxels", function(x) standardGeneric("voxels"))
 
-#' voxels of FixelArray
+#' voxels of ModelArray
 #' @export
-setMethod("voxels", "FixelArray", function(x) x@voxels)
+setMethod("voxels", "ModelArray", function(x) x@voxels)
 
 
 setGeneric("subjects", function(x) standardGeneric("subjects"))
 
-#' subjects of FixelArray
+#' subjects of ModelArray
 #' @export
-setMethod("subjects", "FixelArray", function(x) x@subjects)
+setMethod("subjects", "ModelArray", function(x) x@subjects)
 
 
 setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 
-#' scalars of FixelArray
+#' scalars of ModelArray
 #' @export
 setMethod(
   "scalars",
-  "FixelArray",
+  "ModelArray",
   function(x, ...) {
     
     dots <- list(...)
@@ -73,10 +73,10 @@ setMethod(
 
 setGeneric("results", function(x, ...) standardGeneric("results"))
 
-#' results of FixelArray
+#' results of ModelArray
 #' @export
 setMethod(
-  "results", "FixelArray", function(x, ...) {
+  "results", "ModelArray", function(x, ...) {
     dots <- list(...)
     
     if(length(dots) == 1) {
@@ -92,20 +92,20 @@ setMethod(
   }
 )
 
-### Statistical tests for FixelArray #####
+### Statistical tests for ModelArray #####
 # ----------------below works:
 # setGeneric("lm", function(x,...) standardGeneric("lm"))
 # setMethod("lm", 
-#           "FixelArray",    # this can be multiple classes e.g. signature(e1 = "foo", e2 = "numeric"), or signature("A1", "A2") - from: http://adv-r.had.co.nz/S4.html
+#           "ModelArray",    # this can be multiple classes e.g. signature(e1 = "foo", e2 = "numeric"), or signature("A1", "A2") - from: http://adv-r.had.co.nz/S4.html
 #           
 #           function(x, ...) {
-#             message("run FixelArray.lm!")
+#             message("run ModelArray.lm!")
 #           }
 #           # function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, write = TRUE, ...){
 #           #   print("xyz")
 #           # }
-#           # FixelArray.lm(object, ...)
-#           # FixelArray.lm(formula, object, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, write = TRUE, ...)
+#           # ModelArray.lm(object, ...)
+#           # ModelArray.lm(formula, object, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, write = TRUE, ...)
 #           )
 # ----------------above works.
 
@@ -114,4 +114,4 @@ setMethod(
 #            signature = c(formula, fixelarray, phenotypes, scalar, idx)
 #            )
 # setMethod("lm",
-#           signature = c("formula", "FixelArray", "data.frame", "character", "integer"))
+#           signature = c("formula", "ModelArray", "data.frame", "character", "integer"))

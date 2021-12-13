@@ -137,7 +137,7 @@ if (is.null(sample_sec)) {
 fn.Routput <- paste0(folder, "/Routput.txt")
 
 Routput <- readLines(fn.Routput)
-temp <- grep("run: devtools::install() to install FixelArray package", Routput, fixed=TRUE)
+temp <- grep("run: devtools::install() to install ModelArray package", Routput, fixed=TRUE)
 if (length(temp) == 0) {
   if (profiling.setup == "devtools") {
     stop("the profiling was not set up by devtools::install()!")
@@ -158,7 +158,7 @@ if (length(temp) == 0) {
 #     next
 #   }
 #   
-#   if (grepl("run: devtools::install() to install FixelArray package", 
+#   if (grepl("run: devtools::install() to install ModelArray package", 
 #             oneline, fixed = TRUE)) {
 #     flag_devtoolsInstall <- TRUE
 #     break
@@ -200,7 +200,7 @@ df.parent.single <- readWssText(fn.parent.single, sample_sec)
 unit.Est <- unlist(strsplit(colnames(df.parent.single)[1], "\\."))[2]    # e.g. "s" - default of wss.pl
 unit.RSS <- unlist(strsplit(colnames(df.parent.single)[2], "\\."))[2]    # e.g. "MB" - default of wss.pl
 
-# multi = after FixelArray.lm() starts
+# multi = after ModelArray.lm() starts
 
 if (num.cores == 1) {
   
@@ -404,7 +404,7 @@ if (num.cores ==1) {
 ### for memrec #####
 
 
-# step 1: change memroyProfiling_FixelArray.lm.R; 
+# step 1: change memroyProfiling_ModelArray.lm.R; 
 # step 2: run in terminal: memory profiling of CUBIC
 
 # which_dataset <- "test_n50"
@@ -413,7 +413,7 @@ if (num.cores ==1) {
 # mem.unit <- "MB"
 # sample.interval <- 0.01
 
-# folder_memoryProfiling = "/root/FixelArray/notebooks"
+# folder_memoryProfiling = "/root/ModelArray/notebooks"
 # filename_memoryProfiling <- paste0("memprofile.lm.",which_dataset, 
 #                                    ".nfixel=",toString(nfixel),
 #                                    ".ncore=",toString(ncore),

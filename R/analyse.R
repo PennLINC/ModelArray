@@ -51,7 +51,7 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
     } 
     
     if ("p.value" %in% var.list == FALSE) {  # not in the list | # check whether there is "p.value" in var.list
-      warning(paste0("p.value was not included in ",name.var.list,", so not to perform its p.value corrections"))   # TODO: why this warning comes out after FixelArray.aModel is done?
+      warning(paste0("p.value was not included in ",name.var.list,", so not to perform its p.value corrections"))   # TODO: why this warning comes out after ModelArray.aModel is done?
     }
   }
 }
@@ -168,7 +168,7 @@ checker_gam_t <- function(FUN, ofInterest) {
   cat("\n")
 }
 
-#' A checker for formula in gam for FixelArray.gam()
+#' A checker for formula in gam for ModelArray.gam()
 #' TODO: finish the description
 #' @import mgcv
 #' @import dplyr
@@ -323,7 +323,7 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' Run a linear model at each fixel location
 #'
 #' @param formula Formula (passed to `lm()`)
-#' @param data FixelArray dataset
+#' @param data ModelArray dataset
 #' @param phenotypes The cohort file with covariates to be added to the model
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param verbose Print progress messages
@@ -332,10 +332,10 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' @param n_cores The number of cores to run on
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
-FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
+ModelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
-  if(class(data) != "FixelArray") {
+  if(class(data) != "ModelArray") {
     stop("Not a fixel array for analysis")
   }
   
@@ -434,7 +434,7 @@ FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
           broom::tidy() %>%
           dplyr::mutate(fixel_id = i-1)
         
-        # NOTES: see current FixelArray.lm, after: remove tibble information and turn into numeric function
+        # NOTES: see current ModelArray.lm, after: remove tibble information and turn into numeric function
         
         
         # lm(formula, data = dat, ...) %>%
@@ -492,7 +492,7 @@ FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
 #'
 #' @param formula Formula (passed to `lm()`)
-#' @param data FixelArray class
+#' @param data ModelArray class
 #' @param phenotypes The cohort matrix with covariates to be added to the model  
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param fixel.subset The subset of fixel ids you want to run. Integers. First id starts from 1.
@@ -509,13 +509,13 @@ FixelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' @import tibble
 #' @export
 
-FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
+ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
                               var.terms = c("estimate", "statistic", "p.value"), 
                               var.model = c("adj.r.squared", "p.value"), 
                           correct.p.value.terms = "none", correct.p.value.model = "none",
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...) {
   # data type assertions
-  if(class(data) != "FixelArray") {
+  if(class(data) != "ModelArray") {
     stop("Not a fixel array for analysis")
   }
   
@@ -758,7 +758,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' Run GAM for fixel-wise data
 #' 
 #' @description 
-#' `FixelArray.gam` fits gam model for each of fixels requested, and returns a tibble dataframe of requested model statistics.
+#' `ModelArray.gam` fits gam model for each of fixels requested, and returns a tibble dataframe of requested model statistics.
 #' 
 #' @details 
 #' You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
@@ -784,9 +784,9 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #'   \item For formula with interactions, only formula in above formats are tested, and only effect size for interaction term is validated. The effect size for main effect (such as s(x) in Formula #1) may not "functionally" be its effect size, as the definition should be changed to reduced formula without both main effect and interaction term.
 #' }
 #' For p-value corrections (arguments \code{correct.p.value.*}), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
-#' Please notice that different from `FixelArray.lm`, there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model.
+#' Please notice that different from `ModelArray.lm`, there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model.
 #' @param formula Formula (passed to `mgcv::gam()`)
-#' @param data FixelArray class
+#' @param data ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
 #' @param scalar A character. The name of the scalar to be analysed fixel-wise
 #' @param fixel.subset A list of positive integers. The subset of fixel ids you want to run. Integers. First id starts from 1.
@@ -808,7 +808,7 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' @import mgcv
 #' @export
 
-FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
+ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
                               var.smoothTerms = c("statistic","p.value"),
                               var.parametricTerms = c("estimate", "statistic", "p.value"),
                               var.model = c("dev.expl"), 
@@ -816,7 +816,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
                               correct.p.value.smoothTerms = "none", correct.p.value.parametricTerms = "none",
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...){
   # data type assertions
-  if(class(data) != "FixelArray") {
+  if(class(data) != "ModelArray") {
     stop("Not a fixel array for analysis")
   }
   
@@ -1213,7 +1213,7 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
 #' Run a t.test at each fixel location
 #'
 #' @param formula Formula (passed to `lm()`)
-#' @param data FixelArray dataset
+#' @param data ModelArray dataset
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param phenotypes The cohort file with covariates to be added to the model
 #' @param subset A vector of fixel IDs to subset
@@ -1222,10 +1222,10 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
 #' @param pbar Print progress bar
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
-FixelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
+ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
-  if(class(data) != "FixelArray") {
+  if(class(data) != "ModelArray") {
     stop("Not a fixel array for analysis")
   }
   
@@ -1285,10 +1285,10 @@ FixelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
         
         cl <- makeCluster(n_cores)
         
-        clusterEvalQ(cl, {"FixelArray"}) 
+        clusterEvalQ(cl, {"ModelArray"}) 
         
         fits <- parallel::parLapply(cl, ids, function(i, ...){
-          # source("FixelArray.R")
+          # source("ModelArray.R")
           # values <- scalars(data)[[scalar]][i,]   # ERROR: could not find function "scalars"
           values <- data@scalars[[scalar]][i,]   # ERROR: object of type 'S4' is not subsettable
           dat <- phenotypes
@@ -1351,7 +1351,7 @@ FixelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' Run a GAMM4 model at each fixel location
 #'
 #' @param formula Formula (passed to `gamm4()`)
-#' @param data FixelArray dataset
+#' @param data ModelArray dataset
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param phenotypes The cohort file with covariates to be added to the model
 #' @param subset A vector of fixel IDs to subset
@@ -1360,10 +1360,10 @@ FixelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' @param pbar Print progress bar
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
-FixelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
+ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
-  if(class(data) != "FixelArray") {
+  if(class(data) != "ModelArray") {
     stop("Not a fixel array for analysis")
   }
   
@@ -1463,7 +1463,7 @@ FixelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
 #'
 #' @param formula Formula (passed to `lm()`)
 #' @param FUN User-defined modelling function; must return a 1-row named vector or data.frame
-#' @param data FixelArray dataset
+#' @param data ModelArray dataset
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param phenotypes The cohort file with covariates to be added to the model
 #' @param subset A vector of fixel IDs to subset
@@ -1472,10 +1472,10 @@ FixelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
 #' @param pbar Print progress bar
 #' @return Tibble with the summarised model statistics at each fixel location
 #' 
-FixelArray.model <- function(formula, FUN, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
+ModelArray.model <- function(formula, FUN, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
-  if(class(data) != "FixelArray") {
+  if(class(data) != "ModelArray") {
     stop("Not a fixel array for analysis")
   }
   

@@ -1,10 +1,10 @@
-# memory profiling for FixelArray.lm()
+# memory profiling for ModelArray.lm()
 
 library(tictoc)
 tic.clearlog()
 tic("R running")
 
-tic("time before FixelArray.lm()")
+tic("time before ModelArray.lm()")
 
 ### input arguments #####
 #!/usr/bin/env Rscript
@@ -15,7 +15,7 @@ num.fixels <- as.integer(args[2])  # if ==0, set as full set
 num.subj <- as.integer(args[3])  
 num.cores <- as.integer(args[4])
 
-flag_library_what <- "FixelArray"   # "FixelArray" or "manually"
+flag_library_what <- "ModelArray"   # "ModelArray" or "manually"
 # TODO: different variables and formula!
 
 # checkers:
@@ -31,23 +31,23 @@ message(paste0("number of cores = "), toString(num.cores))
 ### basics #####
 flag_where <- "vmware"   # "CUBIC" or "vmware"
 if (flag_where =="CUBIC") {
-  setwd("/cbica/projects/fixel_db/FixelArray/notebooks")
+  setwd("/cbica/projects/fixel_db/ModelArray/notebooks")
 } else if (flag_where == "vmware") {
-  setwd("/home/chenying/Desktop/fixel_project/FixelArray/notebooks")
+  setwd("/home/chenying/Desktop/fixel_project/ModelArray/notebooks")
 }
 
-if (flag_library_what == "FixelArray") {
-  message("run: devtools::install() to install FixelArray package")
-  setwd("..")   # change to folder "FixelArray"
+if (flag_library_what == "ModelArray") {
+  message("run: devtools::install() to install ModelArray package")
+  setwd("..")   # change to folder "ModelArray"
   library(devtools)
   devtools::install()
-  library(FixelArray)
+  library(ModelArray)
   setwd("notebooks")
 
 } else if (flag_library_what == "manually") {
   message("run: source several R scripts and library some R packages...")
-  source("../R/FixelArray_Constructor.R")
-  source("../R/FixelArray_S4Methods.R")
+  source("../R/ModelArray_Constructor.R")
+  source("../R/ModelArray_S4Methods.R")
   source("../R/utils.R")
   source("../R/analyse.R")
 
@@ -143,9 +143,9 @@ if (fn != fn.output) {
 
 # h5closeAll()
 
-tic("Running FixelArray()")
-fixelarray <- FixelArray(fn.output, scalar_types = scalar)
-toc(log=TRUE)    # pairing tic of "Running FixelArray()"
+tic("Running ModelArray()")
+fixelarray <- ModelArray(fn.output, scalar_types = scalar)
+toc(log=TRUE)    # pairing tic of "Running ModelArray()"
 
 # check # subjects matches:
 if (dim(scalars(fixelarray)[[scalar]])[2] != num.subj) {
@@ -185,20 +185,20 @@ if (num.fixels == 0) {
 fixel.subset <- 1:num.fixels   # full: dim(scalars(fixelarray)[[scalar]])[1]
 
 
-toc(log=TRUE)   # pair tic of "time before FixelArray.lm()"
+toc(log=TRUE)   # pair tic of "time before ModelArray.lm()"
 
-### Run FixelArray.lm() ####
+### Run ModelArray.lm() ####
 
-tic("Running FixelArray.lm()")
+tic("Running ModelArray.lm()")
 
-lm.outputs <- FixelArray.lm (formula, fixelarray, phenotypes, scalar = scalar, fixel.subset = fixel.subset,
+lm.outputs <- ModelArray.lm (formula, fixelarray, phenotypes, scalar = scalar, fixel.subset = fixel.subset,
                              full.outputs = full.outputs,  
                              # var.terms = var.terms, var.model = var.model,
                              # correct.p.value.terms = "fdr",
                              # correct.p.value.model = c("fdr"),
                              verbose = TRUE, pbar = FALSE, n_cores = num.cores)  # , na.action="na.fixelarrayil"
 
-toc(log = TRUE)  # pairing tic of "Running FixelArray.lm()"
+toc(log = TRUE)  # pairing tic of "Running ModelArray.lm()"
 # lg <- toc(log = TRUE, quiet = TRUE)
 # log.lst <- tic.log(format = FALSE)
 # log.lst[[1]]$toc - log.lst[[1]]$tic    # in sec

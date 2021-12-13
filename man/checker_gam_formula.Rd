@@ -2,12 +2,12 @@
 % Please edit documentation in R/analyse.R
 \name{checker_gam_formula}
 \alias{checker_gam_formula}
-\title{A checker for formula in gam for FixelArray.gam()
+\title{A checker for formula in gam for ModelArray.gam()
 TODO: finish the description}
 \usage{
 checker_gam_formula(formula, gam.formula.breakdown, onemodel = NULL)
 }
 \description{
-A checker for formula in gam for FixelArray.gam()
+A checker for formula in gam for ModelArray.gam()
 TODO: finish the description
 }

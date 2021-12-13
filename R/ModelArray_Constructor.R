@@ -1,17 +1,17 @@
 # Exported Functions
 
-### setClass of "FixelArray" #####
+### setClass of "ModelArray" #####
 #' An S4 class to represent fixel-wise scalar data and statistics.
 #'
 #' @slot fixels A DelayedArray object of fixel data
 #' @slot voxels A DelayedArray object of voxel indeces
-#' @slot results An h5 group of FixelArray analysis outputs
+#' @slot results An h5 group of ModelArray analysis outputs
 #' @slot subjects A list of subject labels
 #' @slot scalars A list of scalars measured by the fixels
 #' @slot path Path to the h5 file on disk
 #' @importClassesFrom DelayedArray DelayedArray
-FixelArray <- setClass(
-  "FixelArray",
+ModelArray <- setClass(
+  "ModelArray",
   #contains="DelayedArray",
   slots = c(
     fixels="DelayedArray",
@@ -24,7 +24,7 @@ FixelArray <- setClass(
 )
 
 
-#' FixelArraySeed
+#' ModelArraySeed
 #'
 #' Generates a "seed" for the h5 file format. A wrapper around HDF5ArraySeed
 #' used to instantiate a delayed array
@@ -33,7 +33,7 @@ FixelArray <- setClass(
 #' @param name Name of the group/field in the h5 file
 #'
 #' @noRd
-FixelArraySeed <- function(
+ModelArraySeed <- function(
   # TODO write a test for this: checks that the h5 file has the right fields
   
   filepath,
@@ -61,28 +61,28 @@ FixelArraySeed <- function(
 }
 
 
-#' Load fixel data output from mrtrix as an h5 file into R as a FixelArray object
+#' Load fixel data output from mrtrix as an h5 file into R as a ModelArray object
 #' Tips for debugging: 
 #' if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via h5ls(filename_for_h5)
 #' TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
 #' @param filepath file
 #' @param scalar_types expected scalars
 #' @param analysis_names the subfolder names for results in .h5 file
-#' @return FixelArray object
+#' @return ModelArray object
 #' @export
 #' @import methods
 #' @import dplyr
 
-FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
+ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
   ## fixel_data: 
   
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
   # fn.h5 <- H5File$new(filepath, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
   # fixel_data <- fn.h5[["fixels"]]
   # NOTE: without DelayedArray (Bioconductor), the fixel_data won't look like a regular matrix in R or get transposed; 
-  # NOTE: I also need to test if only using hdf5r can still extract scalars(fa)[["FD"]]
+  # NOTE: I also need to test if only using hdf5r can still extract scalars(modelarray)[["FD"]]
   
-  fixel_data <- FixelArraySeed(filepath, name = "fixels", type = NA) %>%
+  fixel_data <- ModelArraySeed(filepath, name = "fixels", type = NA) %>%
     DelayedArray::DelayedArray()    # NOTE: without DelayedArray (BioConductor), the fixel_data won't look like a regular matrix in R or get transposed
 
   if(dim(fixel_data)[2] != 5) {
@@ -94,7 +94,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
   colnames(fixel_data) <- c("Fixel_id", "Voxel_id", "x", "y", "z")
   
   ## voxel_data:
-  voxel_data <- FixelArraySeed(filepath, name = "voxels", type = NA) %>%
+  voxel_data <- ModelArraySeed(filepath, name = "voxels", type = NA) %>%
     DelayedArray::DelayedArray()
 
   if(dim(voxel_data)[2] != 4) {
@@ -115,7 +115,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
     # TODO: IT'S BETTER TO CHECK IF THIS SCALAR_TYPE EXISTS OR NOT..... - Chenying
     
     # /scalars/<scalar_type>/values:
-    scalar_data[[x]] <- FixelArraySeed(filepath, name = sprintf("scalars/%s/values", scalar_types[x]), type = NA) %>%
+    scalar_data[[x]] <- ModelArraySeed(filepath, name = sprintf("scalars/%s/values", scalar_types[x]), type = NA) %>%
       DelayedArray::DelayedArray()
 
     if(dim(scalar_data[[x]])[1] < dim(scalar_data[[x]])[2]){
@@ -123,7 +123,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
     }
     
     # /scalars/<scalar_type>/ids:
-    ids[[x]] <- FixelArraySeed(filepath, name = sprintf("scalars/%s/ids", scalar_types[x]), type = NA) %>%
+    ids[[x]] <- ModelArraySeed(filepath, name = sprintf("scalars/%s/ids", scalar_types[x]), type = NA) %>%
       DelayedArray::DelayedArray()
 
     if(dim(ids[[x]])[1] < dim(ids[[x]])[2]){
@@ -156,14 +156,14 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
         # /results/<analysis_name>/has_names:
         names_results_matrix <- rhdf5::h5readAttributes(filepath, name = sprintf("results/%s/results_matrix", analysis_name))$colnames # after updating writeResults()
         
-        # names_results_matrix <- FixelArraySeed(filepath, name = sprintf("results/%s/has_names", analysis_name), type = NA) %>%
+        # names_results_matrix <- ModelArraySeed(filepath, name = sprintf("results/%s/has_names", analysis_name), type = NA) %>%
         #   DelayedArray::DelayedArray()
         # if (dim(names_results_matrix)[1]<dim(names_results_matrix[2]){
         #   names_results_matrix <- t(names_results_matrix)
         # }
         
         # /results/<analysis_name>/results_matrix:
-        results_data[[x]]$results_matrix <- FixelArraySeed(filepath, name = sprintf("results/%s/results_matrix", analysis_name), type = NA) %>%
+        results_data[[x]]$results_matrix <- ModelArraySeed(filepath, name = sprintf("results/%s/results_matrix", analysis_name), type = NA) %>%
           DelayedArray::DelayedArray()
         
         if (dim(results_data[[x]]$results_matrix)[2] != length(names_results_matrix)) {  # transpose if needed
@@ -179,7 +179,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
           flag_lut_exist <- flagObjectExistInh5(filepath, group_name=paste0("/results/",analysis_name),object_name=object_name)
           if (flag_lut_exist == TRUE) {
             
-            lut <- FixelArraySeed(filepath, name = paste0("results/", analysis_name,"/",object_name), type = NA) %>%
+            lut <- ModelArraySeed(filepath, name = paste0("results/", analysis_name,"/",object_name), type = NA) %>%
               DelayedArray::DelayedArray() 
             
             # results_data[[x]]$lut[[i_col]] <- lut
@@ -203,7 +203,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
         
         
         # NOTES:
-        # if there is no "$lut", we can remove "$results_matrix", so that results(FixelArray) would look like: $<myAnalysis>, instead of $<myAnalysis>$results_matrix
+        # if there is no "$lut", we can remove "$results_matrix", so that results(ModelArray) would look like: $<myAnalysis>, instead of $<myAnalysis>$results_matrix
         
       }
     }
@@ -214,7 +214,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
     
   
   new(
-    "FixelArray",
+    "ModelArray",
     fixels = fixel_data,
     voxels = voxel_data,
     subjects = ids,
@@ -228,7 +228,7 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 #' Analyse (fit statistical model) and write the outputs for 1 fixel
 #'
 #' @param formula Formula (passed to `lm()`)
-#' @param fa FixelArray class
+#' @param modelarray ModelArray class
 #' @param phenotypes The cohort matrix with covariates to be added to the model  
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param fn.output.h5 Opened h5 file (via H5File$new(filename, mode="a"))
@@ -247,12 +247,12 @@ FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 #' @import dplyr
  
 analyseNwriteOneFixel.lm <- function(i_fixel, 
-                                     formula, fa, phenotypes, scalar, fn.output.h5, analysis_name = "lm", 
+                                     formula, modelarray, phenotypes, scalar, fn.output.h5, analysis_name = "lm", 
                                      var.terms, var.model, 
                                      flag_initiate = FALSE, overwrite = TRUE,
                                      results.grp = NULL, results.analysis.grp = NULL, results_matrix_ds = NULL,
                                      verbose = TRUE, ...) {
-  values <- scalars(fa)[[scalar]][i_fixel,]
+  values <- scalars(modelarray)[[scalar]][i_fixel,]
   dat <- phenotypes
   dat[[scalar]] <- values
   onemodel <- stats::lm(formula, data = dat, ...)   
@@ -330,7 +330,7 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
       
       # create:
       results.analysis.grp <- results.grp$create_group(analysis_name)  # create a subgroup called analysis_name under results.grp
-      results.analysis.grp[["results_matrix"]] <- matrix(0, nrow=nrow(scalars(fa)[[scalar]]), ncol = ncol(onemodel.onerow))   # all 0
+      results.analysis.grp[["results_matrix"]] <- matrix(0, nrow=nrow(scalars(modelarray)[[scalar]]), ncol = ncol(onemodel.onerow))   # all 0
       results_matrix_ds <- results.analysis.grp[["results_matrix"]]   # name it
       # attach column names:
       h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(onemodel.onerow)  
@@ -365,7 +365,7 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
 #'
 #' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
 #' @param formula Formula (passed to `lm()`)
-#' @param fa FixelArray class
+#' @param modelarray ModelArray class
 #' @param phenotypes The cohort matrix with covariates to be added to the model  
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
@@ -379,11 +379,11 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
 #' @import dplyr
 
 analyseOneFixel.lm <- function(i_fixel, 
-                               formula, fa, phenotypes, scalar, 
+                               formula, modelarray, phenotypes, scalar, 
                                var.terms, var.model, 
                                flag_initiate = FALSE, 
                                ...) {
-  values <- scalars(fa)[[scalar]][i_fixel,]
+  values <- scalars(modelarray)[[scalar]][i_fixel,]
   dat <- phenotypes
   dat[[scalar]] <- values
   
@@ -485,11 +485,11 @@ analyseOneFixel.lm <- function(i_fixel,
 #' `analyseOneFixel.gam` fits a GAM model for one fixel data, and returns requested model statistics.
 #' 
 #' @details 
-#' `FixelArray.gam` iteratively calls this function to get statistics for all requested fixels.
+#' `ModelArray.gam` iteratively calls this function to get statistics for all requested fixels.
 #'
 #' @param i_fixel An integer, the i_th fixel, starting from 1. For initiating (flag_initiate = TRUE), use i_fixel=1
 #' @param formula A formula (passed to `mgcv::gam()`)
-#' @param fa FixelArray class
+#' @param modelarray ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param var.smoothTerms The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
@@ -504,11 +504,11 @@ analyseOneFixel.lm <- function(i_fixel,
 #' @import broom
 #' @import dplyr
 
-analyseOneFixel.gam <- function(i_fixel, formula, fa, phenotypes, scalar, 
+analyseOneFixel.gam <- function(i_fixel, formula, modelarray, phenotypes, scalar, 
                                 var.smoothTerms, var.parametricTerms, var.model, 
                                 flag_initiate = FALSE, 
                                 ...) {
-  values <- scalars(fa)[[scalar]][i_fixel,]
+  values <- scalars(modelarray)[[scalar]][i_fixel,]
   dat <- phenotypes
   dat[[scalar]] <- values
   
@@ -697,13 +697,13 @@ analyseOneFixel.gam <- function(i_fixel, formula, fa, phenotypes, scalar,
   
 #' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".old": for writing results with multiple rows for one fixel
 #' 
-#' @param fa FixelArray object
+#' @param modelarray ModelArray object
 #' @param data A data.frame object with model results at each fixel
 #' @param analysis_name The subfolder name in results, holding the analysis results 
 #' @param flag_overwrite If same analysis_name exists, whether overwrite or not
 #'
 
-writeResults.old <- function(fa, data, analysis_name = "myAnalysis", flag_overwrite=TRUE){ 
+writeResults.old <- function(modelarray, data, analysis_name = "myAnalysis", flag_overwrite=TRUE){ 
 
   # check if analysis_name subfolder already exists in the .h5 file:
   h5closeAll()
@@ -757,7 +757,7 @@ writeResults.old <- function(fa, data, analysis_name = "myAnalysis", flag_overwr
 #' debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.
 #' 
 #' @param fn.output The .h5 filename for the output, including folder directory
-#' @param df.output A data.frame object with model results at each fixel, returned from FixelArray.lm() etc
+#' @param df.output A data.frame object with model results at each fixel, returned from ModelArray.lm() etc
 #' @param analysis_name The subfolder name in results, holding the analysis results 
 #' @param overwrite If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)
 #' @import hdf5r

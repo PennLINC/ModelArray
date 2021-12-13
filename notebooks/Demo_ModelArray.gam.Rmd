@@ -1,5 +1,5 @@
 ---
-title: "demo for FixelArray.gam()"
+title: "demo for ModelArray.gam()"
 output: html_document
 ---
 ```{r}
@@ -8,13 +8,13 @@ rm(list = ls())
 
 # the working directory of this Demo is where it locates
 
-flag_library_what <- "manually"   # "FixelArray" or "manually"
+flag_library_what <- "manually"   # "ModelArray" or "manually"
 
-if (flag_library_what == "FixelArray") {
-  message("run: devtools::install() to install FixelArray package")
+if (flag_library_what == "ModelArray") {
+  message("run: devtools::install() to install ModelArray package")
   library(devtools)
   devtools::install()
-  library(FixelArray)
+  library(ModelArray)
   
   library(tictoc)
   
@@ -22,11 +22,11 @@ if (flag_library_what == "FixelArray") {
   
   message("run: source several R scripts and library some R packages...")
 
-  source("../R/FixelArray_Constructor.R")
-  source("../R/FixelArray_S4Methods.R")
+  source("../R/ModelArray_Constructor.R")
+  source("../R/ModelArray_S4Methods.R")
   source("../R/utils.R")
   source("../R/analyse.R")
-  # library(FixelArray)
+  # library(ModelArray)
   suppressMessages(library(dplyr))
   library(broom)
   library(hdf5r)
@@ -85,19 +85,19 @@ if (fn != fn.output) {
 }
 
 # h5closeAll()
-fixelarray <- FixelArray(fn.output, scalar_types = scalar)
+ModelArray <- ModelArray(fn.output, scalar_types = scalar)
 
 ```
 
 
-A quick overview of this FixelArray object:
+A quick overview of this ModelArray object:
 ```{r}
-fixelarray
-scalars(fixelarray)[[scalar]]
+ModelArray
+scalars(ModelArray)[[scalar]]
 
 # check # subjects matches:
-if (dim(scalars(fixelarray)[[scalar]])[2] != num.subj) {
-  stop(paste0("number of subjects in .h5 = ", dim(scalars(fixelarray)[[scalar]])[2], ", is not equal to entered number = ", toString(num.subj)))
+if (dim(scalars(ModelArray)[[scalar]])[2] != num.subj) {
+  stop(paste0("number of subjects in .h5 = ", dim(scalars(ModelArray)[[scalar]])[2], ", is not equal to entered number = ", toString(num.subj)))
 }
 ```
 
@@ -118,19 +118,19 @@ if (flag_whichdataset == "test_n50") {
 }
 
 if (num.fixels == 0) {
-  num.fixels <- dim(scalars(fixelarray)[[scalar]])[1]
+  num.fixels <- dim(scalars(ModelArray)[[scalar]])[1]
 }
 fixel.subset <- 1:num.fixels  
 ```
 
-# Start to run FixelArray.gam():
+# Start to run ModelArray.gam():
 ```{r}
 cat("formula is: ")   # BETTER TO USE FX=FALSE TO INCLUDE PENALTIES BUT ARGUES WITH BART AT SLACKKK
 formula
 cat(paste0("number of fixels to analyze = ", toString(num.fixels), "\n"))
 
 # defaults:
-mygam <- FixelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
+mygam <- ModelArray.gam(formula = formula, data = ModelArray, phenotypes = phenotypes, scalar = scalar, 
                            fixel.subset = fixel.subset, 
                         eff.size.term.index = c(1),  
                         n_cores=2, pbar = TRUE)
@@ -141,7 +141,7 @@ colnames(mygam)
 
 # full.outputs = TRUE:
 ```{r}
-mygam_allOutputs <- FixelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
+mygam_allOutputs <- ModelArray.gam(formula = formula, data = ModelArray, phenotypes = phenotypes, scalar = scalar, 
                            fixel.subset = fixel.subset, 
                            full.outputs = TRUE,
                         eff.size.term.index = c(1),   # eff.size's request is separated from full.outputs (user may not know it may run for an unexpected long time)
@@ -156,8 +156,8 @@ analysis_name <- "gam_allOutputs"
 writeResults(fn.output, df.output = mygam_allOutputs, analysis_name=analysis_name, overwrite=TRUE)
 
 # # read and see
-# fixelarray_new <- FixelArray(fn.output, scalar_types = scalar, analysis_names = analysis_name)
-# fixelarray_new@results$gam_allOutputs
+# ModelArray_new <- ModelArray(fn.output, scalar_types = scalar, analysis_names = analysis_name)
+# ModelArray_new@results$gam_allOutputs
 ```
 # check out the results of PNC dataset
 ```{r}
@@ -168,9 +168,9 @@ cat("time needed: nearly 9h (including another run of reduced model without smoo
 # time required: 
 # 
 fn.josiane.full <- "/home/chenying/Desktop/fixel_project/data/data_from_josiane/results/ltn_FDC_n938_wResults_nfixel-0_20211126-182543.h5"
-fixelarray_josiane_full <- FixelArray(fn.josiane.full, scalar_types = c("FDC"), analysis_names = "gam_allOutputs")
-fixelarray_josiane_full@results$gam_allOutputs$results_matrix 
-colnames(fixelarray_josiane_full@results$gam_allOutputs$results_matrix )
+ModelArray_josiane_full <- ModelArray(fn.josiane.full, scalar_types = c("FDC"), analysis_names = "gam_allOutputs")
+ModelArray_josiane_full@results$gam_allOutputs$results_matrix 
+colnames(ModelArray_josiane_full@results$gam_allOutputs$results_matrix )
 
 ```
 
@@ -178,7 +178,7 @@ colnames(fixelarray_josiane_full@results$gam_allOutputs$results_matrix )
 ```{r}
 
 i_fixel <- 1
-values <- scalars(fixelarray)[[scalar]][i_fixel,]
+values <- scalars(ModelArray)[[scalar]][i_fixel,]
 dat <- phenotypes
 dat[[scalar]] <- values
 

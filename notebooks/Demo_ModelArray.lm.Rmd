@@ -1,21 +1,21 @@
 ---
-title: "demo of FixelArray's lm"
+title: "demo of ModelArray's lm"
 output: html_document
 ---
 <!-- # ```{r setup, include = fixelarrayLSE} -->
 <!-- # knitr::opts_chunk$set(eval = fixelarrayLSE, cache = TRUE)   # save the cache -->
 <!-- # ``` -->
-This is to show how FixelArray's lm looks like after its updates (including better results structure, trying to use hdf5r(CRAN) instead of rhdf5 (BioConductor) etc)
+This is to show how ModelArray's lm looks like after its updates (including better results structure, trying to use hdf5r(CRAN) instead of rhdf5 (BioConductor) etc)
 ```{r}
 # the working directory of this Demo is where it locates
 
-flag_library_what <- "FixelArray"   # "FixelArray" or "manually"
+flag_library_what <- "ModelArray"   # "ModelArray" or "manually"
 
-if (flag_library_what == "FixelArray") {
-  message("run: devtools::install() to install FixelArray package")
+if (flag_library_what == "ModelArray") {
+  message("run: devtools::install() to install ModelArray package")
   library(devtools)
   devtools::install()
-  library(FixelArray)
+  library(ModelArray)
   
   library(tictoc)
   
@@ -23,11 +23,11 @@ if (flag_library_what == "FixelArray") {
   
   message("run: source several R scripts and library some R packages...")
 
-  source("../R/FixelArray_Constructor.R")
-  source("../R/FixelArray_S4Methods.R")
+  source("../R/ModelArray_Constructor.R")
+  source("../R/ModelArray_S4Methods.R")
   source("../R/utils.R")
   source("../R/analyse.R")
-  # library(FixelArray)
+  # library(ModelArray)
   suppressMessages(library(dplyr))
   library(broom)
   library(hdf5r)
@@ -38,7 +38,7 @@ if (flag_library_what == "FixelArray") {
   suppressMessages(library(doParallel))
 }
 # Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001) 
-# folder_rprofout <- "/home/chenying/Desktop/fixel_project/FixelArray/notebooks"
+# folder_rprofout <- "/home/chenying/Desktop/fixel_project/ModelArray/notebooks"
 
 flag_whichdataset <- "josiane"   # "val" or "test_n50" or "josiane"
 num.subj <- 938  # [integer]   
@@ -46,7 +46,7 @@ num.fixels <- 1000  # 0 = full
 flag_which_subset <- ""
 flag_where <- "vmware"   # "CUBIC" or "vmware"
 ```
-Inputs set-ups: let's copy the input .h5 file and name it as fn.output; based on it, we create a FixelArray class data:
+Inputs set-ups: let's copy the input .h5 file and name it as fn.output; based on it, we create a ModelArray class data:
 ```{r}
 now_str <- format(Sys.time(), "%Y%m%d-%H%M%S")
 
@@ -114,16 +114,16 @@ if (fn != fn.output) {
 }
 
 # h5closeAll()
-fixelarray <- FixelArray(fn.output, scalar_types = scalar)
+fixelarray <- ModelArray(fn.output, scalar_types = scalar)
 ```
 <!-- Let's create a H5File to access the output .h5 file: -->
 <!-- ```{r} -->
 <!-- fn.output.h5 <- H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write -->
 <!-- fn.output.h5 -->
 
-<!-- fixelarray <-  FixelArray(fn) # TODO: error with fixelarray <- FixelArray(fn.output)  ??? -->
+<!-- fixelarray <-  ModelArray(fn) # TODO: error with fixelarray <- ModelArray(fn.output)  ??? -->
 <!-- ``` -->
-A quick overview of this FixelArray object:
+A quick overview of this ModelArray object:
 ```{r}
 fixelarray
 scalars(fixelarray)[[scalar]]
@@ -162,7 +162,7 @@ if (num.fixels == 0) {
 fixel.subset <- 1:num.fixels   # full: dim(scalars(fixelarray)[[scalar]])[1]
 ```
 
-Run FixelArray.lm():
+Run ModelArray.lm():
 ```{r}
 tic.clearlog()
 tic()
@@ -170,7 +170,7 @@ tic()
 # # Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001) 
 # Rprof(filename = "Rprof_test.out", interval = 0.01, memory.profiling = TRUE)   # interval = 0.001
 
-lm.outputs <- FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
+lm.outputs <- ModelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
                              full.outputs = TRUE,   # +++++++++++++++++++++
                              #var.terms = var.terms, var.model = var.model, 
                              correct.p.value.terms = c("fdr", "bonferroni"),
@@ -184,7 +184,7 @@ log.lst <- tic.log(format = FALSE)
 log.lst[[1]]$toc - log.lst[[1]]$tic    # in sec
 
 
-# folder_rprofout = "/home/chenying/Desktop/fixel_project/FixelArray"
+# folder_rprofout = "/home/chenying/Desktop/fixel_project/ModelArray"
 # Rprofsummary_both <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "both")
 # Rprofsummary_tseries <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "tseries")
 # Rprofsummary_stats <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "stats")
@@ -194,20 +194,20 @@ log.lst[[1]]$toc - log.lst[[1]]$tic    # in sec
 # max(Rprofsummary_tseries$nodes)/1024/1024    # in bytes --> MB  # 1:1000: max=502MB; median=0.0834198 MB; mean=2.180295 MB
 # # max(Rprofsummary_stats$by.total$mem.total)  # in bytes
 # 
-# # prof  <- lineprof(FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
+# # prof  <- lineprof(ModelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
 # #                              full.output = full.output,  var.terms = var.terms, var.model = var.model, 
 # #                              correct.p.value.terms = "none",
 # #                              correct.p.value.model = c("fdr","bonferroni"),
 # #                               verbose = TRUE, pbar = TRUE, n_cores = 2))
 # 
-# # peakRAM_lm <- peakRAM(FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
+# # peakRAM_lm <- peakRAM(ModelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset, 
 # #                              full.output = full.output,  var.terms = var.terms, var.model = var.model, 
 # #                              correct.p.value.terms = "none",
 # #                              correct.p.value.model = c("fdr","bonferroni"),
 # #                               verbose = TRUE, pbar = TRUE, n_cores = 2))
 # 
 # # profvis_lm <- profvis({
-# #   FixelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset,
+# #   ModelArray.lm (formula, fixelarray, phenotypes, scalar, fixel.subset = fixel.subset,
 # #                              full.output = full.output,  var.terms = var.terms, var.model = var.model,
 # #                              correct.p.value.terms = "none",
 # #                              correct.p.value.model = c("fdr","bonferroni"),
@@ -262,6 +262,6 @@ writeResults(fn.output, df.output = lm.outputs, analysis_name=analysis_name, ove
 
 Let's see what the saved outputs look like: The "results" group:
 ```{r}
-fixelarray_new <- FixelArray(fn.output, scalar_types = scalar, analysis_names = c("lm"))
+fixelarray_new <- ModelArray(fn.output, scalar_types = scalar, analysis_names = c("lm"))
 fixelarray_new@results$lm
 ```

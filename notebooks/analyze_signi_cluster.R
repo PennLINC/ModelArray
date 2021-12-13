@@ -31,8 +31,8 @@ library("gratia")
 library("ggplot2")
 
 source("notebooks/GAMM_plotting.R")   # Bart Larsen's function for visualizing gam results
-source("R/FixelArray_Constructor.R")
-source("R/FixelArray_S4Methods.R")
+source("R/ModelArray_Constructor.R")
+source("R/ModelArray_S4Methods.R")
 source("R/utils.R")
 source("R/analyse.R")
 
@@ -140,13 +140,13 @@ method.gam.refit <- "GCV.Cp"   # +++++++++++++++
 
 ### load data #####
 folder.h5.results <- gsub(".h5", "", fn.h5.results, fixed=TRUE)
-fixelarray <- FixelArray(fn.h5.results, scalar_types = scalar_name, analysis_names = analysis_name)
-num_fixel_total <- nrow(fixelarray@fixels)
-if (num.subj != fixelarray@subjects[[scalar_name]] %>% length()) {
-  stop("number of subjects in fixelarray is not equal to requested one!")
+ModelArray <- ModelArray(fn.h5.results, scalar_types = scalar_name, analysis_names = analysis_name)
+num_fixel_total <- nrow(ModelArray@fixels)
+if (num.subj != ModelArray@subjects[[scalar_name]] %>% length()) {
+  stop("number of subjects in ModelArray is not equal to requested one!")
 }
-results_matrix <- fixelarray@results[[analysis_name]]$results_matrix 
-# colnames(fixelarray@results$gam_allOutputs$results_matrix )
+results_matrix <- ModelArray@results[[analysis_name]]$results_matrix 
+# colnames(ModelArray@results$gam_allOutputs$results_matrix )
 
 phenotypes <- read.csv(fn_csv)
 # check # subjects matches:
@@ -174,7 +174,7 @@ fn.fixel_id_list_intersect <- step3_intersect(folder.h5.results,
 fixel_id_list_intersect <- scan(fn.fixel_id_list_intersect, what="", sep="\n") %>% as.integer()
 
 # avg
-scalar_matrix <- scalars(fixelarray)[[scalar_name]]
+scalar_matrix <- scalars(ModelArray)[[scalar_name]]
 if (nrow(scalar_matrix) != num_fixel_total) {
   stop("scalar_matrix does not contain full list of fixels!")
 }
@@ -189,7 +189,7 @@ for (i_fixel_selected in 1:length(fixel_id_list_intersect)) {
   # re-fit:
   fixel_id <- fixel_id_list_intersect[i_fixel_selected]
   
-  values <- scalars(fixelarray)[[scalar_name]][(fixel_id + 1),]    # fixel_id starts from 0
+  values <- scalars(ModelArray)[[scalar_name]][(fixel_id + 1),]    # fixel_id starts from 0
   
   dat <- phenotypes
   dat[[scalar_name]] <- values
@@ -237,11 +237,11 @@ df_avgFixel[[scalar_name]] <- avgFixel_subj
 ### plot ######
 
 #' @param fixel_id starting from 0!
-plot_oneFixel <- function(fixelarray, fixel_id, scalar_name,
+plot_oneFixel <- function(ModelArray, fixel_id, scalar_name,
                           phenotypes,
                           dat = NULL, return_else = FALSE) {
   if (is.null(dat)) {
-    values <- scalars(fixelarray)[[scalar_name]][(fixel_id + 1),]    # fixel_id starts from 0
+    values <- scalars(ModelArray)[[scalar_name]][(fixel_id + 1),]    # fixel_id starts from 0
     
     dat <- phenotypes
     dat[[scalar_name]] <- values
@@ -275,10 +275,10 @@ plot_oneFixel <- function(fixelarray, fixel_id, scalar_name,
 }
 
 # plot one fixel:
-f_1 <- plot_oneFixel(fixelarray, fixel_id_list_intersect[1], scalar_name, phenotypes)
-f_last <- plot_oneFixel(fixelarray, fixel_id_list_intersect[length(fixel_id_list_intersect)], scalar_name, phenotypes)
+f_1 <- plot_oneFixel(ModelArray, fixel_id_list_intersect[1], scalar_name, phenotypes)
+f_last <- plot_oneFixel(ModelArray, fixel_id_list_intersect[length(fixel_id_list_intersect)], scalar_name, phenotypes)
 
-results <- plot_oneFixel(fixelarray=NULL, NULL, scalar_name, phenotypes, dat=df_avgFixel, return_else = TRUE)
+results <- plot_oneFixel(ModelArray=NULL, NULL, scalar_name, phenotypes, dat=df_avgFixel, return_else = TRUE)
 f_avgFixel <- results$f
 onemodel_avgFixel <- results$onemodel
 f_avgFixel
