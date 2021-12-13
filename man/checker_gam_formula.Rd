@@ -5,7 +5,7 @@
 \title{A checker for formula in gam for FixelArray.gam()
 TODO: finish the description}
 \usage{
-checker_gam_formula(formula, gam.formula.breakdown, onemodel)
+checker_gam_formula(formula, gam.formula.breakdown, onemodel = NULL)
 }
 \description{
 A checker for formula in gam for FixelArray.gam()

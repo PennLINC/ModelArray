@@ -2,10 +2,7 @@
 % Please edit documentation in R/analyse.R
 \name{generator_gamFormula_factorXsmooth}
 \alias{generator_gamFormula_factorXsmooth}
-\title{Generate GAM formula with interaction term: factor-smooth interaction
-Example 
-`factor.var` and `smooth.var` should come from data.frame `phenotypes`
-TODO: finish description}
+\title{Generate GAM formula with factor-smooth interaction}
 \usage{
 generator_gamFormula_factorXsmooth(
   response.var,
@@ -15,7 +12,7 @@ generator_gamFormula_factorXsmooth(
   reference.group = NULL,
   prefix.ordered.factor = "o",
   fx = TRUE,
-  k = -1
+  k = NULL
 )
 }
 \arguments{
@@ -25,7 +22,7 @@ generator_gamFormula_factorXsmooth(
 
 \item{smooth.var}{character class, the variable name in smooth term as main effect}
 
-\item{phenotypes}{data.frame class, the cohort matrix with covariates to be added to the model}
+\item{phenotypes}{data.frame class, the cohort matrix with columns of independent variables (including \code{factor.var} and \code{smooth.var}) to be added to the model}
 
 \item{reference.group}{character class, the reference group for ordered factor of `factor.var`; required when `factor.var` in `phenotypes` is not an ordered factor.}
 
@@ -33,14 +30,13 @@ generator_gamFormula_factorXsmooth(
 
 \item{fx}{TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.}
 
-\item{k}{integer, to be used in smooth term s(). Default is -1 as in mgcv::s()}
+\item{k}{integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default value as in mgcv::s()}
 }
 \value{
 a list, including: 1) formula generated; 2) data.frame phenotypes - updated if argument factor.var is not an ordered factor
 }
 \description{
-Generate GAM formula with interaction term: factor-smooth interaction
-Example 
-`factor.var` and `smooth.var` should come from data.frame `phenotypes`
-TODO: finish description
+This function will generate a formula in the following format: \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor)},
+where \code{y} is \code{response.var}, \code{x} is \code{smooth.var}, and \code{orderedFactor} is \code{factor.var} - see \code{factor.var} for more.
+The formula generated could be further modified, e.g. adding covariates.
 }
