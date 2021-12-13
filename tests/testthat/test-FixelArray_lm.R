@@ -1,5 +1,5 @@
 test_that("FixelArray.lm() works as expected", {
-  h5_path <- system.file("extdata", "n50_fixels.h5", package = "FixelArray")   # TODO: ask Tinashe
+  h5_path <- system.file("extdata", "n50_fixels.h5", package = "FixelArray")
  
   fa <- FixelArray(h5_path,
                     "scalar_types" = c("FD"),
@@ -10,7 +10,7 @@ test_that("FixelArray.lm() works as expected", {
   # fa <- FixelArray(h5_path,
   # scalar_types = c("FD"))
   
-  csv_path <- system.file("extdata", "n50_cohort.csv", package = "FixelArray")   # TODO: ask Tinashe
+  csv_path <- system.file("extdata", "n50_cohort.csv", package = "FixelArray")
   # csv_path <- paste0(system.file(package = "FixelArray"),
   #                    "inst/extdata/","n50_cohort.csv")
   
@@ -19,6 +19,9 @@ test_that("FixelArray.lm() works as expected", {
   var.terms <- c("estimate", "p.value")   # list of columns to keep  | , "std.error","statistic"
   var.terms.full <- c("estimate", "p.value", "std.error","statistic")
   var.model <- c("r.squared", "p.value", "AIC")
+  
+  
+  ### basic check #####
   mylm <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                         var.terms = var.terms,
                         var.model = var.model,
@@ -62,7 +65,7 @@ test_that("FixelArray.lm() works as expected", {
   expect_equal(mylm, temp)
   
   
-  ## Test n_cores, pbar work: ######
+  ### Test n_cores, pbar work #####
   # n_cores=2:
   mylm_ncores2 <- FixelArray.lm(FD ~ age, data = fa, phenotypes = phenotypes, scalar = scalar_name, fixel.subset = 1:100, 
                                 var.terms = var.terms,
