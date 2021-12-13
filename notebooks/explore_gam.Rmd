@@ -142,8 +142,6 @@ print(formula)
 expect_error(key_names(formula, dat, 1))
 
 
-# TODO: try out other weird formula! also check if term names will be the same (even though original one in formula are not, but after changing, they are the same...)
-
 ```
 
 # test out checker for formula in analyse.R:
