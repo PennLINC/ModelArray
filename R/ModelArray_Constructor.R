@@ -233,10 +233,10 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param fn.output.h5 Opened h5 file (via H5File$new(filename, mode="a"))
 #' @param analysis_name The subgroup name in results, holding the analysis results 
-#' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
+#' @param i_grid The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_grid=1
 #' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
-#' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE.
+#' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_grid, then TRUE.
 #' @param results.grp # TODO: to explain
 #' @param results.analysis.grp
 #' 
@@ -246,13 +246,13 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 #' @import broom
 #' @import dplyr
  
-analyseNwriteOneFixel.lm <- function(i_fixel, 
+analyseNwriteOneFixel.lm <- function(i_grid, 
                                      formula, modelarray, phenotypes, scalar, fn.output.h5, analysis_name = "lm", 
                                      var.terms, var.model, 
                                      flag_initiate = FALSE, overwrite = TRUE,
                                      results.grp = NULL, results.analysis.grp = NULL, results_matrix_ds = NULL,
                                      verbose = TRUE, ...) {
-  values <- scalars(modelarray)[[scalar]][i_fixel,]
+  values <- scalars(modelarray)[[scalar]][i_grid,]
   dat <- phenotypes
   dat[[scalar]] <- values
   onemodel <- stats::lm(formula, data = dat, ...)   
@@ -348,7 +348,7 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
 
     
     # then flush into .h5 file: 
-    results_matrix_ds[i_fixel,] <- as.numeric(onemodel.onerow)   # TODO: ask Matt if a column of fixel_id is needed?
+    results_matrix_ds[i_grid,] <- as.numeric(onemodel.onerow)   # TODO: ask Matt if a column of grid_id is needed?
     
     # # will return nothing (as results.* are just provided in the arguments....)
     # a = as.numeric(onemodel.onerow)
@@ -363,14 +363,14 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
 
 #' Analyse (fit linear model) and write the outputs for 1 fixel
 #'
-#' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
+#' @param i_grid The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_grid=1
 #' @param formula Formula (passed to `lm()`)
 #' @param modelarray ModelArray class
 #' @param phenotypes The cohort matrix with covariates to be added to the model  
 #' @param scalar The name of the scalar to be analysed fixel-wise
 #' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
-#' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE and it will return column names.
+#' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_grid, then TRUE and it will return column names.
 #' 
 #' @return if flag_initiate==TRUE, returns column names & list of terms of final results; if flag_initiate==FALSE, returns the final results for a fixel
 #' @export
@@ -378,12 +378,12 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
 #' @import broom
 #' @import dplyr
 
-analyseOneFixel.lm <- function(i_fixel, 
+analyseOneFixel.lm <- function(i_grid, 
                                formula, modelarray, phenotypes, scalar, 
                                var.terms, var.model, 
                                flag_initiate = FALSE, 
                                ...) {
-  values <- scalars(modelarray)[[scalar]][i_fixel,]
+  values <- scalars(modelarray)[[scalar]][i_grid,]
   dat <- phenotypes
   dat[[scalar]] <- values
   
@@ -457,7 +457,7 @@ analyseOneFixel.lm <- function(i_fixel,
   onemodel.onerow <- bind_cols(onemodel.tidy.onerow, onemodel.glance.onerow)
   # add a column of fixel ids:
   colnames.temp <- colnames(onemodel.onerow)
-  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(fixel_id = i_fixel-1, .before = colnames.temp[1])   # add as the first column
+  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(grid_id = i_grid-1, .before = colnames.temp[1])   # add as the first column
   
   # now you can get the headers, # of columns, etc of the output results
   
@@ -487,7 +487,7 @@ analyseOneFixel.lm <- function(i_fixel,
 #' @details 
 #' `ModelArray.gam` iteratively calls this function to get statistics for all requested fixels.
 #'
-#' @param i_fixel An integer, the i_th fixel, starting from 1. For initiating (flag_initiate = TRUE), use i_fixel=1
+#' @param i_grid An integer, the i_th fixel, starting from 1. For initiating (flag_initiate = TRUE), use i_grid=1
 #' @param formula A formula (passed to `mgcv::gam()`)
 #' @param modelarray ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
@@ -504,11 +504,11 @@ analyseOneFixel.lm <- function(i_fixel,
 #' @import broom
 #' @import dplyr
 
-analyseOneFixel.gam <- function(i_fixel, formula, modelarray, phenotypes, scalar, 
+analyseOneFixel.gam <- function(i_grid, formula, modelarray, phenotypes, scalar, 
                                 var.smoothTerms, var.parametricTerms, var.model, 
                                 flag_initiate = FALSE, 
                                 ...) {
-  values <- scalars(modelarray)[[scalar]][i_fixel,]
+  values <- scalars(modelarray)[[scalar]][i_grid,]
   dat <- phenotypes
   dat[[scalar]] <- values
   
@@ -670,7 +670,7 @@ analyseOneFixel.gam <- function(i_fixel, formula, modelarray, phenotypes, scalar
 
   # add a column of fixel ids:
   colnames.temp <- colnames(onemodel.onerow)
-  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(fixel_id = i_fixel-1, .before = colnames.temp[1])   # add as the first column
+  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(grid_id = i_grid-1, .before = colnames.temp[1])   # add as the first column
   
   # now you can get the headers, # of columns, etc of the output results
 

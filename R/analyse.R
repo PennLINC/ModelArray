@@ -211,7 +211,7 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel=NULL) {
   }
   
   
-  # # fit for one fixel, get the summarized stat:
+  # # fit for one grid, get the summarized stat:
   # onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
   # onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
   # onemodel.glance <- onemodel %>% broom::glance()
@@ -320,174 +320,6 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 }
 
 
-#' Run a linear model at each fixel location
-#'
-#' @param formula Formula (passed to `lm()`)
-#' @param data ModelArray dataset
-#' @param phenotypes The cohort file with covariates to be added to the model
-#' @param scalar The name of the scalar to be analysed fixel-wise
-#' @param verbose Print progress messages
-#' @param idx A vector of fixel IDs to subset
-#' @param pbar Print progress bar
-#' @param n_cores The number of cores to run on
-#' @return Tibble with the summarised model statistics at each fixel location
-#' 
-ModelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
-  
-  # data type assertions
-  if(class(data) != "ModelArray") {
-    stop("Not a fixel array for analysis")
-  }
-  
-  ### display additional arguments:
-  dots <- list(...)
-  dots_names <- names(dots)
-  
-  FUN <- stats::lm
-  
-  # subset:
-  m1 <- "no default"  
-  printAdditionalArgu(FUN, "subset", dots, m1)
-  
-  # weights:
-  m1 <- "no default"
-  if ("weights" %in% dots_names) {  # if user provides weights
-    m_usr_input <- paste0( class(dots$weights), " with length of ", length(dots$weights)) # message describing usr's input; cannot use dim on c(1,2) 
-  } else {
-    m_usr_input <- NULL
-  }
-  printAdditionalArgu(FUN, "weights", dots, m1, m_usr_input)
-  
-  # na.action:
-  m1 <- "no default"
-  printAdditionalArgu(FUN, "na.action", dots, m1)
-  
-  # method:
-  printAdditionalArgu(FUN, "method", dots)  # default: "qr"
-  
-  # model:
-  m1 <- invisible(eval(formals(FUN)[["model"]])) %>% as.character()   # default: [logical] TRUE
-  printAdditionalArgu(FUN, "model", dots, m1)  
-  
-  # x:
-  m1 <- invisible(eval(formals(FUN)[["x"]])) %>% as.character()   # default: [logical] FALSE
-  printAdditionalArgu(FUN, "x", dots, m1)
-  
-  # y:
-  m1 <- invisible(eval(formals(FUN)[["y"]])) %>% as.character()   # default: [logical] FALSE
-  printAdditionalArgu(FUN, "y", dots, m1)
-  
-  # qr:
-  m1 <- invisible(eval(formals(FUN)[["qr"]])) %>% as.character()   # default: [logical] TRUE
-  printAdditionalArgu(FUN, "qr", dots, m1)
-  
-  # singular.ok:
-  m1 <- invisible(eval(formals(FUN)[["singular.ok"]])) %>% as.character()   # default: [logical] TRUE
-  printAdditionalArgu(FUN, "singular.ok", dots, m1)
-  
-  # contrasts:
-  printAdditionalArgu(FUN, "contrasts", dots)   # default: NULL
-  
-  # offset:
-  m1 <- "no default"   # there is no default
-  printAdditionalArgu(FUN, "offset", dots, m1)
-  
-  ### start the process:
-  if(verbose){
-    message(glue::glue("Fitting fixel-wise linear models for {scalar}", ))
-  }
-  
-  n_models <- length(fixels(data)[,1])
-  
-  if(is.null(idx)){
-    ids <- 1:n_models
-  } else {
-    ids <- idx
-  }
-  
-  # is it a multicore process?
-  if(n_cores > 1){
-    
-    if(pbar){
-      
-      fits <- pbmcapply::pbmclapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        stats::lm(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
-        
-      }, mc.cores = n_cores, ...)
-      
-    } else {
-      
-      fits <- parallel::mclapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        stats::lm(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
-        
-        # NOTES: see current ModelArray.lm, after: remove tibble information and turn into numeric function
-        
-        
-        # lm(formula, data = dat, ...) %>%
-        #   broom::glance() %>%
-        #   print()
-        
-      }, mc.cores = n_cores, ...)
-      
-    }
-  } else {
-    
-    if(pbar){
-      
-      fits <- pbapply::pblapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        stats::lm(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
-        
-      }, ...)
-      
-    }
-    else {
-      
-      fits <- lapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        stats::lm(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
-        
-      }, ...)
-      
-    }
-  }
-  
-  df_out <- do.call(rbind, fits)
-  
-  # if(write){
-  #   WriteResult(data, df_out, glue::glue("scalars/{scalar}/results"))
-  # }
-  
-  df_out
-  
-}
-
 #' Run a linear model at each fixel location, write out each result just after the model fitting 
 #' For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
 #'
@@ -495,7 +327,7 @@ ModelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' @param data ModelArray class
 #' @param phenotypes The cohort matrix with covariates to be added to the model  
 #' @param scalar The name of the scalar to be analysed fixel-wise
-#' @param fixel.subset The subset of fixel ids you want to run. Integers. First id starts from 1.
+#' @param grid.subset The subset of fixel ids you want to run. Integers. First id starts from 1.
 #' @param full.outputs Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.
 #' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
 #' @param var.model The list of variables to save for the model (got from lm %>% glance())
@@ -509,7 +341,7 @@ ModelArray.old.lm <- function(formula, data, phenotypes, scalar, verbose = TRUE,
 #' @import tibble
 #' @export
 
-ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
+ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL, full.outputs = FALSE, 
                               var.terms = c("estimate", "statistic", "p.value"), 
                               var.model = c("adj.r.squared", "p.value"), 
                           correct.p.value.terms = "none", correct.p.value.model = "none",
@@ -519,15 +351,15 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
     stop("Not a fixel array for analysis")
   }
   
-  # checker for min and max of fixel.subset; and whether elements are integer
-  if (min(fixel.subset) < 1) {
-    stop("Minimal value in fixel.subset should >= 1")
+  # checker for min and max of grid.subset; and whether elements are integer
+  if (min(grid.subset) < 1) {
+    stop("Minimal value in grid.subset should >= 1")
   }
-  if (max(fixel.subset) > nrow(scalars(data)[[scalar]])) {
-    stop(paste0("Maximal value in fixel.subset should <= number of fixels = "), as.character(nrow(scalars(data)[[scalar]])))
+  if (max(grid.subset) > nrow(scalars(data)[[scalar]])) {
+    stop(paste0("Maximal value in grid.subset should <= number of fixels = "), as.character(nrow(scalars(data)[[scalar]])))
   }
-  if (class(fixel.subset) != "integer") {
-    stop("Please enter integers for fixel.subset!")
+  if (class(grid.subset) != "integer") {
+    stop("Please enter integers for grid.subset!")
   }
   
   
@@ -627,7 +459,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 
   
   # initiate: get the example of one fixel and get the column names
-  outputs_initiator <- analyseOneFixel.lm(i_fixel=1, formula, data, phenotypes, scalar, 
+  outputs_initiator <- analyseOneFixel.lm(i_grid=1, formula, data, phenotypes, scalar, 
                                      var.terms, var.model, 
                                      flag_initiate = TRUE, 
                                      ...)
@@ -645,7 +477,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
     
     if (pbar) {
       
-      fits <- pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
+      fits <- pbmcapply::pbmclapply(grid.subset,   # a list of i_grid
                                     analyseOneFixel.lm,  # the function
                                     mc.cores = n_cores,
                                     formula, data, phenotypes, scalar,
@@ -657,7 +489,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
       
       # foreach::foreach
       
-      fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel 
+      fits <- parallel::mclapply(grid.subset,   # a list of i_grid 
                                  analyseOneFixel.lm,  # the function
                                  mc.cores = n_cores,
                                  formula, data, phenotypes, scalar,
@@ -670,7 +502,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
     
     if (pbar) {
       
-      fits <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
+      fits <- pbapply::pblapply(grid.subset,   # a list of i_grid
                                 analyseOneFixel.lm,  # the function
                                 formula, data, phenotypes, scalar,
                                 var.terms, var.model,
@@ -679,7 +511,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
       
     } else {
       
-      fits <- lapply(fixel.subset,   # a list of i_fixel
+      fits <- lapply(grid.subset,   # a list of i_grid
                      analyseOneFixel.lm,  # the function
                      formula, data, phenotypes, scalar,
                      var.terms, var.model,
@@ -755,10 +587,10 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 
 
 
-#' Run GAM for fixel-wise data
+#' Run GAM for grid-wise data
 #' 
 #' @description 
-#' `ModelArray.gam` fits gam model for each of fixels requested, and returns a tibble dataframe of requested model statistics.
+#' `ModelArray.gam` fits gam model for each of grids requested, and returns a tibble dataframe of requested model statistics.
 #' 
 #' @details 
 #' You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
@@ -788,8 +620,8 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' @param formula Formula (passed to `mgcv::gam()`)
 #' @param data ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
-#' @param scalar A character. The name of the scalar to be analysed fixel-wise
-#' @param fixel.subset A list of positive integers. The subset of fixel ids you want to run. Integers. First id starts from 1.
+#' @param scalar A character. The name of the grid-wise scalar to be analysed
+#' @param grid.subset A list of positive integers. The subset of grid ids you want to run. Integers. First id starts from 1.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.
 #' @param var.smoothTerms A list of characters. The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.
 #' @param var.parametricTerms A list of characters. The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.
@@ -801,14 +633,14 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #' @param pbar TRUE or FALSE, to print progress bar
 #' @param n_cores Positive integer, The number of CPU cores to run with
 #' @param ... Arguments for 'mgcv::gam()'
-#' @return Tibble with the summarized model statistics for all fixels requested
+#' @return Tibble with the summarized model statistics for all grids requested
 #' @import dplyr
 #' @import doParallel
 #' @import tibble
 #' @import mgcv
 #' @export
 
-ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NULL, full.outputs = FALSE, 
+ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL, full.outputs = FALSE, 
                               var.smoothTerms = c("statistic","p.value"),
                               var.parametricTerms = c("estimate", "statistic", "p.value"),
                               var.model = c("dev.expl"), 
@@ -817,18 +649,18 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...){
   # data type assertions
   if(class(data) != "ModelArray") {
-    stop("Not a fixel array for analysis")
+    stop("data's class is not a ModelArray!")
   }
   
-  # checker for min and max of fixel.subset; and whether elements are integer
-  if (min(fixel.subset) < 1) {
-    stop("Minimal value in fixel.subset should >= 1")
+  # checker for min and max of grid.subset; and whether elements are integer
+  if (min(grid.subset) < 1) {
+    stop("Minimal value in grid.subset should >= 1")
   }
-  if (max(fixel.subset) > nrow(scalars(data)[[scalar]])) {
-    stop(paste0("Maximal value in fixel.subset should <= number of fixels = "), as.character(nrow(scalars(data)[[scalar]])))
+  if (max(grid.subset) > nrow(scalars(data)[[scalar]])) {
+    stop(paste0("Maximal value in grid.subset should <= number of grids = "), as.character(nrow(scalars(data)[[scalar]])))
   }
-  if (class(fixel.subset) != "integer") {
-    stop("Please enter integers for fixel.subset!")
+  if (class(grid.subset) != "integer") {
+    stop("Please enter integers for grid.subset!")
   }
   
   # check if the formula is valid in terms of mgcv::gam()
@@ -844,7 +676,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   
   # print out the additional arguments in smooth terms:
   
-  # # to check formula, we need to fit one fixel:
+  # # to check formula, we need to fit one grid:
   # values <- scalars(data)[[scalar]][1,]
   # dat <- phenotypes
   # dat[[scalar]] <- values
@@ -952,12 +784,12 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
   ### run
   # start the process:
   if(verbose){
-    message(glue::glue("Fitting fixel-wise GAMs for {scalar}", ))
+    message(glue::glue("Fitting grid-wise GAMs for {scalar}", ))
     message(glue::glue("initiating....", ))
   }
 
-  # initiate: get the example of one fixel and get the column names
-  outputs_initiator <- analyseOneFixel.gam(i_fixel=1, formula, data, phenotypes, scalar,
+  # initiate: get the example of one grid and get the column names
+  outputs_initiator <- analyseOneFixel.gam(i_grid=1, formula, data, phenotypes, scalar,
                                           var.smoothTerms, var.parametricTerms, var.model,
                                           flag_initiate = TRUE,
                                           ...)
@@ -967,7 +799,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
 
   # loop (by condition of pbar and n_cores)
   if(verbose){
-    message(glue::glue("looping across fixels....", ))
+    message(glue::glue("looping across grids....", ))
   }
 
   # is it a multicore process?
@@ -976,7 +808,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     
     if (pbar) {
       
-      fits <- pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
+      fits <- pbmcapply::pbmclapply(grid.subset,   # a list of i_grid
                                     analyseOneFixel.gam,  # the function
                                     mc.cores = n_cores,
                                     formula, data, phenotypes, scalar,
@@ -988,7 +820,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
       
       # foreach::foreach
       
-      fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel 
+      fits <- parallel::mclapply(grid.subset,   # a list of i_grid 
                                  analyseOneFixel.gam,  # the function
                                  mc.cores = n_cores,
                                  formula, data, phenotypes, scalar,
@@ -1001,7 +833,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     
     if (pbar) {
       
-      fits <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
+      fits <- pbapply::pblapply(grid.subset,   # a list of i_grid
                                 analyseOneFixel.gam,  # the function
                                 formula, data, phenotypes, scalar,
                                 var.smoothTerms, var.parametricTerms, var.model,
@@ -1010,7 +842,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
       
     } else {
       
-      fits <- lapply(fixel.subset,   # a list of i_fixel
+      fits <- lapply(grid.subset,   # a list of i_grid
                      analyseOneFixel.gam,  # the function
                      formula, data, phenotypes, scalar,
                      var.smoothTerms, var.parametricTerms, var.model,
@@ -1073,7 +905,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
 
       # var* for reduced model: only adjusted r sq is enough
       # initiate:
-      reduced.model.outputs_initiator <- analyseOneFixel.gam(i_fixel=1, reduced.formula, data, phenotypes, scalar,
+      reduced.model.outputs_initiator <- analyseOneFixel.gam(i_grid=1, reduced.formula, data, phenotypes, scalar,
                                             var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
                                             flag_initiate = TRUE,
                                             ...)
@@ -1084,7 +916,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
       
         if (pbar) {
           
-          reduced.model.fits <- pbmcapply::pbmclapply(fixel.subset,   # a list of i_fixel
+          reduced.model.fits <- pbmcapply::pbmclapply(grid.subset,   # a list of i_grid
                                         analyseOneFixel.gam,  # the function
                                         mc.cores = n_cores,
                                         reduced.formula, data, phenotypes, scalar,
@@ -1096,7 +928,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
           
           # foreach::foreach
           
-          reduced.model.fits <- parallel::mclapply(fixel.subset,   # a list of i_fixel 
+          reduced.model.fits <- parallel::mclapply(grid.subset,   # a list of i_grid 
                                      analyseOneFixel.gam,  # the function
                                      mc.cores = n_cores,
                                      reduced.formula, data, phenotypes, scalar,
@@ -1109,7 +941,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
         
         if (pbar) {
           
-          reduced.model.fits <- pbapply::pblapply(fixel.subset,   # a list of i_fixel
+          reduced.model.fits <- pbapply::pblapply(grid.subset,   # a list of i_grid
                                     analyseOneFixel.gam,  # the function
                                     reduced.formula, data, phenotypes, scalar,
                                     var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
@@ -1118,14 +950,14 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
           
         } else {
           
-          reduced.model.fits <- lapply(fixel.subset,   # a list of i_fixel
+          reduced.model.fits <- lapply(grid.subset,   # a list of i_grid
                          analyseOneFixel.gam,  # the function
                          reduced.formula, data, phenotypes, scalar,
                          var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
                          flag_initiate = FALSE,
                          ...)
         }
-      }  # end of loop for calculating reduced model across fixels
+      }  # end of loop for calculating reduced model across grids
   
       reduced.model.df_out <- do.call(rbind, reduced.model.fits)
       reduced.model.df_out <- as.data.frame(reduced.model.df_out)
@@ -1135,7 +967,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
       names(reduced.model.df_out)[names(reduced.model.df_out) == 'model.adj.r.squared'] <- "redModel.adj.r.squared"
         
       # combine new df_out to original one:
-      df_out <- merge(df_out, reduced.model.df_out, by = "fixel_id")
+      df_out <- merge(df_out, reduced.model.df_out, by = "grid_id")
       
       # calculate the eff.size, add to the df_out:
       df_out <- df_out %>% dplyr::mutate("{eff.size.term.shortFormat}.eff.size" := model.adj.r.squared - redModel.adj.r.squared)
@@ -1210,23 +1042,23 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
 
 
 
-#' Run a t.test at each fixel location
+#' Run a t.test at each grid location
 #'
 #' @param formula Formula (passed to `lm()`)
 #' @param data ModelArray dataset
-#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param scalar The name of the scalar to be analysed grid-wise
 #' @param phenotypes The cohort file with covariates to be added to the model
-#' @param subset A vector of fixel IDs to subset
+#' @param subset A vector of grid IDs to subset
 #' @param verbose Print progress messages
 #' @param n_cores The number of cores to run on
 #' @param pbar Print progress bar
-#' @return Tibble with the summarised model statistics at each fixel location
+#' @return Tibble with the summarised model statistics at each grid location
 #' 
 ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "ModelArray") {
-    stop("Not a fixel array for analysis")
+    stop("Not a grid array for analysis")
   }
   
   
@@ -1234,7 +1066,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
     message(glue::glue("Running t.test models for {scalar}", ))
   }
   
-  n_models <- length(fixels(data)[,1])
+  n_models <- length(grids(data)[,1])
   
   if(is.null(idx)){
     ids <- 1:n_models
@@ -1255,7 +1087,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
         
         t.test(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
+          dplyr::mutate(grid_id = i-1)
         
       }, mc.cores = n_cores, ...)
       
@@ -1274,7 +1106,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
           
           t.test(formula, data = dat, ...) %>%
             broom::tidy() %>%
-            dplyr::mutate(fixel_id = i-1)
+            dplyr::mutate(grid_id = i-1)
           
           
         }, mc.cores = n_cores, ...)
@@ -1296,7 +1128,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
           
           t.test(formula, data = dat, ...) %>%
             broom::tidy() %>%
-            dplyr::mutate(fixel_id = i-1)
+            dplyr::mutate(grid_id = i-1)
           
           
         }, mc.cores = n_cores, ...)
@@ -1316,7 +1148,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
         
         t.test(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
+          dplyr::mutate(grid_id = i-1)
         
       }, ...)
       
@@ -1331,7 +1163,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
         
         t.test(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
+          dplyr::mutate(grid_id = i-1)
         
       }, ...)
       
@@ -1348,31 +1180,31 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
   
 }
 
-#' Run a GAMM4 model at each fixel location
+#' Run a GAMM4 model at each grid location
 #'
 #' @param formula Formula (passed to `gamm4()`)
 #' @param data ModelArray dataset
-#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param scalar The name of the scalar to be analysed grid-wise
 #' @param phenotypes The cohort file with covariates to be added to the model
-#' @param subset A vector of fixel IDs to subset
+#' @param subset A vector of grid IDs to subset
 #' @param verbose Print progress messages
 #' @param n_cores The number of cores to run on
 #' @param pbar Print progress bar
-#' @return Tibble with the summarised model statistics at each fixel location
+#' @return Tibble with the summarised model statistics at each grid location
 #' 
 ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "ModelArray") {
-    stop("Not a fixel array for analysis")
+    stop("Not a grid array for analysis")
   }
   
   
   if(verbose){
-    message(glue::glue("Fitting fixel-wise linear models for {scalar}", ))
+    message(glue::glue("Fitting grid-wise linear models for {scalar}", ))
   }
   
-  n_models <- length(fixels(data)[,1])
+  n_models <- length(grids(data)[,1])
   
   if(is.null(idx)){
     ids <- 1:n_models
@@ -1393,7 +1225,7 @@ ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
         
         gamm4::gamm4(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
+          dplyr::mutate(grid_id = i-1)
         
       }, mc.cores = n_cores, ...)
       
@@ -1407,7 +1239,7 @@ ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
         
         gamm4::gamm4(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
+          dplyr::mutate(grid_id = i-1)
         
         
       }, mc.cores = n_cores, ...)
@@ -1425,7 +1257,7 @@ ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
         
         gamm4::gamm4(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
+          dplyr::mutate(grid_id = i-1)
         
       }, ...)
       
@@ -1440,7 +1272,7 @@ ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
         
         gamm4::gamm4(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(fixel_id = i-1)
+          dplyr::mutate(grid_id = i-1)
         
       }, ...)
       
@@ -1459,34 +1291,34 @@ ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
 
 
 
-#' Run a user-defined function on each fixel location
+#' Run a user-defined function on each grid location
 #'
 #' @param formula Formula (passed to `lm()`)
 #' @param FUN User-defined modelling function; must return a 1-row named vector or data.frame
 #' @param data ModelArray dataset
-#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param scalar The name of the scalar to be analysed grid-wise
 #' @param phenotypes The cohort file with covariates to be added to the model
-#' @param subset A vector of fixel IDs to subset
+#' @param subset A vector of grid IDs to subset
 #' @param verbose Print progress messages
 #' @param n_cores The number of cores to run on
 #' @param pbar Print progress bar
-#' @return Tibble with the summarised model statistics at each fixel location
+#' @return Tibble with the summarised model statistics at each grid location
 #' 
 ModelArray.model <- function(formula, FUN, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "ModelArray") {
-    stop("Not a fixel array for analysis")
+    stop("Not a grid array for analysis")
   }
   
 
   FUN <- match.fun(FUN)
   
   if(verbose){
-    message(glue::glue("Fitting fixel-wise linear models for {scalar}", ))
+    message(glue::glue("Fitting grid-wise linear models for {scalar}", ))
   }
   
-  n_models <- length(fixels(data)[,1])
+  n_models <- length(grids(data)[,1])
   
   if(is.null(idx)){
     ids <- 1:n_models

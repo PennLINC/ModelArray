@@ -115,7 +115,7 @@ gam.optimizer = c("outer","newton")   # default: c("outer","newton") | # number 
 if (num.fixels == 0) {
   num.fixels <- dim(scalars(fixelarray)[[scalar]])[1]
 }
-fixel.subset <- 1:num.fixels  
+grid.subset <- 1:num.fixels  
 
 ### running on real data #####
 print(formula)
@@ -123,7 +123,7 @@ tic("Running ModelArray.gam()")
 # ++++++++++++++= NEXT TIME: include method = gam.method!!! ++++++++++++++++++++=
 # +++++++++++++++ NEXT TIME: sex --> ordered factor, and use oSex in formula! (this may make the plots - e.g. Bart's function more making sense? as there will be a reference level of female or male)++++++++++++++++++++++++++
 gam_real <- ModelArray.gam(formula = formula, data = fixelarray, phenotypes = phenotypes, scalar = scalar, 
-                           fixel.subset = fixel.subset, full.outputs = TRUE,
+                           grid.subset = grid.subset, full.outputs = TRUE,
                            eff.size.term.index = c(1),
                            correct.p.value.smoothTerms = c("fdr", "bonferroni"),
                            correct.p.value.parametricTerms = c("fdr", "bonferroni"),

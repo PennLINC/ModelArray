@@ -1,0 +1,31 @@
+---
+title: "ModelArray: Basics"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ModelArray_basics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+library(ModelArray)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+Here we will use some example data to show you the basic use of `ModelArray`.
+
+# Concepts and Goals
+## Goals
+The general goal is to provide a generalizable R package for statistical analysis for different modalities of data, such as voxel-wise, vertex-wise, or fixel-wise data. The features include:
+* Low memory requirement, and not scale up with number of subjects
+* Providing statistical models such linear regression model and generalized additive model (GAM), which are useful especially for modeling age effects in development and aging
+* Easy and straightforward to use with just several lines of R codes
+
+
+## Grids
+In this package, "grid" is a general name for one point of data; it could be voxel in 3D images, vertex in surface data, or fixel in fixel-based analysis. There should be scalar value associated with each grid. And with some demographics or other phenotype data, we can model the scalar value over Currently we treat each grid equally.
+```{r, eval=FALSE}
+print("")
+```

@@ -120,7 +120,7 @@ if (flag_whichdataset == "test_n50") {
 if (num.fixels == 0) {
   num.fixels <- dim(scalars(ModelArray)[[scalar]])[1]
 }
-fixel.subset <- 1:num.fixels  
+grid.subset <- 1:num.fixels  
 ```
 
 # Start to run ModelArray.gam():
@@ -131,7 +131,7 @@ cat(paste0("number of fixels to analyze = ", toString(num.fixels), "\n"))
 
 # defaults:
 mygam <- ModelArray.gam(formula = formula, data = ModelArray, phenotypes = phenotypes, scalar = scalar, 
-                           fixel.subset = fixel.subset, 
+                           grid.subset = grid.subset, 
                         eff.size.term.index = c(1),  
                         n_cores=2, pbar = TRUE)
 mygam[1:6, ]
@@ -142,7 +142,7 @@ colnames(mygam)
 # full.outputs = TRUE:
 ```{r}
 mygam_allOutputs <- ModelArray.gam(formula = formula, data = ModelArray, phenotypes = phenotypes, scalar = scalar, 
-                           fixel.subset = fixel.subset, 
+                           grid.subset = grid.subset, 
                            full.outputs = TRUE,
                         eff.size.term.index = c(1),   # eff.size's request is separated from full.outputs (user may not know it may run for an unexpected long time)
                         correct.p.value.smoothTerms = c("fdr", "bonferroni"),   # this is also separated from full.outputs
@@ -177,8 +177,8 @@ colnames(ModelArray_josiane_full@results$gam_allOutputs$results_matrix )
 # Play around with mgcv::gam() - blocks in analyseOneFixel.gam()
 ```{r}
 
-i_fixel <- 1
-values <- scalars(ModelArray)[[scalar]][i_fixel,]
+i_grid <- 1
+values <- scalars(ModelArray)[[scalar]][i_grid,]
 dat <- phenotypes
 dat[[scalar]] <- values
 

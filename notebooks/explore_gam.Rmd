@@ -72,11 +72,11 @@ if (fn != fn.output) {
 fixelarray <- ModelArray(fn.output, scalar_types = scalar)
 phenotypes <- read.csv(fn_csv)
 phenotypes$oSex <- ordered(phenotypes$sex, levels = c("F","M")) # Females will be the reference group
-fixel.subset <- 1:num.fixels
+grid.subset <- 1:num.fixels
 
 ### one fixel to test out #####
-i_fixel <- 1
-values <- scalars(fixelarray)[[scalar]][i_fixel,]
+i_grid <- 1
+values <- scalars(fixelarray)[[scalar]][i_grid,]
 dat <- phenotypes
 dat[[scalar]] <- values
 

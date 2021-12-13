@@ -50,7 +50,7 @@ simplelm %>% broom::glance()  # several summary statistics are computed for the 
 
 <!--   stats::lm(formula, data = dat)  -->
 <!--   # %>% broom::tidy() %>% -->
-<!--   #   dplyr::mutate(fixel_id = i-1) -->
+<!--   #   dplyr::mutate(grid_id = i-1) -->
 
 <!-- }) -->
 <!-- ``` -->

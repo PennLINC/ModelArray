@@ -182,7 +182,7 @@ if (num.fixels == 0) {
   num.fixels <- dim(scalars(fixelarray)[[scalar]])[1]
 }
 
-fixel.subset <- 1:num.fixels   # full: dim(scalars(fixelarray)[[scalar]])[1]
+grid.subset <- 1:num.fixels   # full: dim(scalars(fixelarray)[[scalar]])[1]
 
 
 toc(log=TRUE)   # pair tic of "time before ModelArray.lm()"
@@ -191,7 +191,7 @@ toc(log=TRUE)   # pair tic of "time before ModelArray.lm()"
 
 tic("Running ModelArray.lm()")
 
-lm.outputs <- ModelArray.lm (formula, fixelarray, phenotypes, scalar = scalar, fixel.subset = fixel.subset,
+lm.outputs <- ModelArray.lm (formula, fixelarray, phenotypes, scalar = scalar, grid.subset = grid.subset,
                              full.outputs = full.outputs,  
                              # var.terms = var.terms, var.model = var.model,
                              # correct.p.value.terms = "fdr",

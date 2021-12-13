@@ -5,7 +5,7 @@
 \title{Analyse (fit statistical model) and write the outputs for 1 fixel}
 \usage{
 analyseNwriteOneFixel.lm(
-  i_fixel,
+  i_grid,
   formula,
   modelarray,
   phenotypes,
@@ -24,7 +24,7 @@ analyseNwriteOneFixel.lm(
 )
 }
 \arguments{
-\item{i_fixel}{The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1}
+\item{i_grid}{The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_grid=1}
 
 \item{formula}{Formula (passed to `lm()`)}
 
@@ -42,7 +42,7 @@ analyseNwriteOneFixel.lm(
 
 \item{var.model}{The list of variables to save for the model (got from lm %>% glance())}
 
-\item{flag_initiate}{Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE.}
+\item{flag_initiate}{Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_grid, then TRUE.}
 
 \item{overwrite}{Whether to overwrite or not    # TODO: to make this description more clear}
 

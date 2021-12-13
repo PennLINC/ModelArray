@@ -5,7 +5,7 @@
 \title{Analyse (fit linear model) and write the outputs for 1 fixel}
 \usage{
 analyseOneFixel.lm(
-  i_fixel,
+  i_grid,
   formula,
   modelarray,
   phenotypes,
@@ -17,7 +17,7 @@ analyseOneFixel.lm(
 )
 }
 \arguments{
-\item{i_fixel}{The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1}
+\item{i_grid}{The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_grid=1}
 
 \item{formula}{Formula (passed to `lm()`)}
 
@@ -31,7 +31,7 @@ analyseOneFixel.lm(
 
 \item{var.model}{The list of variables to save for the model (got from lm %>% glance())}
 
-\item{flag_initiate}{Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE and it will return column names.}
+\item{flag_initiate}{Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_grid, then TRUE and it will return column names.}
 }
 \value{
 if flag_initiate==TRUE, returns column names & list of terms of final results; if flag_initiate==FALSE, returns the final results for a fixel

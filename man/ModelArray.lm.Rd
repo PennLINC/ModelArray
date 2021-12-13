@@ -10,7 +10,7 @@ ModelArray.lm(
   data,
   phenotypes,
   scalar,
-  fixel.subset = NULL,
+  grid.subset = NULL,
   full.outputs = FALSE,
   var.terms = c("estimate", "statistic", "p.value"),
   var.model = c("adj.r.squared", "p.value"),
@@ -31,7 +31,7 @@ ModelArray.lm(
 
 \item{scalar}{The name of the scalar to be analysed fixel-wise}
 
-\item{fixel.subset}{The subset of fixel ids you want to run. Integers. First id starts from 1.}
+\item{grid.subset}{The subset of fixel ids you want to run. Integers. First id starts from 1.}
 
 \item{full.outputs}{Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.}
 

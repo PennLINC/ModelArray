@@ -5,7 +5,7 @@
 \title{Fit GAM for one fixel data}
 \usage{
 analyseOneFixel.gam(
-  i_fixel,
+  i_grid,
   formula,
   modelarray,
   phenotypes,
@@ -18,7 +18,7 @@ analyseOneFixel.gam(
 )
 }
 \arguments{
-\item{i_fixel}{An integer, the i_th fixel, starting from 1. For initiating (flag_initiate = TRUE), use i_fixel=1}
+\item{i_grid}{An integer, the i_th fixel, starting from 1. For initiating (flag_initiate = TRUE), use i_grid=1}
 
 \item{formula}{A formula (passed to `mgcv::gam()`)}
 

@@ -2,14 +2,14 @@
 % Please edit documentation in R/analyse.R
 \name{ModelArray.gam}
 \alias{ModelArray.gam}
-\title{Run GAM for fixel-wise data}
+\title{Run GAM for grid-wise data}
 \usage{
 ModelArray.gam(
   formula,
   data,
   phenotypes,
   scalar,
-  fixel.subset = NULL,
+  grid.subset = NULL,
   full.outputs = FALSE,
   var.smoothTerms = c("statistic", "p.value"),
   var.parametricTerms = c("estimate", "statistic", "p.value"),
@@ -30,9 +30,9 @@ ModelArray.gam(
 
 \item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model}
 
-\item{scalar}{A character. The name of the scalar to be analysed fixel-wise}
+\item{scalar}{A character. The name of the grid-wise scalar to be analysed}
 
-\item{fixel.subset}{A list of positive integers. The subset of fixel ids you want to run. Integers. First id starts from 1.}
+\item{grid.subset}{A list of positive integers. The subset of grid ids you want to run. Integers. First id starts from 1.}
 
 \item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.}
 
@@ -57,10 +57,10 @@ ModelArray.gam(
 \item{...}{Arguments for 'mgcv::gam()'}
 }
 \value{
-Tibble with the summarized model statistics for all fixels requested
+Tibble with the summarized model statistics for all grids requested
 }
 \description{
-`ModelArray.gam` fits gam model for each of fixels requested, and returns a tibble dataframe of requested model statistics.
+`ModelArray.gam` fits gam model for each of grids requested, and returns a tibble dataframe of requested model statistics.
 }
 \details{
 You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
