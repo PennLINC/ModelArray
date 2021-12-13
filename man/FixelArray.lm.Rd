@@ -2,7 +2,8 @@
 % Please edit documentation in R/analyse.R
 \name{FixelArray.lm}
 \alias{FixelArray.lm}
-\title{Run a linear model at each fixel location, write out each result just after the model fitting}
+\title{Run a linear model at each fixel location, write out each result just after the model fitting 
+For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".}
 \usage{
 FixelArray.lm(
   formula,
@@ -10,15 +11,48 @@ FixelArray.lm(
   phenotypes,
   scalar,
   fixel.subset = NULL,
-  var.terms = c("estimate", "p.value"),
-  var.model = c("r.squared", "p.value"),
-  overwrite = TRUE,
+  full.outputs = FALSE,
+  var.terms = c("estimate", "statistic", "p.value"),
+  var.model = c("adj.r.squared", "p.value"),
+  correct.p.value.terms = "none",
+  correct.p.value.model = "none",
   verbose = TRUE,
   pbar = TRUE,
   n_cores = 1,
   ...
 )
 }
+\arguments{
+\item{formula}{Formula (passed to `lm()`)}
+
+\item{data}{FixelArray class}
+
+\item{phenotypes}{The cohort matrix with covariates to be added to the model}
+
+\item{scalar}{The name of the scalar to be analysed fixel-wise}
+
+\item{fixel.subset}{The subset of fixel ids you want to run. Integers. First id starts from 1.}
+
+\item{full.outputs}{Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.}
+
+\item{var.terms}{The list of variables to save for terms (got from lm %>% tidy())}
+
+\item{var.model}{The list of variables to save for the model (got from lm %>% glance())}
+
+\item{correct.p.value.terms}{To perform and add a column for p.value correction for each term.}
+
+\item{correct.p.value.model}{To perform and add a column for p.value correction for the model.}
+
+\item{verbose}{Print verbose message or not}
+
+\item{pbar}{Print progress bar}
+
+\item{n_cores}{The number of cores to run on}
+}
+\value{
+Tibble with the summarized model statistics for all fixels requested
+}
 \description{
-Run a linear model at each fixel location, write out each result just after the model fitting
+Run a linear model at each fixel location, write out each result just after the model fitting 
+For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/FixelArray_Constructor.R
 \name{FixelArray}
 \alias{FixelArray}
-\title{An S4 class to represent a bank account.}
+\title{An S4 class to represent fixel-wise scalar data and statistics.}
 \usage{
 FixelArray(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis"))
 
@@ -19,9 +19,11 @@ FixelArray(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis"))
 FixelArray object
 }
 \description{
-An S4 class to represent a bank account.
+An S4 class to represent fixel-wise scalar data and statistics.
 
 Load fixel data output from mrtrix as an h5 file into R as a FixelArray object
+Tips for debugging: 
+if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via h5ls(filename_for_h5)
 TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
 }
 \section{Slots}{

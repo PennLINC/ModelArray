@@ -27,15 +27,30 @@ setMethod("show", "FixelArray", function(object) {  # , group_name_results="resu
 
 ### Accessors for FixelArray #####
 setGeneric("fixels", function(x) standardGeneric("fixels"))
+
+#' fixels of FixelArray
+#' @export
 setMethod("fixels", "FixelArray", function(x) x@fixels)
 
+
 setGeneric("voxels", function(x) standardGeneric("voxels"))
+
+#' voxels of FixelArray
+#' @export
 setMethod("voxels", "FixelArray", function(x) x@voxels)
 
+
 setGeneric("subjects", function(x) standardGeneric("subjects"))
+
+#' subjects of FixelArray
+#' @export
 setMethod("subjects", "FixelArray", function(x) x@subjects)
 
+
 setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
+
+#' scalars of FixelArray
+#' @export
 setMethod(
   "scalars",
   "FixelArray",
@@ -57,6 +72,9 @@ setMethod(
 )
 
 setGeneric("results", function(x, ...) standardGeneric("results"))
+
+#' results of FixelArray
+#' @export
 setMethod(
   "results", "FixelArray", function(x, ...) {
     dots <- list(...)

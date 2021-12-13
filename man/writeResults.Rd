@@ -2,7 +2,8 @@
 % Please edit documentation in R/FixelArray_Constructor.R
 \name{writeResults}
 \alias{writeResults}
-\title{Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel}
+\title{Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
+debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.}
 \usage{
 writeResults(
   fn.output,
@@ -21,5 +22,6 @@ writeResults(
 \item{overwrite}{If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)}
 }
 \description{
-TODO: change the description for this function!!
+Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
+debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.
 }

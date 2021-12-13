@@ -1,7 +1,7 @@
 # Exported Functions
 
 ### setClass of "FixelArray" #####
-#' An S4 class to represent a bank account.
+#' An S4 class to represent fixel-wise scalar data and statistics.
 #'
 #' @slot fixels A DelayedArray object of fixel data
 #' @slot voxels A DelayedArray object of voxel indeces
@@ -62,6 +62,8 @@ FixelArraySeed <- function(
 
 
 #' Load fixel data output from mrtrix as an h5 file into R as a FixelArray object
+#' Tips for debugging: 
+#' if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via h5ls(filename_for_h5)
 #' TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
 #' @param filepath file
 #' @param scalar_types expected scalars
@@ -69,7 +71,7 @@ FixelArraySeed <- function(
 #' @return FixelArray object
 #' @export
 #' @import methods
-#'
+#' @import dplyr
 
 FixelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
   ## fixel_data: 
@@ -359,7 +361,7 @@ analyseNwriteOneFixel.lm <- function(i_fixel,
     
 }
 
-#' Analyse (fit statistical model) and write the outputs for 1 fixel
+#' Analyse (fit linear model) and write the outputs for 1 fixel
 #'
 #' @param i_fixel The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_fixel=1
 #' @param formula Formula (passed to `lm()`)
@@ -471,14 +473,227 @@ analyseOneFixel.lm <- function(i_fixel,
   } else if (flag_initiate == FALSE) {  # return the one row results:
 
     # return: 
-    onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save a lot of space!
+    onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save some space
     onerow
   }
   
   
 }  
+#' Fit GAM for one fixel data
+#'
+#' @description 
+#' `analyseOneFixel.gam` fits a GAM model for one fixel data, and returns requested model statistics.
+#' 
+#' @details 
+#' `FixelArray.gam` iteratively calls this function to get statistics for all requested fixels.
+#'
+#' @param i_fixel An integer, the i_th fixel, starting from 1. For initiating (flag_initiate = TRUE), use i_fixel=1
+#' @param formula A formula (passed to `mgcv::gam()`)
+#' @param fa FixelArray class
+#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
+#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param var.smoothTerms The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
+#' @param var.parametricTerms The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".
+#' @param var.model The list of variables to save for the model (got from broom::glance() and summary()). 
+#' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
+#' @param ... Arguments for `mgcv::gam()`
+#' @return If flag_initiate==TRUE, returns column names ,and list of term names of final results and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a fixel.
+#' @export
+# #' @import hdf5r
+#' @import mgcv
+#' @import broom
+#' @import dplyr
+
+analyseOneFixel.gam <- function(i_fixel, formula, fa, phenotypes, scalar, 
+                                var.smoothTerms, var.parametricTerms, var.model, 
+                                flag_initiate = FALSE, 
+                                ...) {
+  values <- scalars(fa)[[scalar]][i_fixel,]
+  dat <- phenotypes
+  dat[[scalar]] <- values
+  
+  arguments <- list(...)
+  arguments$formula <- formula
+  arguments$data <- dat
+  
+  onemodel <- do.call(mgcv::gam, arguments)   # explicitly passing arguments into command, to avoid error of argument "weights"
+  
+  onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
+  onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
+  onemodel.glance <- onemodel %>% broom::glance()
+  onemodel.summary <- onemodel %>% summary()
+  # add additional model's stat to onemodel.glance():
+  onemodel.glance[["adj.r.squared"]] <- onemodel.summary$r.sq
+  onemodel.glance[["dev.expl"]] <- onemodel.summary$dev.expl
+
+  sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name")
+  onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[ sp.criterion.attr.name ]] 
+  onemodel.glance[["scale"]] <- onemodel.summary$scale   # scale estimate
+
+  num.smoothTerms <- onemodel.summary$m   # The number of smooth terms in the model.
+  
+
+
+  # delete columns you don't want:
+  var.smoothTerms.full <- names(onemodel.tidy.smoothTerms)
+  var.parametricTerms.full <- names(onemodel.tidy.parametricTerms)
+  var.model.full <- names(onemodel.glance)
+
+  # list to remove:
+  var.smoothTerms.orig <- var.smoothTerms
+  var.smoothTerms <- list("term", var.smoothTerms) %>% unlist()  # we will always keep "term" column
+  var.smoothTerms.remove <- list()
+  for (l in var.smoothTerms.full) {
+    if (!(l %in% var.smoothTerms)) {
+      var.smoothTerms.remove <- var.smoothTerms.remove %>% append(., l) %>% unlist()  # the order will still be kept
+    }
+  }
+
+  var.parametricTerms.orig <- var.parametricTerms
+  var.parametricTerms <- list("term", var.parametricTerms) %>% unlist()  # we will always keep "term" column
+  var.parametricTerms.remove <- list()
+  for (l in var.parametricTerms.full) {
+    if (!(l %in% var.parametricTerms)) {
+      var.parametricTerms.remove <- var.parametricTerms.remove %>% append(., l) %>% unlist()  # the order will still be kept
+    }
+  }
+
+  var.model.remove <- list()
+  for (l in var.model.full) {
+    if (!(l %in% var.model)) {
+      var.model.remove <- var.model.remove %>% append(., l) %>% unlist()  # the order will still be kept
+    }
+  }
+
+  # remove those columns:
+  if (length(var.smoothTerms.remove) != 0) {    # if length=0, it's list(), nothing to remove
+    onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -all_of(var.smoothTerms.remove))
+  }
+  if (length(var.parametricTerms.remove) != 0) {    # if length=0, it's list(), nothing to remove
+    onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -all_of(var.parametricTerms.remove))
+  }
+  if (length(var.model.remove) != 0) {
+    onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
+  }
+
+  # adjust:
+  if (num.smoothTerms > 0) {   # if there is any smooth term
+    onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"  
+  }
+  if (nrow(onemodel.tidy.parametricTerms) > 0) {  # if there is any parametric term
+    onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
+  }
+  
+    # change from s(x) to s_x: (could be s, te, etc); from s(x):oFactor to s_x_BYoFactor; from ti(x,z) to ti_x_z
+  if (num.smoothTerms > 0) {   # if there is any smooth term
+    for (i_row in 1:nrow(onemodel.tidy.smoothTerms)) {  
+      # step 1: change from s(x) to s_x
+      term_name <- onemodel.tidy.smoothTerms$term[i_row]
+      str_list <- strsplit(term_name, split="[()]")[[1]]
+      
+      str <- str_list[2]   # extract string between ()
+      smooth_name <- str_list[1]   # "s" or some other smooth method type such as "te"
+      str_valid <- paste0(smooth_name, "_",str)
+      
+      if (length(str_list)>2) {   # there is string after variable name
+        str_valid <- paste0(str_valid, "_",
+                            paste(str_list[3:length(str_list)], collapse=""))   # combine rest of strings
+      }   
+        
+      # detect ":", and change to "BY"   # there is "_" replacing for ")" in "s()" already
+      str_valid <- gsub(":", "BY", str_valid, fixed=TRUE)
+      
+      # detect ",", and change to "_"
+      str_valid <- gsub(",", "_", str_valid, fixed=TRUE)
+      
+      onemodel.tidy.smoothTerms$term[i_row] <- str_valid
+    }
+  }
   
   
+  onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
+
+  # get the list of terms:
+  if (num.smoothTerms >0) {
+    list.smoothTerms <- onemodel.tidy.smoothTerms$term   # if empty, gives warning
+  } else {
+    list.smoothTerms <- NULL
+  }
+  
+  if (nrow(onemodel.tidy.parametricTerms)>0) {
+    list.parametricTerms <- onemodel.tidy.parametricTerms$term  
+  } else {
+    list.parametricTerms <- NULL
+  }
+  
+
+  # flatten .tidy results into one row:
+  if (all(dim(onemodel.tidy.smoothTerms))) {   # not empty | if any dim is 0, all=FALSE
+    onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(names_from = term,
+                                                                                         values_from = all_of(var.smoothTerms.orig),
+                                                                                         names_glue = "{term}.{.value}")
+  } else {
+    onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms
+  }
+  
+  if (all(dim(onemodel.tidy.parametricTerms))) {  # not empty
+    onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(names_from = term,
+                                                                                                 values_from = all_of(var.parametricTerms.orig),
+                                                                                                 names_glue = "{term}.{.value}")
+  } else {
+    onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms
+  }
+  
+  if (all(dim(onemodel.glance))) {  # not empty
+    onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
+                                                                      values_from = all_of(var.model),
+                                                                      names_glue = "{term}.{.value}")
+  } else {
+    onemodel.glance.onerow <- onemodel.glance
+  }
+  
+
+  # combine the tables:
+  if ( ! all(dim(onemodel.tidy.smoothTerms.onerow)) ) {  # empty
+    onemodel.onerow <- onemodel.tidy.parametricTerms.onerow
+  } else {   # combine
+    onemodel.onerow <- bind_cols(onemodel.tidy.smoothTerms.onerow, 
+                                 onemodel.tidy.parametricTerms.onerow)
+  }
+  if ( ! all(dim(onemodel.onerow))   ){   # empty
+    onemodel.onerow <- onemodel.glance.onerow
+  } else {   # combine
+    onemodel.onerow <- bind_cols(onemodel.onerow,
+                                 onemodel.glance.onerow)
+  }
+  
+
+  # add a column of fixel ids:
+  colnames.temp <- colnames(onemodel.onerow)
+  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(fixel_id = i_fixel-1, .before = colnames.temp[1])   # add as the first column
+  
+  # now you can get the headers, # of columns, etc of the output results
+
+
+  if (flag_initiate == TRUE) { # return the column names:
+    
+    # return:
+    column_names = colnames(onemodel.onerow)
+    toreturn <- list(column_names = column_names,
+                     list.smoothTerms = list.smoothTerms,
+                     list.parametricTerms = list.parametricTerms,
+                     sp.criterion.attr.name = sp.criterion.attr.name)
+    toreturn
+
+  } else if (flag_initiate == FALSE) {  # return the one row results:
+
+    # return: 
+    onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save some space
+    onerow
+  }
+}
+
+
   
 #' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".old": for writing results with multiple rows for one fixel
 #' 
@@ -539,12 +754,14 @@ writeResults.old <- function(fa, data, analysis_name = "myAnalysis", flag_overwr
 }
 
 #' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
+#' debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.
 #' 
 #' @param fn.output The .h5 filename for the output, including folder directory
 #' @param df.output A data.frame object with model results at each fixel, returned from FixelArray.lm() etc
 #' @param analysis_name The subfolder name in results, holding the analysis results 
 #' @param overwrite If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)
-#'
+#' @import hdf5r
+#' @export
 
 writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", overwrite=TRUE){ 
   
@@ -553,7 +770,7 @@ writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", ove
     stop("Results dataset is not correct; must be data of type `data.frame`")
   }
   
-  fn.output.h5 <- H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
+  fn.output.h5 <- hdf5r::H5File$new(fn.output, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
 
   # check if group "results" already exists!
   if (fn.output.h5$exists("results") == TRUE) { # group "results" exist
@@ -600,7 +817,7 @@ writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", ove
     # results_matrix_ds <- results.analysis.grp[["results_matrix"]]   # name it
     
     # attach column names:
-    h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)   # NOTES: update ConFixel correspondingly
+    hdf5r::h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)   # NOTES: update ConFixel correspondingly
     
   }
   

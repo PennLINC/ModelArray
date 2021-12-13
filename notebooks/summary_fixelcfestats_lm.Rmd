@@ -1,0 +1,405 @@
+---
+title: "summary of fixelcfestats for lm"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+source("memoryProfiling_plot.R")
+
+list.of.packages <- c("dplyr", "tidyr", "tibble", "stringr")   # str_match
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+lapply(list.of.packages, require, character.only = TRUE)   # or library
+
+
+```
+
+### do permutation test
+#### on interactive node, # of shuffles = 100
+```{r}
+folder1 <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC\\nsubj-938.nthreads-1.ftests.nshuffles-100.interactive.runMemProfiler.s-1sec.20210908-131441"
+
+nsubj <- as.numeric(str_match(folder1, "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+nshuffles <- as.numeric(str_match(folder1, "nshuffles-\\s*(.*?)\\s*.interactive")[2])
+
+nthreads <- as.numeric(str_match(folder1, "nthreads-\\s*(.*?)\\s*.ftests")[2])
+
+
+df1 <- readWssSingleParent(folder1)
+
+message(paste0("max memory = ", toString(max(df1$RSS.MB.)), " MB" ) )  
+
+
+f1 <- ggplot(df1[1:3000,], aes(x = Est.s.)) +   # [1:1000,]
+  geom_line(aes(y = RSS.MB.), color="black") +
+  theme_bw()+ 
+  xlab("Time (second)") + 
+  ylab("Memory (MB)") + 
+  ggtitle(paste0("MRtrix fixelcfestats: ","nsubj= ", toString(nsubj), ", nthreads= ", toString(nthreads), ", nshuffles=", toString(nshuffles)))
+f1
+
+# reaches max memory in 1h; almost reached max (<4MB diff) in first 2000 sec
+
+```
+
+#### in vmware (local)
+```{r}
+folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC\\nsubj-938.nthreads-1.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210908-221643"
+
+nsubj <- as.numeric(str_match(folder, "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+nshuffles <- as.numeric(str_match(folder, "nshuffles-\\s*(.*?)\\s*.vmware")[2])
+
+nthreads <- as.numeric(str_match(folder, "nthreads-\\s*(.*?)\\s*.ftests")[2])
+
+df <- readWssSingleParent(folder)
+
+message(paste0("max memory = ", toString(max(df$RSS.MB.)), " MB" ) )
+
+f <- ggplot(df, aes(x = Est.s.)) +   # [1:1000,]
+  geom_line(aes(y = RSS.MB.), color="black") +
+  theme_bw()+ 
+  xlab("Time (second)") + 
+  ylab("Memory (MB)") + 
+  ggtitle(paste0("MRtrix fixelcfestats: ","nsubj= ", toString(nsubj), ", nthreads= ", toString(nthreads), ", nshuffles=", toString(nshuffles)))
+f
+
+
+# differences with interactive node in max memory: vmware - interactive node < 30 MB
+
+```
+
+#### interactive node, but with more # of shuffles = 1000:
+```{r}
+folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC\\nsubj-938.nthreads-1.ftests.nshuffles-1000.interactive.runMemProfiler.s-1sec.20210908-222541"
+
+nsubj <- as.numeric(str_match(folder, "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+nshuffles <- as.numeric(str_match(folder, "nshuffles-\\s*(.*?)\\s*.interactive")[2])
+
+nthreads <- as.numeric(str_match(folder, "nthreads-\\s*(.*?)\\s*.ftests")[2])
+
+df <- readWssSingleParent(folder)
+df$Est.h. <- df$Est.s. / 3600
+
+message(paste0("max memory = ", toString(max(df$RSS.MB.)), " MB" ) )
+
+f <- ggplot(df, aes(x = Est.h.)) +   # [1:1000,]
+  geom_line(aes(y = RSS.MB.), color="black") +
+  theme_bw()+ 
+  xlab("Time (hour)") + 
+  ylab("Memory (MB)") + 
+  ggtitle(paste0("MRtrix fixelcfestats: ","nsubj= ", toString(nsubj), ", nthreads= ", toString(nthreads), ", nshuffles=", toString(nshuffles)))
+f
+
+message("NOT FINISHED YET AFTER 13 HOURS!")
+
+# max memory compared to nshuffles = 100 (both run at interactive node):
+# shuffles1000 - shuffles100 = 194.79 MB < 1% absolute value
+# Therefore # of shuffles has minimal impact on max memory; though does have a lot impact on time needed
+#    so just using shuffling 100 as an example.
+
+# reaches max memory in 1h; almost reached max (<45MB diff) in first 2000 sec
+
+```
+
+
+### different number of threads
+#### number of subjects = 30; vmware
+Do permutation test.
+```{r}
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC"
+foldername.list <- list("nsubj-30.nthreads-1.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-125839",
+                        "nsubj-30.nthreads-2.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-125847",  # "nsubj-30.nthreads-2.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-200250", 
+                        "nsubj-30.nthreads-3.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-182059",
+                        "nsubj-30.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-184751")
+
+# nthreads=2: # "200250" ran without any other fixelcfestats, similar max.RSS = 8833.29MB
+
+folder.list <- file.path(main.folder,  foldername.list)
+
+nsubj <- as.numeric(str_match(folder.list[1], "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+nshuffles <- as.numeric(str_match(folder.list[1], "nshuffles-\\s*(.*?)\\s*.vmware")[2])
+
+
+myplots <- vector('list', length(folder.list))
+for (i_folder in 1:length(folder.list)) {
+  nthreads <- as.numeric(str_match(folder.list[i_folder], "nthreads-\\s*(.*?)\\s*.ftests")[2])
+  
+  df <- readWssSingleParent(folder.list[i_folder])
+  df$RSS.GB. <- df$RSS.MB. / 1024
+  
+  max.RSS.MB. <- max(df$RSS.MB.)
+  df.max.RSS <- data.frame(nthreads = nthreads,
+                              max.RSS.MB. = max.RSS.MB.,
+                            max.RSS.GB. = max.RSS.MB./1024)
+
+  
+  if (i_folder==1) {
+    summary.max <- df.max.RSS
+    
+  } else {
+    summary.max <- rbind(summary.max, df.max.RSS)
+    
+  }
+  
+
+  myplots[[i_folder]] <- timeSeriesPlot(df, unit.time = "second",
+                      str.title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)) )
+  
+}
+
+summary.max
+
+ggplot(summary.max, aes(x = nthreads,  y = max.RSS.GB.)) + 
+  geom_bar(stat = "identity", width=0.3, fill=c("#909090")) + 
+  geom_text(data = summary.max, aes(x = nthreads, y = max.RSS.GB.+50*0.05, label = sprintf("%0.2f",round(max.RSS.GB., digits = 2)), fill = NULL), size=5) + 
+  ylim(0, 53) + 
+  scale_x_discrete(limits=c("1","2","3","4")) +
+  theme_bw() + 
+  theme(aspect.ratio = 0.8,
+        text = element_text(size=15)) + 
+  xlab("Number of threads") + 
+  ylab("Max memory (GB)") + 
+  labs(title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)))
+      #caption = paste0("Notes: by first ", toString(max.max.Est.s.),"seconds") ) 
+
+```
+
+#### number of subjects = 938; vmware
+```{r}
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC"
+foldername.list <- list("nsubj-938.nthreads-1.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210908-221643", 
+                        "nsubj-938.nthreads-2.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-125958",
+                        "nsubj-938.nthreads-3.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-160439",
+                        "nsubj-938.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-210227")  
+
+# note: for nthreads=2, 20210909-125958, 1) first 1h: running with nsubj=30: 20210909-125839 and 20210909-125847; 2) ~6000sec the other profiling nthreads=3 (not the one I'm using here) begins and ends in 7min probably because of too high memory. Not sure if this leads to drop of RSS in threads=2 (20210909-125958)???
+
+# note for nthreads=3, 20210909-160439: also decreased at around 6000sec? to ~36.2GB
+
+
+# nthreads=4: 20210909-210227 reaches max RSS.MB in the first 2000 seconds;
+
+
+folder.list <- file.path(main.folder,  foldername.list)
+
+nsubj <- as.numeric(str_match(folder.list[1], "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+nshuffles <- as.numeric(str_match(folder.list[1], "nshuffles-\\s*(.*?)\\s*.vmware")[2])
+
+
+max.max.Est.s. = 0
+myplots <- vector('list', length(folder.list))
+for (i_folder in 1:length(folder.list)) {
+  message(paste0("running folder: ", foldername.list[i_folder]))
+  nthreads <- as.numeric(str_match(folder.list[i_folder], "nthreads-\\s*(.*?)\\s*.ftests")[2])
+  
+  df <- readWssSingleParent(folder.list[i_folder])
+  df$RSS.GB. <- df$RSS.MB. / 1024
+  
+  max.RSS.MB. <- max(df$RSS.MB.)
+  df.max.RSS <- data.frame(nthreads = nthreads,
+                              max.RSS.MB. = max.RSS.MB.,
+                           max.RSS.GB. = max.RSS.MB./1024)
+  
+  max.max.Est.s. <- max(c(max(df$Est.s.), max.max.Est.s.))
+  
+  if (i_folder==1) {
+    summary.max <- df.max.RSS
+    
+  } else {
+    summary.max <- rbind(summary.max, df.max.RSS)
+    
+  }
+  
+
+  myplots[[i_folder]] <- timeSeriesPlot(df, unit.time = "second",
+                      str.title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)) )
+  
+}
+
+
+ggplot(summary.max, aes(x = nthreads,  y = max.RSS.GB.)) + 
+  geom_bar(stat = "identity", width=0.3, fill = "#909090") + 
+  geom_text(data = summary.max, aes(x = nthreads, y = max.RSS.GB.+50*0.05, label = round(max.RSS.GB., digits = 2), fill = NULL), size=5) + 
+  ylim(0, 53) + 
+  scale_x_discrete(limits=c("1","2","3","4")) +
+  theme_bw() + 
+  theme(aspect.ratio = 0.8,
+        text = element_text(size=15)) + 
+  xlab("Number of threads") + 
+  ylab("Max memory (GB)") + 
+  labs(title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)))
+      #caption = paste0("Notes: by first ", toString(max.max.Est.s.),"seconds") ) 
+
+
+summary.max
+
+```
+
+
+#### number of subjects = 938; interactive node
+```{r}
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC"
+foldername.list <- list("nsubj-938.nthreads-1.ftests.nshuffles-100.interactive.runMemProfiler.s-1sec.20210908-131441",
+                        "nsubj-938.nthreads-2.ftests.nshuffles-100.interactive.runMemProfiler.s-1sec.20210909-124949",
+                        "nsubj-938.nthreads-3.ftests.nshuffles-100.interactive.runMemProfiler.s-1sec.20210909-132259")
+folder.list <- file.path(main.folder,  foldername.list)
+
+nsubj <- as.numeric(str_match(folder.list[1], "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+nshuffles <- as.numeric(str_match(folder.list[1], "nshuffles-\\s*(.*?)\\s*.interactive")[2])
+
+max.max.Est.s. = 0
+myplots <- vector('list', length(folder.list))
+for (i_folder in 1:length(folder.list)) {
+  nthreads <- as.numeric(str_match(folder.list[i_folder], "nthreads-\\s*(.*?)\\s*.ftests")[2])
+  
+  df <- readWssSingleParent(folder.list[i_folder])
+  df$RSS.GB. <- df$RSS.MB. / 1024
+  
+  max.RSS.MB. <- max(df$RSS.MB.)
+  df.max.RSS <- data.frame(nthreads = nthreads,
+                              max.RSS.MB. = max.RSS.MB.,
+                           max.RSS.GB. = max.RSS.MB./1024)
+  
+  max.max.Est.s. <- max(c(max(df$Est.s.), max.max.Est.s.))
+  
+  if (i_folder==1) {
+    summary.max <- df.max.RSS
+    
+  } else {
+    summary.max <- rbind(summary.max, df.max.RSS)
+    
+  }
+  
+
+  myplots[[i_folder]] <- timeSeriesPlot(df, unit.time = "second",
+                      str.title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)) )
+  
+}
+
+
+ggplot(summary.max, aes(x = nthreads,  y = max.RSS.GB.)) + 
+  geom_bar(stat = "identity", width=0.2) + 
+  geom_text(data = summary.max, aes(x = nthreads, y = max.RSS.GB.+30*0.04, label = round(max.RSS.GB., digits = 1), fill = NULL)) + 
+  scale_x_discrete(limits=c("1","2","3","4")) +
+  theme_bw() + 
+  xlab("Number of threads") + 
+  ylab("Max memory (GB)") + 
+  labs(title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)),
+      caption = "Notes: at CUBIC interactive node" ) 
+
+
+
+# nthreads = 1 and 2 matches well with vmware; threads=3: interactive node = 44.6 whereas vmware gave 40.4GB
+
+
+```
+
+### different number of subjects
+#### nthreads = 4
+```{r}
+main.folder <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC"
+foldername.list <- list("nsubj-30.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-184751",
+                        "nsubj-100.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-183107",
+                        "nsubj-300.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-173706",
+                        "nsubj-500.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-131920",
+                        "nsubj-750.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210911-143735",
+                        "nsubj-938.nthreads-4.ftests.nshuffles-100.vmware.runMemProfiler.s-1sec.20210909-210227")
+folder.list <- file.path(main.folder,  foldername.list)
+
+nthreads <- as.numeric(str_match(folder.list[1], "nthreads-\\s*(.*?)\\s*.ftests")[2])
+
+nshuffles <- as.numeric(str_match(folder.list[1], "nshuffles-\\s*(.*?)\\s*.vmware")[2])
+
+
+max.max.Est.s. = 0
+myplots <- vector('list', length(folder.list))
+for (i_folder in 1:length(folder.list)) {
+  nsubj <- as.numeric(str_match(folder.list[i_folder], "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+  
+  df <- readWssSingleParent(folder.list[i_folder])
+  df$RSS.GB. <- df$RSS.MB. / 1024
+  
+  max.RSS.MB. <- max(df$RSS.MB.)
+  df.max.RSS <- data.frame(nsubj = nsubj,
+                              max.RSS.MB. = max.RSS.MB.,
+                           max.RSS.GB. = max.RSS.MB./1024)
+  
+  max.max.Est.s. <- max(c(max(df$Est.s.), max.max.Est.s.))
+ 
+  if (i_folder==1) {
+    summary.max <- df.max.RSS
+    
+  } else {
+    summary.max <- rbind(summary.max, df.max.RSS)
+    
+  }
+  
+
+  myplots[[i_folder]] <- timeSeriesPlot(df, unit.time = "second",
+                      str.title = paste0("MRtrix fixelcfestats: nsubj=", toString(nsubj), ", nshuffles=", toString(nshuffles)) )
+   
+}
+
+ggplot(summary.max, aes(x = nsubj,  y = max.RSS.GB.)) + 
+  geom_bar(stat = "identity", fill = "#909090") +   
+  geom_text(data = summary.max, aes(x = nsubj, y = max.RSS.GB.+50*0.05, label = sprintf("%0.2f", round(max.RSS.GB., digits = 2)), fill = NULL), size=5) + 
+  ylim(0, 53) + 
+  scale_x_continuous(breaks = c(summary.max$nsubj)) + 
+  theme_bw() + 
+  theme(aspect.ratio = 0.8,
+        text = element_text(size=15)) + 
+  xlab("Number of subjects") + 
+  ylab("Max memory (GB)") + 
+  labs(title = paste0("MRtrix fixelcfestats: nthreads=", toString(nthreads), ", nshuffles=", toString(nshuffles)))
+      #caption = paste0("Notes: by first ", toString(max.max.Est.s.),"seconds") ) 
+
+
+```
+
+### not to do permutation test
+
+#### interactive node:
+```{r}
+folder2 <- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC\\nsubj-938.nthreads-1.ftests.notest.nshuffles-100.interactive.runMemProfiler.s-1sec.20210908-133419"
+
+nsubj <- as.numeric(str_match(folder2, "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+df2 <- readWssSingleParent(folder2)
+
+f2 <- ggplot(df2, aes(x = Est.s.)) + 
+  geom_line(aes(y = RSS.MB.), color="black") + 
+  theme_bw() + 
+  xlab("Time (second)") + 
+  ylab("Memory (MB)") + 
+  ggtitle(paste0("MRtrix fixelcfestats: ","nsubj= ", toString(nsubj), ", no permutations"))
+f2
+
+```
+
+#### vmware:
+```{r}
+folder3<- "D:\\Research\\Satterthwaite_lab\\fixel_project\\data_from_Josiane\\for_fixelcfestats\\stats_FDC\\nsubj-938.nthreads-1.ftests.notest.nshuffles-100.vmware.runMemProfiler.s-1sec.20210908-161805"
+
+nsubj <- as.numeric(str_match(folder3, "nsubj-\\s*(.*?)\\s*.nthreads")[2])
+
+
+df3 <- readWssSingleParent(folder3)
+
+f3 <- ggplot(df3, aes(x = Est.s.)) + 
+  geom_line(aes(y = RSS.MB.), color="black") + 
+  theme_bw() + 
+  xlab("Time (second)") + 
+  ylab("Memory (MB)") + 
+  ggtitle(paste0("MRtrix fixelcfestats: ","nsubj= ", toString(nsubj), ", no permutations"))
+f3
+```

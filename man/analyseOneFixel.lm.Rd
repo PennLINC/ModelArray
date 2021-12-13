@@ -2,7 +2,7 @@
 % Please edit documentation in R/FixelArray_Constructor.R
 \name{analyseOneFixel.lm}
 \alias{analyseOneFixel.lm}
-\title{Analyse (fit statistical model) and write the outputs for 1 fixel}
+\title{Analyse (fit linear model) and write the outputs for 1 fixel}
 \usage{
 analyseOneFixel.lm(
   i_fixel,
@@ -34,8 +34,8 @@ analyseOneFixel.lm(
 \item{flag_initiate}{Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_fixel, then TRUE and it will return column names.}
 }
 \value{
-if flag_initiate==TRUE, returns column names of final results; if flag_initiate==FALSE, returns the final results for a fixel
+if flag_initiate==TRUE, returns column names & list of terms of final results; if flag_initiate==FALSE, returns the final results for a fixel
 }
 \description{
-Analyse (fit statistical model) and write the outputs for 1 fixel
+Analyse (fit linear model) and write the outputs for 1 fixel
 }

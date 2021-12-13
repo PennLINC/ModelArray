@@ -2,40 +2,89 @@
 % Please edit documentation in R/analyse.R
 \name{FixelArray.gam}
 \alias{FixelArray.gam}
-\title{Run a GAM model at each fixel location}
+\title{Run GAM for fixel-wise data}
 \usage{
 FixelArray.gam(
   formula,
   data,
   phenotypes,
   scalar,
+  fixel.subset = NULL,
+  full.outputs = FALSE,
+  var.smoothTerms = c("statistic", "p.value"),
+  var.parametricTerms = c("estimate", "statistic", "p.value"),
+  var.model = c("dev.expl"),
+  eff.size.term.index = NULL,
+  correct.p.value.smoothTerms = "none",
+  correct.p.value.parametricTerms = "none",
   verbose = TRUE,
-  idx = NULL,
   pbar = TRUE,
   n_cores = 1,
   ...
 )
 }
 \arguments{
-\item{formula}{Formula (passed to `gamm4()`)}
+\item{formula}{Formula (passed to `mgcv::gam()`)}
 
-\item{data}{FixelArray dataset}
+\item{data}{FixelArray class}
 
-\item{phenotypes}{The cohort file with covariates to be added to the model}
+\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model}
 
-\item{scalar}{The name of the scalar to be analysed fixel-wise}
+\item{scalar}{A character. The name of the scalar to be analysed fixel-wise}
 
-\item{verbose}{Print progress messages}
+\item{fixel.subset}{A list of positive integers. The subset of fixel ids you want to run. Integers. First id starts from 1.}
 
-\item{idx}{A vector of fixel IDs to subset}
+\item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.}
 
-\item{pbar}{Print progress bar}
+\item{var.smoothTerms}{A list of characters. The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.}
 
-\item{n_cores}{The number of cores to run on}
+\item{var.parametricTerms}{A list of characters. The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.}
+
+\item{var.model}{A list of characters. The list of variables to save for the model (got from broom::glance() and summary()). See "Details" section for more.}
+
+\item{eff.size.term.index}{A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.}
+
+\item{correct.p.value.smoothTerms}{A list of characters. To perform and add a column for p.value correction for each smooth term. See "Details" section for more.}
+
+\item{correct.p.value.parametricTerms}{A list of characters. To perform and add a column for p.value correction for each parametric term. See "Details" section for more.}
+
+\item{verbose}{TRUE or FALSE, to print progress messages}
+
+\item{pbar}{TRUE or FALSE, to print progress bar}
+
+\item{n_cores}{Positive integer, The number of CPU cores to run with}
+
+\item{...}{Arguments for 'mgcv::gam()'}
 }
 \value{
-Tibble with the summarised model statistics at each fixel location
+Tibble with the summarized model statistics for all fixels requested
 }
 \description{
-Run a GAM model at each fixel location
+`FixelArray.gam` fits gam model for each of fixels requested, and returns a tibble dataframe of requested model statistics.
+}
+\details{
+You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
+Note that statistics covered by \code{full.outputs} or \code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only, and do not include effect size or corrected p values.
+List of acceptable statistic names for each of \code{var.*}:
+\itemize{
+ \item \code{var.smoothTerms}: c("edf","ref.df","statistic","p.value"); For interpretation please see `broom::tidy(parametric=FALSE)`.
+ \item \code{var.parametricTerms}: c("estimate", "std.error","statistic","p.value"); For interpretation please see `broom::tidy(parametric=TRUE)`.
+ \item \code{var.model}: c("adj.r.squared","dev.expl", "sp.criterion", "scale", "df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs"); "adj.r.squared" is \code{r.sq} from `summary()`; "sp.criterion" is \code{sp.criterion} from `summary()`; For interpretation please see `broom::glance()` and `summary()`.
+}
+Regarding formula: So far these kinds of formula are tested:
+\itemize{
+  \item formula with smooth term, but without any interactions. Examples like \code{y ~ s(x) + orderedFactor}; \code{y ~ s(x) + s(z)}
+  \item formula with interaction, but limited to only one interaction term, and in the formats of:
+  \itemize{
+      \item Formula #1: \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor) + other_covariate}, where \code{orderedFactor} should be discrete variables and generated by `ordered`. The interaction term will be displayed as "s_x_BYorderedFactor" in the column name in returned data.frame. You may use function `generator_gamFormula_factorXsmooth()` to generate one.
+      \item Formula #2: \code{y ~ ti(x) + ti(z) + ti(x,z) + other_covariate}, where \code{x} and \code{z} should be continuous variables. The interaction term will be displayed as "ti_x_z" in the column name in the returned data.frame. You may use function `generator_gamFormula_continuousInteraction()` to generate one.
+  }
+}
+Effect size is calculated by the difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the term requested)
+\itemize{
+  \item When requesting effect size, \code{fx} should be set as \code{TRUE}, so that degree of freedom is fixed.
+  \item For formula with interactions, only formula in above formats are tested, and only effect size for interaction term is validated. The effect size for main effect (such as s(x) in Formula #1) may not "functionally" be its effect size, as the definition should be changed to reduced formula without both main effect and interaction term.
+}
+For p-value corrections (arguments \code{correct.p.value.*}), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
+Please notice that different from `FixelArray.lm`, there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model.
 }
