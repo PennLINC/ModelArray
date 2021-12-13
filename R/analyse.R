@@ -68,7 +68,14 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 checker_gam_s <- function(ofInterest) {
   FUN <- mgcv::s
   
-  paste0(ofInterest$label, ": ") %>% crayon::black() %>% cat()
+  # add "by=?" back to term name:
+  if (ofInterest$by == "NA") {
+    term_name <- ofInterest$label
+  } else {
+    term_name <- paste0(substr(ofInterest$label, 1, nchar(ofInterest$label)-1), ", by=",ofInterest$by,")")
+  }
+  
+  paste0(term_name, ": ") %>% crayon::black() %>% cat()
   
   ### k (or bs.dim):   # could be multiple values
   m1 <- invisible(eval(formals(FUN)[["k"]]))  # default
@@ -106,9 +113,6 @@ checker_gam_s <- function(ofInterest) {
   
   paste0("  bs = ",
          paste(as.character(mybs), collapse = ", "), msg_bs) %>% crayon::black() %>% cat()
-  
-  ### TODO: add "by" - interaction terms | if the factor after by is   not listed in the "label"
-  
   
   cat("\n")
   
@@ -169,7 +173,16 @@ checker_gam_t <- function(FUN, ofInterest) {
 #' @import mgcv
 #' @import dplyr
 #' @import rlang
-checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel) {
+#' @import crayon
+checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel=NULL) {
+  # print out the formula:
+  temp <- formula %>% as.character() 
+  str_formula <- paste0(temp[2], " ~ ", temp[3])
+  
+  m1 <- paste0("The formula requested: ", str_formula) %>% crayon::black() %>% cat()
+  cat(m1, "\n")
+  
+  
   if (length(gam.formula.breakdown$smooth.spec) != 0) {   # if there is smooth term
     list_smooth_terms <- character(length(gam.formula.breakdown$smooth.spec))
     for (i_smoothTerm in 1:length(gam.formula.breakdown$smooth.spec)) {
@@ -207,28 +220,32 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel) {
 
 }
 
-#' Generate GAM formula with interaction term: factor-smooth interaction
-#' Example 
-#' `factor.var` and `smooth.var` should come from data.frame `phenotypes`
-#' TODO: finish description
+#' Generate GAM formula with factor-smooth interaction
+#' 
+#' @description 
+#' This function will generate a formula in the following format: \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor)},
+#' where \code{y} is \code{response.var}, \code{x} is \code{smooth.var}, and \code{orderedFactor} is \code{factor.var} - see \code{factor.var} for more.
+#' The formula generated could be further modified, e.g. adding covariates.
+#' 
 #' @param response.var character class, the variable name for response
 #' @param factor.var character class, the variable name for factor. It should be an ordered factor. If not, it will generate it as a new column in `phenotypes`, which requires `reference.group`.
 #' @param smooth.var character class, the variable name in smooth term as main effect
-#' @param phenotypes data.frame class, the cohort matrix with covariates to be added to the model 
+#' @param phenotypes data.frame class, the cohort matrix with columns of independent variables (including \code{factor.var} and \code{smooth.var}) to be added to the model 
 #' @param reference.group character class, the reference group for ordered factor of `factor.var`; required when `factor.var` in `phenotypes` is not an ordered factor. 
 #' @param prefix.ordered.factor character class, the prefix for ordered factor; required when `factor.var` in `phenotypes` is not an ordered factor.
 #' @param fx TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.
-#' @param k integer, to be used in smooth term s(). Default is -1 as in mgcv::s()
+#' @param k integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default value as in mgcv::s()
 #' @return a list, including: 1) formula generated; 2) data.frame phenotypes - updated if argument factor.var is not an ordered factor
 #' @import mgcv
+#' @export
 #' 
 generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.var, phenotypes, 
                                                reference.group = NULL, prefix.ordered.factor = "o",
-                                               fx=TRUE, k=-1) {
+                                               fx=TRUE, k=NULL) {
   class.factor.var <- class(phenotypes[[factor.var]])
   if (  !( (length(class.factor.var) == 2) & (class.factor.var[1] == "ordered") & (class.factor.var[2] == "factor")  )  ) {   # class is not c("ordered", "factor")
 
-    message("input `factor.var` is not an ordered factor; will generate one in `phenotypes` which will be returned")
+    message("input `factor.var` is not an ordered factor; will generate one in data.frame `phenotypes` which will be returned")
     if (is.null(reference.group)) {
       stop("requires a reference.group to generate the ordered factor")
     }
@@ -252,6 +269,10 @@ generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.
 
   }
   
+  if (is.null(k)) {
+    k <- invisible(eval(formals(mgcv::s)[["k"]]))
+  }
+  
   # generate the formula:
   formula <- paste0(response.var, "~", factor.var, "+")
   formula <- paste0(formula, "s(", smooth.var, ",k=",toString(k),",fx=", toString(fx), ")", "+")
@@ -263,6 +284,41 @@ generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.
                   phenotypes = phenotypes)
   return(toReturn)
 }
+
+
+
+#' Generate GAM formula with continuous*continuous interaction
+#' 
+#' @description 
+#' This function will generate a formula in the following format: \code{y ~ ti(x) + ti(z) + ti(x,z)},
+#' where \code{y} is \code{response.var}, \code{x} is \code{cont1.var}, and \code{z} is \code{cont2.var}.
+#' The formula generated could be further modified, e.g. adding covariates.
+#' 
+#' @param response.var character class, the variable name for response
+#' @param cont1.var character class, the name of the first continuous variable
+#' @param cont2.var character class, the name of the second continuous variable
+#' @param fx TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.
+#' @param k integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default value as in mgcv::s()
+#' @return The formula generated
+#' @import mgcv
+#' @export
+#' 
+generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, cont2.var,
+                                                       fx=TRUE, k=NULL) {
+  
+  if (is.null(k)) {
+    k <- invisible(eval(formals(mgcv::ti)[["k"]]))
+  }
+  
+  formula <- paste0(response.var, "~")
+  formula <- paste0(formula, "ti(", cont1.var, ",k=",toString(k),",fx=", toString(fx), ")", "+")
+  formula <- paste0(formula, "ti(", cont2.var, ",k=",toString(k),",fx=", toString(fx), ")", "+")
+  formula <- paste0(formula, "ti(", cont1.var, ",", cont2.var,",k=",toString(k),",fx=", toString(fx), ")")
+  
+  formula <- as.formula(formula)
+  return(formula)
+}
+
 
 #' Run a linear model at each fixel location
 #'
@@ -718,8 +774,8 @@ FixelArray.lm <- function(formula, data, phenotypes, scalar, fixel.subset = NULL
 #'   \item formula with smooth term, but without any interactions. Examples like \code{y ~ s(x) + orderedFactor}; \code{y ~ s(x) + s(z)}
 #'   \item formula with interaction, but limited to only one interaction term, and in the formats of:
 #'   \itemize{
-#'       \item Formula #1: \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor) + other_covariate}, where \code{orderedFactor} should be discrete variables and generated by `ordered`
-#'       \item Formula #2: \code{y ~ ti(x) + ti(z) + ti(x,z) + other_covariate}, where \code{x} and \code{z} should be continuous variables.
+#'       \item Formula #1: \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor) + other_covariate}, where \code{orderedFactor} should be discrete variables and generated by `ordered`. The interaction term will be displayed as "s_x_BYorderedFactor" in the column name in returned data.frame. You may use function `generator_gamFormula_factorXsmooth()` to generate one.
+#'       \item Formula #2: \code{y ~ ti(x) + ti(z) + ti(x,z) + other_covariate}, where \code{x} and \code{z} should be continuous variables. The interaction term will be displayed as "ti_x_z" in the column name in the returned data.frame. You may use function `generator_gamFormula_continuousInteraction()` to generate one.
 #'   }
 #' }
 #' Effect size is calculated by the difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the term requested)
@@ -775,7 +831,6 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     stop("Please enter integers for fixel.subset!")
   }
   
-  ### TODO: print additional arguments in smooth term (s(), te(), etc) - only displaying the important arguments
   # check if the formula is valid in terms of mgcv::gam()
   tryCatch(
     {
@@ -787,35 +842,36 @@ FixelArray.gam <- function(formula, data, phenotypes, scalar, fixel.subset = NUL
     }
   )
   
-  # to check formula, we need to fit one fixel:
-  values <- scalars(data)[[scalar]][1,]
-  dat <- phenotypes
-  dat[[scalar]] <- values
-  onemodel <- mgcv::gam(formula = formula, data = dat)
-    
-  #checker_gam_formula(formula, gam.formula.breakdown, onemodel)
-    
-  # what smooth? s or te or?
-  # additional arguments in the smooth term, and are they valid for this specific term type?
+  # print out the additional arguments in smooth terms:
   
-  ### display additional arguments:
+  # # to check formula, we need to fit one fixel:
+  # values <- scalars(data)[[scalar]][1,]
+  # dat <- phenotypes
+  # dat[[scalar]] <- values
+  # onemodel <- mgcv::gam(formula = formula, data = dat)
+    
+  # checker_gam_formula(formula, gam.formula.breakdown, onemodel)
+
+  checker_gam_formula(formula, gam.formula.breakdown)
+    
+
+  ### display additional arguments: [only important one]
   dots <- list(...)    
   dots_names <- names(dots)
   
   FUN <- mgcv::gam
   
-  # family:
-  m <- invisible(eval(formals(FUN)$family))    # should not use message(), but print() --> but will print out or invisible()
-  m1 <- paste0("Family: ", m$family, "; Link function: ", m$link)
-  printAdditionalArgu(FUN, "family", dots, m1)
+  # # family:  # it works; but family may not be important
+  # m <- invisible(eval(formals(FUN)$family))    # should not use message(), but print() --> but will print out or invisible()
+  # m1 <- paste0("Family: ", m$family, "; Link function: ", m$link)
+  # printAdditionalArgu(FUN, "family", dots, m1)
+  
+  # method: (default: "GCV.Cp")
+  printAdditionalArgu(FUN, "method", dots)  # default: "GCV.Cp"
+
+  # TODO: optional: check if fx=FALSE; if so, add edf to the list of var + warning: fx=TRUE is recommended
   
   
-  # eval(formals(mgcv::gam)$data) # return the default setting of argument "data"
-  
-  
-  # TODO: finish this part: display additional arguments
-  
-  # TODO: check if fx=FALSE; if so, add edf to the list of var + warning: fx=TRUE is recommended
   
   # when full.outputs = TRUE:
   var.smoothTerms.full <- c("edf","ref.df","statistic","p.value")
