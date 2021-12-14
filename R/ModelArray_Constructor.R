@@ -1,21 +1,17 @@
 # Exported Functions
 
 ### setClass of "ModelArray" #####
-#' An S4 class to represent fixel-wise scalar data and statistics.
+#' An S4 class to represent grid-wise scalar data and statistics.
 #'
-#' @slot fixels A DelayedArray object of fixel data
-#' @slot voxels A DelayedArray object of voxel indeces
 #' @slot results An h5 group of ModelArray analysis outputs
 #' @slot subjects A list of subject labels
-#' @slot scalars A list of scalars measured by the fixels
+#' @slot scalars A list of grid-wise scalars
 #' @slot path Path to the h5 file on disk
 #' @importClassesFrom DelayedArray DelayedArray
 ModelArray <- setClass(
   "ModelArray",
   #contains="DelayedArray",
   slots = c(
-    fixels="DelayedArray",
-    voxels="DelayedArray",
     results="list",
     subjects="list",
     scalars="list",
@@ -30,38 +26,25 @@ ModelArray <- setClass(
 #' used to instantiate a delayed array
 #' 
 #' @param filepath Path to an existing h5 file.
-#' @param name Name of the group/field in the h5 file
-#'
+#' @param name Name of the group/field in the h5 file.
+#' @param type Type of DelayedArray object, used as an argument for `HDF5Array::HDF5ArraySeed`.
+#' @import HDF5Array
 #' @noRd
-ModelArraySeed <- function(
-  # TODO write a test for this: checks that the h5 file has the right fields
+#' 
+ModelArraySeed <- function(filepath, name, type = NA) {
+
+  # NOTE: the checker for if h5 groups fixels/voxels/scalars exist (a.k.a valid fixel data) is deleted, as ModelArray is generalized to any modality.
   
-  filepath,
-  name = "fixels",
-  type = NA) {
+  seed = HDF5Array::HDF5ArraySeed(    
+    filepath, name = name, type = type)   # HDF5Array is also from BioConductor...
   
-  if(all(
-    c("fixels", "voxels", "scalars")
-    %in%
-    rhdf5::h5ls(filepath)$name
-  )
-  ) {
+  seed
     
-    seed = HDF5Array::HDF5ArraySeed(    
-      filepath, name = name, type = type)   # HDF5Array is also from BioConductor...
-    
-    seed
-    
-  } else {
-    
-    stop("Improperly formatted Fixel data")
-    
-  }
   
 }
 
 
-#' Load fixel data output from mrtrix as an h5 file into R as a ModelArray object
+#' Load grid-wise data from .h5 file as a ModelArray object
 #' Tips for debugging: 
 #' if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via h5ls(filename_for_h5)
 #' TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
@@ -74,40 +57,16 @@ ModelArraySeed <- function(
 #' @import dplyr
 
 ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
-  ## fixel_data: 
   
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
   # fn.h5 <- H5File$new(filepath, mode="a")    # open; "a": creates a new file or opens an existing one for read/write
   # fixel_data <- fn.h5[["fixels"]]
   # NOTE: without DelayedArray (Bioconductor), the fixel_data won't look like a regular matrix in R or get transposed; 
   # NOTE: I also need to test if only using hdf5r can still extract scalars(modelarray)[["FD"]]
+
   
-  fixel_data <- ModelArraySeed(filepath, name = "fixels", type = NA) %>%
-    DelayedArray::DelayedArray()    # NOTE: without DelayedArray (BioConductor), the fixel_data won't look like a regular matrix in R or get transposed
-
-  if(dim(fixel_data)[2] != 5) {
-
-    fixel_data <- t(fixel_data)
-
-  }
-
-  colnames(fixel_data) <- c("Fixel_id", "Voxel_id", "x", "y", "z")
-  
-  ## voxel_data:
-  voxel_data <- ModelArraySeed(filepath, name = "voxels", type = NA) %>%
-    DelayedArray::DelayedArray()
-
-  if(dim(voxel_data)[2] != 4) {
-
-    fixel_data <- t(fixel_data)   # TODO: transpose voxel_data? leave it here for now.
-
-  }
-
-  colnames(voxel_data) <- c("Voxel_id", "x", "y", "z")
-
-  ids <- vector("list", length(scalar_types))
-
   ## scalar_data:
+  ids <- vector("list", length(scalar_types))
   scalar_data <- vector("list", length(scalar_types))
 
   for(x in 1:length(scalar_types)){
@@ -209,174 +168,42 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
     }
   }
   
-  
-  
-    
-  
+
   new(
     "ModelArray",
-    fixels = fixel_data,
-    voxels = voxel_data,
     subjects = ids,
     scalars = scalar_data,
-    results = results_data,   # ISSUE: LHS SHOULD BE THE SAME AS THE NAME IN THE H5 FILE, NOT NECESSARY CALLED "results"
+    results = results_data,   # TODO: issue: LHS SHOULD BE THE SAME AS THE NAME IN THE H5 FILE, NOT NECESSARY CALLED "results"
     path = filepath
   )
 
 }
 
-#' Analyse (fit statistical model) and write the outputs for 1 fixel
-#'
-#' @param formula Formula (passed to `lm()`)
-#' @param modelarray ModelArray class
-#' @param phenotypes The cohort matrix with covariates to be added to the model  
-#' @param scalar The name of the scalar to be analysed fixel-wise
-#' @param fn.output.h5 Opened h5 file (via H5File$new(filename, mode="a"))
-#' @param analysis_name The subgroup name in results, holding the analysis results 
-#' @param i_grid The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_grid=1
-#' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
-#' @param var.model The list of variables to save for the model (got from lm %>% glance())
-#' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_grid, then TRUE.
-#' @param results.grp # TODO: to explain
-#' @param results.analysis.grp
-#' 
-#' @param overwrite Whether to overwrite or not    # TODO: to make this description more clear
-#' @param verbose Print progress messages
-#' @import hdf5r
-#' @import broom
-#' @import dplyr
- 
-analyseNwriteOneFixel.lm <- function(i_grid, 
-                                     formula, modelarray, phenotypes, scalar, fn.output.h5, analysis_name = "lm", 
-                                     var.terms, var.model, 
-                                     flag_initiate = FALSE, overwrite = TRUE,
-                                     results.grp = NULL, results.analysis.grp = NULL, results_matrix_ds = NULL,
-                                     verbose = TRUE, ...) {
-  values <- scalars(modelarray)[[scalar]][i_grid,]
-  dat <- phenotypes
-  dat[[scalar]] <- values
-  onemodel <- stats::lm(formula, data = dat, ...)   
-  onemodel.tidy <- onemodel %>% broom::tidy()
-  onemodel.glance <- onemodel %>% broom::glance()
-  # Augment accepts a model object and a dataset and adds information about each observation in the dataset. 
-  #   also accepts new data: Users may pass data to augment via either the data argument or the newdata argument. 
-  # onemodel.augment <- onemodel %>% augment()  
-  
-  # delete columns you don't want:
-  var.terms.full <-names(onemodel.tidy)
-  
-  var.model.full <- names(onemodel.glance)
-  
-  # list to remove:
-  var.terms.orig <- var.terms
-  var.terms <- list("term", var.terms) %>% unlist()    # we will always keep "term" column
-  var.terms.remove <- list()   
-  for (l in var.terms.full) {
-    if (!(l %in% var.terms)) {
-      var.terms.remove <- var.terms.remove %>% append(., l) %>% unlist()  # the order will still be kept
-    }
-  }
-  
-  var.model.remove <- list()
-  for (l in var.model.full) {
-    if (!(l %in% var.model)) {
-      var.model.remove <- var.model.remove %>% append(., l) %>% unlist()  # the order will still be kept
-    }
-  }
-  
-  # remove those columns:
-  onemodel.tidy <- dplyr::select(onemodel.tidy, -all_of(var.terms.remove))
-  onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
-  
-  # adjust:
-  onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
-  onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
-  
-  # flatten .tidy results into one row:
-  onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(names_from = term,
-                                                               values_from = all_of(var.terms.orig),
-                                                               names_glue = "{term}.{.value}")
-  onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
-                                                                    values_from = all_of(var.model),
-                                                                    names_glue = "{term}.{.value}")
-  # TODO: change the potential strings in the table into numerics + lut
-  
-  
-  # combine the tables:
-  onemodel.onerow <- bind_cols(onemodel.tidy.onerow, onemodel.glance.onerow)
-  
-  # now you can get the headers, # of columns, etc of the output results
-  
-  
-  if (flag_initiate == TRUE) { # initiate the saving:
-    # check if group "results" already exists!
-    if (fn.output.h5$exists("results") == TRUE) { # group "results" exist
-      results.grp <- fn.output.h5$open("results")
-    } else {
-      results.grp <- fn.output.h5$create_group("results")
-    }
-    
-    # check if group "results\<analysis_name>" exists:
-    if (results.grp$exists(analysis_name) == TRUE & overwrite == FALSE) {
-      warning(paste0(analysis_name, " exists but not to overwrite!"))
-      # TODO: add checker for exisiting analysis_name, esp the matrix size
-      results.analysis.grp <- results.grp$open(analysis_name)
-      results_matrix_ds <- results.analysis.grp[["results_matrix"]]
-      
-    } else {     # not exist; or exist & overwrite: to create
-      if (results.grp$exists(analysis_name) == TRUE & overwrite == TRUE) {  # delete existing one first
-        results.grp$link_delete(analysis_name)   # NOTE: the file size will not shrink after your deletion.. this is because of HDF5, regardless of package of hdf5r or rhdf5
-      }
-      
-      # create:
-      results.analysis.grp <- results.grp$create_group(analysis_name)  # create a subgroup called analysis_name under results.grp
-      results.analysis.grp[["results_matrix"]] <- matrix(0, nrow=nrow(scalars(modelarray)[[scalar]]), ncol = ncol(onemodel.onerow))   # all 0
-      results_matrix_ds <- results.analysis.grp[["results_matrix"]]   # name it
-      # attach column names:
-      h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(onemodel.onerow)  
-      
-    }
-    
-    # return:
-    output_list <- list(results.grp = results.grp,
-                        results.analysis.grp = results.analysis.grp,
-                        results_matrix_ds = results_matrix_ds)
-    return(output_list)
-    
-  } else if (flag_initiate == FALSE) {  # to save this fixel:
-    # assuming group "results", group "results\<analysis_name>", and its "results_matrix" dataset already exist and correctly created; they should be entered into this function
 
-    
-    # then flush into .h5 file: 
-    results_matrix_ds[i_grid,] <- as.numeric(onemodel.onerow)   # TODO: ask Matt if a column of grid_id is needed?
-    
-    # # will return nothing (as results.* are just provided in the arguments....)
-    # a = as.numeric(onemodel.onerow)
-    # results_matrix_ds.afterflush <- results_matrix_ds
-    # output_list <- list(a = a, 
-    #                     results_matrix_ds.afterflush = results_matrix_ds.afterflush)
-    # return(output_list)
-  }
-  
-    
-}
-
-#' Analyse (fit linear model) and write the outputs for 1 fixel
-#'
-#' @param i_grid The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_grid=1
-#' @param formula Formula (passed to `lm()`)
-#' @param modelarray ModelArray class
-#' @param phenotypes The cohort matrix with covariates to be added to the model  
-#' @param scalar The name of the scalar to be analysed fixel-wise
-#' @param var.terms The list of variables to save for terms (got from lm %>% tidy())
-#' @param var.model The list of variables to save for the model (got from lm %>% glance())
-#' @param flag_initiate Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_grid, then TRUE and it will return column names.
+#' Fit linear model for one grid.
 #' 
-#' @return if flag_initiate==TRUE, returns column names & list of terms of final results; if flag_initiate==FALSE, returns the final results for a fixel
+#' @description 
+#' `analyseOneGrid.lm` fits a linear model for one grid data, and returns requested model statistics.
+#' 
+#' @details 
+#' `ModelArray.lm` iteratively calls this function to get statistics for all requested grids.
+#' 
+#' @param i_grid An integer, the i_th grid, starting from 1. For initiating (flag_initiate = TRUE), use i_grid=1
+#' @param formula Formula (passed to `stats::lm()`)
+#' @param modelarray ModelArray class
+#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. 
+#' @param scalar A character. The name of the grid-wise scalar to be analysed
+#' @param var.terms A list of characters. The list of variables to save for terms (got from `broom::tidy()`). 
+#' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()`).
+#' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
+#' @param ... Additional arguments for `stats::lm()`
+#' 
+#' @return If flag_initiate==TRUE, returns column names, and list of term names of final results; if flag_initiate==FALSE, it will return the list of requested statistic values for a grid.
 #' @export
-#' @import hdf5r
+#' @import stats
 #' @import broom
 #' @import dplyr
+#' @import tibble
 
 analyseOneGrid.lm <- function(i_grid, 
                                formula, modelarray, phenotypes, scalar, 
@@ -403,7 +230,7 @@ analyseOneGrid.lm <- function(i_grid,
   
   # onemodel <- stats::lm(formula, data = dat, ...)   
   # onemodel <- stats::lm(formula, data = dat, weights = myWeights,...)   
-  onemodel <- do.call(lm, arguments_lm)   # explicitly passing arguments into lm, to avoid error of argument "weights"
+  onemodel <- do.call(stats::lm, arguments_lm)   # explicitly passing arguments into lm, to avoid error of argument "weights"
   
   onemodel.tidy <- onemodel %>% broom::tidy()
   onemodel.glance <- onemodel %>% broom::glance()
@@ -454,8 +281,8 @@ analyseOneGrid.lm <- function(i_grid,
                                                                     names_glue = "{term}.{.value}")
   
   # combine the tables:
-  onemodel.onerow <- bind_cols(onemodel.tidy.onerow, onemodel.glance.onerow)
-  # add a column of fixel ids:
+  onemodel.onerow <- dplyr::bind_cols(onemodel.tidy.onerow, onemodel.glance.onerow)
+  # add a column of grid ids:
   colnames.temp <- colnames(onemodel.onerow)
   onemodel.onerow <- onemodel.onerow %>% tibble::add_column(grid_id = i_grid-1, .before = colnames.temp[1])   # add as the first column
   
@@ -479,30 +306,30 @@ analyseOneGrid.lm <- function(i_grid,
   
   
 }  
-#' Fit GAM for one fixel data
+#' Fit GAM for one grid
 #'
 #' @description 
-#' `analyseOneGrid.gam` fits a GAM model for one fixel data, and returns requested model statistics.
+#' `analyseOneGrid.gam` fits a GAM model for one grid data, and returns requested model statistics.
 #' 
 #' @details 
-#' `ModelArray.gam` iteratively calls this function to get statistics for all requested fixels.
+#' `ModelArray.gam` iteratively calls this function to get statistics for all requested grids.
 #'
-#' @param i_grid An integer, the i_th fixel, starting from 1. For initiating (flag_initiate = TRUE), use i_grid=1
+#' @param i_grid An integer, the i_th grid, starting from 1. For initiating (flag_initiate = TRUE), use i_grid=1
 #' @param formula A formula (passed to `mgcv::gam()`)
 #' @param modelarray ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
-#' @param scalar The name of the scalar to be analysed fixel-wise
+#' @param scalar A character. The name of the grid-wise scalar to be analysed
 #' @param var.smoothTerms The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
 #' @param var.parametricTerms The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".
 #' @param var.model The list of variables to save for the model (got from broom::glance() and summary()). 
-#' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
-#' @param ... Arguments for `mgcv::gam()`
-#' @return If flag_initiate==TRUE, returns column names ,and list of term names of final results and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a fixel.
+#' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
+#' @param ... Additional arguments for `mgcv::gam()`
+#' @return If flag_initiate==TRUE, returns column names, list of term names of final results, and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a grid.
 #' @export
-# #' @import hdf5r
 #' @import mgcv
 #' @import broom
 #' @import dplyr
+#' @import tibble
 
 analyseOneGrid.gam <- function(i_grid, formula, modelarray, phenotypes, scalar, 
                                 var.smoothTerms, var.parametricTerms, var.model, 
@@ -657,18 +484,18 @@ analyseOneGrid.gam <- function(i_grid, formula, modelarray, phenotypes, scalar,
   if ( ! all(dim(onemodel.tidy.smoothTerms.onerow)) ) {  # empty
     onemodel.onerow <- onemodel.tidy.parametricTerms.onerow
   } else {   # combine
-    onemodel.onerow <- bind_cols(onemodel.tidy.smoothTerms.onerow, 
+    onemodel.onerow <- dplyr::bind_cols(onemodel.tidy.smoothTerms.onerow, 
                                  onemodel.tidy.parametricTerms.onerow)
   }
   if ( ! all(dim(onemodel.onerow))   ){   # empty
     onemodel.onerow <- onemodel.glance.onerow
   } else {   # combine
-    onemodel.onerow <- bind_cols(onemodel.onerow,
+    onemodel.onerow <- dplyr::bind_cols(onemodel.onerow,
                                  onemodel.glance.onerow)
   }
   
 
-  # add a column of fixel ids:
+  # add a column of grid ids:
   colnames.temp <- colnames(onemodel.onerow)
   onemodel.onerow <- onemodel.onerow %>% tibble::add_column(grid_id = i_grid-1, .before = colnames.temp[1])   # add as the first column
   
@@ -762,6 +589,8 @@ writeResults.old <- function(modelarray, data, analysis_name = "myAnalysis", fla
 #' @param overwrite If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)
 #' @import hdf5r
 #' @export
+
+# TODO: check out analyseNwriteOneFixel.lm() and see if anything to add
 
 writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", overwrite=TRUE){ 
   
