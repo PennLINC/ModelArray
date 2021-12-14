@@ -32,15 +32,15 @@ ModelArray.gam(
 
 \item{scalar}{A character. The name of the grid-wise scalar to be analysed}
 
-\item{grid.subset}{A list of positive integers. The subset of grid ids you want to run. Integers. First id starts from 1.}
+\item{grid.subset}{A list of positive integers (min = 1, max = number of grids). The subset of grids you want to run.}
 
-\item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.}
+\item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.}
 
-\item{var.smoothTerms}{A list of characters. The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.}
+\item{var.smoothTerms}{A list of characters. The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.}
 
-\item{var.parametricTerms}{A list of characters. The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.}
+\item{var.parametricTerms}{A list of characters. The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.}
 
-\item{var.model}{A list of characters. The list of variables to save for the model (got from broom::glance() and summary()). See "Details" section for more.}
+\item{var.model}{A list of characters. The list of variables to save for the model (got from `broom::glance()` and `summary()`). See "Details" section for more.}
 
 \item{eff.size.term.index}{A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.}
 
@@ -48,13 +48,13 @@ ModelArray.gam(
 
 \item{correct.p.value.parametricTerms}{A list of characters. To perform and add a column for p.value correction for each parametric term. See "Details" section for more.}
 
-\item{verbose}{TRUE or FALSE, to print progress messages}
+\item{verbose}{TRUE or FALSE, to print verbose messages or not}
 
-\item{pbar}{TRUE or FALSE, to print progress bar}
+\item{pbar}{TRUE or FALSE, to print progress bar or not}
 
 \item{n_cores}{Positive integer, The number of CPU cores to run with}
 
-\item{...}{Arguments for 'mgcv::gam()'}
+\item{...}{Additional arguments for `mgcv::gam()`}
 }
 \value{
 Tibble with the summarized model statistics for all grids requested

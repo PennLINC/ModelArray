@@ -378,7 +378,7 @@ analyseNwriteOneFixel.lm <- function(i_grid,
 #' @import broom
 #' @import dplyr
 
-analyseOneFixel.lm <- function(i_grid, 
+analyseOneGrid.lm <- function(i_grid, 
                                formula, modelarray, phenotypes, scalar, 
                                var.terms, var.model, 
                                flag_initiate = FALSE, 
@@ -482,7 +482,7 @@ analyseOneFixel.lm <- function(i_grid,
 #' Fit GAM for one fixel data
 #'
 #' @description 
-#' `analyseOneFixel.gam` fits a GAM model for one fixel data, and returns requested model statistics.
+#' `analyseOneGrid.gam` fits a GAM model for one fixel data, and returns requested model statistics.
 #' 
 #' @details 
 #' `ModelArray.gam` iteratively calls this function to get statistics for all requested fixels.
@@ -504,7 +504,7 @@ analyseOneFixel.lm <- function(i_grid,
 #' @import broom
 #' @import dplyr
 
-analyseOneFixel.gam <- function(i_grid, formula, modelarray, phenotypes, scalar, 
+analyseOneGrid.gam <- function(i_grid, formula, modelarray, phenotypes, scalar, 
                                 var.smoothTerms, var.parametricTerms, var.model, 
                                 flag_initiate = FALSE, 
                                 ...) {

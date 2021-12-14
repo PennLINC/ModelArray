@@ -123,7 +123,7 @@ test_that("test that ModelArray.gam() works as expected", {
                          mygam_bsCR %>% dplyr::select("s_age.statistic"))
                %>% isTRUE()) 
   
-  ## different settings in mgcv::gam()'s additional arguments: test if the arguments have been passed into analyseOneFixel.gam()
+  ## different settings in mgcv::gam()'s additional arguments: test if the arguments have been passed into analyseOneGrid.gam()
   # method: 
   mygam_methodREML <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, grid.subset = grid.subset,
                                      method = "REML",  # default = "GCV.Cp"

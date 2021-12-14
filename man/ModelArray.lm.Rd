@@ -2,8 +2,7 @@
 % Please edit documentation in R/analyse.R
 \name{ModelArray.lm}
 \alias{ModelArray.lm}
-\title{Run a linear model at each fixel location, write out each result just after the model fitting 
-For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".}
+\title{Fit linear model for grid-wise data}
 \usage{
 ModelArray.lm(
   formula,
@@ -27,32 +26,43 @@ ModelArray.lm(
 
 \item{data}{ModelArray class}
 
-\item{phenotypes}{The cohort matrix with covariates to be added to the model}
+\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model}
 
-\item{scalar}{The name of the scalar to be analysed fixel-wise}
+\item{scalar}{A character. The name of the grid-wise scalar to be analysed}
 
-\item{grid.subset}{The subset of fixel ids you want to run. Integers. First id starts from 1.}
+\item{grid.subset}{A list of positive integers (min = 1, max = number of grids). The subset of grids you want to run.}
 
-\item{full.outputs}{Whether to return full set of outputs (TRUE or FALSE). If FALSE, it will only return those listed in var.terms and var.model; if TRUE, arguments var.terms and var.model will be ignored.}
+\item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.}
 
-\item{var.terms}{The list of variables to save for terms (got from lm %>% tidy())}
+\item{var.terms}{A list of characters. The list of variables to save for terms (got from `broom::tidy()`). See "Details" section for more.}
 
-\item{var.model}{The list of variables to save for the model (got from lm %>% glance())}
+\item{var.model}{A list of characters. The list of variables to save for the model (got from `broom::glance()`). See "Details" section for more.}
 
-\item{correct.p.value.terms}{To perform and add a column for p.value correction for each term.}
+\item{correct.p.value.terms}{A list of characters. To perform and add a column for p.value correction for each term. See "Details" section for more.}
 
-\item{correct.p.value.model}{To perform and add a column for p.value correction for the model.}
+\item{correct.p.value.model}{A list of characters. To perform and add a column for p.value correction for the model. See "Details" section for more.}
 
-\item{verbose}{Print verbose message or not}
+\item{verbose}{TRUE or FALSE, to print verbose message or not}
 
-\item{pbar}{Print progress bar}
+\item{pbar}{TRUE or FALSE, to print progress bar or not}
 
-\item{n_cores}{The number of cores to run on}
+\item{n_cores}{Positive integer, The number of CPU cores to run with}
+
+\item{...}{Additional arguments for `lm()`}
 }
 \value{
-Tibble with the summarized model statistics for all fixels requested
+Tibble with the summarized model statistics for all grids requested
 }
 \description{
-Run a linear model at each fixel location, write out each result just after the model fitting 
-For p-value corrections (arguments correct.p.value.*), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
+`ModelArray.lm` fits linear model (`lm()`) for each of grids requested, and returns a tibble dataframe of requested model statistics.
+}
+\details{
+You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
+Note that statistics covered by \code{full.outputs} or \code{var.*} are the ones from broom::tidy() and broom::glance() only, and do not include corrected p values.
+List of acceptable statistic names for each of \code{var.*}:
+\itemize{
+  \item \code{var.terms}: c("estimate","std.error","statistic","p.value"); For interpretation please see `broom:tidy()`.
+  \item \code{var.model}: c("r.squared", "adj.r.squared", "sigma", "statistic", "p.value", "df", "logLik", "AIC", "BIC", "deviance", "df.residual", "nobs"); For interpretation please see `broom::glance()`.
+}
+For p-value corrections (arguments \code{correct.p.value.*}), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
 }

@@ -174,7 +174,7 @@ colnames(ModelArray_josiane_full@results$gam_allOutputs$results_matrix )
 
 ```
 
-# Play around with mgcv::gam() - blocks in analyseOneFixel.gam()
+# Play around with mgcv::gam() - blocks in analyseOneGrid.gam()
 ```{r}
 
 i_grid <- 1
