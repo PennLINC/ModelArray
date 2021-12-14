@@ -152,17 +152,17 @@ test_that("test that ModelArray.gam() works as expected", {
                  correct.p.value.parametricTerms = c("fdr","bonferroni"),
                  n_cores = 2, pbar = FALSE) 
   expect_equal(mygam_parametric_pCorrect$sexM.p.value.fdr,
-               mygam_parametric_pCorrect$sexM.p.value %>% p.adjust("fdr"))
+               mygam_parametric_pCorrect$sexM.p.value %>% stats::p.adjust("fdr"))
   expect_equal(mygam_parametric_pCorrect$sexM.p.value.bonferroni,
-               mygam_parametric_pCorrect$sexM.p.value %>% p.adjust("bonferroni"))
+               mygam_parametric_pCorrect$sexM.p.value %>% stats::p.adjust("bonferroni"))
   
   mygam_smooth_pCorrect <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, grid.subset = grid.subset,
                               correct.p.value.smoothTerms = c("fdr","bonferroni"),
                               n_cores = 2, pbar = FALSE) 
   expect_equal(mygam_smooth_pCorrect$s_age.p.value.fdr,
-               mygam_smooth_pCorrect$s_age.p.value %>% p.adjust("fdr"))
+               mygam_smooth_pCorrect$s_age.p.value %>% stats::p.adjust("fdr"))
   expect_equal(mygam_smooth_pCorrect$s_age.p.value.bonferroni,
-               mygam_smooth_pCorrect$s_age.p.value %>% p.adjust("bonferroni"))
+               mygam_smooth_pCorrect$s_age.p.value %>% stats::p.adjust("bonferroni"))
 
   expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, grid.subset = grid.subset,
                               correct.p.value.parametricTerms = c("wrong_correct"),

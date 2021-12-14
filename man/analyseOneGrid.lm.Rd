@@ -2,7 +2,7 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{analyseOneGrid.lm}
 \alias{analyseOneGrid.lm}
-\title{Analyse (fit linear model) and write the outputs for 1 fixel}
+\title{Fit linear model for one grid.}
 \usage{
 analyseOneGrid.lm(
   i_grid,
@@ -17,25 +17,27 @@ analyseOneGrid.lm(
 )
 }
 \arguments{
-\item{i_grid}{The i_th fixel, starting from 1, integer. For initiating (flag_initiate = TRUE), use i_grid=1}
+\item{i_grid}{An integer, the i_th grid, starting from 1. For initiating (flag_initiate = TRUE), use i_grid=1}
 
-\item{formula}{Formula (passed to `lm()`)}
+\item{formula}{Formula (passed to `stats::lm()`)}
 
 \item{modelarray}{ModelArray class}
 
-\item{phenotypes}{The cohort matrix with covariates to be added to the model}
+\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model.}
 
-\item{scalar}{The name of the scalar to be analysed fixel-wise}
+\item{scalar}{A character. The name of the grid-wise scalar to be analysed}
 
-\item{var.terms}{The list of variables to save for terms (got from lm %>% tidy())}
+\item{var.terms}{A list of characters. The list of variables to save for terms (got from `broom::tidy()`).}
 
-\item{var.model}{The list of variables to save for the model (got from lm %>% glance())}
+\item{var.model}{A list of characters. The list of variables to save for the model (got from `broom::glance()`).}
 
-\item{flag_initiate}{Whether this is to initiate the new group (TRUE or FALSE) - if this is the first i_grid, then TRUE and it will return column names.}
+\item{flag_initiate}{TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.}
+
+\item{...}{Additional arguments for `stats::lm()`}
 }
 \value{
-if flag_initiate==TRUE, returns column names & list of terms of final results; if flag_initiate==FALSE, returns the final results for a fixel
+If flag_initiate==TRUE, returns column names, and list of term names of final results; if flag_initiate==FALSE, it will return the list of requested statistic values for a grid.
 }
 \description{
-Analyse (fit linear model) and write the outputs for 1 fixel
+Fit linear model for one grid.
 }

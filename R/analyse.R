@@ -40,10 +40,11 @@ printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, me
 #' @param name.correct.list The name of the list of correction methods for this type of term/model
 #' @param var.list The list of statistics to be saved for this type of term/model
 #' @param name.var.list The name of the list of statistics to be saved for this type of term/model
+#' @import stats
 
 check_validity_correctPValue <- function(correct.list, name.correct.list, 
                                          var.list, name.var.list) {
-  p.adjust.methods.full <- p.adjust.methods[ p.adjust.methods != "none" ]
+  p.adjust.methods.full <- stats::p.adjust.methods[ stats::p.adjust.methods != "none" ]
   if ( all(correct.list == "none") == FALSE) {    # any element is not "none"
     checker.method.in <- correct.list %in% p.adjust.methods.full
     if ( all(checker.method.in) == FALSE) {   # not all "TRUE"
@@ -237,6 +238,7 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel=NULL) {
 #' @param k integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default value as in mgcv::s()
 #' @return a list, including: 1) formula generated; 2) data.frame phenotypes - updated if argument factor.var is not an ordered factor
 #' @import mgcv
+#' @import stats
 #' @export
 #' 
 generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.var, phenotypes, 
@@ -279,7 +281,7 @@ generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.
   formula <- paste0(formula, "s(", smooth.var, ",k=",toString(k),",by=", factor.var,",fx=", toString(fx), ")")
   
   # return
-  formula <- as.formula(formula)  # when printing formula, it could be shown in more than one lines...
+  formula <- stats::as.formula(formula)  # when printing formula, it could be shown in more than one lines...
   toReturn = list(formula = formula,
                   phenotypes = phenotypes)
   return(toReturn)
@@ -301,6 +303,7 @@ generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.
 #' @param k integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default value as in mgcv::s()
 #' @return The formula generated
 #' @import mgcv
+#' @import stats
 #' @export
 #' 
 generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, cont2.var,
@@ -315,7 +318,7 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
   formula <- paste0(formula, "ti(", cont2.var, ",k=",toString(k),",fx=", toString(fx), ")", "+")
   formula <- paste0(formula, "ti(", cont1.var, ",", cont2.var,",k=",toString(k),",fx=", toString(fx), ")")
   
-  formula <- as.formula(formula)
+  formula <- stats::as.formula(formula)
   return(formula)
 }
 
@@ -323,7 +326,7 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' Fit linear model for grid-wise data
 #' 
 #' @description 
-#' `ModelArray.lm` fits linear model (`lm()`) for each of grids requested, and returns a tibble dataframe of requested model statistics.
+#' `ModelArray.lm` fits linear model (`stats::lm()`) for each of grids requested, and returns a tibble dataframe of requested model statistics.
 #' 
 #' @details 
 #' You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
@@ -335,7 +338,7 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' }
 #' For p-value corrections (arguments \code{correct.p.value.*}), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
 #'
-#' @param formula Formula (passed to `lm()`)
+#' @param formula Formula (passed to `stats::lm()`)
 #' @param data ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
 #' @param scalar A character. The name of the grid-wise scalar to be analysed
@@ -348,11 +351,12 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' @param verbose TRUE or FALSE, to print verbose message or not
 #' @param pbar TRUE or FALSE, to print progress bar or not
 #' @param n_cores Positive integer, The number of CPU cores to run with
-#' @param ... Additional arguments for `lm()`
+#' @param ... Additional arguments for `stats::lm()`
 #' @return Tibble with the summarized model statistics for all grids requested
 #' @import dplyr
 #' @import doParallel
 #' @import tibble
+#' @import stats
 #' @export
 
 ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL, full.outputs = FALSE, 
@@ -561,7 +565,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
         for (tempstr in list.terms) {
           tempstr.raw <- paste0(tempstr, ".p.value")
           tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
-          temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = methodstr)
+          temp.corrected <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
           df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
         }
         
@@ -582,7 +586,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
         
         tempstr.raw <- "model.p.value"
         tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
-        temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = methodstr)
+        temp.corrected <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
         df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
         
       }
@@ -652,6 +656,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
 #' @import doParallel
 #' @import tibble
 #' @import mgcv
+#' @import stats
 #' @export
 
 ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL, full.outputs = FALSE, 
@@ -768,7 +773,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
       stop(paste0("There is element(s) in eff.size.term.index <= 0. It should be a (list of) positive integer!"))
     }
 
-    terms.full.formula <- terms(formula, keep.order = TRUE)   # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
+    terms.full.formula <- stats::terms(formula, keep.order = TRUE)   # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
     if (max(eff.size.term.index) > length(labels(terms.full.formula))) {  # if max is more than the number of terms on RHS of formula
       stop(paste0("Largest index in eff.size.term.index is more than the term number on the right hand side of formula!"))
     }
@@ -909,9 +914,9 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
         # check if there is only one term (after removing it in reduced model, there is no term but intercept in the formula...)
       if (length(labels(terms.full.formula)) ==1) {
         temp <- toString(formula) %>% strsplit("[, ]")  
-        reduced.formula <- as.formula(paste0(temp[[1]][3], "~1"))
+        reduced.formula <- stats::as.formula(paste0(temp[[1]][3], "~1"))
       } else {
-        reduced.formula <- formula(drop.terms(terms.full.formula, idx.eff.size.term, keep.response = TRUE))  # index on RHS of formula -> change to class of formula (as.formula does not work)
+        reduced.formula <- formula(stats::drop.terms(terms.full.formula, idx.eff.size.term, keep.response = TRUE))  # index on RHS of formula -> change to class of formula (stats::as.formula does not work)
       }
       
       message(paste0("* Getting effect size for term: ", eff.size.term.fullFormat, " via reduced model as below","; will show up as ", eff.size.term.shortFormat, " in final dataframe"))   # NOTES: it would be great to figure out how to paste and print formula without format changed. May try out stringf?
@@ -1016,7 +1021,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
         for (tempstr in list.smoothTerms) {
           tempstr.raw <- paste0(tempstr, ".p.value")
           tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
-          temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = methodstr)
+          temp.corrected <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
           df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
         }
         
@@ -1038,7 +1043,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
         for (tempstr in list.parametricTerms) {
           tempstr.raw <- paste0(tempstr, ".p.value")
           tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
-          temp.corrected <- p.adjust(df_out[[tempstr.raw]], method = methodstr)
+          temp.corrected <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
           df_out <- df_out %>% tibble::add_column( "{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
         }
         
@@ -1066,6 +1071,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
 #' @param verbose Print progress messages
 #' @param n_cores The number of cores to run on
 #' @param pbar Print progress bar
+#' @import stats
 #' @return Tibble with the summarised model statistics at each grid location
 #' 
 ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
@@ -1099,7 +1105,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
         dat <- phenotypes
         dat[[scalar]] <- values
         
-        t.test(formula, data = dat, ...) %>%
+        stats::t.test(formula, data = dat, ...) %>%
           broom::tidy() %>%
           dplyr::mutate(grid_id = i-1)
         
@@ -1118,7 +1124,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
           dat <- phenotypes
           dat[[scalar]] <- values
           
-          t.test(formula, data = dat, ...) %>%
+          stats::t.test(formula, data = dat, ...) %>%
             broom::tidy() %>%
             dplyr::mutate(grid_id = i-1)
           
@@ -1140,7 +1146,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
           dat <- phenotypes
           dat[[scalar]] <- values
           
-          t.test(formula, data = dat, ...) %>%
+          stats::t.test(formula, data = dat, ...) %>%
             broom::tidy() %>%
             dplyr::mutate(grid_id = i-1)
           
@@ -1160,7 +1166,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
         dat <- phenotypes
         dat[[scalar]] <- values
         
-        t.test(formula, data = dat, ...) %>%
+        stats::t.test(formula, data = dat, ...) %>%
           broom::tidy() %>%
           dplyr::mutate(grid_id = i-1)
         
@@ -1175,7 +1181,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
         dat <- phenotypes
         dat[[scalar]] <- values
         
-        t.test(formula, data = dat, ...) %>%
+        stats::t.test(formula, data = dat, ...) %>%
           broom::tidy() %>%
           dplyr::mutate(grid_id = i-1)
         

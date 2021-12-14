@@ -2,7 +2,7 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{analyseOneGrid.gam}
 \alias{analyseOneGrid.gam}
-\title{Fit GAM for one fixel data}
+\title{Fit GAM for one grid}
 \usage{
 analyseOneGrid.gam(
   i_grid,
@@ -18,7 +18,7 @@ analyseOneGrid.gam(
 )
 }
 \arguments{
-\item{i_grid}{An integer, the i_th fixel, starting from 1. For initiating (flag_initiate = TRUE), use i_grid=1}
+\item{i_grid}{An integer, the i_th grid, starting from 1. For initiating (flag_initiate = TRUE), use i_grid=1}
 
 \item{formula}{A formula (passed to `mgcv::gam()`)}
 
@@ -26,7 +26,7 @@ analyseOneGrid.gam(
 
 \item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model}
 
-\item{scalar}{The name of the scalar to be analysed fixel-wise}
+\item{scalar}{A character. The name of the grid-wise scalar to be analysed}
 
 \item{var.smoothTerms}{The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".}
 
@@ -34,16 +34,16 @@ analyseOneGrid.gam(
 
 \item{var.model}{The list of variables to save for the model (got from broom::glance() and summary()).}
 
-\item{flag_initiate}{TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.}
+\item{flag_initiate}{TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.}
 
-\item{...}{Arguments for `mgcv::gam()`}
+\item{...}{Additional arguments for `mgcv::gam()`}
 }
 \value{
-If flag_initiate==TRUE, returns column names ,and list of term names of final results and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a fixel.
+If flag_initiate==TRUE, returns column names, list of term names of final results, and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a grid.
 }
 \description{
-`analyseOneGrid.gam` fits a GAM model for one fixel data, and returns requested model statistics.
+`analyseOneGrid.gam` fits a GAM model for one grid data, and returns requested model statistics.
 }
 \details{
-`ModelArray.gam` iteratively calls this function to get statistics for all requested fixels.
+`ModelArray.gam` iteratively calls this function to get statistics for all requested grids.
 }

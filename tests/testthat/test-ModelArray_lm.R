@@ -106,9 +106,9 @@ test_that("ModelArray.lm() works as expected", {
                                        n_cores = 2, pbar=FALSE)
   
   expect_equal(mylm_corr_pvalues_1$age.p.value.fdr,
-               mylm_corr_pvalues_1$age.p.value %>% p.adjust("fdr"))
+               mylm_corr_pvalues_1$age.p.value %>% stats::p.adjust("fdr"))
   expect_equal(mylm_corr_pvalues_1$age.p.value.bonferroni,
-               mylm_corr_pvalues_1$age.p.value %>% p.adjust("bonferroni"))
+               mylm_corr_pvalues_1$age.p.value %>% stats::p.adjust("bonferroni"))
   
   # model:
   mylm_corr_pvalues_2 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, grid.subset = 1:100, 
@@ -117,9 +117,9 @@ test_that("ModelArray.lm() works as expected", {
                                        n_cores = 2, pbar=FALSE)
   
   expect_equal(mylm_corr_pvalues_2$model.p.value.fdr,
-               mylm_corr_pvalues_2$model.p.value %>% p.adjust("fdr"))
+               mylm_corr_pvalues_2$model.p.value %>% stats::p.adjust("fdr"))
   expect_equal(mylm_corr_pvalues_2$model.p.value.bonferroni,
-               mylm_corr_pvalues_2$model.p.value %>% p.adjust("bonferroni"))
+               mylm_corr_pvalues_2$model.p.value %>% stats::p.adjust("bonferroni"))
   
   
   expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, grid.subset = 1:100, 

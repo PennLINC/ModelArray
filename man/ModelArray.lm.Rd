@@ -22,7 +22,7 @@ ModelArray.lm(
 )
 }
 \arguments{
-\item{formula}{Formula (passed to `lm()`)}
+\item{formula}{Formula (passed to `stats::lm()`)}
 
 \item{data}{ModelArray class}
 
@@ -48,13 +48,13 @@ ModelArray.lm(
 
 \item{n_cores}{Positive integer, The number of CPU cores to run with}
 
-\item{...}{Additional arguments for `lm()`}
+\item{...}{Additional arguments for `stats::lm()`}
 }
 \value{
 Tibble with the summarized model statistics for all grids requested
 }
 \description{
-`ModelArray.lm` fits linear model (`lm()`) for each of grids requested, and returns a tibble dataframe of requested model statistics.
+`ModelArray.lm` fits linear model (`stats::lm()`) for each of grids requested, and returns a tibble dataframe of requested model statistics.
 }
 \details{
 You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
