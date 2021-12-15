@@ -55,6 +55,7 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @export
 #' @import methods
 #' @import dplyr
+#' @import rhdf5
 
 ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
   
@@ -76,18 +77,22 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
     # /scalars/<scalar_type>/values:
     scalar_data[[x]] <- ModelArraySeed(filepath, name = sprintf("scalars/%s/values", scalar_types[x]), type = NA) %>%
       DelayedArray::DelayedArray()
-
-    if(dim(scalar_data[[x]])[1] < dim(scalar_data[[x]])[2]){
+    
+    # load attribute "column_names", i.e. subject ids:
+    ids[[x]] <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))$column_names %>% as.character()
+    
+    # transpose scalar_data[[x]] if needed:
+    if (dim(scalar_data[[x]])[2] == length(ids[[x]])) {
+      # do nothing
+    } else if (dim(scalar_data[[x]])[1] == length(ids[[x]])) {
       scalar_data[[x]] <- t(scalar_data[[x]])
+    } else {
+      stop(paste0("the dimension of scalar_data[[",toString(x),"]] does not match to length of ids[[",toString(x),"]]"))
     }
     
-    # /scalars/<scalar_type>/ids:
-    ids[[x]] <- ModelArraySeed(filepath, name = sprintf("scalars/%s/ids", scalar_types[x]), type = NA) %>%
-      DelayedArray::DelayedArray()
+    # add ids as colnames:
+    colnames(scalar_data[[x]]) <- ids[[x]]
 
-    if(dim(ids[[x]])[1] < dim(ids[[x]])[2]){
-      ids[[x]] <- t(ids[[x]])
-    }
   }
 
   names(scalar_data) <- scalar_types
@@ -179,6 +184,25 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 
 }
 
+
+#' Number of grids in ModelArray
+#' 
+#' @description 
+#' Returns the number of grids in ModelArray, for a specific scalar
+#' 
+#' @param modelarray ModelArray class
+#' @param scalar_name A character, the scalar name (one of the existing scalar in \code{modelarray})
+#' @return numGridsTotal number of grids in ModelArray, for this specific scalar
+#' @export
+numGridsTotal <- function(modelarray, scalar_name = "FD") {
+  if (!(scalar_name %in% names(scalars(modelarray)))) {  # not an existing scalar
+    stop("scalar_name requested in not in modelarray! Please check out: scalars(modelarray)")
+  }
+  
+  numGridsTotal <- nrow(scalars(modelarray)[[scalar_name]])
+  
+  numGridsTotal
+}
 
 #' Fit linear model for one grid.
 #' 
