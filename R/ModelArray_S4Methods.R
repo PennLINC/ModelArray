@@ -14,8 +14,6 @@ setMethod("show", "ModelArray", function(object) {  # , group_name_results="resu
   # }
   
   cat(is(object)[[1]], " located at ", object@path, "\n\n",
-      format("  Fixel data:", justify = "left", width = 20), dim(fixels(object))[1], " fixels\n",
-      format("  Voxel data:", justify = "left", width = 20), dim(voxels(object))[1], " voxels\n",
       format("  Subjects:", justify = "left", width = 20), dim(subjects(object)[[1]])[1], "\n",
       format("  Scalars:", justify = "left", width = 20), paste0(names(scalars(object)), collapse = ", "), "\n",
       # format("  Results:", justify = "left", width = 20), str_results, "\n",
@@ -26,19 +24,6 @@ setMethod("show", "ModelArray", function(object) {  # , group_name_results="resu
 })
 
 ### Accessors for ModelArray #####
-setGeneric("fixels", function(x) standardGeneric("fixels"))
-
-#' fixels of ModelArray
-#' @export
-setMethod("fixels", "ModelArray", function(x) x@fixels)
-
-
-setGeneric("voxels", function(x) standardGeneric("voxels"))
-
-#' voxels of ModelArray
-#' @export
-setMethod("voxels", "ModelArray", function(x) x@voxels)
-
 
 setGeneric("subjects", function(x) standardGeneric("subjects"))
 
