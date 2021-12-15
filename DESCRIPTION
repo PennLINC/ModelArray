@@ -40,7 +40,7 @@ Imports:
     pbapply,
     crayon,
     tictoc
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Suggests: 
     rmarkdown,
     knitr,

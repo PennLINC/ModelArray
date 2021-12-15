@@ -39,5 +39,8 @@ analyseOneGrid.lm(
 If flag_initiate==TRUE, returns column names, and list of term names of final results; if flag_initiate==FALSE, it will return the list of requested statistic values for a grid.
 }
 \description{
-Fit linear model for one grid.
+`analyseOneGrid.lm` fits a linear model for one grid data, and returns requested model statistics.
+}
+\details{
+`ModelArray.lm` iteratively calls this function to get statistics for all requested grids.
 }
