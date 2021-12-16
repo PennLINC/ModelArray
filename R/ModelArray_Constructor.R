@@ -28,7 +28,7 @@ ModelArray <- setClass(
 #' @param filepath Path to an existing h5 file.
 #' @param name Name of the group/field in the h5 file.
 #' @param type Type of DelayedArray object, used as an argument for `HDF5Array::HDF5ArraySeed`.
-#' @import HDF5Array
+#' @importFrom HDF5Array HDF5ArraySeed
 #' @noRd
 #' 
 ModelArraySeed <- function(filepath, name, type = NA) {
@@ -55,7 +55,8 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @export
 #' @import methods
 #' @import dplyr
-#' @import rhdf5
+#' @importFrom DelayedArray DelayedArray realize
+#' @importFrom rhdf5 h5readAttributes
 
 ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
   

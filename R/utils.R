@@ -3,6 +3,8 @@
 #' @param group_name full directory of this object in .h5 name
 #' @param object_name name of the object, should be a string without "/"
 #' @noRd
+#' @importFrom rhdf5 h5ls h5closeAll
+#' @importFrom dplyr filter
 #' @importFrom rlang .data
 flagObjectExistInh5 <- function(fn_h5, group_name="/results",object_name="myAnalysis") {
   
@@ -28,6 +30,8 @@ flagObjectExistInh5 <- function(fn_h5, group_name="/results",object_name="myAnal
 #' check if h5 group "results" exist in current .h5 file
 #' @param fn_h5 filename of the .h5 file
 #' @noRd
+#' @importFrom rhdf5 h5ls h5closeAll
+#' @importFrom dplyr filter
 #' @importFrom rlang .data
 flagResultsGroupExistInh5 <- function(fn_h5) {
   
@@ -51,6 +55,8 @@ flagResultsGroupExistInh5 <- function(fn_h5) {
 #' @param fn_h5 filename of the .h5 file
 #' @param analysis_name The subfolder name in "results" in .h5 file 
 #' @noRd
+#' @importFrom rhdf5 h5ls h5closeAll
+#' @importFrom dplyr filter
 #' @importFrom rlang .data
 flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
   
