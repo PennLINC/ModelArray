@@ -340,10 +340,11 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #'
 #' @param formula Formula (passed to `stats::lm()`)
 #' @param data ModelArray class
-#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
+#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in \code{data}.
 #' @param scalar A character. The name of the grid-wise scalar to be analysed
 #' @param grid.subset A list of positive integers (min = 1, max = number of grids). The subset of grids you want to run.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.
+#' @param colname.subjid A character, the column name in \code{phenotypes} of subject IDs. This column will be used for sanity check for matching of subject list in \code{data}.
 #' @param var.terms A list of characters. The list of variables to save for terms (got from `broom::tidy()`). See "Details" section for more.
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()`). See "Details" section for more.
 #' @param correct.p.value.terms A list of characters. To perform and add a column for p.value correction for each term. See "Details" section for more.
@@ -360,6 +361,7 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' @export
 
 ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL, full.outputs = FALSE, 
+                          colname.subjid = "subject_id",
                               var.terms = c("estimate", "statistic", "p.value"), 
                               var.model = c("adj.r.squared", "p.value"), 
                           correct.p.value.terms = "none", correct.p.value.model = "none",
@@ -380,6 +382,12 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
     stop("Please enter integers for grid.subset!")
   }
   
+  ### sanity check: whether they match: modelarray's subject list and phenotypes' subject list:
+  subjlist.modelarray <- colnames(scalars(data)[[scalar]])
+  subjlist.phenotypes <- phenotypes[[colname.subjid]]
+  if (!(identical(subjlist.modelarray, subjlist.phenotypes))) {
+    stop(paste0("The subject list (from column '", colname.subjid,"') in phenotypes is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: colnames(scalars(data)[[scalar]]) "))
+  }
   
   ### display additional arguments:
   dots <- list(...)
@@ -637,10 +645,11 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
 #' Please notice that different from `ModelArray.lm`, there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model.
 #' @param formula Formula (passed to `mgcv::gam()`)
 #' @param data ModelArray class
-#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
+#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in \code{data}.
 #' @param scalar A character. The name of the grid-wise scalar to be analysed
 #' @param grid.subset A list of positive integers (min = 1, max = number of grids). The subset of grids you want to run.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.
+#' @param colname.subjid A character, the column name in \code{phenotypes} of subject IDs. This column will be used for sanity check for matching of subject list in \code{data}.
 #' @param var.smoothTerms A list of characters. The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.
 #' @param var.parametricTerms A list of characters. The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()` and `summary()`). See "Details" section for more.
@@ -660,6 +669,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
 #' @export
 
 ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL, full.outputs = FALSE, 
+                           colname.subjid = "subject_id",
                               var.smoothTerms = c("statistic","p.value"),
                               var.parametricTerms = c("estimate", "statistic", "p.value"),
                               var.model = c("dev.expl"), 
@@ -705,6 +715,14 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
 
   checker_gam_formula(formula, gam.formula.breakdown)
     
+    
+  ### sanity check: whether they match: modelarray's subject list and phenotypes' subject list:
+  subjlist.modelarray <- colnames(scalars(data)[[scalar]])
+  subjlist.phenotypes <- phenotypes[[colname.subjid]]
+  if (!(identical(subjlist.modelarray, subjlist.phenotypes))) {
+    stop(paste0("The subject list (from column '", colname.subjid,"') in phenotypes is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: colnames(scalars(data)[[scalar]]) "))
+  }
+
 
   ### display additional arguments: [only important one]
   dots <- list(...)    
