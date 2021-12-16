@@ -1,11 +1,11 @@
 # Exported Functions
 
 ### setClass of "ModelArray" #####
-#' An S4 class to represent grid-wise scalar data and statistics.
+#' An S4 class to represent element-wise scalar data and statistics.
 #'
 #' @slot results An h5 group of ModelArray analysis outputs
 #' @slot subjects A list of subject labels
-#' @slot scalars A list of grid-wise scalars
+#' @slot scalars A list of element-wise scalars
 #' @slot path Path to the h5 file on disk
 #' @importClassesFrom DelayedArray DelayedArray
 ModelArray <- setClass(
@@ -44,7 +44,7 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 }
 
 
-#' Load grid-wise data from .h5 file as a ModelArray object
+#' Load element-wise data from .h5 file as a ModelArray object
 #' Tips for debugging: 
 #' if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via h5ls(filename_for_h5)
 #' TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
@@ -185,56 +185,56 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 }
 
 
-#' Number of grids in ModelArray
+#' Number of elements in ModelArray
 #' 
 #' @description 
-#' Returns the number of grids in ModelArray, for a specific scalar
+#' Returns the number of elements in ModelArray, for a specific scalar
 #' 
 #' @param modelarray ModelArray class
 #' @param scalar_name A character, the scalar name (one of the existing scalar in \code{modelarray})
-#' @return numGridsTotal number of grids in ModelArray, for this specific scalar
+#' @return numElementsTotal number of elements in ModelArray, for this specific scalar
 #' @export
-numGridsTotal <- function(modelarray, scalar_name = "FD") {
+numElementsTotal <- function(modelarray, scalar_name = "FD") {
   if (!(scalar_name %in% names(scalars(modelarray)))) {  # not an existing scalar
     stop("scalar_name requested in not in modelarray! Please check out: scalars(modelarray)")
   }
   
-  numGridsTotal <- nrow(scalars(modelarray)[[scalar_name]])
+  numElementsTotal <- nrow(scalars(modelarray)[[scalar_name]])
   
-  numGridsTotal
+  numElementsTotal
 }
 
-#' Fit linear model for one grid.
+#' Fit linear model for one element.
 #' 
 #' @description 
-#' `analyseOneGrid.lm` fits a linear model for one grid data, and returns requested model statistics.
+#' `analyseOneElement.lm` fits a linear model for one element data, and returns requested model statistics.
 #' 
 #' @details 
-#' `ModelArray.lm` iteratively calls this function to get statistics for all requested grids.
+#' `ModelArray.lm` iteratively calls this function to get statistics for all requested elements.
 #' 
-#' @param i_grid An integer, the i_th grid, starting from 1. For initiating (flag_initiate = TRUE), use i_grid=1
+#' @param i_element An integer, the i_th element, starting from 1. For initiating (flag_initiate = TRUE), use i_element=1
 #' @param formula Formula (passed to `stats::lm()`)
 #' @param modelarray ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. 
-#' @param scalar A character. The name of the grid-wise scalar to be analysed
+#' @param scalar A character. The name of the element-wise scalar to be analysed
 #' @param var.terms A list of characters. The list of variables to save for terms (got from `broom::tidy()`). 
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()`).
 #' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
 #' @param ... Additional arguments for `stats::lm()`
 #' 
-#' @return If flag_initiate==TRUE, returns column names, and list of term names of final results; if flag_initiate==FALSE, it will return the list of requested statistic values for a grid.
+#' @return If flag_initiate==TRUE, returns column names, and list of term names of final results; if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
 #' @export
 #' @import stats
 #' @import broom
 #' @import dplyr
 #' @import tibble
 
-analyseOneGrid.lm <- function(i_grid, 
+analyseOneElement.lm <- function(i_element, 
                                formula, modelarray, phenotypes, scalar, 
                                var.terms, var.model, 
                                flag_initiate = FALSE, 
                                ...) {
-  values <- scalars(modelarray)[[scalar]][i_grid,]
+  values <- scalars(modelarray)[[scalar]][i_element,]
   dat <- phenotypes
   dat[[scalar]] <- values
   
@@ -306,9 +306,9 @@ analyseOneGrid.lm <- function(i_grid,
   
   # combine the tables:
   onemodel.onerow <- dplyr::bind_cols(onemodel.tidy.onerow, onemodel.glance.onerow)
-  # add a column of grid ids:
+  # add a column of element ids:
   colnames.temp <- colnames(onemodel.onerow)
-  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(grid_id = i_grid-1, .before = colnames.temp[1])   # add as the first column
+  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element-1, .before = colnames.temp[1])   # add as the first column
   
   # now you can get the headers, # of columns, etc of the output results
   
@@ -330,36 +330,36 @@ analyseOneGrid.lm <- function(i_grid,
   
   
 }  
-#' Fit GAM for one grid
+#' Fit GAM for one element
 #'
 #' @description 
-#' `analyseOneGrid.gam` fits a GAM model for one grid data, and returns requested model statistics.
+#' `analyseOneElement.gam` fits a GAM model for one element data, and returns requested model statistics.
 #' 
 #' @details 
-#' `ModelArray.gam` iteratively calls this function to get statistics for all requested grids.
+#' `ModelArray.gam` iteratively calls this function to get statistics for all requested elements.
 #'
-#' @param i_grid An integer, the i_th grid, starting from 1. For initiating (flag_initiate = TRUE), use i_grid=1
+#' @param i_element An integer, the i_th element, starting from 1. For initiating (flag_initiate = TRUE), use i_element=1
 #' @param formula A formula (passed to `mgcv::gam()`)
 #' @param modelarray ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model  
-#' @param scalar A character. The name of the grid-wise scalar to be analysed
+#' @param scalar A character. The name of the element-wise scalar to be analysed
 #' @param var.smoothTerms The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
 #' @param var.parametricTerms The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".
 #' @param var.model The list of variables to save for the model (got from broom::glance() and summary()). 
 #' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
 #' @param ... Additional arguments for `mgcv::gam()`
-#' @return If flag_initiate==TRUE, returns column names, list of term names of final results, and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a grid.
+#' @return If flag_initiate==TRUE, returns column names, list of term names of final results, and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
 #' @export
 #' @import mgcv
 #' @import broom
 #' @import dplyr
 #' @import tibble
 
-analyseOneGrid.gam <- function(i_grid, formula, modelarray, phenotypes, scalar, 
+analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, scalar, 
                                 var.smoothTerms, var.parametricTerms, var.model, 
                                 flag_initiate = FALSE, 
                                 ...) {
-  values <- scalars(modelarray)[[scalar]][i_grid,]
+  values <- scalars(modelarray)[[scalar]][i_element,]
   dat <- phenotypes
   dat[[scalar]] <- values
   
@@ -519,9 +519,9 @@ analyseOneGrid.gam <- function(i_grid, formula, modelarray, phenotypes, scalar,
   }
   
 
-  # add a column of grid ids:
+  # add a column of element ids:
   colnames.temp <- colnames(onemodel.onerow)
-  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(grid_id = i_grid-1, .before = colnames.temp[1])   # add as the first column
+  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element-1, .before = colnames.temp[1])   # add as the first column
   
   # now you can get the headers, # of columns, etc of the output results
 

@@ -2,14 +2,14 @@
 % Please edit documentation in R/analyse.R
 \name{ModelArray.lm}
 \alias{ModelArray.lm}
-\title{Fit linear model for grid-wise data}
+\title{Fit linear model for element-wise data}
 \usage{
 ModelArray.lm(
   formula,
   data,
   phenotypes,
   scalar,
-  grid.subset = NULL,
+  element.subset = NULL,
   full.outputs = FALSE,
   colname.subjid = "subject_id",
   var.terms = c("estimate", "statistic", "p.value"),
@@ -29,9 +29,9 @@ ModelArray.lm(
 
 \item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in \code{data}.}
 
-\item{scalar}{A character. The name of the grid-wise scalar to be analysed}
+\item{scalar}{A character. The name of the element-wise scalar to be analysed}
 
-\item{grid.subset}{A list of positive integers (min = 1, max = number of grids). The subset of grids you want to run.}
+\item{element.subset}{A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run.}
 
 \item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.}
 
@@ -54,10 +54,10 @@ ModelArray.lm(
 \item{...}{Additional arguments for `stats::lm()`}
 }
 \value{
-Tibble with the summarized model statistics for all grids requested
+Tibble with the summarized model statistics for all elements requested
 }
 \description{
-`ModelArray.lm` fits linear model (`stats::lm()`) for each of grids requested, and returns a tibble dataframe of requested model statistics.
+`ModelArray.lm` fits linear model (`stats::lm()`) for each of elements requested, and returns a tibble dataframe of requested model statistics.
 }
 \details{
 You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 

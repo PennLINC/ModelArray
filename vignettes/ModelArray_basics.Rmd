@@ -24,8 +24,8 @@ The general goal is to provide a generalizable R package for statistical analysi
 * Easy and straightforward to use with just several lines of R codes
 
 
-## Grids
-In this package, "grid" is a general name for one point of data; it could be voxel in 3D images, vertex in surface data, or fixel in fixel-based analysis. There should be scalar value associated with each grid. And with some demographics or other phenotype data, we can model the scalar value over Currently we treat each grid equally.
+## Elements
+In this package, "element" is a general name for one point of data; it could be voxel in 3D images, vertex in surface data, or fixel in fixel-based analysis. There should be scalar value associated with each element. And with some demographics or other phenotype data, we can model the scalar value over Currently we treat each element equally.
 ```{r, eval=FALSE}
 print("")
 ```

@@ -159,7 +159,7 @@ analysis_name <- "lm"
 if (num.fixels == 0) {
   num.fixels <- dim(scalars(fixelarray)[[scalar]])[1]
 }
-grid.subset <- 1:num.fixels   # full: dim(scalars(fixelarray)[[scalar]])[1]
+element.subset <- 1:num.fixels   # full: dim(scalars(fixelarray)[[scalar]])[1]
 ```
 
 Run ModelArray.lm():
@@ -170,7 +170,7 @@ tic()
 # # Rprof(line.profiling = TRUE, memory.profiling = TRUE, interval=0.001) 
 # Rprof(filename = "Rprof_test.out", interval = 0.01, memory.profiling = TRUE)   # interval = 0.001
 
-lm.outputs <- ModelArray.lm (formula, fixelarray, phenotypes, scalar, grid.subset = grid.subset, 
+lm.outputs <- ModelArray.lm (formula, fixelarray, phenotypes, scalar, element.subset = element.subset, 
                              full.outputs = TRUE,   # +++++++++++++++++++++
                              #var.terms = var.terms, var.model = var.model, 
                              correct.p.value.terms = c("fdr", "bonferroni"),
@@ -190,24 +190,24 @@ log.lst[[1]]$toc - log.lst[[1]]$tic    # in sec
 # Rprofsummary_stats <- summaryRprof(filename = paste0(folder_rprofout,"/","Rprof_test.out"), memory = "stats")
 # 
 # # a<-summaryRprof(filename = "Rprof.out", lines = "both", memory = "both")   
-# max(Rprofsummary_both$by.total$mem.total)   # grid.subset=1:100: 27.0MB BUT object.size of fixelarray (15.5KB) and phenotypes (11.3KB); 1:1000 = 42.5MB BUT object.size(lm.outputs)=90KB, even object.size(fits)=184KB
+# max(Rprofsummary_both$by.total$mem.total)   # element.subset=1:100: 27.0MB BUT object.size of fixelarray (15.5KB) and phenotypes (11.3KB); 1:1000 = 42.5MB BUT object.size(lm.outputs)=90KB, even object.size(fits)=184KB
 # max(Rprofsummary_tseries$nodes)/1024/1024    # in bytes --> MB  # 1:1000: max=502MB; median=0.0834198 MB; mean=2.180295 MB
 # # max(Rprofsummary_stats$by.total$mem.total)  # in bytes
 # 
-# # prof  <- lineprof(ModelArray.lm (formula, fixelarray, phenotypes, scalar, grid.subset = grid.subset, 
+# # prof  <- lineprof(ModelArray.lm (formula, fixelarray, phenotypes, scalar, element.subset = element.subset, 
 # #                              full.output = full.output,  var.terms = var.terms, var.model = var.model, 
 # #                              correct.p.value.terms = "none",
 # #                              correct.p.value.model = c("fdr","bonferroni"),
 # #                               verbose = TRUE, pbar = TRUE, n_cores = 2))
 # 
-# # peakRAM_lm <- peakRAM(ModelArray.lm (formula, fixelarray, phenotypes, scalar, grid.subset = grid.subset, 
+# # peakRAM_lm <- peakRAM(ModelArray.lm (formula, fixelarray, phenotypes, scalar, element.subset = element.subset, 
 # #                              full.output = full.output,  var.terms = var.terms, var.model = var.model, 
 # #                              correct.p.value.terms = "none",
 # #                              correct.p.value.model = c("fdr","bonferroni"),
 # #                               verbose = TRUE, pbar = TRUE, n_cores = 2))
 # 
 # # profvis_lm <- profvis({
-# #   ModelArray.lm (formula, fixelarray, phenotypes, scalar, grid.subset = grid.subset,
+# #   ModelArray.lm (formula, fixelarray, phenotypes, scalar, element.subset = element.subset,
 # #                              full.output = full.output,  var.terms = var.terms, var.model = var.model,
 # #                              correct.p.value.terms = "none",
 # #                              correct.p.value.model = c("fdr","bonferroni"),

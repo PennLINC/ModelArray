@@ -2,7 +2,7 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{ModelArray}
 \alias{ModelArray}
-\title{An S4 class to represent grid-wise scalar data and statistics.}
+\title{An S4 class to represent element-wise scalar data and statistics.}
 \usage{
 ModelArray(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis"))
 
@@ -19,9 +19,9 @@ ModelArray(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis"))
 ModelArray object
 }
 \description{
-An S4 class to represent grid-wise scalar data and statistics.
+An S4 class to represent element-wise scalar data and statistics.
 
-Load grid-wise data from .h5 file as a ModelArray object
+Load element-wise data from .h5 file as a ModelArray object
 Tips for debugging: 
 if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via h5ls(filename_for_h5)
 TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
@@ -33,7 +33,7 @@ TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY
 
 \item{\code{subjects}}{A list of subject labels}
 
-\item{\code{scalars}}{A list of grid-wise scalars}
+\item{\code{scalars}}{A list of element-wise scalars}
 
 \item{\code{path}}{Path to the h5 file on disk}
 }}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse.R
 \name{ModelArray.t.test}
 \alias{ModelArray.t.test}
-\title{Run a t.test at each grid location}
+\title{Run a t.test at each element location}
 \usage{
 ModelArray.t.test(
   formula,
@@ -23,7 +23,7 @@ ModelArray.t.test(
 
 \item{phenotypes}{The cohort file with covariates to be added to the model}
 
-\item{scalar}{The name of the scalar to be analysed grid-wise}
+\item{scalar}{The name of the scalar to be analysed element-wise}
 
 \item{verbose}{Print progress messages}
 
@@ -31,11 +31,11 @@ ModelArray.t.test(
 
 \item{n_cores}{The number of cores to run on}
 
-\item{subset}{A vector of grid IDs to subset}
+\item{subset}{A vector of element IDs to subset}
 }
 \value{
-Tibble with the summarised model statistics at each grid location
+Tibble with the summarised model statistics at each element location
 }
 \description{
-Run a t.test at each grid location
+Run a t.test at each element location
 }

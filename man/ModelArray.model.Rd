@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse.R
 \name{ModelArray.model}
 \alias{ModelArray.model}
-\title{Run a user-defined function on each grid location}
+\title{Run a user-defined function on each element location}
 \usage{
 ModelArray.model(
   formula,
@@ -26,7 +26,7 @@ ModelArray.model(
 
 \item{phenotypes}{The cohort file with covariates to be added to the model}
 
-\item{scalar}{The name of the scalar to be analysed grid-wise}
+\item{scalar}{The name of the scalar to be analysed element-wise}
 
 \item{verbose}{Print progress messages}
 
@@ -34,11 +34,11 @@ ModelArray.model(
 
 \item{n_cores}{The number of cores to run on}
 
-\item{subset}{A vector of grid IDs to subset}
+\item{subset}{A vector of element IDs to subset}
 }
 \value{
-Tibble with the summarised model statistics at each grid location
+Tibble with the summarised model statistics at each element location
 }
 \description{
-Run a user-defined function on each grid location
+Run a user-defined function on each element location
 }

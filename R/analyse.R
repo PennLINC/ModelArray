@@ -212,7 +212,7 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel=NULL) {
   }
   
   
-  # # fit for one grid, get the summarized stat:
+  # # fit for one element, get the summarized stat:
   # onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
   # onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
   # onemodel.glance <- onemodel %>% broom::glance()
@@ -323,10 +323,10 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 }
 
 
-#' Fit linear model for grid-wise data
+#' Fit linear model for element-wise data
 #' 
 #' @description 
-#' `ModelArray.lm` fits linear model (`stats::lm()`) for each of grids requested, and returns a tibble dataframe of requested model statistics.
+#' `ModelArray.lm` fits linear model (`stats::lm()`) for each of elements requested, and returns a tibble dataframe of requested model statistics.
 #' 
 #' @details 
 #' You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
@@ -341,8 +341,8 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' @param formula Formula (passed to `stats::lm()`)
 #' @param data ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in \code{data}.
-#' @param scalar A character. The name of the grid-wise scalar to be analysed
-#' @param grid.subset A list of positive integers (min = 1, max = number of grids). The subset of grids you want to run.
+#' @param scalar A character. The name of the element-wise scalar to be analysed
+#' @param element.subset A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.
 #' @param colname.subjid A character, the column name in \code{phenotypes} of subject IDs. This column will be used for sanity check for matching of subject list in \code{data}.
 #' @param var.terms A list of characters. The list of variables to save for terms (got from `broom::tidy()`). See "Details" section for more.
@@ -353,14 +353,14 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' @param pbar TRUE or FALSE, to print progress bar or not
 #' @param n_cores Positive integer, The number of CPU cores to run with
 #' @param ... Additional arguments for `stats::lm()`
-#' @return Tibble with the summarized model statistics for all grids requested
+#' @return Tibble with the summarized model statistics for all elements requested
 #' @import dplyr
 #' @import doParallel
 #' @import tibble
 #' @import stats
 #' @export
 
-ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL, full.outputs = FALSE, 
+ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE, 
                           colname.subjid = "subject_id",
                               var.terms = c("estimate", "statistic", "p.value"), 
                               var.model = c("adj.r.squared", "p.value"), 
@@ -371,15 +371,15 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
     stop("data's class is not ModelArray!")
   }
   
-  # checker for min and max of grid.subset; and whether elements are integer
-  if (min(grid.subset) < 1) {
-    stop("Minimal value in grid.subset should >= 1")
+  # checker for min and max of element.subset; and whether elements are integer
+  if (min(element.subset) < 1) {
+    stop("Minimal value in element.subset should >= 1")
   }
-  if (max(grid.subset) > nrow(scalars(data)[[scalar]])) {
-    stop(paste0("Maximal value in grid.subset should <= number of grids = "), as.character(nrow(scalars(data)[[scalar]])))
+  if (max(element.subset) > nrow(scalars(data)[[scalar]])) {
+    stop(paste0("Maximal value in element.subset should <= number of elements = "), as.character(nrow(scalars(data)[[scalar]])))
   }
-  if (class(grid.subset) != "integer") {
-    stop("Please enter integers for grid.subset!")
+  if (class(element.subset) != "integer") {
+    stop("Please enter integers for element.subset!")
   }
   
   ### sanity check: whether they match: modelarray's subject list and phenotypes' subject list:
@@ -478,14 +478,14 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
   
   ### start the process:
   if(verbose){
-    message(glue::glue("Fitting grid-wise linear models for {scalar}", ))
+    message(glue::glue("Fitting element-wise linear models for {scalar}", ))
     message(glue::glue("initiating....", ))
   }
   
 
   
-  # initiate: get the example of one grid and get the column names
-  outputs_initiator <- analyseOneGrid.lm(i_grid=1, formula, data, phenotypes, scalar, 
+  # initiate: get the example of one element and get the column names
+  outputs_initiator <- analyseOneElement.lm(i_element=1, formula, data, phenotypes, scalar, 
                                      var.terms, var.model, 
                                      flag_initiate = TRUE, 
                                      ...)
@@ -494,7 +494,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
 
   # loop (by condition of pbar and n_cores)
   if(verbose){
-    message(glue::glue("looping across grids....", ))
+    message(glue::glue("looping across elements....", ))
   }
   
   # is it a multicore process?
@@ -503,8 +503,8 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
     
     if (pbar) {
       
-      fits <- pbmcapply::pbmclapply(grid.subset,   # a list of i_grid
-                                    analyseOneGrid.lm,  # the function
+      fits <- pbmcapply::pbmclapply(element.subset,   # a list of i_element
+                                    analyseOneElement.lm,  # the function
                                     mc.cores = n_cores,
                                     formula, data, phenotypes, scalar,
                                     var.terms, var.model,
@@ -515,8 +515,8 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
       
       # foreach::foreach
       
-      fits <- parallel::mclapply(grid.subset,   # a list of i_grid 
-                                 analyseOneGrid.lm,  # the function
+      fits <- parallel::mclapply(element.subset,   # a list of i_element 
+                                 analyseOneElement.lm,  # the function
                                  mc.cores = n_cores,
                                  formula, data, phenotypes, scalar,
                                  var.terms, var.model,
@@ -528,8 +528,8 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
     
     if (pbar) {
       
-      fits <- pbapply::pblapply(grid.subset,   # a list of i_grid
-                                analyseOneGrid.lm,  # the function
+      fits <- pbapply::pblapply(element.subset,   # a list of i_element
+                                analyseOneElement.lm,  # the function
                                 formula, data, phenotypes, scalar,
                                 var.terms, var.model,
                                 flag_initiate = FALSE,
@@ -537,8 +537,8 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
       
     } else {
       
-      fits <- lapply(grid.subset,   # a list of i_grid
-                     analyseOneGrid.lm,  # the function
+      fits <- lapply(element.subset,   # a list of i_element
+                     analyseOneElement.lm,  # the function
                      formula, data, phenotypes, scalar,
                      var.terms, var.model,
                      flag_initiate = FALSE,
@@ -613,10 +613,10 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
 
 
 
-#' Run GAM for grid-wise data
+#' Run GAM for element-wise data
 #' 
 #' @description 
-#' `ModelArray.gam` fits gam model for each of grids requested, and returns a tibble dataframe of requested model statistics.
+#' `ModelArray.gam` fits gam model for each of elements requested, and returns a tibble dataframe of requested model statistics.
 #' 
 #' @details 
 #' You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
@@ -646,8 +646,8 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
 #' @param formula Formula (passed to `mgcv::gam()`)
 #' @param data ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in \code{data}.
-#' @param scalar A character. The name of the grid-wise scalar to be analysed
-#' @param grid.subset A list of positive integers (min = 1, max = number of grids). The subset of grids you want to run.
+#' @param scalar A character. The name of the element-wise scalar to be analysed
+#' @param element.subset A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.
 #' @param colname.subjid A character, the column name in \code{phenotypes} of subject IDs. This column will be used for sanity check for matching of subject list in \code{data}.
 #' @param var.smoothTerms A list of characters. The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.
@@ -660,7 +660,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
 #' @param pbar TRUE or FALSE, to print progress bar or not
 #' @param n_cores Positive integer, The number of CPU cores to run with
 #' @param ... Additional arguments for `mgcv::gam()`
-#' @return Tibble with the summarized model statistics for all grids requested
+#' @return Tibble with the summarized model statistics for all elements requested
 #' @import dplyr
 #' @import doParallel
 #' @import tibble
@@ -668,7 +668,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, grid.subset = NULL,
 #' @import stats
 #' @export
 
-ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL, full.outputs = FALSE, 
+ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE, 
                            colname.subjid = "subject_id",
                               var.smoothTerms = c("statistic","p.value"),
                               var.parametricTerms = c("estimate", "statistic", "p.value"),
@@ -681,15 +681,15 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
     stop("data's class is not ModelArray!")
   }
   
-  # checker for min and max of grid.subset; and whether elements are integer
-  if (min(grid.subset) < 1) {
-    stop("Minimal value in grid.subset should >= 1")
+  # checker for min and max of element.subset; and whether elements are integer
+  if (min(element.subset) < 1) {
+    stop("Minimal value in element.subset should >= 1")
   }
-  if (max(grid.subset) > nrow(scalars(data)[[scalar]])) {
-    stop(paste0("Maximal value in grid.subset should <= number of grids = "), as.character(nrow(scalars(data)[[scalar]])))
+  if (max(element.subset) > nrow(scalars(data)[[scalar]])) {
+    stop(paste0("Maximal value in element.subset should <= number of elements = "), as.character(nrow(scalars(data)[[scalar]])))
   }
-  if (class(grid.subset) != "integer") {
-    stop("Please enter integers for grid.subset!")
+  if (class(element.subset) != "integer") {
+    stop("Please enter integers for element.subset!")
   }
   
   # check if the formula is valid in terms of mgcv::gam()
@@ -705,7 +705,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
   
   # print out the additional arguments in smooth terms:
   
-  # # to check formula, we need to fit one grid:
+  # # to check formula, we need to fit one element:
   # values <- scalars(data)[[scalar]][1,]
   # dat <- phenotypes
   # dat[[scalar]] <- values
@@ -715,7 +715,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
 
   checker_gam_formula(formula, gam.formula.breakdown)
     
-    
+
   ### sanity check: whether they match: modelarray's subject list and phenotypes' subject list:
   subjlist.modelarray <- colnames(scalars(data)[[scalar]])
   subjlist.phenotypes <- phenotypes[[colname.subjid]]
@@ -821,12 +821,12 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
   ### run
   # start the process:
   if(verbose){
-    message(glue::glue("Fitting grid-wise GAMs for {scalar}", ))
+    message(glue::glue("Fitting element-wise GAMs for {scalar}", ))
     message(glue::glue("initiating....", ))
   }
 
-  # initiate: get the example of one grid and get the column names
-  outputs_initiator <- analyseOneGrid.gam(i_grid=1, formula, data, phenotypes, scalar,
+  # initiate: get the example of one element and get the column names
+  outputs_initiator <- analyseOneElement.gam(i_element=1, formula, data, phenotypes, scalar,
                                           var.smoothTerms, var.parametricTerms, var.model,
                                           flag_initiate = TRUE,
                                           ...)
@@ -836,7 +836,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
 
   # loop (by condition of pbar and n_cores)
   if(verbose){
-    message(glue::glue("looping across grids....", ))
+    message(glue::glue("looping across elements....", ))
   }
 
   # is it a multicore process?
@@ -845,8 +845,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
     
     if (pbar) {
       
-      fits <- pbmcapply::pbmclapply(grid.subset,   # a list of i_grid
-                                    analyseOneGrid.gam,  # the function
+      fits <- pbmcapply::pbmclapply(element.subset,   # a list of i_element
+                                    analyseOneElement.gam,  # the function
                                     mc.cores = n_cores,
                                     formula, data, phenotypes, scalar,
                                     var.smoothTerms, var.parametricTerms, var.model,
@@ -857,8 +857,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
       
       # foreach::foreach
       
-      fits <- parallel::mclapply(grid.subset,   # a list of i_grid 
-                                 analyseOneGrid.gam,  # the function
+      fits <- parallel::mclapply(element.subset,   # a list of i_element 
+                                 analyseOneElement.gam,  # the function
                                  mc.cores = n_cores,
                                  formula, data, phenotypes, scalar,
                                  var.smoothTerms, var.parametricTerms, var.model,
@@ -870,8 +870,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
     
     if (pbar) {
       
-      fits <- pbapply::pblapply(grid.subset,   # a list of i_grid
-                                analyseOneGrid.gam,  # the function
+      fits <- pbapply::pblapply(element.subset,   # a list of i_element
+                                analyseOneElement.gam,  # the function
                                 formula, data, phenotypes, scalar,
                                 var.smoothTerms, var.parametricTerms, var.model,
                                 flag_initiate = FALSE,
@@ -879,8 +879,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
       
     } else {
       
-      fits <- lapply(grid.subset,   # a list of i_grid
-                     analyseOneGrid.gam,  # the function
+      fits <- lapply(element.subset,   # a list of i_element
+                     analyseOneElement.gam,  # the function
                      formula, data, phenotypes, scalar,
                      var.smoothTerms, var.parametricTerms, var.model,
                      flag_initiate = FALSE,
@@ -942,7 +942,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
 
       # var* for reduced model: only adjusted r sq is enough
       # initiate:
-      reduced.model.outputs_initiator <- analyseOneGrid.gam(i_grid=1, reduced.formula, data, phenotypes, scalar,
+      reduced.model.outputs_initiator <- analyseOneElement.gam(i_element=1, reduced.formula, data, phenotypes, scalar,
                                             var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
                                             flag_initiate = TRUE,
                                             ...)
@@ -953,8 +953,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
       
         if (pbar) {
           
-          reduced.model.fits <- pbmcapply::pbmclapply(grid.subset,   # a list of i_grid
-                                        analyseOneGrid.gam,  # the function
+          reduced.model.fits <- pbmcapply::pbmclapply(element.subset,   # a list of i_element
+                                        analyseOneElement.gam,  # the function
                                         mc.cores = n_cores,
                                         reduced.formula, data, phenotypes, scalar,
                                         var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
@@ -965,8 +965,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
           
           # foreach::foreach
           
-          reduced.model.fits <- parallel::mclapply(grid.subset,   # a list of i_grid 
-                                     analyseOneGrid.gam,  # the function
+          reduced.model.fits <- parallel::mclapply(element.subset,   # a list of i_element 
+                                     analyseOneElement.gam,  # the function
                                      mc.cores = n_cores,
                                      reduced.formula, data, phenotypes, scalar,
                                      var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
@@ -978,8 +978,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
         
         if (pbar) {
           
-          reduced.model.fits <- pbapply::pblapply(grid.subset,   # a list of i_grid
-                                    analyseOneGrid.gam,  # the function
+          reduced.model.fits <- pbapply::pblapply(element.subset,   # a list of i_element
+                                    analyseOneElement.gam,  # the function
                                     reduced.formula, data, phenotypes, scalar,
                                     var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
                                     flag_initiate = FALSE,
@@ -987,14 +987,14 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
           
         } else {
           
-          reduced.model.fits <- lapply(grid.subset,   # a list of i_grid
-                         analyseOneGrid.gam,  # the function
+          reduced.model.fits <- lapply(element.subset,   # a list of i_element
+                         analyseOneElement.gam,  # the function
                          reduced.formula, data, phenotypes, scalar,
                          var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
                          flag_initiate = FALSE,
                          ...)
         }
-      }  # end of loop for calculating reduced model across grids
+      }  # end of loop for calculating reduced model across elements
   
       reduced.model.df_out <- do.call(rbind, reduced.model.fits)
       reduced.model.df_out <- as.data.frame(reduced.model.df_out)
@@ -1004,7 +1004,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
       names(reduced.model.df_out)[names(reduced.model.df_out) == 'model.adj.r.squared'] <- "redModel.adj.r.squared"
         
       # combine new df_out to original one:
-      df_out <- merge(df_out, reduced.model.df_out, by = "grid_id")
+      df_out <- merge(df_out, reduced.model.df_out, by = "element_id")
       
       # calculate the eff.size, add to the df_out:
       df_out <- df_out %>% dplyr::mutate("{eff.size.term.shortFormat}.eff.size" := model.adj.r.squared - redModel.adj.r.squared)
@@ -1079,24 +1079,24 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, grid.subset = NULL
 
 
 
-#' Run a t.test at each grid location
+#' Run a t.test at each element location
 #'
 #' @param formula Formula (passed to `lm()`)
 #' @param data ModelArray dataset
-#' @param scalar The name of the scalar to be analysed grid-wise
+#' @param scalar The name of the scalar to be analysed element-wise
 #' @param phenotypes The cohort file with covariates to be added to the model
-#' @param subset A vector of grid IDs to subset
+#' @param subset A vector of element IDs to subset
 #' @param verbose Print progress messages
 #' @param n_cores The number of cores to run on
 #' @param pbar Print progress bar
 #' @import stats
-#' @return Tibble with the summarised model statistics at each grid location
+#' @return Tibble with the summarised model statistics at each element location
 #' 
 ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "ModelArray") {
-    stop("Not a grid array for analysis")
+    stop("Not a element array for analysis")
   }
   
   
@@ -1104,7 +1104,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
     message(glue::glue("Running t.test models for {scalar}", ))
   }
   
-  n_models <- length(grids(data)[,1])
+  n_models <- length(elements(data)[,1])
   
   if(is.null(idx)){
     ids <- 1:n_models
@@ -1125,7 +1125,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
         
         stats::t.test(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(grid_id = i-1)
+          dplyr::mutate(element_id = i-1)
         
       }, mc.cores = n_cores, ...)
       
@@ -1144,7 +1144,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
           
           stats::t.test(formula, data = dat, ...) %>%
             broom::tidy() %>%
-            dplyr::mutate(grid_id = i-1)
+            dplyr::mutate(element_id = i-1)
           
           
         }, mc.cores = n_cores, ...)
@@ -1166,7 +1166,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
           
           stats::t.test(formula, data = dat, ...) %>%
             broom::tidy() %>%
-            dplyr::mutate(grid_id = i-1)
+            dplyr::mutate(element_id = i-1)
           
           
         }, mc.cores = n_cores, ...)
@@ -1186,7 +1186,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
         
         stats::t.test(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(grid_id = i-1)
+          dplyr::mutate(element_id = i-1)
         
       }, ...)
       
@@ -1201,7 +1201,7 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
         
         stats::t.test(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(grid_id = i-1)
+          dplyr::mutate(element_id = i-1)
         
       }, ...)
       
@@ -1218,31 +1218,31 @@ ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE,
   
 }
 
-#' Run a GAMM4 model at each grid location
+#' Run a GAMM4 model at each element location
 #'
 #' @param formula Formula (passed to `gamm4()`)
 #' @param data ModelArray dataset
-#' @param scalar The name of the scalar to be analysed grid-wise
+#' @param scalar The name of the scalar to be analysed element-wise
 #' @param phenotypes The cohort file with covariates to be added to the model
-#' @param subset A vector of grid IDs to subset
+#' @param subset A vector of element IDs to subset
 #' @param verbose Print progress messages
 #' @param n_cores The number of cores to run on
 #' @param pbar Print progress bar
-#' @return Tibble with the summarised model statistics at each grid location
+#' @return Tibble with the summarised model statistics at each element location
 #' 
 ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "ModelArray") {
-    stop("Not a grid array for analysis")
+    stop("Not a element array for analysis")
   }
   
   
   if(verbose){
-    message(glue::glue("Fitting grid-wise linear models for {scalar}", ))
+    message(glue::glue("Fitting element-wise linear models for {scalar}", ))
   }
   
-  n_models <- length(grids(data)[,1])
+  n_models <- length(elements(data)[,1])
   
   if(is.null(idx)){
     ids <- 1:n_models
@@ -1263,7 +1263,7 @@ ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
         
         gamm4::gamm4(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(grid_id = i-1)
+          dplyr::mutate(element_id = i-1)
         
       }, mc.cores = n_cores, ...)
       
@@ -1277,7 +1277,7 @@ ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
         
         gamm4::gamm4(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(grid_id = i-1)
+          dplyr::mutate(element_id = i-1)
         
         
       }, mc.cores = n_cores, ...)
@@ -1295,7 +1295,7 @@ ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
         
         gamm4::gamm4(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(grid_id = i-1)
+          dplyr::mutate(element_id = i-1)
         
       }, ...)
       
@@ -1310,7 +1310,7 @@ ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
         
         gamm4::gamm4(formula, data = dat, ...) %>%
           broom::tidy() %>%
-          dplyr::mutate(grid_id = i-1)
+          dplyr::mutate(element_id = i-1)
         
       }, ...)
       
@@ -1329,34 +1329,34 @@ ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, 
 
 
 
-#' Run a user-defined function on each grid location
+#' Run a user-defined function on each element location
 #'
 #' @param formula Formula (passed to `lm()`)
 #' @param FUN User-defined modelling function; must return a 1-row named vector or data.frame
 #' @param data ModelArray dataset
-#' @param scalar The name of the scalar to be analysed grid-wise
+#' @param scalar The name of the scalar to be analysed element-wise
 #' @param phenotypes The cohort file with covariates to be added to the model
-#' @param subset A vector of grid IDs to subset
+#' @param subset A vector of element IDs to subset
 #' @param verbose Print progress messages
 #' @param n_cores The number of cores to run on
 #' @param pbar Print progress bar
-#' @return Tibble with the summarised model statistics at each grid location
+#' @return Tibble with the summarised model statistics at each element location
 #' 
 ModelArray.model <- function(formula, FUN, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
   
   # data type assertions
   if(class(data) != "ModelArray") {
-    stop("Not a grid array for analysis")
+    stop("Not a element array for analysis")
   }
   
 
   FUN <- match.fun(FUN)
   
   if(verbose){
-    message(glue::glue("Fitting grid-wise linear models for {scalar}", ))
+    message(glue::glue("Fitting element-wise linear models for {scalar}", ))
   }
   
-  n_models <- length(grids(data)[,1])
+  n_models <- length(elements(data)[,1])
   
   if(is.null(idx)){
     ids <- 1:n_models
