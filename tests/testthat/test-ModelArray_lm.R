@@ -23,6 +23,7 @@ test_that("ModelArray.lm() works as expected", {
   
   ### basic check #####
   mylm <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, grid.subset = 1:100, 
+                        colname.subjid = "subject_id",
                         var.terms = var.terms,
                         var.model = var.model,
                         n_cores = 1, pbar=FALSE)
@@ -215,6 +216,12 @@ test_that("ModelArray.lm() works as expected", {
   
   
   # NOTE: we can add more tests regarding other lm's arguments
+  
+  ### subject list sanity check #####
+  phenotypes_wrong <- phenotypes[-c(1),]
+  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wrong, scalar = scalar_name, grid.subset = 1:100, 
+                             colname.subjid = "subjlist_id",
+                             n_cores = 2, pbar=FALSE))
   
   
   rhdf5::h5closeAll()

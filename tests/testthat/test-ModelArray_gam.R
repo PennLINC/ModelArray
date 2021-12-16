@@ -26,6 +26,7 @@ test_that("test that ModelArray.gam() works as expected", {
 
   ### basic checks #####
   mygam <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, grid.subset = grid.subset,
+                          colname.subjid = "subject_id",
                           var.smoothTerms = var.smoothTerms,
                           var.parametricTerms = var.parametricTerms,
                           var.model = var.model,
@@ -395,6 +396,14 @@ test_that("test that ModelArray.gam() works as expected", {
   myFormula_5 <- generator_gamFormula_continuousInteraction(response.var = "FD", cont1.var = "age", cont2.var = "factorA",
                                                             fx=FALSE, k=3)
   myFormula_5  # requires visually check
+  
+  
+  ### subject list sanity check #####
+  phenotypes_wrong <- phenotypes[-c(1),]
+  expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes_wrong, scalar = scalar_name, grid.subset = grid.subset,
+                              colname.subjid = "subject_id",
+                              n_cores = 1, pbar = FALSE))
+  
   
   ### debugging:
   #  Error in term[i] <- attr(terms(reformulate(term[i])), "term.labels") : 
