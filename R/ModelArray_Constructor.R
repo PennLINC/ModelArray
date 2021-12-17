@@ -57,7 +57,6 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @import dplyr
 #' @importFrom DelayedArray DelayedArray realize
 #' @importFrom rhdf5 h5readAttributes
-
 ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
   
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
