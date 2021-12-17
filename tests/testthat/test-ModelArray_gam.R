@@ -16,6 +16,7 @@ test_that("test that ModelArray.gam() works as expected", {
   #                    "inst/extdata/","n50_cohort.csv")
   
   phenotypes <- read.csv(csv_path)
+  colname_subject_id <- "subject_id"
   phenotypes$oSex <- ordered(phenotypes$sex, levels = c("F", "M"))  # ordered factor, "F" as reference group
   phenotypes$sexFactor <- factor(phenotypes$sex, levels = unique(phenotypes$sex))   # factor but not ordered
   
@@ -26,7 +27,7 @@ test_that("test that ModelArray.gam() works as expected", {
 
   ### basic checks #####
   mygam <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                          colname.subjid = "subject_id",
+                          colname.subjid = colname_subject_id,
                           var.smoothTerms = var.smoothTerms,
                           var.parametricTerms = var.parametricTerms,
                           var.model = var.model,
@@ -399,9 +400,23 @@ test_that("test that ModelArray.gam() works as expected", {
   
   
   ### subject list sanity check #####
-  phenotypes_wrong <- phenotypes[-c(1),]
-  expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes_wrong, scalar = scalar_name, element.subset = element.subset,
-                              colname.subjid = "subject_id",
+  # not the same length:
+  phenotypes_wrong1 <- phenotypes[-c(1),]
+  expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes_wrong1, scalar = scalar_name, element.subset = element.subset,
+                              colname.subjid = colname_subject_id,
+                              n_cores = 1, pbar = FALSE))
+  # not the same order:
+  phenotypes_wrong2 <- phenotypes
+  temp <- phenotypes_wrong2[2,colname_subject_id]   # swap row1 and row2's subject id
+  phenotypes_wrong2[2,colname_subject_id] <- phenotypes_wrong2[1,colname_subject_id]
+  phenotypes_wrong2[1,colname_subject_id] <- temp
+  expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes_wrong2, scalar = scalar_name, element.subset = element.subset,
+                              colname.subjid = colname_subject_id,
+                              n_cores = 1, pbar = FALSE))
+  
+  # incorrect column name:
+  expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                              colname.subjid = "incorrect name",
                               n_cores = 1, pbar = FALSE))
   
   
