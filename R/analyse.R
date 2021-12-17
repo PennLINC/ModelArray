@@ -383,10 +383,13 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   }
   
   ### sanity check: whether they match: modelarray's subject list and phenotypes' subject list:
-  subjlist.modelarray <- colnames(scalars(data)[[scalar]])
+  subjlist.modelarray <- subjects(data)[[scalar]]
   subjlist.phenotypes <- phenotypes[[colname.subjid]]
+  if (is.null(subjlist.phenotypes)) {
+    stop(paste0("phenotypes's column '",colname.subjid,"' is NULL. Please check if you entered the correct column name for subject list!"))
+  }
   if (!(identical(subjlist.modelarray, subjlist.phenotypes))) {
-    stop(paste0("The subject list (from column '", colname.subjid,"') in phenotypes is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: colnames(scalars(data)[[scalar]]) "))
+    stop(paste0("The subject list (from column '", colname.subjid,"') in phenotypes is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: subjects(data)[[scalar]] "))
   }
   
   ### display additional arguments:
@@ -717,10 +720,13 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     
 
   ### sanity check: whether they match: modelarray's subject list and phenotypes' subject list:
-  subjlist.modelarray <- colnames(scalars(data)[[scalar]])
+  subjlist.modelarray <- subjects(data)[[scalar]]
   subjlist.phenotypes <- phenotypes[[colname.subjid]]
+  if (is.null(subjlist.phenotypes)) {
+    stop(paste0("phenotypes's column '",colname.subjid,"' is NULL. Please check if you entered the correct column name for subject list!"))
+  }
   if (!(identical(subjlist.modelarray, subjlist.phenotypes))) {
-    stop(paste0("The subject list (from column '", colname.subjid,"') in phenotypes is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: colnames(scalars(data)[[scalar]]) "))
+    stop(paste0("The subject list (from column '", colname.subjid,"') in phenotypes is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: subjects(data)[[scalar]] "))
   }
 
 
