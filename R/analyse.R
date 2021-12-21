@@ -5,7 +5,7 @@
 #' @param message_default The message for default 
 #' @param message_usr_input The message describing user's input
 #' @importFrom crayon black
-#' @import dplyr
+#' @importFrom dplyr %>%
 #' 
 printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, message_usr_input = NULL) {
   dots_names <- names(dots)
@@ -40,7 +40,7 @@ printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, me
 #' @param name.correct.list The name of the list of correction methods for this type of term/model
 #' @param var.list The list of statistics to be saved for this type of term/model
 #' @param name.var.list The name of the list of statistics to be saved for this type of term/model
-#' @import stats
+#' @importFrom stats p.adjust.methods
 
 check_validity_correctPValue <- function(correct.list, name.correct.list, 
                                          var.list, name.var.list) {
@@ -62,9 +62,9 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 #' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/s
 #' TODO: finish the description
 #' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula); ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
-#' @import mgcv
-#' @import dplyr
-#' @import crayon
+#' @importFrom mgcv s
+#' @importFrom dplyr %>%
+#' @importFrom crayon black
 #' 
 checker_gam_s <- function(ofInterest) {
   FUN <- mgcv::s
@@ -126,9 +126,9 @@ checker_gam_s <- function(ofInterest) {
 #' TODO: finish the description
 #' @param FUN could be mgcv::te(), ti() or t2()
 #' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula); ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
-#' @import mgcv
-#' @import dplyr
-#' @import crayon
+#' @importFrom mgcv te ti t2
+#' @importFrom dplyr %>%
+#' @importFrom crayon black
 #' 
 checker_gam_t <- function(FUN, ofInterest) {
   paste0(ofInterest$label, ": ") %>% crayon::black() %>% cat()
@@ -171,10 +171,9 @@ checker_gam_t <- function(FUN, ofInterest) {
 
 #' A checker for formula in gam for ModelArray.gam()
 #' TODO: finish the description
-#' @import mgcv
-#' @import dplyr
-#' @import rlang
-#' @import crayon
+#' @importFrom mgcv s ti t2 te
+#' @importFrom dplyr %>%
+#' @importFrom crayon black
 checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel=NULL) {
   # print out the formula:
   temp <- formula %>% as.character() 
@@ -237,8 +236,8 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel=NULL) {
 #' @param fx TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.
 #' @param k integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default value as in mgcv::s()
 #' @return a list, including: 1) formula generated; 2) data.frame phenotypes - updated if argument factor.var is not an ordered factor
-#' @import mgcv
-#' @import stats
+#' @importFrom mgcv s
+#' @importFrom stats as.formula
 #' @export
 #' 
 generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.var, phenotypes, 
@@ -302,8 +301,8 @@ generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.
 #' @param fx TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.
 #' @param k integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default value as in mgcv::s()
 #' @return The formula generated
-#' @import mgcv
-#' @import stats
+#' @importFrom mgcv ti
+#' @importFrom stats as.formula
 #' @export
 #' 
 generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, cont2.var,
@@ -354,10 +353,11 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' @param n_cores Positive integer, The number of CPU cores to run with
 #' @param ... Additional arguments for `stats::lm()`
 #' @return Tibble with the summarized model statistics for all elements requested
-#' @import dplyr
+#' @importFrom dplyr %>%
 #' @import doParallel
 #' @import tibble
-#' @import stats
+#' @importFrom stats p.adjust lm
+#' @importFrom glue glue
 #' @export
 
 ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE, 
@@ -669,11 +669,12 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @param n_cores Positive integer, The number of CPU cores to run with
 #' @param ... Additional arguments for `mgcv::gam()`
 #' @return Tibble with the summarized model statistics for all elements requested
-#' @import dplyr
+#' @importFrom dplyr %>% mutate
 #' @import doParallel
 #' @import tibble
 #' @import mgcv
-#' @import stats
+#' @importFrom stats terms as.formula drop.terms p.adjust
+#' @importFrom glue glue
 #' @export
 
 ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE, 
@@ -1095,354 +1096,6 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
 
 
-#' Run a t.test at each element location
-#'
-#' @param formula Formula (passed to `lm()`)
-#' @param data ModelArray dataset
-#' @param scalar The name of the scalar to be analysed element-wise
-#' @param phenotypes The cohort file with covariates to be added to the model
-#' @param subset A vector of element IDs to subset
-#' @param verbose Print progress messages
-#' @param n_cores The number of cores to run on
-#' @param pbar Print progress bar
-#' @import stats
-#' @return Tibble with the summarised model statistics at each element location
-#' 
-ModelArray.t.test <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
-  
-  # data type assertions
-  if(class(data) != "ModelArray") {
-    stop("Not a element array for analysis")
-  }
-  
-  
-  if(verbose){
-    message(glue::glue("Running t.test models for {scalar}", ))
-  }
-  
-  n_models <- length(elements(data)[,1])
-  
-  if(is.null(idx)){
-    ids <- 1:n_models
-  } else {
-    ids <- idx
-  }
-  
-  # is it a multicore process?
-  if(n_cores > 1){
-    
-    if(pbar){
-      
-      fits <- pbmcapply::pbmclapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        stats::t.test(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(element_id = i-1)
-        
-      }, mc.cores = n_cores, ...)
-      
-    } else {
-      
-      # if it's Linux or Mac:
-      system_name <- Sys.info()['sysname']
-      if (system_name == "Linux" || system_name == "Darwin") { # Darwin = OSX = Mac
 
-        fits <- parallel::mclapply(ids, function(i, ...){
-          
-          values <- scalars(data)[[scalar]][i,]
-          # values <- data@scalars[[scalar]][i,]
-          dat <- phenotypes
-          dat[[scalar]] <- values
-          
-          stats::t.test(formula, data = dat, ...) %>%
-            broom::tidy() %>%
-            dplyr::mutate(element_id = i-1)
-          
-          
-        }, mc.cores = n_cores, ...)
-      } else if (system_name == "Windows") {   # 7/27/2021: there is still error for Windows system.... current error: see below
-        # cl <- makeCluster(getOption("cl.cores", n_cores))
-        
-        # message(slotNames(data))  # identified slots for data here..
-        
-        cl <- makeCluster(n_cores)
-        
-        clusterEvalQ(cl, {"ModelArray"}) 
-        
-        fits <- parallel::parLapply(cl, ids, function(i, ...){
-          # source("ModelArray.R")
-          # values <- scalars(data)[[scalar]][i,]   # ERROR: could not find function "scalars"
-          values <- data@scalars[[scalar]][i,]   # ERROR: object of type 'S4' is not subsettable
-          dat <- phenotypes
-          dat[[scalar]] <- values
-          
-          stats::t.test(formula, data = dat, ...) %>%
-            broom::tidy() %>%
-            dplyr::mutate(element_id = i-1)
-          
-          
-        }, mc.cores = n_cores, ...)
-        
-        stopCluster(cl)   # for windows
-      }
-    }
-  } else {
-    
-    if(pbar){
-      
-      fits <- pbapply::pblapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        stats::t.test(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(element_id = i-1)
-        
-      }, ...)
-      
-    }
-    else {
-      
-      fits <- lapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        stats::t.test(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(element_id = i-1)
-        
-      }, ...)
-      
-    }
-  }
-  
-  df_out <- do.call(rbind, fits)
-  
-  # if(write){
-  #   WriteResult(data, df_out, glue::glue("scalars/{scalar}/results"))
-  # }
-  
-  df_out
-  
-}
+## TODO: add an example function for developer: ModelArray.gam()
 
-#' Run a GAMM4 model at each element location
-#'
-#' @param formula Formula (passed to `gamm4()`)
-#' @param data ModelArray dataset
-#' @param scalar The name of the scalar to be analysed element-wise
-#' @param phenotypes The cohort file with covariates to be added to the model
-#' @param subset A vector of element IDs to subset
-#' @param verbose Print progress messages
-#' @param n_cores The number of cores to run on
-#' @param pbar Print progress bar
-#' @return Tibble with the summarised model statistics at each element location
-#' 
-ModelArray.gamm4 <- function(formula, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
-  
-  # data type assertions
-  if(class(data) != "ModelArray") {
-    stop("Not a element array for analysis")
-  }
-  
-  
-  if(verbose){
-    message(glue::glue("Fitting element-wise linear models for {scalar}", ))
-  }
-  
-  n_models <- length(elements(data)[,1])
-  
-  if(is.null(idx)){
-    ids <- 1:n_models
-  } else {
-    ids <- idx
-  }
-  
-  # is it a multicore process?
-  if(n_cores > 1){
-    
-    if(pbar){
-      
-      fits <- pbmcapply::pbmclapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        gamm4::gamm4(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(element_id = i-1)
-        
-      }, mc.cores = n_cores, ...)
-      
-    } else {
-      
-      fits <- parallel::mclapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        gamm4::gamm4(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(element_id = i-1)
-        
-        
-      }, mc.cores = n_cores, ...)
-      
-    }
-  } else {
-    
-    if(pbar){
-      
-      fits <- pbapply::pblapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        gamm4::gamm4(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(element_id = i-1)
-        
-      }, ...)
-      
-    }
-    else {
-      
-      fits <- lapply(ids, function(i, ...){
-        
-        values <- scalars(data)[[scalar]][i,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        gamm4::gamm4(formula, data = dat, ...) %>%
-          broom::tidy() %>%
-          dplyr::mutate(element_id = i-1)
-        
-      }, ...)
-      
-    }
-  }
-  
-  df_out <- do.call(rbind, fits)
-  
-  # if(write){
-  #   WriteResult(data, df_out, glue::glue("scalars/{scalar}/results"))
-  # }
-  
-  df_out
-  
-}
-
-
-
-#' Run a user-defined function on each element location
-#'
-#' @param formula Formula (passed to `lm()`)
-#' @param FUN User-defined modelling function; must return a 1-row named vector or data.frame
-#' @param data ModelArray dataset
-#' @param scalar The name of the scalar to be analysed element-wise
-#' @param phenotypes The cohort file with covariates to be added to the model
-#' @param subset A vector of element IDs to subset
-#' @param verbose Print progress messages
-#' @param n_cores The number of cores to run on
-#' @param pbar Print progress bar
-#' @return Tibble with the summarised model statistics at each element location
-#' 
-ModelArray.model <- function(formula, FUN, data, phenotypes, scalar, verbose = TRUE, idx = NULL, pbar = TRUE, n_cores = 1, ...){
-  
-  # data type assertions
-  if(class(data) != "ModelArray") {
-    stop("Not a element array for analysis")
-  }
-  
-
-  FUN <- match.fun(FUN)
-  
-  if(verbose){
-    message(glue::glue("Fitting element-wise linear models for {scalar}", ))
-  }
-  
-  n_models <- length(elements(data)[,1])
-  
-  if(is.null(idx)){
-    ids <- 1:n_models
-  } else {
-    ids <- idx
-  }
-  
-  # is it a multicore process?
-  if(n_cores > 1){
-    
-    if(pbar){
-      
-      fits <- pbmcapply::pbmclapply(ids, function(x, ...){
-        
-        values <- scalars(data)[[scalar]][x,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        FUN(formula, data = dat, ...) %>%
-          broom::tidy()
-        
-      }, mc.cores = n_cores, ...)
-      
-    } else {
-      
-      fits <- parallel::mclapply(ids, function(x, ...){
-        
-        values <- scalars(data)[[scalar]][x,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        FUN(formula, data = dat, ...) %>%
-          broom::tidy()
-        
-        
-      }, mc.cores = n_cores, ...)
-      
-    }
-  } else {
-    
-    if(pbar){
-      
-      fits <- pbapply::pblapply(ids, function(x, ...){
-        
-        values <- scalars(data)[[scalar]][x,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        FUN(formula, data = dat, ...) %>%
-          broom::tidy()
-        
-      }, ...)
-      
-    }
-    else {
-      
-      fits <- lapply(ids, function(x, ...){
-        
-        values <- scalars(data)[[scalar]][x,]
-        dat <- phenotypes
-        dat[[scalar]] <- values
-        
-        FUN(formula, data = dat, ...) %>%
-          broom::tidy()
-        
-      }, ...)
-      
-    }
-  }
-  
-  return(do.call(rbind, fits))
-  
-}
