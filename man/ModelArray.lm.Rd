@@ -31,7 +31,7 @@ ModelArray.lm(
 
 \item{scalar}{A character. The name of the element-wise scalar to be analysed}
 
-\item{element.subset}{A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run. Default if NULL, i.e. requesting all elements in `data`.}
+\item{element.subset}{A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.}
 
 \item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.}
 

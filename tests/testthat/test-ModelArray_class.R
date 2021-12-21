@@ -121,4 +121,9 @@ test_that("ModelArray interface works as expected", {
   # TODO: results with a column of strings - need to be converted into numeric | currently there is no need for .lm and .gam
   
 
+  
+  ### test out other functions/ utils #####
+  expect_equal(numElementsTotal(modelarray_n25, "FD"), 
+               num.fixels)
+  
 })

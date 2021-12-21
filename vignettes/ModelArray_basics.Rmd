@@ -87,6 +87,7 @@ mylm <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:
 head(mylm)
 ```
 
+To run across all fixels, simply use default setting that `element.subset = NULL`.
 
 ## GAM - Generalized additive model
 Modelling age effect with GAM is often useful for developing population because of GAM's flexibility.

@@ -342,7 +342,7 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' @param data ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in \code{data}.
 #' @param scalar A character. The name of the element-wise scalar to be analysed
-#' @param element.subset A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run. Default if NULL, i.e. requesting all elements in `data`.
+#' @param element.subset A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.
 #' @param colname.subjid A character, the column name in \code{phenotypes} of subject IDs. This column will be used for sanity check for matching of subject list in \code{data}.
 #' @param var.terms A list of characters. The list of variables to save for terms (got from `broom::tidy()`). See "Details" section for more.
@@ -371,6 +371,11 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
     stop("data's class is not ModelArray!")
   }
   
+  ## element.subset:
+  if (is.null(element.subset)) {  # request all elements
+    num.element.total <- numElementsTotal(modelarray=data, scalar_name = scalar)
+    element.subset <- 1:num.element.total
+  }
   # checker for min and max of element.subset; and whether elements are integer
   if (min(element.subset) < 1) {
     stop("Minimal value in element.subset should >= 1")
@@ -650,7 +655,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @param data ModelArray class
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in \code{data}.
 #' @param scalar A character. The name of the element-wise scalar to be analysed
-#' @param element.subset A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run.
+#' @param element.subset A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.
 #' @param colname.subjid A character, the column name in \code{phenotypes} of subject IDs. This column will be used for sanity check for matching of subject list in \code{data}.
 #' @param var.smoothTerms A list of characters. The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.
@@ -684,6 +689,11 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     stop("data's class is not ModelArray!")
   }
   
+  ## element.subset:
+  if (is.null(element.subset)) {  # request all elements
+    num.element.total <- numElementsTotal(modelarray=data, scalar_name = scalar)
+    element.subset <- 1:num.element.total
+  }
   # checker for min and max of element.subset; and whether elements are integer
   if (min(element.subset) < 1) {
     stop("Minimal value in element.subset should >= 1")
