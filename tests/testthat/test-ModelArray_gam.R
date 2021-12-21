@@ -105,7 +105,7 @@ test_that("test that ModelArray.gam() works as expected", {
   # s(k=?):
   mygam_k4 <- ModelArray.gam(FD ~ s(age, k=4) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                              n_cores = 2, pbar = FALSE)
-  expect_false(all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
+  expect_false(dplyr::all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
                          mygam_k4 %>% dplyr::select("s_age.statistic"))
                %>% isTRUE())    # should be different when k is different
   
