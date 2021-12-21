@@ -54,7 +54,7 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @return ModelArray object
 #' @export
 #' @import methods
-#' @import dplyr
+#' @importFrom dplyr %>%
 #' @importFrom DelayedArray DelayedArray realize
 #' @importFrom rhdf5 h5readAttributes
 ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
@@ -224,9 +224,9 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #' 
 #' @return If flag_initiate==TRUE, returns column names, and list of term names of final results; if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
 #' @export
-#' @import stats
+#' @importFrom stats lm
 #' @import broom
-#' @import dplyr
+#' @importFrom dplyr %>% select bind_cols
 #' @import tibble
 
 analyseOneElement.lm <- function(i_element, 
@@ -352,7 +352,7 @@ analyseOneElement.lm <- function(i_element,
 #' @export
 #' @import mgcv
 #' @import broom
-#' @import dplyr
+#' @importFrom dplyr select %>% bind_cols
 #' @import tibble
 
 analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, scalar, 
