@@ -158,3 +158,6 @@ vignettes/*.pdf
 # End of https://www.gitignore.io/api/r
 data
 inst/doc
+/doc/
+/Meta/
+docs
