@@ -20,6 +20,7 @@ Here we will use some example data to show you the basic use of `ModelArray`.
 # Concepts and Goals
 ## Goals
 The general goal is to provide a generalizable R package for statistical analysis for different modalities of data, such as voxel-wise, vertex-wise, or fixel-wise data. The features include:
+
 * Low memory requirement, and not scale up with number of subjects
 * Providing statistical models such linear regression model and generalized additive model (GAM), which are useful especially for modeling age effects in development and aging
 * Easy and straightforward to use with just several lines of R codes
@@ -27,9 +28,8 @@ The general goal is to provide a generalizable R package for statistical analysi
 
 ## Elements
 In this package, "element" is a general name for one point of data; it could be voxel in 3D images, vertex in surface data, or fixel in fixel-based analysis. There should be scalar value associated with each element. And with some demographics or other phenotype data, we can model the scalar value with independent variables and covariates. We treat each element equally.
-```{r, eval=FALSE}
-print("")
-```
+
+
 
 # Quick start: fixel-wise statistical analysis
 ## Load data using `ModelArray()`
@@ -38,15 +38,17 @@ We provide example .h5 data in "inst/extdata". Example data is fixel-wise data g
 # file of example .h5, fixel-wise data
 h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
 modelarray <- ModelArray(h5_path, 
-                               scalar_types = c("FD"))
-modelarray # TODO: finish description below about "modelarray"!!
+                               scalar_types = c("FD"))  # if there is more than one metric, you can do: c("FD", "FDC")
+modelarray # check what's in it    
 ```
-We can see that ....
+This shows that there are 50 subjects, with scalars of FD in this the `modelarray` you loaded.
+
 
 ## accessors of ModelArray
+To access ModelArray's slots:
 ```{r}
-scalars(modelarray)[["FD"]]
-subjects(modelarray)[["FD"]]
+scalars(modelarray)[["FD"]]   # FD data
+subjects(modelarray)[["FD"]]  # subject list for FD data
 ```
 
 ## preparation for statistical analysis
@@ -54,6 +56,7 @@ To perform statistical analysis, please provide a data frame with subjects' demo
 ```{r}
 csv_path <- system.file("extdata", "n50_cohort.csv", package = "ModelArray")
 phenotypes <- read.csv(csv_path)
+colname_subject_id <- "subject_id"   # the column name of subject IDs in phenotypes data.frame. This will be used for sanity check vs that in .h5 file
 head(phenotypes)
 ```
 ## linear regression
@@ -62,14 +65,14 @@ Now, let's perform linear regression metric FD (y) over subject's age, using `Mo
 formula <- FD ~ age
 mylm_fullOutputs <- ModelArray.lm(formula, modelarray, phenotypes, "FD",  # dependent variable
                       element.subset = 1:100,  # let's check out first 100 fixels
-                      colname.subjid = "subject_id",   # subject sanity check will be performed: subject id in phenotypes data frame vs that in .h5 scalar data
+                      colname.subjid = colname_subject_id,   # subject sanity check will be performed: subject id in phenotypes data frame vs that in .h5 scalar data
                       full.outputs = TRUE, # let's first view all statistics
                       )
 head(mylm_fullOutputs)
 ```
 If all statistics are too many for you, try out default list of statistics:
 ```{r}
-mylm_default <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:100,  colname.subjid = "subject_id", 
+mylm_default <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:100,  colname.subjid = colname_subject_id, 
                       n_cores = 4,  # running on 4 CPU cores for speeding up
                       )
 head(mylm_default)
@@ -77,7 +80,7 @@ head(mylm_default)
 
 You may be specifically interested in several statistics:
 ```{r}
-mylm <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:100,  colname.subjid = "subject_id", 
+mylm <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:100,  colname.subjid = colname_subject_id, 
                       var.terms = c("estimate", "p.value"), # statistics for terms such as intercept, age
                       var.model = c("r.squared", "p.value", "AIC"),    # statistics for the model
                       correct.p.value.terms = c("fdr","bonferroni"),   # p value corrections for terms
@@ -125,5 +128,38 @@ head(mygam_effectSize)
 ## write the results 
 Finally, you can write the results (data frame of statistics) back into the .h5 file. 
 ```{r}
-# TODO: copy oriignal data, and then write into the new file - do NOT overwrite original example data in inst/ext!!
+# it's not necessary to make a copy of original .h5 file as we are doing here - you can write the results into original one. Here we make a copy only not to overwrite the example data we provide in the package.
+h5_output_path <- gsub(".h5","_output.h5",h5_path)
+file.copy(from=h5_path, to=h5_output_path, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)
+modelarray_output <- ModelArray(filepath = h5_output_path, scalar_types = "FD")
+
+# write linear model results:
+writeResults(h5_output_path, df.output = mylm,  # the results data.frame you got
+             analysis_name="result_lm", # give the results a name - you will use this name again when converting back to .mif in ConFixel
+             overwrite=TRUE)  # if there is an existing result with the same name in .h5, overwrite it
+
+# write GAM results:
+writeResults(h5_output_path, df.output = mygam_specific,  
+             analysis_name="result_gam", 
+             overwrite=TRUE)
+
+```
+
+
+You can reload the .h5 file and check the results:
+```{r}
+modelarray_new <- ModelArray(filepath = h5_output_path, scalar_types = "FD",
+                             analysis_names = c("result_lm", "result_gam"))   # you can load more than one result at a time
+```
+
+To access the results, simply use `results()`:
+```{r}
+results(modelarray_new)[["result_lm"]]$results_matrix
+results(modelarray_new)[["result_gam"]]$results_matrix
+```
+
+
+```{r, include = FALSE}
+file.remove(h5_output_path)
+
 ```
