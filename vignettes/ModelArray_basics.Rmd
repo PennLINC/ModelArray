@@ -41,51 +41,62 @@ modelarray <- ModelArray(h5_path,
                                scalar_types = c("FD"))  # if there is more than one metric, you can do: c("FD", "FDC")
 modelarray # check what's in it    
 ```
-This shows that there are 50 subjects, with scalars of FD in this the `modelarray` you loaded.
+This shows that there are 50 source files, with scalars of FD in this `modelarray` you loaded.
 
 
 ## accessors of ModelArray
 To access ModelArray's slots:
 ```{r}
 scalars(modelarray)[["FD"]]   # FD data
-subjects(modelarray)[["FD"]]  # subject list for FD data
+sources(modelarray)[["FD"]]  # list of source filenames for FD data
 ```
 
 ## preparation for statistical analysis
-To perform statistical analysis, please provide a data frame with subjects' demographic or phenotype data you are interested in:
+To perform statistical analysis, please provide a .csv file with subjects' demographic or phenotype data you are interested in, and these data will be used as independent variables or coviariates in the model. The easiest way is simply use the cohort .csv you prepared for ConFixel, and add necessary demographic or phenotype data as additional column if needed. \
+
+The requirement of this .csv: There must be a column of "source_file", providing the filename of the source image file. This requirement is consistent with that in ConFixel. The purpose is to have a sanity (or consistency) check between orders in .h5 file and .csv file. \
+
+`ModelArray.lm()`, `ModelArray.gam()` etc functions can flexibly handle that only the order was changed: as long as source file lists from `phenotypes` and `modelarray` can be matched (either with or without changing the order in `phenotypes`), our functions will do the matching and find the correct rows in `phenotypes`. However if they cannot be matched, an error will be thrown out.
+
+Example would be:   ++++ TODO: add a table!
+
+
+
 ```{r}
-csv_path <- system.file("extdata", "n50_cohort.csv", package = "ModelArray")
-phenotypes <- read.csv(csv_path)
-colname_subject_id <- "subject_id"   # the column name of subject IDs in phenotypes data.frame. This will be used for sanity check vs that in .h5 file
+csv_path <- system.file("extdata", "n50_cohort.csv", package = "ModelArray")  # 
+phenotypes <- read.csv(csv_path)   
 head(phenotypes)
 ```
+If needed, you can manipulate data.frame "phenotypes" (e.g. demean, add new column, etc) via R packages "dplyr". See [R: an intro](https://pennlinc.github.io/ModelArray/articles/basic_r_intro.html).
+
+
+
 ## linear regression
 Now, let's perform linear regression metric FD (y) over subject's age, using `ModelArray.lm()`:
 ```{r}
 formula <- FD ~ age
 mylm_fullOutputs <- ModelArray.lm(formula, modelarray, phenotypes, "FD",  # dependent variable
                       element.subset = 1:100,  # let's check out first 100 fixels
-                      colname.subjid = colname_subject_id,   # subject sanity check will be performed: subject id in phenotypes data frame vs that in .h5 scalar data
                       full.outputs = TRUE, # let's first view all statistics
                       )
 head(mylm_fullOutputs)
 ```
 If all statistics are too many for you, try out default list of statistics:
 ```{r}
-mylm_default <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:100,  colname.subjid = colname_subject_id, 
-                      n_cores = 4,  # running on 4 CPU cores for speeding up
+mylm_default <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:100,  
+                      n_cores = 2,  # running on 2 CPU cores for speeding up
                       )
 head(mylm_default)
 ```
 
 You may be specifically interested in several statistics:
 ```{r}
-mylm <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:100,  colname.subjid = colname_subject_id, 
+mylm <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:100, 
                       var.terms = c("estimate", "p.value"), # statistics for terms such as intercept, age
                       var.model = c("r.squared", "p.value", "AIC"),    # statistics for the model
                       correct.p.value.terms = c("fdr","bonferroni"),   # p value corrections for terms
                       correct.p.value.model = "fdr",  # p value corrections for model
-                      n_cores = 4,
+                      n_cores = 2,
 )
 head(mylm)
 ```
@@ -97,8 +108,7 @@ Modelling age effect with GAM is often useful for developing population because 
 ```{r}
 formula <- FD ~ s(age, k=4, fx=TRUE) + sex  # we add sex as a covariate
 mygam <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
-                          colname.subjid = colname_subject_id,
-                        n_cores = 4, pbar = TRUE)
+                        n_cores = 2, pbar = TRUE)
 head(mygam)
 ```
 You can also set `full.outputs=TRUE` to request all statistics (except p.value corrections or effect size - see below for more). 
@@ -106,21 +116,19 @@ You can also set `full.outputs=TRUE` to request all statistics (except p.value c
 Or you can specify the specific statistic terms you are interested in by assigning the values of `var.smoothTerms`, `var.parametricTerms`, and `var.model`:
 ```{r}
 mygam_specific <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
-                          colname.subjid = colname_subject_id,
                           var.smoothTerms = c("p.value"),  # this is for smooth term, e.g. s(age) in our case
                           var.parametricTerms = c("estimate"),   # this is for parametric term, e.g. sex in our case
                           var.model = c("adj.r.squared", "dev.expl"),  # this is for the model
-                        n_cores = 4, pbar = TRUE)
+                        n_cores = 2, pbar = TRUE)
 head(mygam_specific)
 ```
 
 In addition, you can also request calculating effect size for a specific term, usually a smooth term. Effect size of a term is defined as  difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the requested term).
 ```{r}
 mygam_effectSize <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
-                          colname.subjid = colname_subject_id,
                           var.smoothTerms = c(), var.parametricTerms = c(), var.model = c("adj.r.squared"),  
                           eff.size.term.index = c(1),   # requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case
-                        n_cores = 4, pbar = TRUE)
+                        n_cores = 2, pbar = TRUE)
 
 head(mygam_effectSize)
 ```

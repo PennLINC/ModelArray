@@ -4,7 +4,7 @@
 #' An S4 class to represent element-wise scalar data and statistics.
 #'
 #' @slot results An h5 group of ModelArray analysis outputs
-#' @slot subjects A list of subject labels
+#' @slot sources A list of source filenames
 #' @slot scalars A list of element-wise scalars
 #' @slot path Path to the h5 file on disk
 #' @importClassesFrom DelayedArray DelayedArray
@@ -13,7 +13,7 @@ ModelArray <- setClass(
   #contains="DelayedArray",
   slots = c(
     results="list",
-    subjects="list",
+    sources="list",
     scalars="list",
     path="character"
   )
@@ -67,7 +67,7 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 
   
   ## scalar_data:
-  ids <- vector("list", length(scalar_types))
+  sources <- vector("list", length(scalar_types))
   scalar_data <- vector("list", length(scalar_types))
 
   for(x in 1:length(scalar_types)){
@@ -78,25 +78,25 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
     scalar_data[[x]] <- ModelArraySeed(filepath, name = sprintf("scalars/%s/values", scalar_types[x]), type = NA) %>%
       DelayedArray::DelayedArray()
     
-    # load attribute "column_names", i.e. subject ids:
-    ids[[x]] <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))$column_names %>% as.character()
+    # load attribute "column_names", i.e. source filenames:
+    sources[[x]] <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))$column_names %>% as.character()
     
     # transpose scalar_data[[x]] if needed:
-    if (dim(scalar_data[[x]])[2] == length(ids[[x]])) {
+    if (dim(scalar_data[[x]])[2] == length(sources[[x]])) {
       # do nothing
-    } else if (dim(scalar_data[[x]])[1] == length(ids[[x]])) {
+    } else if (dim(scalar_data[[x]])[1] == length(sources[[x]])) {
       scalar_data[[x]] <- t(scalar_data[[x]])
     } else {
-      stop(paste0("the dimension of scalar_data[[",toString(x),"]] does not match to length of ids[[",toString(x),"]]"))
+      stop(paste0("the dimension of scalar_data[[",toString(x),"]] does not match to length of sources[[",toString(x),"]]"))
     }
     
-    # add ids as colnames:
-    colnames(scalar_data[[x]]) <- ids[[x]]
+    # add sources as colnames:
+    colnames(scalar_data[[x]]) <- sources[[x]]
 
   }
 
   names(scalar_data) <- scalar_types
-  names(ids) <- scalar_types
+  names(sources) <- scalar_types
 
   
   ## results:
@@ -176,7 +176,7 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 
   new(
     "ModelArray",
-    subjects = ids,
+    sources = sources,
     scalars = scalar_data,
     results = results_data,   # TODO: issue: LHS SHOULD BE THE SAME AS THE NAME IN THE H5 FILE, NOT NECESSARY CALLED "results"
     path = filepath

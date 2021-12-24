@@ -14,7 +14,7 @@ setMethod("show", "ModelArray", function(object) {  # , group_name_results="resu
   # }
   
   cat(is(object)[[1]], " located at ", object@path, "\n\n",
-      format("  Subjects:", justify = "left", width = 20), length(subjects(object)[[1]]), "\n",   # TODO: print for every scalar_name (instead of [[1]]); add "counts = "
+      format("  Source files:", justify = "left", width = 20), length(sources(object)[[1]]), "\n",   # TODO: print for every scalar_name (instead of [[1]]); add "counts = "
       format("  Scalars:", justify = "left", width = 20), paste0(names(scalars(object)), collapse = ", "), "\n",
       # format("  Results:", justify = "left", width = 20), str_results, "\n",
       format("  Analyses:", justify = "left", width = 20), paste0(names(results(object)), collapse = ", "), "\n",
@@ -25,11 +25,11 @@ setMethod("show", "ModelArray", function(object) {  # , group_name_results="resu
 
 ### Accessors for ModelArray #####
 
-setGeneric("subjects", function(x) standardGeneric("subjects"))
+setGeneric("sources", function(x) standardGeneric("sources"))
 
-#' subjects of ModelArray
+#' source filenames of ModelArray
 #' @export
-setMethod("subjects", "ModelArray", function(x) x@subjects)
+setMethod("sources", "ModelArray", function(x) x@sources)
 
 
 setGeneric("scalars", function(x, ...) standardGeneric("scalars"))

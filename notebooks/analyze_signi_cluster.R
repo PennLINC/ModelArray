@@ -142,8 +142,8 @@ method.gam.refit <- "GCV.Cp"   # +++++++++++++++
 folder.h5.results <- gsub(".h5", "", fn.h5.results, fixed=TRUE)
 ModelArray <- ModelArray(fn.h5.results, scalar_types = scalar_name, analysis_names = analysis_name)
 num_fixel_total <- nrow(ModelArray@fixels)
-if (num.subj != ModelArray@subjects[[scalar_name]] %>% length()) {
-  stop("number of subjects in ModelArray is not equal to requested one!")
+if (num.subj != ModelArray@sources[[scalar_name]] %>% length()) {
+  stop("number of subjects in ModelArray is not equal to requested one!")  # this is probably not necessary after adding sanity check of source file in .h5 and .csv
 }
 results_matrix <- ModelArray@results[[analysis_name]]$results_matrix 
 # colnames(ModelArray@results$gam_allOutputs$results_matrix )
