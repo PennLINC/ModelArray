@@ -26,8 +26,8 @@ reference:
   - generator_gamFormula_continuousInteraction
   - generator_gamFormula_factorXsmooth
   
-- title: internal
-  desc: functions not exported to users
+- title: Behind the scene
+  desc: Functions not exported to users
   contents:
   - analyseOneElement.lm
   - analyseOneElement.gam
@@ -35,6 +35,5 @@ reference:
   - checker_gam_formula
   - checker_gam_s
   - checker_gam_t
-  - generator_gamFormula_continuousInteraction
-  - generator_gamFormula_factorXsmooth
+  - printAdditionalArgu
   - writeResults.old
