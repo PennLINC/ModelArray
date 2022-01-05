@@ -7,10 +7,10 @@ reference:
   desc: Load, access, and write ModelArray class data
   contents:
   - ModelArray
-  - scalars
-  - show
-  - subjects
-  - results
+  - results,ModelArray-method
+  - scalars,ModelArray-method
+  - show,ModelArray-method
+  - sources,ModelArray-method
   - writeResults
   - numElementsTotal
   
@@ -21,12 +21,20 @@ reference:
   - ModelArray.gam
   
 - title: Supports for model fitting
+  desc: Generate GAM functions with interactions. Use them only if you hope to include interaction terms in GAM formula.
   contents:
-  - generator_gamFormula_continuousInteraction()
-  - generator_gamFormula_factorXsmooth()
+  - generator_gamFormula_continuousInteraction
+  - generator_gamFormula_factorXsmooth
   
-- title: Behind the scene
-  desc: model fitting for one element
+- title: internal
+  desc: functions not exported to users
   contents:
   - analyseOneElement.lm
   - analyseOneElement.gam
+  - check_validity_correctPValue
+  - checker_gam_formula
+  - checker_gam_s
+  - checker_gam_t
+  - generator_gamFormula_continuousInteraction
+  - generator_gamFormula_factorXsmooth
+  - writeResults.old
