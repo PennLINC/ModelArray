@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 
 This document is a quick introduction to basic R. Audience would be users who are not familiar with R.
 
-# R syntax
+## R syntax
 
 * Dot "." is valid in a variable name or a function (e.g. variable "num.fixels", function "ModelArray.lm()")
 * Syntax for formula: 
@@ -26,20 +26,20 @@ Below is an example formula:
 formula <- FD ~ age + sex
 ```
 ** As you can see we did not define variable "FD","age" or "sex", but it's a valid formula. 
-** Left hand side of "~" is dependent variable (y), and righ hand side includes the independent variables and covariates
+** Left hand side of "~" is dependent variable (y, or response), and righ hand side includes the independent variables and covariates
 
 
-# Prepare the phenotypes data.frame: manipulations
+## Prepare the phenotypes data.frame: manipulations
 Users may want to manipulate the data.frame `phenotypes` before passing it to `ModelArray.lm()` etc functions for model fitting. Examples like de-mean and rescale covariates. R package "dplyr" is useful and easy to use for manipulation. 
 ```{r}
 # install is first via: install.packages("dplyr")
 library(dplyr)    # load into memory
 ```
 
-## De-mean and rescale covariates
+### De-mean and rescale covariates
 TODO
 
-## Check whether the model is well-conditioned
+### Check whether the model is well-conditioned
 TODO
 
 

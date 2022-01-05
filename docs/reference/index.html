@@ -25,6 +25,7 @@
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/ModelArray_basics.html">ModelArray: Basics</a>
+    <a class="dropdown-item" href="../articles/basic_r_intro.html">R: an intro</a>
   </div>
 </li>
       </ul><form class="form-inline my-2 my-lg-0" role="search">
@@ -41,9 +42,9 @@
     </div>
 
     <div class="section level2">
-      <h2 id="all-functions">All functions<a class="anchor" aria-label="anchor" href="#all-functions"></a></h2>
+      <h2 id="modelarray">ModelArray<a class="anchor" aria-label="anchor" href="#modelarray"></a></h2>
       
-      
+      <p class="section-desc"></p><p>Load, access, and write ModelArray class data</p>
 
       
     </div><div id="" class="section level2">
@@ -58,104 +59,72 @@
         <dd>An S4 class to represent element-wise scalar data and statistics.</dd>
       </dl><dl><dt>
           
-          <code><a href="ModelArray.gam.html">ModelArray.gam()</a></code> 
-        </dt>
-        <dd>Run GAM for element-wise data</dd>
-      </dl><dl><dt>
-          
-          <code><a href="ModelArray.lm.html">ModelArray.lm()</a></code> 
-        </dt>
-        <dd>Fit linear model for element-wise data</dd>
-      </dl><dl><dt>
-          
-          <code><a href="analyseOneElement.gam.html">analyseOneElement.gam()</a></code> 
-        </dt>
-        <dd>Fit GAM for one element</dd>
-      </dl><dl><dt>
-          
-          <code><a href="analyseOneElement.lm.html">analyseOneElement.lm()</a></code> 
-        </dt>
-        <dd>Fit linear model for one element.</dd>
-      </dl><dl><dt>
-          
-          <code><a href="check_validity_correctPValue.html">check_validity_correctPValue()</a></code> 
-        </dt>
-        <dd>Check if the list of p-value correction methods are valid for a specific type of term/model. 
-Can be used for any statistical model. As long as the p.value to be correct is named as "p.value".</dd>
-      </dl><dl><dt>
-          
-          <code><a href="checker_gam_formula.html">checker_gam_formula()</a></code> 
-        </dt>
-        <dd>A checker for formula in gam for ModelArray.gam()
-TODO: finish the description</dd>
-      </dl><dl><dt>
-          
-          <code><a href="checker_gam_s.html">checker_gam_s()</a></code> 
-        </dt>
-        <dd>Print out important arguments in smooth terms s() in mgcv::gam() formula
-ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/s
-TODO: finish the description</dd>
-      </dl><dl><dt>
-          
-          <code><a href="checker_gam_t.html">checker_gam_t()</a></code> 
-        </dt>
-        <dd>Print out important arguments in smooth term te() or ti() or t2() in mgcv::gam() formula
-Why a separate function is needed for t(), cannot using s(): in ofInterest, "fx" is "fx" for t(), but "fixed" for s() - so they are different.
-ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/te or /t2()
-TODO: finish the description</dd>
-      </dl><dl><dt>
-          
-          <code><a href="generator_gamFormula_continuousInteraction.html">generator_gamFormula_continuousInteraction()</a></code> 
-        </dt>
-        <dd>Generate GAM formula with continuous*continuous interaction</dd>
-      </dl><dl><dt>
-          
-          <code><a href="generator_gamFormula_factorXsmooth.html">generator_gamFormula_factorXsmooth()</a></code> 
-        </dt>
-        <dd>Generate GAM formula with factor-smooth interaction</dd>
-      </dl><dl><dt>
-          
-          <code><a href="numElementsTotal.html">numElementsTotal()</a></code> 
-        </dt>
-        <dd>Number of elements in ModelArray</dd>
-      </dl><dl><dt>
-          
-          <code><a href="printAdditionalArgu.html">printAdditionalArgu()</a></code> 
-        </dt>
-        <dd>print the additional arguments settings</dd>
-      </dl><dl><dt>
-          
-          <code><a href="results-ModelArray-method.html">results(<i>&lt;ModelArray&gt;</i>)</a></code> 
-        </dt>
-        <dd>results of ModelArray</dd>
-      </dl><dl><dt>
-          
-          <code><a href="scalars-ModelArray-method.html">scalars(<i>&lt;ModelArray&gt;</i>)</a></code> 
-        </dt>
-        <dd>scalars of ModelArray</dd>
-      </dl><dl><dt>
-          
-          <code><a href="show-ModelArray-method.html">show(<i>&lt;ModelArray&gt;</i>)</a></code> 
-        </dt>
-        <dd>show ModelArray</dd>
-      </dl><dl><dt>
-          
-          <code><a href="subjects-ModelArray-method.html">subjects(<i>&lt;ModelArray&gt;</i>)</a></code> 
-        </dt>
-        <dd>subjects of ModelArray</dd>
-      </dl><dl><dt>
-          
           <code><a href="writeResults.html">writeResults()</a></code> 
         </dt>
         <dd>Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
 debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.</dd>
       </dl><dl><dt>
           
-          <code><a href="writeResults.old.html">writeResults.old()</a></code> 
+          <code><a href="numElementsTotal.html">numElementsTotal()</a></code> 
         </dt>
-        <dd>Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".old": for writing results with multiple rows for one fixel</dd>
+        <dd>Number of elements in ModelArray</dd>
+      </dl></div><div class="section level2">
+      <h2 id="model-fitting">Model fitting<a class="anchor" aria-label="anchor" href="#model-fitting"></a></h2>
+      
+      <p class="section-desc"></p><p>Fit models for element-wise data</p>
+
+      
+    </div><div id="" class="section level2">
+      
+      
+      
+
+      <dl><dt>
+          
+          <code><a href="ModelArray.lm.html">ModelArray.lm()</a></code> 
+        </dt>
+        <dd>Fit linear model for element-wise data</dd>
+      </dl><dl><dt>
+          
+          <code><a href="ModelArray.gam.html">ModelArray.gam()</a></code> 
+        </dt>
+        <dd>Run GAM for element-wise data</dd>
+      </dl></div><div class="section level2">
+      <h2 id="supports-for-model-fitting">Supports for model fitting<a class="anchor" aria-label="anchor" href="#supports-for-model-fitting"></a></h2>
+      
+      
+
+      
+    </div><div id="" class="section level2">
+      
+      
+      
+
+      
+    </div><div class="section level2">
+      <h2 id="behind-the-scene">Behind the scene<a class="anchor" aria-label="anchor" href="#behind-the-scene"></a></h2>
+      
+      <p class="section-desc"></p><p>model fitting for one element</p>
+
+      
+    </div><div id="" class="section level2">
+      
+      
+      
+
+      <dl><dt>
+          
+          <code><a href="analyseOneElement.lm.html">analyseOneElement.lm()</a></code> 
+        </dt>
+        <dd>Fit linear model for one element.</dd>
+      </dl><dl><dt>
+          
+          <code><a href="analyseOneElement.gam.html">analyseOneElement.gam()</a></code> 
+        </dt>
+        <dd>Fit GAM for one element</dd>
       </dl></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

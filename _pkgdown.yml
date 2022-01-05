@@ -2,3 +2,31 @@ url: https://pennlinc.github.io/ModelArray
 template:
   bootstrap: 5
 
+reference:
+- title: ModelArray
+  desc: Load, access, and write ModelArray class data
+  contents:
+  - ModelArray
+  - scalars
+  - show
+  - subjects
+  - results
+  - writeResults
+  - numElementsTotal
+  
+- title: Model fitting
+  desc: Fit models for element-wise data
+  contents:
+  - ModelArray.lm
+  - ModelArray.gam
+  
+- title: Supports for model fitting
+  contents:
+  - generator_gamFormula_continuousInteraction()
+  - generator_gamFormula_factorXsmooth()
+  
+- title: Behind the scene
+  desc: model fitting for one element
+  contents:
+  - analyseOneElement.lm
+  - analyseOneElement.gam
