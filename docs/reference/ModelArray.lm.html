@@ -25,6 +25,7 @@
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/ModelArray_basics.html">ModelArray: Basics</a>
+    <a class="dropdown-item" href="../articles/basic_r_intro.html">R: an intro</a>
   </div>
 </li>
       </ul><form class="form-inline my-2 my-lg-0" role="search">
@@ -55,7 +56,6 @@
   <span class="va">scalar</span>,
   element.subset <span class="op">=</span> <span class="cn">NULL</span>,
   full.outputs <span class="op">=</span> <span class="cn">FALSE</span>,
-  colname.subjid <span class="op">=</span> <span class="st">"subject_id"</span>,
   var.terms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"statistic"</span>, <span class="st">"p.value"</span><span class="op">)</span>,
   var.model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"adj.r.squared"</span>, <span class="st">"p.value"</span><span class="op">)</span>,
   correct.p.value.terms <span class="op">=</span> <span class="st">"none"</span>,
@@ -74,15 +74,13 @@
 <dt>data</dt>
 <dd><p>ModelArray class</p></dd>
 <dt>phenotypes</dt>
-<dd><p>A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in <code>data</code>.</p></dd>
+<dd><p>A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column called "source_file", and this column should match to that in <code>data</code>.</p></dd>
 <dt>scalar</dt>
 <dd><p>A character. The name of the element-wise scalar to be analysed</p></dd>
 <dt>element.subset</dt>
 <dd><p>A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.</p></dd>
 <dt>full.outputs</dt>
 <dd><p>TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments <code>var.*</code>; if TRUE, arguments <code>var.*</code> will be ignored.</p></dd>
-<dt>colname.subjid</dt>
-<dd><p>A character, the column name in <code>phenotypes</code> of subject IDs. This column will be used for sanity check for matching of subject list in <code>data</code>.</p></dd>
 <dt>var.terms</dt>
 <dd><p>A list of characters. The list of variables to save for terms (got from `broom::tidy()`). See "Details" section for more.</p></dd>
 <dt>var.model</dt>

@@ -16,7 +16,6 @@ test_that("test that ModelArray.gam() works as expected", {
   #                    "inst/extdata/","n50_cohort.csv")
   
   phenotypes <- read.csv(csv_path)
-  colname_subject_id <- "subject_id"
   phenotypes$oSex <- ordered(phenotypes$sex, levels = c("F", "M"))  # ordered factor, "F" as reference group
   phenotypes$sexFactor <- factor(phenotypes$sex, levels = unique(phenotypes$sex))   # factor but not ordered
   
@@ -27,7 +26,6 @@ test_that("test that ModelArray.gam() works as expected", {
 
   ### basic checks #####
   mygam <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                          colname.subjid = colname_subject_id,
                           var.smoothTerms = var.smoothTerms,
                           var.parametricTerms = var.parametricTerms,
                           var.model = var.model,
@@ -399,26 +397,29 @@ test_that("test that ModelArray.gam() works as expected", {
   myFormula_5  # requires visually check
   
   
-  ### subject list sanity check #####
+  ### source file list sanity check #####
   # not the same length:
   phenotypes_wrong1 <- phenotypes[-c(1),]
   expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes_wrong1, scalar = scalar_name, element.subset = element.subset,
-                              colname.subjid = colname_subject_id,
-                              n_cores = 1, pbar = FALSE))
-  # not the same order:
+                              n_cores = 2, pbar = FALSE))
+
+# not the same order --> will be handled!
+  phenotypes_swap <- phenotypes
+  temp <- phenotypes_swap[2,]   # swap row1 and row2
+  phenotypes_swap[2,] <- phenotypes_swap[1,]
+  phenotypes_swap[1,] <- temp
+  mygam_testSwap <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes_swap, scalar = scalar_name, element.subset = element.subset,
+                              n_cores = 2, pbar = FALSE)
+  expect_equal(mygam_testSwap, mygam_default)
+
+  # change one row --> cannot be matched --> error:
   phenotypes_wrong2 <- phenotypes
-  temp <- phenotypes_wrong2[2,colname_subject_id]   # swap row1 and row2's subject id
-  phenotypes_wrong2[2,colname_subject_id] <- phenotypes_wrong2[1,colname_subject_id]
-  phenotypes_wrong2[1,colname_subject_id] <- temp
+  phenotypes_wrong2[1,"source_file"] <- "wrong_file"
   expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes_wrong2, scalar = scalar_name, element.subset = element.subset,
-                              colname.subjid = colname_subject_id,
-                              n_cores = 1, pbar = FALSE))
-  
-  # incorrect column name:
-  expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                              colname.subjid = "incorrect name",
-                              n_cores = 1, pbar = FALSE))
-  
+                              n_cores = 2, pbar = FALSE))
+
+
+
   
   ### debugging:
   #  Error in term[i] <- attr(terms(reformulate(term[i])), "term.labels") : 

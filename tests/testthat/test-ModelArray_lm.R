@@ -15,7 +15,6 @@ test_that("ModelArray.lm() works as expected", {
   #                    "inst/extdata/","n50_cohort.csv")
   
   phenotypes <- read.csv(csv_path)
-  colname_subject_id <- "subject_id"
   scalar_name <- "FD"
   var.terms <- c("estimate", "p.value")   # list of columns to keep  | , "std.error","statistic"
   var.terms.full <- c("estimate", "p.value", "std.error","statistic")
@@ -24,7 +23,6 @@ test_that("ModelArray.lm() works as expected", {
   
   ### basic check #####
   mylm <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = 1:100, 
-                        colname.subjid = colname_subject_id,
                         var.terms = var.terms,
                         var.model = var.model,
                         n_cores = 1, pbar=FALSE)
@@ -218,24 +216,25 @@ test_that("ModelArray.lm() works as expected", {
   
   # NOTE: we can add more tests regarding other lm's arguments
   
-  ### subject list sanity check #####
+  ### source file list sanity check #####
   # not the same length:
   phenotypes_wrong1 <- phenotypes[-c(1),]
   expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wrong1, scalar = scalar_name, element.subset = 1:100, 
-                             colname.subjid = colname_subject_id,
                              n_cores = 2, pbar=FALSE))
-  # not the same order:
-  phenotypes_wrong2 <- phenotypes
-  temp <- phenotypes_wrong2[2,colname_subject_id]   # swap row1 and row2's subject id
-  phenotypes_wrong2[2,colname_subject_id] <- phenotypes_wrong2[1,colname_subject_id]
-  phenotypes_wrong2[1,colname_subject_id] <- temp
-  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wrong2, scalar = scalar_name, element.subset = 1:100, 
-                             colname.subjid = colname_subject_id,
-                             n_cores = 2, pbar=FALSE))
+  
+  # not the same order --> will be handled!
+  phenotypes_swap <- phenotypes
+  temp <- phenotypes_swap[2,]   # swap row1 and row2
+  phenotypes_swap[2,] <- phenotypes_swap[1,]
+  phenotypes_swap[1,] <- temp
+  mylm_testSwap <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_swap, scalar = scalar_name, element.subset = 1:100, 
+                             n_cores = 2, pbar=FALSE)
+  expect_equal(mylm_testSwap, mylm_default)
 
-  # incorrect column name:
-  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = 1:100, 
-                             colname.subjid = "incorrect_name",
+  # change one row --> cannot be matched --> error:
+  phenotypes_wrong2 <- phenotypes
+  phenotypes_wrong2[1,"source_file"] <- "wrong_file"
+  expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wrong2, scalar = scalar_name, element.subset = 1:100, 
                              n_cores = 2, pbar=FALSE))
   
   rhdf5::h5closeAll()

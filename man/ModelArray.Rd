@@ -31,7 +31,7 @@ TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY
 \describe{
 \item{\code{results}}{An h5 group of ModelArray analysis outputs}
 
-\item{\code{subjects}}{A list of subject labels}
+\item{\code{sources}}{A list of source filenames}
 
 \item{\code{scalars}}{A list of element-wise scalars}
 

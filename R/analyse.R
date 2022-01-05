@@ -339,11 +339,10 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #'
 #' @param formula Formula (passed to `stats::lm()`)
 #' @param data ModelArray class
-#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in \code{data}.
+#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column called "source_file", and this column should match to that in \code{data}.
 #' @param scalar A character. The name of the element-wise scalar to be analysed
 #' @param element.subset A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.
-#' @param colname.subjid A character, the column name in \code{phenotypes} of subject IDs. This column will be used for sanity check for matching of subject list in \code{data}.
 #' @param var.terms A list of characters. The list of variables to save for terms (got from `broom::tidy()`). See "Details" section for more.
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()`). See "Details" section for more.
 #' @param correct.p.value.terms A list of characters. To perform and add a column for p.value correction for each term. See "Details" section for more.
@@ -361,7 +360,6 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' @export
 
 ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE, 
-                          colname.subjid = "subject_id",
                               var.terms = c("estimate", "statistic", "p.value"), 
                               var.model = c("adj.r.squared", "p.value"), 
                           correct.p.value.terms = "none", correct.p.value.model = "none",
@@ -387,15 +385,48 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
     stop("Please enter integers for element.subset!")
   }
   
-  ### sanity check: whether they match: modelarray's subject list and phenotypes' subject list:
-  subjlist.modelarray <- subjects(data)[[scalar]]
-  subjlist.phenotypes <- phenotypes[[colname.subjid]]
-  if (is.null(subjlist.phenotypes)) {
-    stop(paste0("phenotypes's column '",colname.subjid,"' is NULL. Please check if you entered the correct column name for subject list!"))
+  ### sanity check: whether they match: modelarray's source file list and phenotypes' source file list:
+  sources.modelarray <- sources(data)[[scalar]]
+  sources.phenotypes <- phenotypes[["source_file"]]
+  if (is.null(sources.phenotypes)) {
+    stop(paste0("Did not find column 'source_file' in argument 'phenotypes'. Please check!"))
   }
-  if (!(identical(subjlist.modelarray, subjlist.phenotypes))) {
-    stop(paste0("The subject list (from column '", colname.subjid,"') in phenotypes is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: subjects(data)[[scalar]] "))
+  
+  ## length should be the same:
+  if (length(sources.modelarray) != length(sources.phenotypes)) {
+    stop(paste0("The length of source file list from phenotypes's column 'source_file' is not the same as that in ModelArray 'data'! Please check out! The latter one can be accessed by: sources(data)[[scalar]]"))
   }
+  
+  ## check if the list is unique:
+  if (length(sources.modelarray) != length(unique(sources.modelarray))) {
+    stop(paste0("The source files in ModelArray 'data' are not unique! Please check out! It can be accessed by: sources(data)[[scalar]]"))
+  }
+  if (length(sources.phenotypes) != length(unique(sources.phenotypes)) ) {
+    stop(paste0("The source files from phenotypes's column 'source_file' are not unique! Please check out and remove the duplicated one!"))
+  }
+  
+  if (identical(sources.modelarray, sources.phenotypes)) {
+    # identical, pass
+  } else {  # not identical (but length is the same):
+    # check if two lists can be matched (i.e. no unmatched source filename)
+    if ((all(sources.modelarray %in% sources.phenotypes)) & ((all(sources.phenotypes %in% sources.modelarray)))) {
+      # can be matched, just the order is different. Use match() function:
+      reorder_idx <- match(sources.modelarray,  # vector of values in the order we want
+                           sources.phenotypes)   # vector to be reordered
+      # apply to phenotypes:
+      phenotypes <- phenotypes[reorder_idx, ]
+      row.names(phenotypes) <- NULL # reset the row name, just to be safe for later adding scalar values... see ModelArray_paper/notebooks/test_match_sourceFiles.Rmd
+      if (!identical(phenotypes[["source_file"]], sources.modelarray)) {
+        stop("matching source file names were not successful...")
+      }
+    } else {
+      stop(paste0("phenotypes's column 'source_file' have different element(s) from source file list in ModelArray 'data'! Please check out! The latter one can be accessed by: sources(data)[[scalar]]"))
+    }
+    
+    # stop(paste0("The source file list from phenotypes's column 'source_file' is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: sources(data)[[scalar]] "))
+  }
+  
+  
   
   ### display additional arguments:
   dots <- list(...)
@@ -653,11 +684,10 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' Please notice that different from `ModelArray.lm`, there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model.
 #' @param formula Formula (passed to `mgcv::gam()`)
 #' @param data ModelArray class
-#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in \code{data}.
+#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column called "source_file", and this column should match to that in \code{data}.
 #' @param scalar A character. The name of the element-wise scalar to be analysed
 #' @param element.subset A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.
-#' @param colname.subjid A character, the column name in \code{phenotypes} of subject IDs. This column will be used for sanity check for matching of subject list in \code{data}.
 #' @param var.smoothTerms A list of characters. The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.
 #' @param var.parametricTerms A list of characters. The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()` and `summary()`). See "Details" section for more.
@@ -678,7 +708,6 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @export
 
 ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE, 
-                           colname.subjid = "subject_id",
                               var.smoothTerms = c("statistic","p.value"),
                               var.parametricTerms = c("estimate", "statistic", "p.value"),
                               var.model = c("dev.expl"), 
@@ -730,15 +759,47 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   checker_gam_formula(formula, gam.formula.breakdown)
     
 
-  ### sanity check: whether they match: modelarray's subject list and phenotypes' subject list:
-  subjlist.modelarray <- subjects(data)[[scalar]]
-  subjlist.phenotypes <- phenotypes[[colname.subjid]]
-  if (is.null(subjlist.phenotypes)) {
-    stop(paste0("phenotypes's column '",colname.subjid,"' is NULL. Please check if you entered the correct column name for subject list!"))
+  ### sanity check: whether they match: modelarray's source file list and phenotypes' source file list:
+  sources.modelarray <- sources(data)[[scalar]]
+  sources.phenotypes <- phenotypes[["source_file"]]
+  if (is.null(sources.phenotypes)) {
+    stop(paste0("Did not find column 'source_file' in argument 'phenotypes'. Please check!"))
   }
-  if (!(identical(subjlist.modelarray, subjlist.phenotypes))) {
-    stop(paste0("The subject list (from column '", colname.subjid,"') in phenotypes is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: subjects(data)[[scalar]] "))
+  
+  ## length should be the same:
+  if (length(sources.modelarray) != length(sources.phenotypes)) {
+    stop(paste0("The length of source file list from phenotypes's column 'source_file' is not the same as that in ModelArray 'data'! Please check out! The latter one can be accessed by: sources(data)[[scalar]]"))
   }
+  
+  ## check if the list is unique:
+  if (length(sources.modelarray) != length(unique(sources.modelarray))) {
+    stop(paste0("The source files in ModelArray 'data' are not unique! Please check out! It can be accessed by: sources(data)[[scalar]]"))
+  }
+  if (length(sources.phenotypes) != length(unique(sources.phenotypes)) ) {
+    stop(paste0("The source files from phenotypes's column 'source_file' are not unique! Please check out and remove the duplicated one!"))
+  }
+  
+  if (identical(sources.modelarray, sources.phenotypes)) {
+    # identical, pass
+  } else {  # not identical (but length is the same):
+    # check if two lists can be matched (i.e. no unmatched source filename)
+    if ((all(sources.modelarray %in% sources.phenotypes)) & ((all(sources.phenotypes %in% sources.modelarray)))) {
+      # can be matched, just the order is different. Use match() function:
+      reorder_idx <- match(sources.modelarray,  # vector of values in the order we want
+                           sources.phenotypes)   # vector to be reordered
+      # apply to phenotypes:
+      phenotypes <- phenotypes[reorder_idx, ]
+      row.names(phenotypes) <- NULL # reset the row name, just to be safe for later adding scalar values... see ModelArray_paper/notebooks/test_match_sourceFiles.Rmd
+      if (!identical(phenotypes[["source_file"]], sources.modelarray)) {
+        stop("matching source file names were not successful...")
+      }
+    } else {
+      stop(paste0("phenotypes's column 'source_file' have different element(s) from source file list in ModelArray 'data'! Please check out! The latter one can be accessed by: sources(data)[[scalar]]"))
+    }
+    
+    # stop(paste0("The source file list from phenotypes's column 'source_file' is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: sources(data)[[scalar]] "))
+  }
+
 
 
   ### display additional arguments: [only important one]

@@ -11,7 +11,6 @@ ModelArray.gam(
   scalar,
   element.subset = NULL,
   full.outputs = FALSE,
-  colname.subjid = "subject_id",
   var.smoothTerms = c("statistic", "p.value"),
   var.parametricTerms = c("estimate", "statistic", "p.value"),
   var.model = c("dev.expl"),
@@ -29,15 +28,13 @@ ModelArray.gam(
 
 \item{data}{ModelArray class}
 
-\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column of subject IDs that matches to that in \code{data}.}
+\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column called "source_file", and this column should match to that in \code{data}.}
 
 \item{scalar}{A character. The name of the element-wise scalar to be analysed}
 
 \item{element.subset}{A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.}
 
 \item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those listed in arguments \code{var.*}; if TRUE, arguments \code{var.*} will be ignored.}
-
-\item{colname.subjid}{A character, the column name in \code{phenotypes} of subject IDs. This column will be used for sanity check for matching of subject list in \code{data}.}
 
 \item{var.smoothTerms}{A list of characters. The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.}
 

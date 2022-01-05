@@ -1,84 +1,90 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>/404.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/404.html</loc>
   </url>
   <url>
-    <loc>/LICENSE-text.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/LICENSE-text.html</loc>
   </url>
   <url>
-    <loc>/articles/ModelArray_basics.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/articles/ModelArray_basics.html</loc>
   </url>
   <url>
-    <loc>/articles/index.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/articles/basic_r_intro.html</loc>
   </url>
   <url>
-    <loc>/authors.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/articles/index.html</loc>
   </url>
   <url>
-    <loc>/index.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/authors.html</loc>
   </url>
   <url>
-    <loc>/reference/ModelArray.gam.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/index.html</loc>
   </url>
   <url>
-    <loc>/reference/ModelArray.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.html</loc>
   </url>
   <url>
-    <loc>/reference/ModelArray.lm.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/ModelArray.html</loc>
   </url>
   <url>
-    <loc>/reference/analyseOneElement.gam.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.html</loc>
   </url>
   <url>
-    <loc>/reference/analyseOneElement.lm.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/analyseOneElement.gam.html</loc>
   </url>
   <url>
-    <loc>/reference/check_validity_correctPValue.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/analyseOneElement.lm.html</loc>
   </url>
   <url>
-    <loc>/reference/checker_gam_formula.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/check_validity_correctPValue.html</loc>
   </url>
   <url>
-    <loc>/reference/checker_gam_s.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/checker_gam_formula.html</loc>
   </url>
   <url>
-    <loc>/reference/checker_gam_t.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/checker_gam_s.html</loc>
   </url>
   <url>
-    <loc>/reference/generator_gamFormula_continuousInteraction.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/checker_gam_t.html</loc>
   </url>
   <url>
-    <loc>/reference/generator_gamFormula_factorXsmooth.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/generator_gamFormula_continuousInteraction.html</loc>
   </url>
   <url>
-    <loc>/reference/index.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/generator_gamFormula_factorXsmooth.html</loc>
   </url>
   <url>
-    <loc>/reference/numElementsTotal.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/index.html</loc>
   </url>
   <url>
-    <loc>/reference/pipe.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/numElementsTotal.html</loc>
   </url>
   <url>
-    <loc>/reference/printAdditionalArgu.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/pipe.html</loc>
   </url>
   <url>
-    <loc>/reference/results-ModelArray-method.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/printAdditionalArgu.html</loc>
   </url>
   <url>
-    <loc>/reference/scalars-ModelArray-method.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/results-ModelArray-method.html</loc>
   </url>
   <url>
-    <loc>/reference/show-ModelArray-method.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/scalars-ModelArray-method.html</loc>
   </url>
   <url>
-    <loc>/reference/subjects-ModelArray-method.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/show-ModelArray-method.html</loc>
   </url>
   <url>
-    <loc>/reference/writeResults.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/sources-ModelArray-method.html</loc>
   </url>
   <url>
-    <loc>/reference/writeResults.old.html</loc>
+    <loc>https://pennlinc.github.io/ModelArray/reference/subjects-ModelArray-method.html</loc>
+  </url>
+  <url>
+    <loc>https://pennlinc.github.io/ModelArray/reference/writeResults.html</loc>
+  </url>
+  <url>
+    <loc>https://pennlinc.github.io/ModelArray/reference/writeResults.old.html</loc>
   </url>
 </urlset>
