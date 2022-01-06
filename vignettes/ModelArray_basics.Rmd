@@ -1,8 +1,8 @@
 ---
-title: "ModelArray: Basics"
+title: "ModelArray Quick Start"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{ModelArray_basics}
+  %\VignetteIndexEntry{ModelArray Quick Start}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

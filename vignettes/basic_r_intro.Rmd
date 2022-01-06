@@ -1,8 +1,8 @@
 ---
-title: "R: an intro"
+title: "An intro to R"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{basic_r_intro}
+  %\VignetteIndexEntry{An intro to R}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
