@@ -15,7 +15,6 @@ Depends: R (>= 4.1.0)
 biocViews:
 Imports: 
     matrixStats (>= 0.60.1),
-    purrr,
     magrittr,
     methods,
     dplyr,
@@ -23,14 +22,11 @@ Imports:
     tibble,
     stringr,
     glue,
-    sys,
     parallel,
-    foreach,
     doParallel,
     HDF5Array,
     rhdf5,
     hdf5r,
-    gamm4,
     mgcv,
     rlang,
     DelayedArray,
