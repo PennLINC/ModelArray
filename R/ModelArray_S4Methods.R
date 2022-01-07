@@ -31,7 +31,7 @@ setMethod("show", "ModelArray", function(object) {  # , group_name_results="resu
 ### Accessors for ModelArray #####
 
 
-#' @noRd
+#' @aliases sources
 setGeneric("sources", function(x) standardGeneric("sources"))
 
 #' Source filenames of an ModelArray object
@@ -42,7 +42,7 @@ setGeneric("sources", function(x) standardGeneric("sources"))
 setMethod("sources", "ModelArray", function(x) x@sources)
 
 
-#' @noRd
+#' @aliases scalars
 setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 
 #' Element-wise scalar data of an ModelArray object
@@ -71,7 +71,7 @@ setMethod(
   }
 )
 
-#' @noRd
+#' @aliases results
 setGeneric("results", function(x, ...) standardGeneric("results"))
 
 #' Statistical results of an ModelArray object
