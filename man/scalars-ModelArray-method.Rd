@@ -2,10 +2,18 @@
 % Please edit documentation in R/ModelArray_S4Methods.R
 \name{scalars,ModelArray-method}
 \alias{scalars,ModelArray-method}
-\title{scalars of ModelArray}
+\title{Element-wise scalar data of an ModelArray object}
 \usage{
 \S4method{scalars}{ModelArray}(x, ...)
 }
+\arguments{
+\item{x}{An ModelArray object}
+
+\item{...}{Additional arguments. Currently accept scalar name (a character)}
+}
+\value{
+A matrix of element-wise scalar data: elements (row) by source files (column).
+}
 \description{
-scalars of ModelArray
+Element-wise scalar data of an ModelArray object
 }

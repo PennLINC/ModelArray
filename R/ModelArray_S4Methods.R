@@ -1,7 +1,12 @@
 ### Methods of "ModelArray" ###
 
 ### Show ModelArray #####
-#' show ModelArray
+#' Show ModelArray object
+#' 
+#' @description 
+#' Print the basic information for an ModelArray object, including number of source files, scalar names, and any analysis names.
+#' 
+#' @param object An ModelArray object
 #' @export
 setMethod("show", "ModelArray", function(object) {  # , group_name_results="results"
   
@@ -25,16 +30,26 @@ setMethod("show", "ModelArray", function(object) {  # , group_name_results="resu
 
 ### Accessors for ModelArray #####
 
+
+#' @noRd
 setGeneric("sources", function(x) standardGeneric("sources"))
 
-#' source filenames of ModelArray
+#' Source filenames of an ModelArray object
+#' 
+#' @param x An ModelArray object
+#' @return A list of source filenames
 #' @export
 setMethod("sources", "ModelArray", function(x) x@sources)
 
 
+#' @noRd
 setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 
-#' scalars of ModelArray
+#' Element-wise scalar data of an ModelArray object
+#' 
+#' @param x An ModelArray object
+#' @param ... Additional arguments. Currently accept scalar name (a character)
+#' @return A matrix of element-wise scalar data: elements (row) by source files (column).
 #' @export
 setMethod(
   "scalars",
@@ -56,9 +71,14 @@ setMethod(
   }
 )
 
+#' @noRd
 setGeneric("results", function(x, ...) standardGeneric("results"))
 
-#' results of ModelArray
+#' Statistical results of an ModelArray object
+#' 
+#' @param x An ModelArray object
+#' @param ... Additional arguments. Currently accept analysis name (a character)
+#' @return Statistical results in this ModelArray object
 #' @export
 setMethod(
   "results", "ModelArray", function(x, ...) {
@@ -77,7 +97,7 @@ setMethod(
   }
 )
 
-### Statistical tests for ModelArray #####
+### Trying function setGeneric.... #####
 # ----------------below works:
 # setGeneric("lm", function(x,...) standardGeneric("lm"))
 # setMethod("lm", 

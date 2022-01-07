@@ -2,10 +2,16 @@
 % Please edit documentation in R/ModelArray_S4Methods.R
 \name{sources,ModelArray-method}
 \alias{sources,ModelArray-method}
-\title{source filenames of ModelArray}
+\title{Source filenames of an ModelArray object}
 \usage{
 \S4method{sources}{ModelArray}(x)
 }
+\arguments{
+\item{x}{An ModelArray object}
+}
+\value{
+A list of source filenames
+}
 \description{
-source filenames of ModelArray
+Source filenames of an ModelArray object
 }

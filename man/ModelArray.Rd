@@ -21,10 +21,12 @@ ModelArray object
 \description{
 An S4 class to represent element-wise scalar data and statistics.
 
-Load element-wise data from .h5 file as a ModelArray object
+Load element-wise data from .h5 file as an ModelArray object
+}
+\details{
+:
 Tips for debugging: 
-if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via h5ls(filename_for_h5)
-TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
+if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via rhdf5::h5ls(filename_for_h5)
 }
 \section{Slots}{
 

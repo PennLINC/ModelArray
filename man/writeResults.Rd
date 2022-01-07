@@ -2,8 +2,7 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{writeResults}
 \alias{writeResults}
-\title{Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
-debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.}
+\title{Write outputs from element-wise statistical analysis to the HDF5 file.}
 \usage{
 writeResults(
   fn.output,
@@ -13,15 +12,17 @@ writeResults(
 )
 }
 \arguments{
-\item{fn.output}{The .h5 filename for the output, including folder directory}
+\item{fn.output}{A character, The HDF5 (.h5) filename for the output}
 
-\item{df.output}{A data.frame object with model results at each fixel, returned from ModelArray.lm() etc}
+\item{df.output}{A data.frame object with element-wise statistical results, returned from `ModelArray.lm()` etc}
 
-\item{analysis_name}{The subfolder name in results, holding the analysis results}
+\item{analysis_name}{A character, the name of the results}
 
-\item{overwrite}{If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)}
+\item{overwrite}{If a group with the same analysis_name exists in HDF5 file, whether overwrite it (TRUE) or not (FALSE)}
 }
 \description{
-Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
+Create a group named `analysis_name` in HDF5 file, then write the statistical results data.frame (i.e. for one analysis) in it.
+}
+\details{
 debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.
 }
