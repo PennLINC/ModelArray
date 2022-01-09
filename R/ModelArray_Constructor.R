@@ -44,10 +44,12 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 }
 
 
-#' Load element-wise data from .h5 file as a ModelArray object
+#' Load element-wise data from .h5 file as an ModelArray object
+#' 
+#' @details:
 #' Tips for debugging: 
-#' if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via h5ls(filename_for_h5)
-#' TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES SHOULD BE AUTOMATICALLY DETECTED!
+#' if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via rhdf5::h5ls(filename_for_h5)
+#' 
 #' @param filepath file
 #' @param scalar_types expected scalars
 #' @param analysis_names the subfolder names for results in .h5 file
@@ -65,6 +67,7 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
   # NOTE: without DelayedArray (Bioconductor), the fixel_data won't look like a regular matrix in R or get transposed; 
   # NOTE: I also need to test if only using hdf5r can still extract scalars(modelarray)[["FD"]]
 
+  # TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES ARE AUTOMATICALLY DETECTED (at least detect + provide some options)
   
   ## scalar_data:
   sources <- vector("list", length(scalar_types))
@@ -192,7 +195,7 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 #' 
 #' @param modelarray ModelArray class
 #' @param scalar_name A character, the scalar name (one of the existing scalar in \code{modelarray})
-#' @return numElementsTotal number of elements in ModelArray, for this specific scalar
+#' @return number of elements in ModelArray, for this specific scalar
 #' @export
 numElementsTotal <- function(modelarray, scalar_name = "FD") {
   if (!(scalar_name %in% names(scalars(modelarray)))) {  # not an existing scalar
@@ -545,78 +548,25 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
 }
 
 
-  
-#' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".old": for writing results with multiple rows for one fixel
+
+
+#' Write outputs from element-wise statistical analysis to the HDF5 file. 
 #' 
-#' @param modelarray ModelArray object
-#' @param data A data.frame object with model results at each fixel
-#' @param analysis_name The subfolder name in results, holding the analysis results 
-#' @param flag_overwrite If same analysis_name exists, whether overwrite or not
+#' @description
+#' Create a group named `analysis_name` in HDF5 file, then write the statistical results data.frame (i.e. for one analysis) in it. 
 #'
-
-writeResults.old <- function(modelarray, data, analysis_name = "myAnalysis", flag_overwrite=TRUE){ 
-
-  # check if analysis_name subfolder already exists in the .h5 file:
-  h5closeAll()
-  flag_analysis_exist <- flagAnalysisExistInh5(fa@path, analysis_name)
-  
-  subfolder <- paste0("results/", analysis_name)
-  
-  if ((flag_analysis_exist == TRUE) && (flag_overwrite == TRUE)) {   # exist & want to overwrite
-    rhdf5::h5delete(file=fa@path, name=subfolder)   # remove this subdirectory if it exists; otherwise, hd5f cannot be overwritten and it will throw out an error message  
-  }
-  
-  # create results group (if needed) and create subfolder:
-  flag_results_exist <- flagResultsGroupExistInh5(fa@path) # check if h5 group "results" exist
-  if (flag_results_exist==FALSE) {   # results group does not exist in .h5 file
-    suppressMessages(rhdf5::h5createGroup(fa@path, paste0("results"))) # first, create results group
-  }
-  suppressMessages(rhdf5::h5createGroup(fa@path, paste0("results/", analysis_name)))  # create subfolder, e.g. "/results/ttest"
-
-  
-  names <- names(data)  # column names
-  
-  ## check "data"
-  if(!("data.frame" %in% class(data))) {
-    stop("Results dataset is not correct; must be data of type `data.frame`")
-  }
-  
-  
-  ## check "data": make sure all columns are floats (i.e. numeric)
-  for (i_col in seq(1, ncol(data), by=1)) {     # for each column of data
-    col_class <- as.character(sapply(data, class)[i_col])    # class of this column
-    if (col_class != "numeric") {    # the column class is not numeric
-      message(paste0("the column #", as.character(i_col)," of data to save: data class is not numeric...fixing it"))
-      # turn into numeric & write the notes in .h5 file...:
-      factors <- data %>% pull(., var=i_col) %>% factor
-      data[,i_col] <- data %>% pull(., var=i_col) %>% factor %>% as.numeric(.)    # change into numeric of 1,2,3....
-      # write a LUT for this column:
-      rhdf5::h5write(levels(factors), fa@path, paste0(subfolder, "/", "lut_forcol", as.character(i_col))) # save lut to .h5/results/<myAnalysis>/lut_col<?>
-      
-    }
-  }
-  
-
-  rhdf5::h5write(t(as.matrix(data)), fa@path, paste0(subfolder, "/","results_matrix"))  # save results to .h5/results/<myAnalysis>/results_matrix
-
-  rhdf5::h5write(names, fa@path, paste0(subfolder, "/has_names"))  # save variable names of results to .h5/results/<myAnalysis>/has_names
-
-  message("Results file written!")
-}
-
-#' Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
+#' @details
 #' debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.
 #' 
-#' @param fn.output The .h5 filename for the output, including folder directory
-#' @param df.output A data.frame object with model results at each fixel, returned from ModelArray.lm() etc
-#' @param analysis_name The subfolder name in results, holding the analysis results 
-#' @param overwrite If same analysis_name exists, whether overwrite (TRUE) or not (FALSE)
+#' @param fn.output A character, The HDF5 (.h5) filename for the output
+#' @param df.output A data.frame object with element-wise statistical results, returned from `ModelArray.lm()` etc
+#' @param analysis_name A character, the name of the results
+#' @param overwrite If a group with the same analysis_name exists in HDF5 file, whether overwrite it (TRUE) or not (FALSE)
 #' @import hdf5r
 #' @export
-
-# TODO: check out analyseNwriteOneFixel.lm() and see if anything to add
-
 writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", overwrite=TRUE){ 
+  
+  # This is enhanced version with: 1) change to hdf5r; 2) write results with only one row for one element
   
   # check "df.output"
   if(!("data.frame" %in% class(df.output))) {

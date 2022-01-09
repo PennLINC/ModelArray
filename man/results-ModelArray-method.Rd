@@ -2,10 +2,18 @@
 % Please edit documentation in R/ModelArray_S4Methods.R
 \name{results,ModelArray-method}
 \alias{results,ModelArray-method}
-\title{results of ModelArray}
+\title{Statistical results of an ModelArray object}
 \usage{
 \S4method{results}{ModelArray}(x, ...)
 }
+\arguments{
+\item{x}{An ModelArray object}
+
+\item{...}{Additional arguments. Currently accept analysis name (a character)}
+}
+\value{
+Statistical results in this ModelArray object
+}
 \description{
-results of ModelArray
+Statistical results of an ModelArray object
 }

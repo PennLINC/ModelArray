@@ -2,10 +2,13 @@
 % Please edit documentation in R/ModelArray_S4Methods.R
 \name{show,ModelArray-method}
 \alias{show,ModelArray-method}
-\title{show ModelArray}
+\title{Show ModelArray object}
 \usage{
 \S4method{show}{ModelArray}(object)
 }
+\arguments{
+\item{object}{An ModelArray object}
+}
 \description{
-show ModelArray
+Print the basic information for an ModelArray object, including number of source files, scalar names, and any analysis names.
 }

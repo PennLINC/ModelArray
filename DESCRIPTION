@@ -1,5 +1,5 @@
 Package: ModelArray
-Title: An interface for fixel data storage, access, and analysis through a HDF5 backend
+Title: A generalizable, memory-efficient R package for statistical analysis of fixel data
 Version: 0.0.0.1
 Authors@R: 
     person(given = "First",
@@ -15,7 +15,6 @@ Depends: R (>= 4.1.0)
 biocViews:
 Imports: 
     matrixStats (>= 0.60.1),
-    purrr,
     magrittr,
     methods,
     dplyr,
@@ -23,14 +22,11 @@ Imports:
     tibble,
     stringr,
     glue,
-    sys,
     parallel,
-    foreach,
     doParallel,
     HDF5Array,
     rhdf5,
     hdf5r,
-    gamm4,
     mgcv,
     rlang,
     DelayedArray,
@@ -38,7 +34,6 @@ Imports:
     pbmcapply,
     pbapply,
     crayon,
-    tictoc
 RoxygenNote: 7.1.2
 Suggests: 
     rmarkdown,

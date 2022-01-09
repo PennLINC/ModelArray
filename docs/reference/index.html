@@ -61,28 +61,27 @@
           
           <code><a href="results-ModelArray-method.html">results(<i>&lt;ModelArray&gt;</i>)</a></code> 
         </dt>
-        <dd>results of ModelArray</dd>
+        <dd>Statistical results of an ModelArray object</dd>
       </dl><dl><dt>
           
           <code><a href="scalars-ModelArray-method.html">scalars(<i>&lt;ModelArray&gt;</i>)</a></code> 
         </dt>
-        <dd>scalars of ModelArray</dd>
+        <dd>Element-wise scalar data of an ModelArray object</dd>
       </dl><dl><dt>
           
           <code><a href="show-ModelArray-method.html">show(<i>&lt;ModelArray&gt;</i>)</a></code> 
         </dt>
-        <dd>show ModelArray</dd>
+        <dd>Show ModelArray object</dd>
       </dl><dl><dt>
           
           <code><a href="sources-ModelArray-method.html">sources(<i>&lt;ModelArray&gt;</i>)</a></code> 
         </dt>
-        <dd>source filenames of ModelArray</dd>
+        <dd>Source filenames of an ModelArray object</dd>
       </dl><dl><dt>
           
           <code><a href="writeResults.html">writeResults()</a></code> 
         </dt>
-        <dd>Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".enh": 1) change to hdf5r; 2) write results with only one row for one fixel
-debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.</dd>
+        <dd>Write outputs from element-wise statistical analysis to the HDF5 file.</dd>
       </dl><dl><dt>
           
           <code><a href="numElementsTotal.html">numElementsTotal()</a></code> 
@@ -133,7 +132,7 @@ debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access
       </dl></div><div class="section level2">
       <h2 id="behind-the-scene">Behind the scene<a class="anchor" aria-label="anchor" href="#behind-the-scene"></a></h2>
       
-      <p class="section-desc"></p><p>Functions not exported to users</p>
+      <p class="section-desc"></p><p>Fit a model for one element</p>
 
       
     </div><div id="" class="section level2">
@@ -151,43 +150,6 @@ debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access
           <code><a href="analyseOneElement.gam.html">analyseOneElement.gam()</a></code> 
         </dt>
         <dd>Fit GAM for one element</dd>
-      </dl><dl><dt>
-          
-          <code><a href="check_validity_correctPValue.html">check_validity_correctPValue()</a></code> 
-        </dt>
-        <dd>Check if the list of p-value correction methods are valid for a specific type of term/model. 
-Can be used for any statistical model. As long as the p.value to be correct is named as "p.value".</dd>
-      </dl><dl><dt>
-          
-          <code><a href="checker_gam_formula.html">checker_gam_formula()</a></code> 
-        </dt>
-        <dd>A checker for formula in gam for ModelArray.gam()
-TODO: finish the description</dd>
-      </dl><dl><dt>
-          
-          <code><a href="checker_gam_s.html">checker_gam_s()</a></code> 
-        </dt>
-        <dd>Print out important arguments in smooth terms s() in mgcv::gam() formula
-ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/s
-TODO: finish the description</dd>
-      </dl><dl><dt>
-          
-          <code><a href="checker_gam_t.html">checker_gam_t()</a></code> 
-        </dt>
-        <dd>Print out important arguments in smooth term te() or ti() or t2() in mgcv::gam() formula
-Why a separate function is needed for t(), cannot using s(): in ofInterest, "fx" is "fx" for t(), but "fixed" for s() - so they are different.
-ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/te or /t2()
-TODO: finish the description</dd>
-      </dl><dl><dt>
-          
-          <code><a href="printAdditionalArgu.html">printAdditionalArgu()</a></code> 
-        </dt>
-        <dd>print the additional arguments settings</dd>
-      </dl><dl><dt>
-          
-          <code><a href="writeResults.old.html">writeResults.old()</a></code> 
-        </dt>
-        <dd>Write outputs from fixel-based analysis out to the h5 file. Write one results (i.e. for one analysis) at a time. This is ".old": for writing results with multiple rows for one fixel</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside></div>

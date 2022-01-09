@@ -12,7 +12,7 @@ numElementsTotal(modelarray, scalar_name = "FD")
 \item{scalar_name}{A character, the scalar name (one of the existing scalar in \code{modelarray})}
 }
 \value{
-numElementsTotal number of elements in ModelArray, for this specific scalar
+number of elements in ModelArray, for this specific scalar
 }
 \description{
 Returns the number of elements in ModelArray, for a specific scalar

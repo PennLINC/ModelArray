@@ -25,15 +25,9 @@ reference:
   contents:
   - generator_gamFormula_continuousInteraction
   - generator_gamFormula_factorXsmooth
-  
+
 - title: Behind the scene
-  desc: Functions not exported to users
+  desc: Fit a model for one element
   contents:
   - analyseOneElement.lm
   - analyseOneElement.gam
-  - check_validity_correctPValue
-  - checker_gam_formula
-  - checker_gam_s
-  - checker_gam_t
-  - printAdditionalArgu
-  - writeResults.old
