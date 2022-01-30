@@ -350,6 +350,8 @@ analyseOneElement.lm <- function(i_element,
 #' @param var.parametricTerms The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".
 #' @param var.model The list of variables to save for the model (got from broom::glance() and summary()). 
 #' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
+#' @param flag.return.model TRUE or FALSE, Whether also to return the fitted GAM model, which is used for `analyseOneElement.gam.fullNred()` for calculating changed R-squared.
+#' @param precalcu.dat NULL (usually) or a data.frame. If NULL, `dat` will be calculated within this function (when dat=NULL); if it's a data.frame, it means it was pre-calculated on purpose, then `dat` will use this data.frame - this is useful for reduced model (see `analyseOneElement.gam.fullNred()`)
 #' @param ... Additional arguments for `mgcv::gam()`
 #' @return If flag_initiate==TRUE, returns column names, list of term names of final results, and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
 #' @export
@@ -360,11 +362,16 @@ analyseOneElement.lm <- function(i_element,
 
 analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, scalar, 
                                 var.smoothTerms, var.parametricTerms, var.model, 
-                                flag_initiate = FALSE, 
+                                flag_initiate = FALSE, flag.return.model=FALSE, precalcu.dat=NULL,
                                 ...) {
-  values <- scalars(modelarray)[[scalar]][i_element,]
-  dat <- phenotypes
-  dat[[scalar]] <- values
+  if (is.null(precalcu.dat)) {  # to get dat as usual
+    values <- scalars(modelarray)[[scalar]][i_element,]
+    dat <- phenotypes
+    dat[[scalar]] <- values
+  } else {
+    dat <- precalcu.dat   # use whatever it is - it was pre-calculated... useful for reduced model
+  }
+  
   
   arguments <- list(...)
   arguments$formula <- formula
@@ -527,7 +534,8 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
   onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element-1, .before = colnames.temp[1])   # add as the first column
   
   # now you can get the headers, # of columns, etc of the output results
-
+  
+  onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save some space
 
   if (flag_initiate == TRUE) { # return the column names:
     
@@ -537,16 +545,112 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
                      list.smoothTerms = list.smoothTerms,
                      list.parametricTerms = list.parametricTerms,
                      sp.criterion.attr.name = sp.criterion.attr.name)
-    toreturn
 
+    if (flag.return.model == FALSE) {
+      # do nothing, current toreturn is good enough
+    } else if (flag.return.model == TRUE) {
+      temp.list <- list(onemodel = onemodel,  # the model itself
+                        onemodel.onerow = onemodel.onerow)   # one row in data.frame class (with column names)
+      toreturn <- append(toreturn, temp.list)   # add onemodel to the list to return
+    }
+    
   } else if (flag_initiate == FALSE) {  # return the one row results:
-
-    # return: 
-    onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save some space
-    onerow
+    
+    if (flag.return.model == FALSE) {
+      toreturn <- onerow   # only return onerow, no others
+      
+    } else if (flag.return.model == TRUE) {
+      toreturn <- list(onerow = onerow, 
+                       onemodel = onemodel, 
+                       onemodel.onerow = onemodel.onerow)
+    }
+    
   }
+  
+  
+  return(toreturn)
+  
 }
 
+
+#' Fit GAM for one element for both full and reduced model
+#' @param full.formula
+#' @param reduced.formula
+#' all other arguments: to copy from analyseOneElement.gam()!!!
+#' 
+#' @details 
+#' For developer: every time updated analyseOneElement.gam(): need to update this function too!!! Including:
+#' 1. Especially the arguments should match to those in analyseOneElement.gam()!!!
+
+## list of variables in analyseOneElement.gam():
+# i_element, formula, modelarray, phenotypes, scalar, 
+# var.smoothTerms, var.parametricTerms, var.model, 
+# flag_initiate = FALSE, flag.return.model=FALSE, dat=NULL,
+
+analyseOneElement.gam.fullNred <- function(i_element, full.formula, reduced.formula, # here is the only diff with analyseOneElement.gam()'s arguments is: there are two input formula for this function
+                                           modelarray, phenotypes, scalar, 
+                                           var.smoothTerms, var.parametricTerms, var.model,
+                                           flag_initiate = FALSE,
+                                           ...) {
+
+  
+  ## run full model:
+  results.full.model <- analyseOneElement.gam(i_element, formula = full.formula, 
+                                              modelarray, phenotypes, scalar, 
+                                              var.smoothTerms, var.parametricTerms, var.model,   # var.model will include "adj.r.squared" <= done by ModelArray.gam()
+                                              flag_initiate = TRUE, flag.return.model = TRUE,
+                                              ...)  # pass the dots in
+  full.onemodel.onerow <- results.full.model$onemodel.onerow   # with column names
+  full.onerow <- results.full.model$onerow   # without column names
+  full.model <- results.full.model$onemodel
+  
+  
+  adj.rsq.full.model <- full.onemodel.onerow$model.adj.r.squared
+  
+  
+  ## run reduced model:
+  # use the data used in full model: why: so that if e.g. s(age) of interest was missing in a subject, full model only using (nsubj - 1) observations, to make sure reduced model also only uses (nsubj - 1) observations (although all nsubj have data for sex and motion)
+  precalcu.dat.reduced.model <- full.model$model
+  results.reduced.model <- analyseOneElement.gam(i_element, formula = reduced.formula, 
+                                                 modelarray, phenotypes, scalar, 
+                                                 var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),  # only need adj.r.squared for reduced model
+                                                 flag_initiate = FALSE, flag.return.model = TRUE,
+                                                 precalcu.dat = precalcu.dat.reduced.model,
+                                                 ...)  # pass the dots in
+  reduced.onemodel.onerow <- results.reduced.model$onemodel.onerow
+  reduced.model <- results.reduced.model$onemodel
+  
+  adj.rsq.reduced.model <- reduced.onemodel.onerow$model.adj.r.squared
+  
+  
+  ## calculate delta.adj.rsq and partial.rsq, and append to basic.one.row --> get final onerow
+  delta.adj.rsq <- adj.rsq.full.model - adj.rsq.reduced.model
+  
+  partial.rsq <- partialRsq(full.model, reduced.model)
+  partial.rsq <- partial.rsq$partialRsq
+  
+  
+  ## return final onerow
+  final.onemodel.onerow <- full.onemodel.onerow
+  final.onemodel.onerow$delta.adj.rsq <- delta.adj.rsq
+  final.onemodel.onerow$partial.rsq <- partial.rsq
+  
+  
+  
+  if (flag_initiate == TRUE) {
+    column_names <- colnames(final.onemodel.onerow)
+    toReturn <- list(column_names = column_names, 
+                     list.smoothTerms = results.full.model$list.smoothTerms,   # these are taken when analyseOneElement.gam()'s flag_initiate=TRUE
+                     list.parametricTerms = results.full.model$list.parametricTerms,
+                     sp.criterion.attr.name = results.full.model$sp.criterion.attr.name)
+    return(toReturn)
+      
+  } else if (flag_initiate == FALSE) {
+    final.onerow <- as.numeric(final.onemodel.onerow)  # remove column names
+    return(final.onerow)
+    
+  }
+}
 
 
 

@@ -411,3 +411,23 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 }
 
 
+#' @param fullmodel The full model object returned by e.g. mgcv::gam() with full formula
+#' @param redmodel The reduced model object returned by e.g. mgcv::gam() with reduced formula (i.e. the term of interest has been removed)
+#' @return A list including: partial R squared, sse for full and reduced models
+#' 
+#' @details When calculating reduced model `redmodel`, we recommend to use `fullmodel$model` (i.e. the data used in full model, after excluding subjects with NA) as the input data.frame, so that the list of subjects used is consistent between full and reduced model. 
+#' This is mainly for a rare case, where e.g. first subject has missing age (NA), but s(age) is of interest for changed.rsq; then full model will not include it, and if still using the original data.frame, reduced model will include this subject...
+partialRsq <- function(fullmodel, redmodel) {
+  # calculating SSE: used observed y (i.e. excluding observations with NA), and fitted values, directly from model object
+  
+  sse.full <- sum( (fullmodel$y - fullmodel$fitted.values)^2 )
+  sse.red <- sum( (redmodel$y - redmodel$fitted.values)^2 )
+  
+  partialRsq <- (sse.red - sse.full) / sse.red
+  
+  toReturn <- list(partialRsq = partialRsq,
+                   sse.full = sse.full,
+                   sse.red = sse.red)
+  return(toReturn)
+}
+

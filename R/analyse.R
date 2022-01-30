@@ -339,7 +339,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' 
 #' @details 
 #' You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
-#' Note that statistics covered by \code{full.outputs} or \code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only, and do not include effect size or corrected p values.
+#' Note that statistics covered by \code{full.outputs} or \code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only, and do not include changed R-squared (delta.adj.rsq or partial.rsq) or corrected p values.
 #' List of acceptable statistic names for each of \code{var.*}:
 #' \itemize{
 #'  \item \code{var.smoothTerms}: c("edf","ref.df","statistic","p.value"); For interpretation please see `broom::tidy(parametric=FALSE)`.
@@ -371,7 +371,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @param var.smoothTerms A list of characters. The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.
 #' @param var.parametricTerms A list of characters. The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()` and `summary()`). See "Details" section for more.
-#' @param eff.size.term.index A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.
+#' @param changed.rsq.term.index A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.
 #' @param correct.p.value.smoothTerms A list of characters. To perform and add a column for p.value correction for each smooth term. See "Details" section for more.
 #' @param correct.p.value.parametricTerms A list of characters. To perform and add a column for p.value correction for each parametric term. See "Details" section for more.
 #' @param verbose TRUE or FALSE, to print verbose messages or not
@@ -392,7 +392,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                               var.smoothTerms = c("statistic","p.value"),
                               var.parametricTerms = c("estimate", "statistic", "p.value"),
                               var.model = c("dev.expl"), 
-                              eff.size.term.index = NULL,
+                              changed.rsq.term.index = NULL,
                               correct.p.value.smoothTerms = "none", correct.p.value.parametricTerms = "none",
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...){
   # data type assertions
@@ -543,16 +543,16 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
 
   var.model.orig <- var.model
-  if (!is.null(eff.size.term.index)) {    # eff.size is not null --> requested
+  if (!is.null(changed.rsq.term.index)) {    # eff.size is not null --> requested
 
     # check if the term index is valid:
-    if (min(eff.size.term.index)<=0) {# any of not positive | can't really check if it's integer as is.integer(1) is FALSE...
-      stop(paste0("There is element(s) in eff.size.term.index <= 0. It should be a (list of) positive integer!"))
+    if (min(changed.rsq.term.index)<=0) {# any of not positive | can't really check if it's integer as is.integer(1) is FALSE...
+      stop(paste0("There is element(s) in changed.rsq.term.index <= 0. It should be a (list of) positive integer!"))
     }
 
     terms.full.formula <- stats::terms(formula, keep.order = TRUE)   # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
-    if (max(eff.size.term.index) > length(labels(terms.full.formula))) {  # if max is more than the number of terms on RHS of formula
-      stop(paste0("Largest index in eff.size.term.index is more than the term number on the right hand side of formula!"))
+    if (max(changed.rsq.term.index) > length(labels(terms.full.formula))) {  # if max is more than the number of terms on RHS of formula
+      stop(paste0("Largest index in changed.rsq.term.index is more than the term number on the right hand side of formula!"))
     }
     
     # check how many variables on RHS; if no (but intercept, i.e. xx ~ 1), stop
@@ -561,7 +561,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     }
     
     # print warning:
-    message("will get effect size (eff.size) so the execution time will be longer.")
+    message("will get changed.rsq by running reduced model so the execution time will be longer.")
     # add adj.r.squared into var.model
     if (!("adj.r.squared" %in% var.model)) {
       var.model <- c(var.model, "adj.r.squared")
@@ -577,99 +577,107 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                               var.parametricTerms, "var.parametricTerms")
   
   
-  ### run
-  # start the process:
+  ### start the process:
   if(verbose){
     message(glue::glue("Fitting element-wise GAMs for {scalar}", ))
-    message(glue::glue("initiating....", ))
   }
 
-  # initiate: get the example of one element and get the column names
-  outputs_initiator <- analyseOneElement.gam(i_element=1, formula, data, phenotypes, scalar,
-                                          var.smoothTerms, var.parametricTerms, var.model,
-                                          flag_initiate = TRUE,
-                                          ...)
-  column_names <- outputs_initiator$column_names
-  list.smoothTerms = outputs_initiator$list.smoothTerms
-  list.parametricTerms = outputs_initiator$list.parametricTerms
-
-  # loop (by condition of pbar and n_cores)
-  if(verbose){
-    message(glue::glue("looping across elements....", ))
-  }
-
-  # is it a multicore process?
-  flag_initiate <- FALSE
-  if(n_cores > 1){
-    
-    if (pbar) {
-      
-      fits <- pbmcapply::pbmclapply(element.subset,   # a list of i_element
-                                    analyseOneElement.gam,  # the function
-                                    mc.cores = n_cores,
-                                    formula, data, phenotypes, scalar,
-                                    var.smoothTerms, var.parametricTerms, var.model,
-                                    flag_initiate = FALSE,
-                                    ...)
-      
-    } else {
-      
-      # foreach::foreach
-      
-      fits <- parallel::mclapply(element.subset,   # a list of i_element 
-                                 analyseOneElement.gam,  # the function
-                                 mc.cores = n_cores,
-                                 formula, data, phenotypes, scalar,
-                                 var.smoothTerms, var.parametricTerms, var.model,
-                                 flag_initiate = FALSE,
-                                 ...)
-      
-    }
-  } else  {  # n_cores ==1, not multi-core
-    
-    if (pbar) {
-      
-      fits <- pbapply::pblapply(element.subset,   # a list of i_element
-                                analyseOneElement.gam,  # the function
-                                formula, data, phenotypes, scalar,
-                                var.smoothTerms, var.parametricTerms, var.model,
-                                flag_initiate = FALSE,
-                                ...)
-      
-    } else {
-      
-      fits <- lapply(element.subset,   # a list of i_element
-                     analyseOneElement.gam,  # the function
-                     formula, data, phenotypes, scalar,
-                     var.smoothTerms, var.parametricTerms, var.model,
-                     flag_initiate = FALSE,
-                     ...)
-    }
-  }  
-
-
-  df_out <- do.call(rbind, fits)    
-  df_out <- as.data.frame(df_out)    # turn into data.frame
-  colnames(df_out) <- column_names     # add column names
   
+  ### Whether to run reduced model or not: (this including initiating + running all elements requested)
+  if (is.null(changed.rsq.term.index)) {    # CASE 1: not to run reduced model: directly call analyseOneElement.gam():
+    
+    if (verbose) {
+      message(glue::glue("initiating....", ))
+    }
 
-
-  ### get the effect size for smooth terms:
-  if (!is.null(eff.size.term.index)) {   # if eff.size is requested
-    message("Getting the effect size: running the reduced model...")
+    # initiate: get the example of one element and get the column names
+    outputs_initiator <- analyseOneElement.gam(i_element=1, formula, data, phenotypes, scalar,
+                                            var.smoothTerms, var.parametricTerms, var.model,
+                                            flag_initiate = TRUE,
+                                            ...)
+    column_names <- outputs_initiator$column_names
+    list.smoothTerms = outputs_initiator$list.smoothTerms
+    list.parametricTerms = outputs_initiator$list.parametricTerms
   
-    # list of term of interest for eff.size:
-    eff.size.term.fullFormat.list <- labels(terms.full.formula)[eff.size.term.index]  # the term for effect size, in full format
+    # loop (by condition of pbar and n_cores)
+    if(verbose){
+      message(glue::glue("looping across elements....", ))
+    }
+  
+    # is it a multicore process?
+    flag_initiate <- FALSE
+    if(n_cores > 1){
+      
+      if (pbar) {
+        
+        fits <- pbmcapply::pbmclapply(element.subset,   # a list of i_element
+                                      analyseOneElement.gam,  # the function
+                                      mc.cores = n_cores,
+                                      formula, data, phenotypes, scalar,
+                                      var.smoothTerms, var.parametricTerms, var.model,
+                                      flag_initiate = FALSE,
+                                      ...)
+        
+      } else {
+        
+        # foreach::foreach
+        
+        fits <- parallel::mclapply(element.subset,   # a list of i_element 
+                                   analyseOneElement.gam,  # the function
+                                   mc.cores = n_cores,
+                                   formula, data, phenotypes, scalar,
+                                   var.smoothTerms, var.parametricTerms, var.model,
+                                   flag_initiate = FALSE,
+                                   ...)
+        
+      }
+    } else  {  # n_cores ==1, not multi-core
+      
+      if (pbar) {
+        
+        fits <- pbapply::pblapply(element.subset,   # a list of i_element
+                                  analyseOneElement.gam,  # the function
+                                  formula, data, phenotypes, scalar,
+                                  var.smoothTerms, var.parametricTerms, var.model,
+                                  flag_initiate = FALSE,
+                                  ...)
+        
+      } else {
+        
+        fits <- lapply(element.subset,   # a list of i_element
+                       analyseOneElement.gam,  # the function
+                       formula, data, phenotypes, scalar,
+                       var.smoothTerms, var.parametricTerms, var.model,
+                       flag_initiate = FALSE,
+                       ...)
+      }
+    }  
+  
+  
+    df_out <- do.call(rbind, fits)    
+    df_out <- as.data.frame(df_out)    # turn into data.frame
+    colnames(df_out) <- column_names     # add column names
+    
+    # NOTE: by here, we got: df_out with colnames; column_names;   list.smoothTerms;   list.parametricTerms
+    
+    
+  } else {   # CASE 2: If changed.rsq (either partial.rsq or delta.adj.rsq) is requested, i.e. !is.null(changed.rsq.term.index)
+    # We'll run reduced model to get the changed R-squared for smooth terms, so to call analyseOneElement.gam.fullNred() :
+    
+    #message("Getting the changed R-squared: running the reduced model...")
+     
+    # list of term of interest for changed.rsq:
+    changed.rsq.term.fullFormat.list <- labels(terms.full.formula)[changed.rsq.term.index]  # the term for changed.rsq, in full format
     # get the short version:
-    eff.size.term.shortFormat.list <- list()
-    for (eff.size.term.fullFormat in eff.size.term.fullFormat.list) {
-      temp <- strsplit(eff.size.term.fullFormat, "[(]")[[1]]
+    changed.rsq.term.shortFormat.list <- list()
+    for (changed.rsq.term.fullFormat in changed.rsq.term.fullFormat.list) {
+      temp <- strsplit(changed.rsq.term.fullFormat, "[(]")[[1]]
       if (length(temp) == 1) {  # it's not a smooth term - as there is no ()
-        str_valid <- eff.size.term.fullFormat
+        str_valid <- changed.rsq.term.fullFormat
       } else {
         smooth.class <- temp[1]
         
-        theEval <- eval(parse(text = eff.size.term.fullFormat))
+        theEval <- eval(parse(text = changed.rsq.term.fullFormat))
         str_valid <- paste0(smooth.class, "_",
                             paste(theEval$term, collapse = "_"))  # ti(x,z) --> ti_x_z; s(x) --> s_x
         if (theEval$by != "NA") {
@@ -677,15 +685,16 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
         }
       }
       
-      eff.size.term.shortFormat <- str_valid  
-      eff.size.term.shortFormat.list <- append(eff.size.term.shortFormat.list, eff.size.term.shortFormat)
+      changed.rsq.term.shortFormat <- str_valid  
+      changed.rsq.term.shortFormat.list <- append(changed.rsq.term.shortFormat.list, changed.rsq.term.shortFormat)
     }
+  
     
-    # loop of each eff.size.term.index (i.e. each term of interest)
-    for (i.eff.size.term in 1:length(eff.size.term.fullFormat.list)) {
-      idx.eff.size.term <- eff.size.term.index[i.eff.size.term]   # index
-      eff.size.term.fullFormat <- eff.size.term.fullFormat.list[i.eff.size.term]
-      eff.size.term.shortFormat <- eff.size.term.shortFormat.list[[i.eff.size.term]][1]   # it's nested
+    # loop of each changed.rsq.term.index (i.e. each term of interest)
+    for (i.changed.rsq.term in 1:length(changed.rsq.term.fullFormat.list)) {
+      idx.changed.rsq.term <- changed.rsq.term.index[i.changed.rsq.term]   # index
+      changed.rsq.term.fullFormat <- changed.rsq.term.fullFormat.list[i.changed.rsq.term]
+      changed.rsq.term.shortFormat <- changed.rsq.term.shortFormat.list[[i.changed.rsq.term]][1]   # it's nested
       
       # get the formula of reduced model
         # check if there is only one term (after removing it in reduced model, there is no term but intercept in the formula...)
@@ -693,30 +702,39 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
         temp <- toString(formula) %>% strsplit("[, ]")  
         reduced.formula <- stats::as.formula(paste0(temp[[1]][3], "~1"))
       } else {
-        reduced.formula <- formula(stats::drop.terms(terms.full.formula, idx.eff.size.term, keep.response = TRUE))  # index on RHS of formula -> change to class of formula (stats::as.formula does not work)
+        reduced.formula <- formula(stats::drop.terms(terms.full.formula, idx.changed.rsq.term, keep.response = TRUE))  # index on RHS of formula -> change to class of formula (stats::as.formula does not work)
       }
       
-      message(paste0("* Getting effect size for term: ", eff.size.term.fullFormat, " via reduced model as below","; will show up as ", eff.size.term.shortFormat, " in final dataframe"))   # NOTES: it would be great to figure out how to paste and print formula without format changed. May try out stringf?
+      message(paste0("* Getting full and reduced models for term: ", changed.rsq.term.fullFormat, " via reduced model as below","; will show up as ", changed.rsq.term.shortFormat, " in final dataframe"))   # NOTES: it would be great to figure out how to paste and print formula without format changed. May try out stringf?
       print(reduced.formula)
 
-      # var* for reduced model: only adjusted r sq is enough
       # initiate:
-      reduced.model.outputs_initiator <- analyseOneElement.gam(i_element=1, reduced.formula, data, phenotypes, scalar,
-                                            var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                                            flag_initiate = TRUE,
-                                            ...)
-      reduced.model.column_names <- reduced.model.outputs_initiator$column_names
+      if (verbose) {
+        message(glue::glue("initiating....", ))
+      }
+      outputs_initiator <- analyseOneElement.gam.fullNred(i_element=1, formula, reduced.formula, # here is the only diff with analyseOneElement.gam()'s arguments is: there are two input formula for this function
+                                                          data, phenotypes, scalar, 
+                                                          var.smoothTerms, var.parametricTerms, var.model,
+                                                          flag_initiate = TRUE,   # to return the column names
+                                                          ...)
+      column_names <- outputs_initiator$column_names
+      list.smoothTerms = outputs_initiator$list.smoothTerms
+      list.parametricTerms = outputs_initiator$list.parametricTerms
   
-      # run on reduced model, get the adj r sq of reduced model
+      # start to run, get all requested metrics including changed.rsq:
+      if(verbose){
+        message(glue::glue("looping across elements, running both full and reduced models....", ))
+      }
       if(n_cores > 1){
       
         if (pbar) {
           
-          reduced.model.fits <- pbmcapply::pbmclapply(element.subset,   # a list of i_element
-                                        analyseOneElement.gam,  # the function
+          fits <- pbmcapply::pbmclapply(element.subset,   # a list of i_element
+                                        analyseOneElement.gam.fullNred,  # the function
                                         mc.cores = n_cores,
-                                        reduced.formula, data, phenotypes, scalar,
-                                        var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                        formula, reduced.formula, 
+                                        data, phenotypes, scalar,
+                                        var.smoothTerms, var.parametricTerms, var.model,
                                         flag_initiate = FALSE,
                                         ...)
           
@@ -724,11 +742,12 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
           
           # foreach::foreach
           
-          reduced.model.fits <- parallel::mclapply(element.subset,   # a list of i_element 
-                                     analyseOneElement.gam,  # the function
+          fits <- parallel::mclapply(element.subset,   # a list of i_element 
+                                     analyseOneElement.gam.fullNred,  # the function
                                      mc.cores = n_cores,
-                                     reduced.formula, data, phenotypes, scalar,
-                                     var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                     formula, reduced.formula, 
+                                     data, phenotypes, scalar,
+                                     var.smoothTerms, var.parametricTerms, var.model,
                                      flag_initiate = FALSE,
                                      ...)
           
@@ -737,27 +756,34 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
         
         if (pbar) {
           
-          reduced.model.fits <- pbapply::pblapply(element.subset,   # a list of i_element
-                                    analyseOneElement.gam,  # the function
-                                    reduced.formula, data, phenotypes, scalar,
-                                    var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+          fits <- pbapply::pblapply(element.subset,   # a list of i_element
+                                    analyseOneElement.gam.fullNred,  # the function
+                                    formula, reduced.formula, 
+                                    data, phenotypes, scalar,
+                                    var.smoothTerms, var.parametricTerms, var.model,
                                     flag_initiate = FALSE,
                                     ...)
           
         } else {
           
-          reduced.model.fits <- lapply(element.subset,   # a list of i_element
-                         analyseOneElement.gam,  # the function
-                         reduced.formula, data, phenotypes, scalar,
-                         var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+          fits <- lapply(element.subset,   # a list of i_element
+                         analyseOneElement.gam.fullNred,  # the function
+                         formula, reduced.formula, 
+                         data, phenotypes, scalar,
+                         var.smoothTerms, var.parametricTerms, var.model,
                          flag_initiate = FALSE,
                          ...)
         }
-      }  # end of loop for calculating reduced model across elements
+      }  # end of loop for calculating both full and reduced models across elements
   
-      reduced.model.df_out <- do.call(rbind, reduced.model.fits)
-      reduced.model.df_out <- as.data.frame(reduced.model.df_out)
-      colnames(reduced.model.df_out) <- reduced.model.column_names
+      df_out <- do.call(rbind, fits)
+      df_out <- as.data.frame(df_out)
+      colnames(df_out) <- column_names
+      
+      
+      # TODO: UPDATE BELOW.......
+      
+      
       
       # rename "adj.r.squared" as "redModel.adj.r.squared" before merging into df_out
       names(reduced.model.df_out)[names(reduced.model.df_out) == 'model.adj.r.squared'] <- "redModel.adj.r.squared"
@@ -766,11 +792,11 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       df_out <- merge(df_out, reduced.model.df_out, by = "element_id")
       
       # calculate the eff.size, add to the df_out:
-      df_out <- df_out %>% dplyr::mutate("{eff.size.term.shortFormat}.eff.size" := model.adj.r.squared - redModel.adj.r.squared)
+      df_out <- df_out %>% dplyr::mutate("{changed.rsq.term.shortFormat}.eff.size" := model.adj.r.squared - redModel.adj.r.squared)
 
       # remove column of redModel
       df_out <- df_out %>% subset(select = -c(redModel.adj.r.squared))
-    }  # end of for loop across term of interest for effect size
+    }  # end of for loop across term of interest for changed.rsq
 
     
   
@@ -779,7 +805,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       df_out <- df_out %>% subset(select = -c(model.adj.r.squared))
     }
     
-  }   # end of if: requesting eff.size
+  }   # end of if: requesting changed.rsq
   
   
   

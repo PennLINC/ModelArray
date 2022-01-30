@@ -141,7 +141,7 @@ In addition, you can also request calculating effect size for a specific term, u
 ```{r}
 mygam_effectSize <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
                           var.smoothTerms = c(), var.parametricTerms = c(), var.model = c("adj.r.squared"),  
-                          eff.size.term.index = c(1),   # requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case
+                          changed.rsq.term.index = c(1),   # requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case
                         n_cores = 2, pbar = TRUE)
 
 head(mygam_effectSize)
