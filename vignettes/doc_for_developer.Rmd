@@ -1,0 +1,50 @@
+---
+title: "Developer documentation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Developer documentation"}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+library(ModelArray)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Overview
+Target audience: developers, any one who hopes to contribute to `ModelArray` to enhance functionality, fix bugs, or tailor for a specific usage.
+TODO: to-be-added
+
+## S4 Methods in `ModelArray`
+TODO: to-be-added
+
+## Model fitting
+Functions such as `ModelArray.lm()` and `ModelArray.gam()` are for model fitting. They are the interfaces with the user. Under the hood, these functions iteratively call `analyseOneElement.lm()` and `analyseOneElement.gam()` for fitting for one element, respectively. This also facilitates the parallel computing across all elements requested.  
+The general structure for model fitting in `ModelArray` is as below: \
+* Some sanity checks of arguments
+* Print out some important methods for model fitting, such as `method` in `mgcv::gam()`
+* Fit statistical models:
+  * First, initialize: run `analyseOneElement.<model_name>()` once to get the column names of the statistics in the output statistics; usually using the first element;
+  * Then, iteratively call `analyseOneElement.<model_name>()` across all elements requested (can be parallelized); within function `analyseOneElement.<model_name>()`:
+    * Fit the model for this element;
+    * Get necessary statistics via `broom::tidy()`, `broom::glance()`, and/or `summary()`. 
+    * Flatten the results into one row of data.frame for this element; add element ids; remove the column names (it's a list of numeric now) to save a bit more memory
+    * Return this result of this element
+  * Concatenate results of all requested elements, and add the column names; now we get the final result data.frame
+* If p-value correction (for terms and/or model) is requested:
+  * For each p-value correction method, apply it and add to the result data.frame
+* Return the result data.frame
+
+For `ModelArray.gam()`, there is additional step after one round of iteration:
+* If there is request of calculating changed R-squared for one or more terms (e.g. partial R-squared, or delta adjusted R-squared), we need to compute the reduced model (formula without the term of interest):
+  * For each requested term of interest:
+    * Iteratively call `analyseOneElement.<model_name>()` but with reduced formula
+    * Get necessary statistics
+    * Compute delta adjusted R-squared and partial R-squared; add them to the previously got data.frame
+  
+Therefore, there could be two or more rounds of iterations on model fitting in `ModelArray.gam()`, depending on number of terms the user requested for changed R-squared.
+

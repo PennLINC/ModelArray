@@ -4,7 +4,8 @@ pkgdown_sha: ~
 articles:
   ModelArray_basics: ModelArray_basics.html
   basic_r_intro: basic_r_intro.html
-last_built: 2022-01-09T17:06Z
+  doc_for_developer: doc_for_developer.html
+last_built: 2022-01-31T02:41Z
 urls:
   reference: https://pennlinc.github.io/ModelArray/reference
   article: https://pennlinc.github.io/ModelArray/articles
