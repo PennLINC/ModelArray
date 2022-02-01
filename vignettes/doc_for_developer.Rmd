@@ -2,7 +2,7 @@
 title: "Developer documentation"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Developer documentation"}
+  %\VignetteIndexEntry{Developer documentation}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,15 +16,29 @@ knitr::opts_chunk$set(
 ```
 
 ## Overview
-Target audience: developers, any one who hopes to contribute to `ModelArray` to enhance functionality, fix bugs, or tailor for a specific usage.
-TODO: to-be-added
+Target audience: developers, anyone who hopes to contribute to `ModelArray` to enhance functionality, fix bugs, or tailor for a specific usage. \
 
-## S4 Methods in `ModelArray`
-TODO: to-be-added
+`ModelArray` supports data in HDF5 (.h5) file format. It utilizes functions in `DelayedArray` and `HDF5Array` packages, so that statistical analysis can be performed without loading original data in HDF5 file into memory. This makes `ModelArray` very efficient in memory usage. For details, please see section `ModelArray Construction` below. \
+
+To access information in an `ModelArray` object, our package utilizes S4 method. With this method, users can easily show or access `ModelArray` objects.
+
+The key function of `ModelArray` is to perform statistical analysis. For details, please see section `Model fitting` below. \
+
+Finally, the rest sections describe other important aspects, such as how to deal with missing value.
+
+## `ModelArray` Construction
+The key feature of an `ModelArray` object is that it's a on-disk ....
+DelayedArray and HDF5 file \
+TODO: to finish!!!
+
+
+### Accessors for `ModelArray` object with S4 Methods
+
 
 ## Model fitting
 Functions such as `ModelArray.lm()` and `ModelArray.gam()` are for model fitting. They are the interfaces with the user. Under the hood, these functions iteratively call `analyseOneElement.lm()` and `analyseOneElement.gam()` for fitting for one element, respectively. This also facilitates the parallel computing across all elements requested.  
-The general structure for model fitting in `ModelArray` is as below: \
+The general structure for model fitting in `ModelArray` is as below: 
+
 * Some sanity checks of arguments
 * Print out some important methods for model fitting, such as `method` in `mgcv::gam()`
 * Fit statistical models:
@@ -40,6 +54,7 @@ The general structure for model fitting in `ModelArray` is as below: \
 * Return the result data.frame
 
 For `ModelArray.gam()`, there is additional step after one round of iteration:
+
 * If there is request of calculating changed R-squared for one or more terms (e.g. partial R-squared, or delta adjusted R-squared), we need to compute the reduced model (formula without the term of interest):
   * For each requested term of interest:
     * Iteratively call `analyseOneElement.<model_name>()` but with reduced formula
@@ -47,4 +62,9 @@ For `ModelArray.gam()`, there is additional step after one round of iteration:
     * Compute delta adjusted R-squared and partial R-squared; add them to the previously got data.frame
   
 Therefore, there could be two or more rounds of iterations on model fitting in `ModelArray.gam()`, depending on number of terms the user requested for changed R-squared.
+
+## Dealing with missing values
+### Missing values in `phenotypes` data.frame
+
+### Missing values in `ModelArray` scalar data
 

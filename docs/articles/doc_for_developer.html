@@ -83,9 +83,46 @@
 <h2 id="model-fitting">Model fitting<a class="anchor" aria-label="anchor" href="#model-fitting"></a>
 </h2>
 <p>Functions such as <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code> are for model fitting. They are the interfaces with the user. Under the hood, these functions iteratively call <code><a href="../reference/analyseOneElement.lm.html">analyseOneElement.lm()</a></code> and <code><a href="../reference/analyseOneElement.gam.html">analyseOneElement.gam()</a></code> for fitting for one element, respectively. This also facilitates the parallel computing across all elements requested.<br>
-The general structure for model fitting in <code>ModelArray</code> is as below:<br>
-* Some sanity checks of arguments * Print out some important methods for model fitting, such as <code>method</code> in <code><a href="https://rdrr.io/pkg/mgcv/man/gam.html" class="external-link">mgcv::gam()</a></code> * Fit statistical models: * First, initialize: run <code>analyseOneElement.&lt;model_name&gt;()</code> once to get the column names of the statistics in the output statistics; usually using the first element; * Then, iteratively call <code>analyseOneElement.&lt;model_name&gt;()</code> across all elements requested (can be parallelized); within function <code>analyseOneElement.&lt;model_name&gt;()</code>: * Fit the model for this element; * Get necessary statistics via <code><a href="https://generics.r-lib.org/reference/tidy.html" class="external-link">broom::tidy()</a></code>, <code><a href="https://generics.r-lib.org/reference/glance.html" class="external-link">broom::glance()</a></code>, and/or <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>. * Flatten the results into one row of data.frame for this element; add element ids; remove the column names (it’s a list of numeric now) to save a bit more memory * Return this result of this element * Concatenate results of all requested elements, and add the column names; now we get the final result data.frame * If p-value correction (for terms and/or model) is requested: * For each p-value correction method, apply it and add to the result data.frame * Return the result data.frame</p>
-<p>For <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>, there is additional step after one round of iteration: * If there is request of calculating changed R-squared for one or more terms (e.g. partial R-squared, or delta adjusted R-squared), we need to compute the reduced model (formula without the term of interest): * For each requested term of interest: * Iteratively call <code>analyseOneElement.&lt;model_name&gt;()</code> but with reduced formula * Get necessary statistics * Compute delta adjusted R-squared and partial R-squared; add them to the previously got data.frame</p>
+The general structure for model fitting in <code>ModelArray</code> is as below:</p>
+<ul>
+<li>Some sanity checks of arguments</li>
+<li>Print out some important methods for model fitting, such as <code>method</code> in <code><a href="https://rdrr.io/pkg/mgcv/man/gam.html" class="external-link">mgcv::gam()</a></code>
+</li>
+<li>Fit statistical models:
+<ul>
+<li>First, initialize: run <code>analyseOneElement.&lt;model_name&gt;()</code> once to get the column names of the statistics in the output statistics; usually using the first element;</li>
+<li>Then, iteratively call <code>analyseOneElement.&lt;model_name&gt;()</code> across all elements requested (can be parallelized); within function <code>analyseOneElement.&lt;model_name&gt;()</code>:
+<ul>
+<li>Fit the model for this element;</li>
+<li>Get necessary statistics via <code><a href="https://generics.r-lib.org/reference/tidy.html" class="external-link">broom::tidy()</a></code>, <code><a href="https://generics.r-lib.org/reference/glance.html" class="external-link">broom::glance()</a></code>, and/or <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>.</li>
+<li>Flatten the results into one row of data.frame for this element; add element ids; remove the column names (it’s a list of numeric now) to save a bit more memory</li>
+<li>Return this result of this element</li>
+</ul>
+</li>
+<li>Concatenate results of all requested elements, and add the column names; now we get the final result data.frame</li>
+</ul>
+</li>
+<li>If p-value correction (for terms and/or model) is requested:
+<ul>
+<li>For each p-value correction method, apply it and add to the result data.frame</li>
+</ul>
+</li>
+<li>Return the result data.frame</li>
+</ul>
+<p>For <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>, there is additional step after one round of iteration:</p>
+<ul>
+<li>If there is request of calculating changed R-squared for one or more terms (e.g. partial R-squared, or delta adjusted R-squared), we need to compute the reduced model (formula without the term of interest):
+<ul>
+<li>For each requested term of interest:
+<ul>
+<li>Iteratively call <code>analyseOneElement.&lt;model_name&gt;()</code> but with reduced formula</li>
+<li>Get necessary statistics</li>
+<li>Compute delta adjusted R-squared and partial R-squared; add them to the previously got data.frame</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
 <p>Therefore, there could be two or more rounds of iterations on model fitting in <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>, depending on number of terms the user requested for changed R-squared.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
