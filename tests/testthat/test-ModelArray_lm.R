@@ -87,16 +87,22 @@ test_that("ModelArray.lm() works as expected", {
   
   ## Different output statistics #####
   mylm_noTermsOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = 1:100, 
-                              var.terms = c(),
-                              var.model = var.model,
-                              n_cores = 1, pbar=FALSE)
+                                      var.terms = c(), var.model = var.model,
+                                      n_cores = 1, pbar=FALSE)
   expect_equal(as.numeric(dim(mylm_noTermsOutput)), c(100,1+length(var.model))) # check shape
+    # there shouldn't be any NA in this output: (otherwise, there is a bug when combining empty tibble in analyseOneElement.lm())
+  expect_true( (!mylm_noTermsOutput %>% is.na()) %>% all() )   # if there is any NA in the output data.frame, the result is FALSE
   
   mylm_noModelOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = 1:100, 
-                                      var.terms = var.terms,
-                                      var.model = c(),
+                                      var.terms = var.terms, var.model = c(),
                                       n_cores = 1, pbar=FALSE)
   expect_equal(as.numeric(dim(mylm_noModelOutput)), c(100,1+2*length(var.terms))) # check shape
+  expect_true( (!mylm_noModelOutput %>% is.na()) %>% all() )   
+  
+  # there will be error if both var.* are empty:
+  expect_error(mylm_noModelOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = 1:100, 
+                                                   var.terms = c(), var.model = c(),
+                                                   n_cores = 1, pbar=FALSE))
   
   ## Whether to correct p.values:   #####
   # terms:

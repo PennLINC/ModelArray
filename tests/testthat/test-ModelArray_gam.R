@@ -100,10 +100,23 @@ test_that("test that ModelArray.gam() works as expected", {
                                        n_cores = 2, pbar = FALSE) 
   expect_false("age.statistic" %in% colnames(mygam_noSmoothStat))
   
-  # if there is no model stat:
-  mygam_noModelStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                                      var.model = c(),
+  # if there is only one var.* not empty: (test with request of reduced model - where there will calls as: c(), c(), c("adj.r.squared"))
+  mygam_onlyModelStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                      var.smoothTerms=c(), var.parametricTerms=c(), var.model = c("dev.expl"),
+                                      changed.rsq.term.index=c(1),
                                       n_cores = 2, pbar = FALSE) 
+  mygam_onlyParametricTermsStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                        var.smoothTerms=c(), var.parametricTerms=c("estimate"), var.model = c(),
+                                        changed.rsq.term.index=c(1),
+                                        n_cores = 2, pbar = FALSE) 
+  mygam_onlySmoothTermsStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                        var.smoothTerms=c("statistic"), var.parametricTerms=c(), var.model = c(),
+                                        changed.rsq.term.index=c(1),
+                                        n_cores = 2, pbar = FALSE) 
+      # there shouldn't be any NA in these outputs: (otherwise, there is a bug when combining empty tibble in analyseOneElement.gam())
+  expect_true( (!mygam_onlyModelStat %>% is.na()) %>% all())   # if there is any NA in the output data.frame, the result is FALSE
+  expect_true( (!mygam_onlyParametricTermsStat %>% is.na()) %>% all()) 
+  expect_true( (!mygam_onlySmoothTermsStat %>% is.na()) %>% all())
   
   # no any model stat:
   expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
@@ -146,7 +159,7 @@ test_that("test that ModelArray.gam() works as expected", {
   # s(fx=TRUE) vs default (fx=FALSE): 1) different stat; 
   mygam_fxTRUE <- ModelArray.gam(FD ~ s(age, fx=TRUE) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                  n_cores = 2, pbar = FALSE)
-  expect_false(all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
+  expect_false(dplyr::all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
                          mygam_fxTRUE %>% dplyr::select("s_age.statistic"))
                %>% isTRUE())
   
@@ -155,7 +168,7 @@ test_that("test that ModelArray.gam() works as expected", {
   # s(bs=?)
   mygam_bsCR <- ModelArray.gam(FD ~ s(age, bs="cr") + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                n_cores = 2, pbar = FALSE)
-  expect_false(all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
+  expect_false(dplyr::all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
                          mygam_bsCR %>% dplyr::select("s_age.statistic"))
                %>% isTRUE()) 
   
@@ -164,7 +177,7 @@ test_that("test that ModelArray.gam() works as expected", {
   mygam_methodREML <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                      method = "REML",  # default = "GCV.Cp"
                                      n_cores = 2, pbar = FALSE)
-  expect_false(all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
+  expect_false(dplyr::all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
                          mygam_methodREML %>% dplyr::select("s_age.statistic"))
                %>% isTRUE())
   ### Test n_cores, pbar work: ######
@@ -209,7 +222,7 @@ test_that("test that ModelArray.gam() works as expected", {
                                 n_cores = 2, pbar = FALSE))
   
   ### Test: changed R-squared (delta.adj.rsq, partial.rsq) #####
-  # one term of interest: reduced model will be FD ~ 1
+  #### one term of interest: reduced model will be FD ~ 1 #####
   # also, to test whether the delta.adj.rsq and partial.rsq are calculated correctly
   # also, to test whether without "," in s(), the column name could be correctly "s_age.delta.adj.rsq"
   mygam_changedrsq_oneSmoothTerm <- ModelArray.gam(FD ~ s(age), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
@@ -247,7 +260,7 @@ test_that("test that ModelArray.gam() works as expected", {
                mygam_smooth_pCorrect$s_age.p.value.fdr)
   
   
-  # more than one term of interest; also, parametric term or smooth term:
+  #### more than one term of interest; also, parametric term or smooth term: #####
   mygam_changedRsq_twoSmoothTerm <- ModelArray.gam(FD ~ factorB + s(age) + s(factorA), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                                var.model = c("dev.expl", "adj.r.squared"),
                                                changed.rsq.term.index = c(1,2,3),
@@ -327,11 +340,6 @@ test_that("test that ModelArray.gam() works as expected", {
   
   # fx should only has one value; otherwise there will be a warning from mgcv::gam()
   
-  ## test: what included in vignette Rmd can run:
-  mygam_effectSize <- ModelArray.gam(FD ~s(age, k = 4, fx = TRUE) + sex, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
-                                     var.smoothTerms = c(), var.parametricTerms = c(), var.model = c("adj.r.squared"),  
-                                     changed.rsq.term.index = c(1),   # requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case
-                                     n_cores = 2, pbar = TRUE)
   
   
   
