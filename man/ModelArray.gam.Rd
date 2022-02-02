@@ -14,7 +14,7 @@ ModelArray.gam(
   var.smoothTerms = c("statistic", "p.value"),
   var.parametricTerms = c("estimate", "statistic", "p.value"),
   var.model = c("dev.expl"),
-  eff.size.term.index = NULL,
+  changed.rsq.term.index = NULL,
   correct.p.value.smoothTerms = "none",
   correct.p.value.parametricTerms = "none",
   verbose = TRUE,
@@ -42,7 +42,7 @@ ModelArray.gam(
 
 \item{var.model}{A list of characters. The list of variables to save for the model (got from `broom::glance()` and `summary()`). See "Details" section for more.}
 
-\item{eff.size.term.index}{A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.}
+\item{changed.rsq.term.index}{A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.}
 
 \item{correct.p.value.smoothTerms}{A list of characters. To perform and add a column for p.value correction for each smooth term. See "Details" section for more.}
 

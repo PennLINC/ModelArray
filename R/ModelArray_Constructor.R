@@ -350,6 +350,7 @@ analyseOneElement.lm <- function(i_element,
 #' @param var.parametricTerms The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".
 #' @param var.model The list of variables to save for the model (got from broom::glance() and summary()). 
 #' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
+#' @param flag_sse TRUE or FALSE, Whether to calculate SSE (sum of squared error) for the model (`model.sse`). SSE is needed for calculating partial R-squared.
 #' @param ... Additional arguments for `mgcv::gam()`
 #' @return If flag_initiate==TRUE, returns column names, list of term names of final results, and attr.name of sp.criterion; if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
 #' @export
@@ -360,7 +361,7 @@ analyseOneElement.lm <- function(i_element,
 
 analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, scalar, 
                                 var.smoothTerms, var.parametricTerms, var.model, 
-                                flag_initiate = FALSE, 
+                                flag_initiate = FALSE, flag_sse = FALSE,
                                 ...) {
   values <- scalars(modelarray)[[scalar]][i_element,]
   dat <- phenotypes
@@ -525,6 +526,12 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
   # add a column of element ids:
   colnames.temp <- colnames(onemodel.onerow)
   onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element-1, .before = colnames.temp[1])   # add as the first column
+  
+  # add sse if requested:
+  if (flag_sse == TRUE) {
+    onemodel.onerow[["model.sse"]] <- sum( (onemodel$y - onemodel$fitted.values)^2 )   # using values from model itself, where NAs in y have been excluded --> sse won't be NA --> partial R-squared won't be NA
+  }
+  
   
   # now you can get the headers, # of columns, etc of the output results
 

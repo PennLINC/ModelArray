@@ -113,7 +113,7 @@
 <span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, 
                                scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FD"</span><span class="op">)</span><span class="op">)</span>  <span class="co"># if there is more than one metric, you can do: c("FD", "FDC")</span>
 <span class="va">modelarray</span> <span class="co"># check what's in it    </span>
-<span class="co">#&gt; ModelArray located at /tmp/RtmpvaKWmw/temp_libpathc8656d764205/ModelArray/extdata/n50_fixels.h5</span>
+<span class="co">#&gt; ModelArray located at /tmp/RtmpvaKWmw/temp_libpathc8651f9c5f05/ModelArray/extdata/n50_fixels.h5</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt;   Source files:     50</span>
 <span class="co">#&gt;   Scalars:          FD</span>
@@ -405,27 +405,27 @@
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">mygam_effectSize</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.gam.html">ModelArray.gam</a></span><span class="op">(</span><span class="va">formula</span>, data <span class="op">=</span> <span class="va">modelarray</span>, phenotypes <span class="op">=</span> <span class="va">phenotypes</span>, scalar <span class="op">=</span> <span class="st">"FD"</span>, element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>,
                           var.smoothTerms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span>, var.parametricTerms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span>, var.model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"adj.r.squared"</span><span class="op">)</span>,  
-                          eff.size.term.index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>,   <span class="co"># requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case</span>
+                          changed.rsq.term.index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>,   <span class="co"># requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case</span>
                         n_cores <span class="op">=</span> <span class="fl">2</span>, pbar <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
 <span class="co">#&gt; <span style="color: #000000;">The formula requested: FD ~ s(age, k = 4, fx = TRUE) + sex</span> </span>
 <span class="co">#&gt; <span style="color: #000000;">s(age):   k = 4;   fx = TRUE;   bs = tp (default)</span></span>
 <span class="co">#&gt; <span style="color: #000000;">method: default</span></span>
-<span class="co">#&gt; will get effect size (eff.size) so the execution time will be longer.</span>
+<span class="co">#&gt; will get changed R-squared (delta.adj.rsq and partial.rsq) so the execution time will be longer.</span>
 <span class="co">#&gt; Fitting element-wise GAMs for FD</span>
 <span class="co">#&gt; initiating....</span>
 <span class="co">#&gt; looping across elements....</span>
-<span class="co">#&gt; Getting the effect size: running the reduced model...</span>
-<span class="co">#&gt; * Getting effect size for term: s(age, k = 4, fx = TRUE) via reduced model as below; will show up as s_age in final dataframe</span>
+<span class="co">#&gt; Getting changed R-squared: running the reduced model...</span>
+<span class="co">#&gt; * Getting changed R-squared for term: s(age, k = 4, fx = TRUE) via reduced model as below; will show up as s_age in final dataframe</span>
 <span class="co">#&gt; FD ~ sex</span>
 
 <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mygam_effectSize</span><span class="op">)</span>
-<span class="co">#&gt;   element_id model.adj.r.squared s_age.eff.size</span>
-<span class="co">#&gt; 1          0          0.06030300    0.013547120</span>
-<span class="co">#&gt; 2          1          0.06955851    0.074849313</span>
-<span class="co">#&gt; 3          2         -0.01092625    0.008018731</span>
-<span class="co">#&gt; 4          3         -0.01226612   -0.011136655</span>
-<span class="co">#&gt; 5          4          0.06031855    0.069442111</span>
-<span class="co">#&gt; 6          5          0.04710121    0.055374767</span></code></pre></div>
+<span class="co">#&gt;   element_id model.adj.r.squared s_age.delta.adj.rsq s_age.partial.rsq</span>
+<span class="co">#&gt; 1          0          0.06030300         0.013547120        0.07582337</span>
+<span class="co">#&gt; 2          1          0.06955851         0.074849313        0.13230192</span>
+<span class="co">#&gt; 3          2         -0.01092625         0.008018731        0.06987779</span>
+<span class="co">#&gt; 4          3         -0.01226612        -0.011136655        0.05207116</span>
+<span class="co">#&gt; 5          4          0.06031855         0.069442111        0.12701339</span>
+<span class="co">#&gt; 6          5          0.04710121         0.055374767        0.11398786</span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="write-the-results">Write the results<a class="anchor" aria-label="anchor" href="#write-the-results"></a>

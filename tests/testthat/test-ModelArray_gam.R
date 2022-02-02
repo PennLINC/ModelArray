@@ -23,7 +23,43 @@ test_that("test that ModelArray.gam() works as expected", {
   var.parametricTerms = c("estimate", "statistic", "p.value")
   var.model = c("dev.expl", "adj.r.squared")
   element.subset = 1:10
+  
+  # calculating partial rsq for modelarray (this is not comprehensive; does not include additional methods; focus is to check if partial rsq is calculated correctly)
+  partialRsq_gam_modelarray <- function(i_element, modelarray, phenotypes, scalar, full.formula, reduced.formula) {
+    values <- scalars(modelarray)[[scalar]][i_element,]
+    dat <- phenotypes
+    dat[[scalar]] <- values
 
+    fullmodel <- mgcv::gam(full.formula, data=dat)
+    redmodel <- mgcv::gam(reduced.formula, data=dat)
+
+    # calculating SSE: used observed y (i.e. excluding observations with NA), and fitted values, directly from model object
+    
+    sse.full <- sum( (fullmodel$y - fullmodel$fitted.values)^2 )
+    #message(sse.full)
+    sse.red <- sum( (redmodel$y - redmodel$fitted.values)^2 )
+    #message(sse.red)
+    #message("")
+    
+    partialRsq <- (sse.red - sse.full) / sse.red
+    
+    return(partialRsq)
+    # toReturn <- list(partialRsq = partialRsq,
+    #                  sse.full = sse.full,
+    #                  sse.red = sse.red)
+    # return(toReturn)
+  }
+  
+  wrapper_partialRsq_gam_modelarray <- function(element.subset, modelarray, phenotypes, scalar, full.formula, reduced.formula) {
+    partial.rsq.list <- lapply(element.subset,   # a list of i_element
+                                  partialRsq_gam_modelarray,  # the function
+                                  modelarray, phenotypes, scalar, full.formula, reduced.formula)
+    partial.rsq.vec <- do.call(rbind, partial.rsq.list)
+    partial.rsq.vec <- as.numeric(partial.rsq.vec)
+    return(partial.rsq.vec)
+
+  }
+  
   ### basic checks #####
   mygam <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                           var.smoothTerms = var.smoothTerms,
@@ -172,97 +208,129 @@ test_that("test that ModelArray.gam() works as expected", {
                                 correct.p.value.smoothTerms = c("fdr"),
                                 n_cores = 2, pbar = FALSE))
   
-  ### Test: eff.size #####
+  ### Test: changed R-squared (delta.adj.rsq, partial.rsq) #####
   # one term of interest: reduced model will be FD ~ 1
-  # also, to test whether the eff.size is calculated correctly
-  # also, to test whether without "," in s(), the column name could be correctly "s_age.eff.size"
-  mygam_effsize_oneSmoothTerm <- ModelArray.gam(FD ~ s(age), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+  # also, to test whether the delta.adj.rsq and partial.rsq are calculated correctly
+  # also, to test whether without "," in s(), the column name could be correctly "s_age.delta.adj.rsq"
+  mygam_changedrsq_oneSmoothTerm <- ModelArray.gam(FD ~ s(age), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                                var.model = c("dev.expl", "adj.r.squared"),
-                                               eff.size.term.index = c(1),
+                                               changed.rsq.term.index = c(1),
                                                n_cores = 2, pbar = FALSE)
   mygam_intercept <- ModelArray.gam(FD ~ 1, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                     var.model = c("adj.r.squared"),
                                     n_cores = 2, pbar = FALSE)
-  expect_equal(mygam_effsize_oneSmoothTerm$s_age.eff.size,
-               mygam_effsize_oneSmoothTerm$model.adj.r.squared - mygam_intercept$model.adj.r.squared)
+  # delta.adj.rsq:
+  expect_equal(mygam_changedrsq_oneSmoothTerm$s_age.delta.adj.rsq,
+               mygam_changedrsq_oneSmoothTerm$model.adj.r.squared - mygam_intercept$model.adj.r.squared)
+  # partial.rsq:
+  expected <- wrapper_partialRsq_gam_modelarray(element.subset, modelarray, phenotypes, scalar_name,
+                                              FD ~ s(age), FD ~ 1)
+  expect_equal(mygam_changedrsq_oneSmoothTerm$s_age.partial.rsq, expected)
+  # expect that delta.adj.rsq and partial.rsq are highly correlated
+  expect_gt(cor(mygam_changedrsq_oneSmoothTerm$s_age.partial.rsq, mygam_changedrsq_oneSmoothTerm$s_age.delta.adj.rsq),
+            0.95)
+  
+  # the statistics should be consistent, when with or without requesting changed.rsq:
+  mygam_changedrsq_oneSmoothTerm_sex <- ModelArray.gam(FD ~ s(age)+sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                                      full.outputs = TRUE, correct.p.value.smoothTerms = "fdr", correct.p.value.parametricTerms = "fdr",
+                                                      changed.rsq.term.index = c(1),
+                                                      n_cores = 2, pbar = FALSE)
+    # compared to statistics in full outputs:
+  colnames_intersect <- intersect(mygam_changedrsq_oneSmoothTerm_sex %>% colnames(),
+                                  mygam_fullOutputs %>% colnames())
+  expect_equal(mygam_changedrsq_oneSmoothTerm_sex %>% select(colnames_intersect), 
+               mygam_fullOutputs %>% select(colnames_intersect))
+    # compared to fdr:
+  expect_equal(mygam_changedrsq_oneSmoothTerm_sex$sex.p.value.fdr,
+               mygam_parametric_pCorrect$sex.p.value.fdr)
+  expect_equal(mygam_changedrsq_oneSmoothTerm_sex$s_age.p.value.fdr,
+               mygam_smooth_pCorrect$s_age.p.value.fdr)
+  
   
   # more than one term of interest; also, parametric term or smooth term:
-  mygam_effsize_twoSmoothTerm <- ModelArray.gam(FD ~ factorB + s(age) + s(factorA), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+  mygam_changedRsq_twoSmoothTerm <- ModelArray.gam(FD ~ factorB + s(age) + s(factorA), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                                var.model = c("dev.expl", "adj.r.squared"),
-                                               eff.size.term.index = c(1,2,3),
+                                               changed.rsq.term.index = c(1,2,3),
                                                n_cores = 2, pbar = FALSE)
-  mygam_effsize_twoSmoothTerm_red1 <- ModelArray.gam(FD ~ factorB + s(factorA), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+  mygam_changedRsq_twoSmoothTerm_red1 <- ModelArray.gam(FD ~ factorB + s(factorA), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                                      var.model = c( "adj.r.squared"),
                                                      n_cores = 2, pbar = FALSE)
-  mygam_effsize_twoSmoothTerm_red2 <- ModelArray.gam(FD ~ factorB + s(age), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+  mygam_changedRsq_twoSmoothTerm_red2 <- ModelArray.gam(FD ~ factorB + s(age), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                                      var.model = c( "adj.r.squared"),
                                                      n_cores = 2, pbar = FALSE)
-  mygam_effsize_twoSmoothTerm_red3 <- ModelArray.gam(FD ~ s(age) + s(factorA), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+  mygam_changedRsq_twoSmoothTerm_red3 <- ModelArray.gam(FD ~ s(age) + s(factorA), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                                      var.model = c( "adj.r.squared"),
                                                      n_cores = 2, pbar = FALSE)
-  expect_equal(mygam_effsize_twoSmoothTerm$s_age.eff.size,
-               mygam_effsize_twoSmoothTerm$model.adj.r.squared - mygam_effsize_twoSmoothTerm_red1$model.adj.r.squared)
-  expect_equal(mygam_effsize_twoSmoothTerm$s_factorA.eff.size,
-               mygam_effsize_twoSmoothTerm$model.adj.r.squared - mygam_effsize_twoSmoothTerm_red2$model.adj.r.squared)
-  expect_equal(mygam_effsize_twoSmoothTerm$factorB.eff.size,
-               mygam_effsize_twoSmoothTerm$model.adj.r.squared - mygam_effsize_twoSmoothTerm_red3$model.adj.r.squared)
+  expect_equal(mygam_changedRsq_twoSmoothTerm$s_age.delta.adj.rsq,
+               mygam_changedRsq_twoSmoothTerm$model.adj.r.squared - mygam_changedRsq_twoSmoothTerm_red1$model.adj.r.squared)
+  expect_equal(mygam_changedRsq_twoSmoothTerm$s_factorA.delta.adj.rsq,
+               mygam_changedRsq_twoSmoothTerm$model.adj.r.squared - mygam_changedRsq_twoSmoothTerm_red2$model.adj.r.squared)
+  expect_equal(mygam_changedRsq_twoSmoothTerm$factorB.delta.adj.rsq,
+               mygam_changedRsq_twoSmoothTerm$model.adj.r.squared - mygam_changedRsq_twoSmoothTerm_red3$model.adj.r.squared)
 
-  # test that s(age, k=4) with "," in the term label --> see if the column name (s_age.eff.size) is as expected
-  mygam_effsize_withComma <- ModelArray.gam(FD ~ s(age, k=4), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+  # test that s(age, k=4) with "," in the term label --> see if the column name (s_age.delta.adj.rsq) is as expected
+  mygam_changedRsq_withComma <- ModelArray.gam(FD ~ s(age, k=4), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                  var.model = c("dev.expl", "adj.r.squared"),
-                 eff.size.term.index = c(1),
+                 changed.rsq.term.index = c(1),
                  n_cores = 2, pbar = FALSE)
-  expect_true("s_age.eff.size" %in% colnames(mygam_effsize_withComma))
+  expect_true(c("s_age.delta.adj.rsq", 
+                "s_age.partial.rsq") %in% colnames(mygam_changedRsq_withComma) %>% all())
   
   # invalid request - see my checker in ModelArray.gam()
   expect_error(ModelArray.gam(FD ~ s(age, k=4), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                              eff.size.term.index = c(0),   # index is < 1
+                              changed.rsq.term.index = c(0),   # index is < 1
                               n_cores = 2, pbar = FALSE))
   expect_error(ModelArray.gam(FD ~ s(age, k=4), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                              eff.size.term.index = c(2),   # index is more than # of terms
+                              changed.rsq.term.index = c(2),   # index is more than # of terms
                               n_cores = 2, pbar = FALSE))
   expect_error(ModelArray.gam(FD ~ 1, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                              eff.size.term.index = c(1),   # invalid formula for effect size
+                              changed.rsq.term.index = c(1),   # invalid formula for effect size
                               n_cores = 2, pbar = FALSE))
   
   ### output of arguments in smooth terms:
   # test out te(xxx) instead of s(xxx)
-  mygam_effsize_te <- ModelArray.gam(FD ~ te(age), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                                     eff.size.term.index = c(1),  
+  mygam_changedRsq_te <- ModelArray.gam(FD ~ te(age), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                     changed.rsq.term.index = c(1),  
                                      n_cores = 2, pbar = FALSE)
-  expect_true("te_age.eff.size" %in% colnames(mygam_effsize_te))
+  expect_true(c("te_age.delta.adj.rsq",
+                "te_age.partial.rsq") %in% colnames(mygam_changedRsq_te) %>% all())
   
   # invalid formula: invalid parameters in s such as d = ?
   expect_error(ModelArray.gam(FD ~ s(age, d=1), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                 eff.size.term.index = c(1),
+                 changed.rsq.term.index = c(1),
                  n_cores = 2, pbar = FALSE))
   
   ## whether the printed output is as expected (not able to automatically test via expect_output, probably due to crayon package)
   formula <- FD ~ s(age, factorA, fx = FALSE, bs = c("tp", "cr"))   # s(), two terms in s()
   ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                 eff.size.term.index = c(1),
+                 changed.rsq.term.index = c(1),
                  n_cores = 2, pbar = FALSE)
   # to expect: "s(age,factorA):   k = -1 (default);   fx = FALSE (default);   bs = tp, cr"
   
   formula <- FD ~ s(age, factorA, k=4, bs = c("tp", "tp"))   # s(), two terms in s()
   ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                         eff.size.term.index = c(1),
+                         changed.rsq.term.index = c(1),
                           n_cores = 2, pbar = FALSE)
   # to expect: "s(age,factorA):   k = 4;   fx = FALSE (default);   bs = tp, tp (default)"
 
   formula <- FD ~ ti(age, fx = FALSE, bs = c("cr"))   # ti()
   ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                 eff.size.term.index = c(1),
+                 changed.rsq.term.index = c(1),
                  n_cores = 2, pbar = FALSE)
   # to expect: "ti(age):   fx = FALSE (default);   bs = cr (default)"
   
   formula <- FD ~ ti(age, factorA, fx = TRUE, bs = c("cr", "tp"))   # ti(), two terms in ti()
   ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                 eff.size.term.index = c(1),
+                 changed.rsq.term.index = c(1),
                  n_cores = 2, pbar = FALSE)
   # to expect: "ti(age,factorA):   fx = TRUE, TRUE;   bs = cr, tp"
   
   # fx should only has one value; otherwise there will be a warning from mgcv::gam()
+  
+  ## TODO:  Test that if there is NA in y, the partial.rsq won't be NA:  +++++++++++++++++++++++++==
+  
+  
+  
   
   
   ### invalid formula: invalid interaction term:
@@ -286,13 +354,13 @@ test_that("test that ModelArray.gam() works as expected", {
   
   
   # s(age * factorA) and s(age + factorA): 
-  # mgcv::gam throws a warning; column name is NOT correct for .statistics etc; but correct for eff.size; also need to test out writing to .h5
+  # mgcv::gam throws a warning; column name is NOT correct for .statistics etc; but correct for delta.adj.rsq; also need to test out writing to .h5
   # may try out interpret.gam(formula) to fix .statistics
   # ModelArray.gam(FD ~ s(age * factorA), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-  #                eff.size.term.index = c(1),
+  #                changed.rsq.term.index = c(1),
   #                n_cores = 2, pbar = FALSE)
   # ModelArray.gam(FD ~ s(age + factorA), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-  #                eff.size.term.index = c(1),
+  #                changed.rsq.term.index = c(1),
   #                n_cores = 2, pbar = FALSE)
   # 
   
@@ -300,13 +368,14 @@ test_that("test that ModelArray.gam() works as expected", {
   ## s(age, by=oSex):
   formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB  # ordered factor
   mygam_sby <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                        eff.size.term.index = c(1,2,3), var.model = c("dev.expl","adj.r.squared"),
+                        changed.rsq.term.index = c(1,2,3), var.model = c("dev.expl","adj.r.squared"),
                         n_cores = 2, pbar = FALSE)
   # column names as expected:
   expect_true("oSex.L.estimate" %in% colnames(mygam_sby))   # parametric term | L: linear parameter (vs Q: quadratic; C: cubic)
   expect_true("s_age.statistic" %in% colnames(mygam_sby))   # (regular) smooth term
   expect_true("s_age_BYoSexM.p.value" %in% colnames(mygam_sby))  # interaction term | ordered factor, displayed group other than reference group
-  expect_true("s_age_BYoSex.eff.size" %in% colnames(mygam_sby))  # interaction term's effect size, as it's the term itself, there is no label for group name (such as "M")
+  expect_true("s_age_BYoSex.delta.adj.rsq" %in% colnames(mygam_sby))  # interaction term's effect size, as it's the term itself, there is no label for group name (such as "M")
+  expect_true("s_age_BYoSex.partial.rsq" %in% colnames(mygam_sby)) 
   
   red.formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + factorB
   mygam_sby.red1 <- ModelArray.gam(formula = red.formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
@@ -314,7 +383,7 @@ test_that("test that ModelArray.gam() works as expected", {
                                   n_cores = 2, pbar = FALSE)
   # check if effect size is as expected for interaction term (manually calculate the diff of adj.r.sq):
   expect_equal(mygam_sby$model.adj.r.squared - mygam_sby.red1$model.adj.r.squared,   
-               mygam_sby$s_age_BYoSex.eff.size)  
+               mygam_sby$s_age_BYoSex.delta.adj.rsq)  
   
   red.formula <- FD ~ oSex + s(age, by=oSex, fx=TRUE) + factorB
   mygam_sby.red2 <- ModelArray.gam(formula = red.formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
@@ -323,7 +392,7 @@ test_that("test that ModelArray.gam() works as expected", {
   # check if effect size is as expected for regular smooth term (manually calculate the diff of adj.r.sq):
   # HOWEVER IT MAY DEVIATED FROM ITS TRUE DEFINITION WHEN FORMULA CONTAINS INTERACTION VARIABLES....
   expect_equal(mygam_sby$model.adj.r.squared - mygam_sby.red2$model.adj.r.squared,   
-               mygam_sby$s_age.eff.size)  
+               mygam_sby$s_age.delta.adj.rsq)  
   
   red.formula <- FD ~ s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB
   mygam_sby.red3 <- ModelArray.gam(formula = red.formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
@@ -332,37 +401,39 @@ test_that("test that ModelArray.gam() works as expected", {
   # check if effect size is as expected for parametric term (ordered factor) (manually calculate the diff of adj.r.sq):
   # HOWEVER IT MAY DEVIATED FROM ITS TRUE DEFINITION WHEN FORMULA CONTAINS INTERACTION VARIABLES....
   expect_equal(mygam_sby$model.adj.r.squared - mygam_sby.red3$model.adj.r.squared,   
-               mygam_sby$oSex.eff.size)  
+               mygam_sby$oSex.delta.adj.rsq)  
   
   
   ## ti(x,z):
   formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
   mygam_tiInteract <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                              eff.size.term.index = c(3), var.model = c("dev.expl","adj.r.squared"),
+                              changed.rsq.term.index = c(3), var.model = c("dev.expl","adj.r.squared"),
                               n_cores = 2, pbar = FALSE)
   expect_true("ti_age.statistic" %in% colnames(mygam_tiInteract))
   expect_true("ti_age_factorB.p.value" %in% colnames(mygam_tiInteract))
-  expect_true("ti_age_factorB.eff.size" %in% colnames(mygam_tiInteract))
+  expect_true("ti_age_factorB.delta.adj.rsq" %in% colnames(mygam_tiInteract))
+  expect_true("ti_age_factorB.partial.rsq" %in% colnames(mygam_tiInteract))
 
   red.formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE)+ factorA
   mygam_tiInteract_red1 <- ModelArray.gam(formula = red.formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                           var.model = c("adj.r.squared"),
                                           n_cores = 2, pbar = FALSE)
   expect_equal(mygam_tiInteract$model.adj.r.squared -mygam_tiInteract_red1$model.adj.r.squared,
-               mygam_tiInteract$ti_age_factorB.eff.size)  
+               mygam_tiInteract$ti_age_factorB.delta.adj.rsq)  
 
   
   ## factorized, but not ordered: - NOT RECOMMEND
   formula <- FD ~ sexFactor + s(age) + s(age, by=sexFactor, fx=TRUE)
   mygam_sby_unordered <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                              eff.size.term.index = c(1,2,3), var.model = c("dev.expl","adj.r.squared"),
+                              changed.rsq.term.index = c(1,2,3), var.model = c("dev.expl","adj.r.squared"),
                               n_cores = 2, pbar = FALSE)
   
-  expect_true("s_age.eff.size" %in% colnames(mygam_sby_unordered))  # check if correct colname - without other specification in s()
+  expect_true("s_age.delta.adj.rsq" %in% colnames(mygam_sby_unordered))  # check if correct colname - without other specification in s()
+  expect_true("s_age.partial.rsq" %in% colnames(mygam_sby_unordered))
   expect_true("s_age_BYsexFactorF.statistic" %in% colnames(mygam_sby_unordered))  # as unordered, there are terms ending with "F" and "M" afer var name "sex_factor"
   expect_true("sexFactorM.estimate" %in% colnames(mygam_sby_unordered)) 
-  expect_true("s_age_BYsexFactor.eff.size" %in% colnames(mygam_sby_unordered)) 
-
+  expect_true("s_age_BYsexFactor.delta.adj.rsq" %in% colnames(mygam_sby_unordered)) 
+  expect_true("s_age_BYsexFactor.partial.rsq" %in% colnames(mygam_sby_unordered)) 
   
   ### test out the functions for generating gam functions: #####
   ## Formula #1:

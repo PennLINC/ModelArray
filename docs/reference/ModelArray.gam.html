@@ -60,7 +60,7 @@
   var.smoothTerms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"statistic"</span>, <span class="st">"p.value"</span><span class="op">)</span>,
   var.parametricTerms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"statistic"</span>, <span class="st">"p.value"</span><span class="op">)</span>,
   var.model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dev.expl"</span><span class="op">)</span>,
-  eff.size.term.index <span class="op">=</span> <span class="cn">NULL</span>,
+  changed.rsq.term.index <span class="op">=</span> <span class="cn">NULL</span>,
   correct.p.value.smoothTerms <span class="op">=</span> <span class="st">"none"</span>,
   correct.p.value.parametricTerms <span class="op">=</span> <span class="st">"none"</span>,
   verbose <span class="op">=</span> <span class="cn">TRUE</span>,
@@ -90,7 +90,7 @@
 <dd><p>A list of characters. The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.</p></dd>
 <dt>var.model</dt>
 <dd><p>A list of characters. The list of variables to save for the model (got from `broom::glance()` and `summary()`). See "Details" section for more.</p></dd>
-<dt>eff.size.term.index</dt>
+<dt>changed.rsq.term.index</dt>
 <dd><p>A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.</p></dd>
 <dt>correct.p.value.smoothTerms</dt>
 <dd><p>A list of characters. To perform and add a column for p.value correction for each smooth term. See "Details" section for more.</p></dd>

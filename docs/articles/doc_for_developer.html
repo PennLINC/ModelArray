@@ -72,12 +72,22 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>Target audience: developers, any one who hopes to contribute to <code>ModelArray</code> to enhance functionality, fix bugs, or tailor for a specific usage. TODO: to-be-added</p>
+<p>Target audience: developers, anyone who hopes to contribute to <code>ModelArray</code> to enhance functionality, fix bugs, or tailor for a specific usage.<br></p>
+<p><code>ModelArray</code> supports data in HDF5 (.h5) file format. It utilizes functions in <code>DelayedArray</code> and <code>HDF5Array</code> packages, so that statistical analysis can be performed without loading original data in HDF5 file into memory. This makes <code>ModelArray</code> very efficient in memory usage. For details, please see section <code>ModelArray Construction</code> below.<br></p>
+<p>To access information in an <code>ModelArray</code> object, our package utilizes S4 method. With this method, users can easily show or access <code>ModelArray</code> objects.</p>
+<p>The key function of <code>ModelArray</code> is to perform statistical analysis. For details, please see section <code>Model fitting</code> below.<br></p>
+<p>Finally, the rest sections describe other important aspects, such as how to deal with missing value.</p>
 </div>
 <div class="section level2">
-<h2 id="s4-methods-in-modelarray">S4 Methods in <code>ModelArray</code><a class="anchor" aria-label="anchor" href="#s4-methods-in-modelarray"></a>
+<h2 id="modelarray-construction">
+<code>ModelArray</code> Construction<a class="anchor" aria-label="anchor" href="#modelarray-construction"></a>
 </h2>
-<p>TODO: to-be-added</p>
+<p>The key feature of an <code>ModelArray</code> object is that it’s a on-disk …. DelayedArray and HDF5 file<br>
+TODO: to finish!!!</p>
+<div class="section level3">
+<h3 id="accessors-for-modelarray-object-with-s4-methods">Accessors for <code>ModelArray</code> object with S4 Methods<a class="anchor" aria-label="anchor" href="#accessors-for-modelarray-object-with-s4-methods"></a>
+</h3>
+</div>
 </div>
 <div class="section level2">
 <h2 id="model-fitting">Model fitting<a class="anchor" aria-label="anchor" href="#model-fitting"></a>
@@ -124,6 +134,18 @@ The general structure for model fitting in <code>ModelArray</code> is as below:<
 </li>
 </ul>
 <p>Therefore, there could be two or more rounds of iterations on model fitting in <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>, depending on number of terms the user requested for changed R-squared.</p>
+</div>
+<div class="section level2">
+<h2 id="dealing-with-missing-values">Dealing with missing values<a class="anchor" aria-label="anchor" href="#dealing-with-missing-values"></a>
+</h2>
+<div class="section level3">
+<h3 id="missing-values-in-phenotypes-data-frame">Missing values in <code>phenotypes</code> data.frame<a class="anchor" aria-label="anchor" href="#missing-values-in-phenotypes-data-frame"></a>
+</h3>
+</div>
+<div class="section level3">
+<h3 id="missing-values-in-modelarray-scalar-data">Missing values in <code>ModelArray</code> scalar data<a class="anchor" aria-label="anchor" href="#missing-values-in-modelarray-scalar-data"></a>
+</h3>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>
