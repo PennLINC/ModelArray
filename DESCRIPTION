@@ -18,7 +18,7 @@ Imports:
     magrittr,
     methods,
     dplyr,
-    tidyr (<= 1.1.3),
+    tidyr,
     tibble,
     stringr,
     glue,

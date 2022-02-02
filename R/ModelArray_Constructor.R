@@ -299,16 +299,38 @@ analyseOneElement.lm <- function(i_element,
   # get the list of terms:
   list.terms <- onemodel.tidy$term
   
+  # check if the onemodel.* does not have real statistics (but only a column of 'term')
+  temp_colnames <- onemodel.tidy %>% colnames()
+  temp <- union(temp_colnames, "term")    # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()), union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term", all(union) = c(TRUE, FALSE, ...)
+  if (all(temp == "term")) onemodel.tidy <- tibble()   # just an empty tibble (so below, all(dim(onemodel.tidy)) = FALSE)
+
+  temp_colnames <- onemodel.glance %>% colnames()
+  temp <- union(temp_colnames, "term")    # union of colnames and "term"; 
+  if (all(temp == "term")) onemodel.glance <- tibble() 
+
+
+
   # flatten .tidy results into one row:
-  onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(names_from = term,
+  if (all(dim(onemodel.tidy))) {  # not empty | if any dim is 0, all=FALSE
+    onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(names_from = term,
                                                                values_from = all_of(var.terms.orig),
                                                                names_glue = "{term}.{.value}")
-  onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
+  } else  {
+    onemodel.tidy.onerow <- onemodel.tidy
+  }
+  
+  if(all(dim(onemodel.glance))) {  # not empty
+    onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
                                                                     values_from = all_of(var.model),
                                                                     names_glue = "{term}.{.value}")
+  } else {
+    onemodel.glance.onerow <- onemodel.glance
+  }
   
-  # combine the tables:
-  onemodel.onerow <- dplyr::bind_cols(onemodel.tidy.onerow, onemodel.glance.onerow)
+  
+  # combine the tables: check if any of them is empty (tibble())
+  onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.tidy.onerow, onemodel.glance.onerow)
+
   # add a column of element ids:
   colnames.temp <- colnames(onemodel.onerow)
   onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element-1, .before = colnames.temp[1])   # add as the first column
@@ -481,7 +503,21 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
     list.parametricTerms <- NULL
   }
   
+  
+  # check if the onemodel.* does not have real statistics (but only a column of 'term')
+  temp_colnames <- onemodel.tidy.smoothTerms %>% colnames()
+  temp <- union(temp_colnames, "term")    # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()), union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term", all(union) = c(TRUE, FALSE, ...)
+  if (all(temp == "term")) onemodel.tidy.smoothTerms <- tibble()   # just an empty tibble (so below, all(dim(onemodel.tidy.smoothTerms)) = FALSE)
+  
+  temp_colnames <- onemodel.tidy.parametricTerms %>% colnames()
+  temp <- union(temp_colnames, "term")     
+  if (all(temp == "term")) onemodel.tidy.parametricTerms <- tibble()   # just an empty tibble
+  
+  temp_colnames <- onemodel.glance %>% colnames()
+  temp <- union(temp_colnames, "term")    
+  if (all(temp == "term")) onemodel.glance <- tibble()   # just an empty tibble
 
+  
   # flatten .tidy results into one row:
   if (all(dim(onemodel.tidy.smoothTerms))) {   # not empty | if any dim is 0, all=FALSE
     onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(names_from = term,
@@ -508,19 +544,11 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
   }
   
 
-  # combine the tables:
-  if ( ! all(dim(onemodel.tidy.smoothTerms.onerow)) ) {  # empty
-    onemodel.onerow <- onemodel.tidy.parametricTerms.onerow
-  } else {   # combine
-    onemodel.onerow <- dplyr::bind_cols(onemodel.tidy.smoothTerms.onerow, 
-                                 onemodel.tidy.parametricTerms.onerow)
-  }
-  if ( ! all(dim(onemodel.onerow))   ){   # empty
-    onemodel.onerow <- onemodel.glance.onerow
-  } else {   # combine
-    onemodel.onerow <- dplyr::bind_cols(onemodel.onerow,
-                                 onemodel.glance.onerow)
-  }
+  # combine the tables: check if any of them is empty (tibble())
+  onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.tidy.smoothTerms.onerow, 
+                                                 onemodel.tidy.parametricTerms.onerow)
+  onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.onerow,
+                                                onemodel.glance.onerow)
   
 
   # add a column of element ids:

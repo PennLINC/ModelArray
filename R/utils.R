@@ -411,3 +411,22 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 }
 
 
+#' Bind two tibbles together, considering one or both of them is empty tibble()
+#' @details Without this function, bind_cols(A, tibble()) will becomes tibble()...
+#' @param a A tibble, can be empty tibble()
+#' @param b A tibble, can be empty tibble()
+#' @return c, A tibble after binding a and b together
+#' @importFrom dplyr bind_cols
+#' @import tibble
+#' @noRd
+bind_cols_check_emptyTibble <- function(a, b) {
+  flag_a_emtpy <- !all(dim(a))   # if TRUE, a is empty
+  flag_b_emtpy <- !all(dim(b))   # if TRUE, b is empty
+  
+  if ( flag_a_emtpy && flag_b_emtpy ) c <- tibble()    # both are empty
+  if ( flag_a_emtpy && (!flag_b_emtpy) ) c <- b     # b is not empty ==> taking b
+  if ( (!flag_a_emtpy) && flag_b_emtpy ) c <- a     # a is not empty ==> taking a
+  if ( (!flag_a_emtpy) && (!flag_b_emtpy) ) c <- dplyr::bind_cols(a, b)    # neither of them is empty ==> simply combine
+  
+  return(c)
+}

@@ -173,6 +173,13 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   # check on validity of list of vars:
   var.terms <- var.terms[!duplicated(var.terms)]  # remove duplicated element(s)
   var.model <- var.model[!duplicated(var.model)]
+
+  # check if all var.* are empty:
+  if (length(var.terms)==0 & length(var.model) ==0) {
+    stop("All var.* arguments [var.terms, var.model] are empty!")
+  }
+
+  # check if every var is valid:
   for (var in var.terms) {
     if (!(var %in% var.terms.full)) {
       stop(paste0(var, " is not valid for var.terms!"))
@@ -519,9 +526,9 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   var.parametricTerms <- var.parametricTerms[!duplicated(var.parametricTerms)]
   var.model <- var.model[!duplicated(var.model)]
   
-  # check if all var* are empty:
+  # check if all var.* are empty:
   if (length(var.smoothTerms)==0 & length(var.parametricTerms) ==0 & length(var.model) == 0) {
-    stop("All var* [var.smoothTerms, var.parametricTerms, var.model] are empty!")
+    stop("All var.* arguments [var.smoothTerms, var.parametricTerms, var.model] are empty!")
   }
 
   # check if every var is valid:
@@ -778,7 +785,6 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       # calculate the partial.rsq, add to the df_out:
       df_out <- df_out %>% dplyr::mutate("{changed.rsq.term.shortFormat}.partial.rsq" := (redModel.sse - model.sse)/redModel.sse )   # partialRsq <- (sse.red - sse.full) / sse.red
 
-      #browser()
       
       # remove column of redModel
       df_out <- df_out %>% subset(select = -c(redModel.adj.r.squared, 
