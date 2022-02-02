@@ -327,6 +327,14 @@ test_that("test that ModelArray.gam() works as expected", {
   
   # fx should only has one value; otherwise there will be a warning from mgcv::gam()
   
+  ## test: what included in vignette Rmd can run:
+  mygam_effectSize <- ModelArray.gam(FD ~s(age, k = 4, fx = TRUE) + sex, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
+                                     var.smoothTerms = c(), var.parametricTerms = c(), var.model = c("adj.r.squared"),  
+                                     changed.rsq.term.index = c(1),   # requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case
+                                     n_cores = 2, pbar = TRUE)
+  
+  
+  
   ## TODO:  Test that if there is NA in y, the partial.rsq won't be NA:  +++++++++++++++++++++++++==
   
   

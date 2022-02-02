@@ -140,7 +140,6 @@ mygam_pValueCorrect <- ModelArray.gam(formula, data = modelarray, phenotypes = p
 In addition, you can also request calculating effect size for a specific term, usually a smooth term. Effect size of a term is defined as  difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the requested term).
 ```{r}
 mygam_effectSize <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
-                          var.smoothTerms = c(), var.parametricTerms = c(), var.model = c("adj.r.squared"),  
                           changed.rsq.term.index = c(1),   # requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case
                         n_cores = 2, pbar = TRUE)
 

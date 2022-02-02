@@ -113,7 +113,7 @@
 <span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, 
                                scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FD"</span><span class="op">)</span><span class="op">)</span>  <span class="co"># if there is more than one metric, you can do: c("FD", "FDC")</span>
 <span class="va">modelarray</span> <span class="co"># check what's in it    </span>
-<span class="co">#&gt; ModelArray located at /tmp/RtmpvaKWmw/temp_libpathc8651f9c5f05/ModelArray/extdata/n50_fixels.h5</span>
+<span class="co">#&gt; ModelArray located at /tmp/RtmpvaKWmw/temp_libpathc8656ef69049/ModelArray/extdata/n50_fixels.h5</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt;   Source files:     50</span>
 <span class="co">#&gt;   Scalars:          FD</span>
@@ -404,7 +404,6 @@
 <p>In addition, you can also request calculating effect size for a specific term, usually a smooth term. Effect size of a term is defined as difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the requested term).</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">mygam_effectSize</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.gam.html">ModelArray.gam</a></span><span class="op">(</span><span class="va">formula</span>, data <span class="op">=</span> <span class="va">modelarray</span>, phenotypes <span class="op">=</span> <span class="va">phenotypes</span>, scalar <span class="op">=</span> <span class="st">"FD"</span>, element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>,
-                          var.smoothTerms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span>, var.parametricTerms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span>, var.model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"adj.r.squared"</span><span class="op">)</span>,  
                           changed.rsq.term.index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>,   <span class="co"># requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case</span>
                         n_cores <span class="op">=</span> <span class="fl">2</span>, pbar <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
 <span class="co">#&gt; <span style="color: #000000;">The formula requested: FD ~ s(age, k = 4, fx = TRUE) + sex</span> </span>
@@ -419,13 +418,27 @@
 <span class="co">#&gt; FD ~ sex</span>
 
 <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mygam_effectSize</span><span class="op">)</span>
-<span class="co">#&gt;   element_id model.adj.r.squared s_age.delta.adj.rsq s_age.partial.rsq</span>
-<span class="co">#&gt; 1          0          0.06030300         0.013547120        0.07582337</span>
-<span class="co">#&gt; 2          1          0.06955851         0.074849313        0.13230192</span>
-<span class="co">#&gt; 3          2         -0.01092625         0.008018731        0.06987779</span>
-<span class="co">#&gt; 4          3         -0.01226612        -0.011136655        0.05207116</span>
-<span class="co">#&gt; 5          4          0.06031855         0.069442111        0.12701339</span>
-<span class="co">#&gt; 6          5          0.04710121         0.055374767        0.11398786</span></code></pre></div>
+<span class="co">#&gt;   element_id s_age.statistic s_age.p.value Intercept.estimate sexM.estimate</span>
+<span class="co">#&gt; 1          0       1.2306636    0.30963383           68.99361     36.640118</span>
+<span class="co">#&gt; 2          1       2.2871191    0.09143477         1065.70220    -35.661635</span>
+<span class="co">#&gt; 3          2       1.1269130    0.34827816           74.01208     -8.730507</span>
+<span class="co">#&gt; 4          3       0.8239727    0.48756050           62.10926     14.615306</span>
+<span class="co">#&gt; 5          4       2.1823941    0.10321419           89.36170    -15.023467</span>
+<span class="co">#&gt; 6          5       1.9297905    0.13831264         1086.74460     -9.190355</span>
+<span class="co">#&gt;   Intercept.statistic sexM.statistic Intercept.p.value sexM.p.value</span>
+<span class="co">#&gt; 1            5.726418      2.1235803      7.940891e-07   0.03923706</span>
+<span class="co">#&gt; 2           61.504732     -1.4371812      4.531281e-45   0.15758379</span>
+<span class="co">#&gt; 3            5.292183     -0.4359225      3.457228e-06   0.66497706</span>
+<span class="co">#&gt; 4            5.870646      0.9646617      4.856860e-07   0.33986996</span>
+<span class="co">#&gt; 5            7.777202     -0.9130189      7.287228e-10   0.36609851</span>
+<span class="co">#&gt; 6           66.163570     -0.3907161      1.756068e-46   0.69785074</span>
+<span class="co">#&gt;   model.dev.expl s_age.delta.adj.rsq s_age.partial.rsq</span>
+<span class="co">#&gt; 1     0.13701296         0.013547120        0.07582337</span>
+<span class="co">#&gt; 2     0.14551292         0.074849313        0.13230192</span>
+<span class="co">#&gt; 3     0.07159834         0.008018731        0.06987779</span>
+<span class="co">#&gt; 4     0.07036785        -0.011136655        0.05207116</span>
+<span class="co">#&gt; 5     0.13702724         0.069442111        0.12701339</span>
+<span class="co">#&gt; 6     0.12488886         0.055374767        0.11398786</span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="write-the-results">Write the results<a class="anchor" aria-label="anchor" href="#write-the-results"></a>
