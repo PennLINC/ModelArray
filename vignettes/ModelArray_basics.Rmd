@@ -114,7 +114,7 @@ mygam <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, sca
                         n_cores = 2, pbar = TRUE)
 head(mygam)
 ```
-You can also set `full.outputs=TRUE` to request all statistics (except p.value corrections or effect size - see below for more). 
+You can also set `full.outputs=TRUE` to request all statistics (except p.value corrections or partial R-squared or delta adjusted R-squared - see below for more). 
 
 Or you can specify the specific statistic terms you are interested in by assigning the values of `var.smoothTerms`, `var.parametricTerms`, and `var.model`:
 ```{r}
@@ -137,14 +137,16 @@ mygam_pValueCorrect <- ModelArray.gam(formula, data = modelarray, phenotypes = p
 
 ```
 
-In addition, you can also request calculating effect size for a specific term, usually a smooth term. Effect size of a term is defined as  difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the requested term).
+In addition, you can also request quantification of how important a specific term is in the model. Usually the term of interest is a smooth term. To quantify, two metrics are provided and run: delta adjusted R-squared (delta.adj.rsq) and partial R-squared (partial.rsq). See `help(ModelArray.gam)` for detailed descriptions. Please use `changed.rsq.term.index` to turn on the quantification. Notice that because both metrics involve running the reduced model (formula without the term of interest), run time would be longer. 
 ```{r}
-mygam_effectSize <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
-                          changed.rsq.term.index = c(1),   # requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case
+mygam_changedRsq <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
+                          changed.rsq.term.index = c(1),   # requesting the 1st term on right hand side of formula, i.e. s(age) in this case
                         n_cores = 2, pbar = TRUE)
 
-head(mygam_effectSize)
+head(mygam_changedRsq)
 ```
+Now we got columns ofs `s_age.delta.adj.rsq` and `s_age.partial.rsq`, the quantifications for `s(age)`.
+
 
 ### Write the results 
 Finally, you can write the results (data frame of statistics) back into the .h5 file. 

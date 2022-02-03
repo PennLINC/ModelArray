@@ -113,7 +113,7 @@
 <span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, 
                                scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FD"</span><span class="op">)</span><span class="op">)</span>  <span class="co"># if there is more than one metric, you can do: c("FD", "FDC")</span>
 <span class="va">modelarray</span> <span class="co"># check what's in it    </span>
-<span class="co">#&gt; ModelArray located at /tmp/RtmpvaKWmw/temp_libpathc8656ef69049/ModelArray/extdata/n50_fixels.h5</span>
+<span class="co">#&gt; ModelArray located at /tmp/RtmpxGe3sF/temp_libpath15ab337091a4/ModelArray/extdata/n50_fixels.h5</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt;   Source files:     50</span>
 <span class="co">#&gt;   Scalars:          FD</span>
@@ -358,7 +358,7 @@
 <span class="co">#&gt; 4     0.07036785</span>
 <span class="co">#&gt; 5     0.13702724</span>
 <span class="co">#&gt; 6     0.12488886</span></code></pre></div>
-<p>You can also set <code>full.outputs=TRUE</code> to request all statistics (except p.value corrections or effect size - see below for more).</p>
+<p>You can also set <code>full.outputs=TRUE</code> to request all statistics (except p.value corrections or partial R-squared or delta adjusted R-squared - see below for more).</p>
 <p>Or you can specify the specific statistic terms you are interested in by assigning the values of <code>var.smoothTerms</code>, <code>var.parametricTerms</code>, and <code>var.model</code>:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">mygam_specific</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.gam.html">ModelArray.gam</a></span><span class="op">(</span><span class="va">formula</span>, data <span class="op">=</span> <span class="va">modelarray</span>, phenotypes <span class="op">=</span> <span class="va">phenotypes</span>, scalar <span class="op">=</span> <span class="st">"FD"</span>, element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>,
@@ -401,10 +401,10 @@
 <span class="co">#&gt; Fitting element-wise GAMs for FD</span>
 <span class="co">#&gt; initiating....</span>
 <span class="co">#&gt; looping across elements....</span></code></pre></div>
-<p>In addition, you can also request calculating effect size for a specific term, usually a smooth term. Effect size of a term is defined as difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the requested term).</p>
+<p>In addition, you can also request quantification of how important a specific term is in the model. Usually the term of interest is a smooth term. To quantify, two metrics are provided and run: delta adjusted R-squared (delta.adj.rsq) and partial R-squared (partial.rsq). See <code><a href="../reference/ModelArray.gam.html">help(ModelArray.gam)</a></code> for detailed descriptions. Please use <code>changed.rsq.term.index</code> to turn on the quantification. Notice that because both metrics involve running the reduced model (formula without the term of interest), run time would be longer.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mygam_effectSize</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.gam.html">ModelArray.gam</a></span><span class="op">(</span><span class="va">formula</span>, data <span class="op">=</span> <span class="va">modelarray</span>, phenotypes <span class="op">=</span> <span class="va">phenotypes</span>, scalar <span class="op">=</span> <span class="st">"FD"</span>, element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>,
-                          changed.rsq.term.index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>,   <span class="co"># requesting effect size for the 1st term on right hand side of formula, i.e. s(age) in this case</span>
+<code class="sourceCode R"><span class="va">mygam_changedRsq</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.gam.html">ModelArray.gam</a></span><span class="op">(</span><span class="va">formula</span>, data <span class="op">=</span> <span class="va">modelarray</span>, phenotypes <span class="op">=</span> <span class="va">phenotypes</span>, scalar <span class="op">=</span> <span class="st">"FD"</span>, element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>,
+                          changed.rsq.term.index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>,   <span class="co"># requesting the 1st term on right hand side of formula, i.e. s(age) in this case</span>
                         n_cores <span class="op">=</span> <span class="fl">2</span>, pbar <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
 <span class="co">#&gt; <span style="color: #000000;">The formula requested: FD ~ s(age, k = 4, fx = TRUE) + sex</span> </span>
 <span class="co">#&gt; <span style="color: #000000;">s(age):   k = 4;   fx = TRUE;   bs = tp (default)</span></span>
@@ -417,7 +417,7 @@
 <span class="co">#&gt; * Getting changed R-squared for term: s(age, k = 4, fx = TRUE) via reduced model as below; will show up as s_age in final dataframe</span>
 <span class="co">#&gt; FD ~ sex</span>
 
-<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mygam_effectSize</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mygam_changedRsq</span><span class="op">)</span>
 <span class="co">#&gt;   element_id s_age.statistic s_age.p.value Intercept.estimate sexM.estimate</span>
 <span class="co">#&gt; 1          0       1.2306636    0.30963383           68.99361     36.640118</span>
 <span class="co">#&gt; 2          1       2.2871191    0.09143477         1065.70220    -35.661635</span>
@@ -439,6 +439,7 @@
 <span class="co">#&gt; 4     0.07036785        -0.011136655        0.05207116</span>
 <span class="co">#&gt; 5     0.13702724         0.069442111        0.12701339</span>
 <span class="co">#&gt; 6     0.12488886         0.055374767        0.11398786</span></code></pre></div>
+<p>Now we got columns ofs <code>s_age.delta.adj.rsq</code> and <code>s_age.partial.rsq</code>, the quantifications for <code>s(age)</code>.</p>
 </div>
 <div class="section level3">
 <h3 id="write-the-results">Write the results<a class="anchor" aria-label="anchor" href="#write-the-results"></a>

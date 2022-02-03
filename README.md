@@ -56,7 +56,7 @@ We provide a quick start guide
 [here](https://pennlinc.github.io/ModelArray/articles/ModelArray_basics.html).  
 For documentations of functions, you can either refer to [this
 webpage](https://pennlinc.github.io/ModelArray/reference/index.html); Or
-in R Studio console: `?<function_name>`. For example:
-`?ModelArray.lm()`  
+in R console: `help(<function_name>)`. For example:
+`help(ModelArray.lm)`  
 For users who are not familiar with R, you may check out [this
 webpage](https://pennlinc.github.io/ModelArray/articles/basic_r_intro.html).

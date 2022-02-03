@@ -342,11 +342,11 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' Run GAM for element-wise data
 #' 
 #' @description 
-#' `ModelArray.gam` fits gam model for each of elements requested, and returns a tibble dataframe of requested model statistics.
+#' `ModelArray.gam` fits gam model for each of elements requested, and returns a tibble data.frame of requested model statistics.
 #' 
 #' @details 
 #' You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
-#' Note that statistics covered by \code{full.outputs} or \code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only, and do not include effect size or corrected p values.
+#' Note that statistics covered by \code{full.outputs} or \code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only, and do not include delta adjusted R-squared or partial R-squared or corrected p values.
 #' List of acceptable statistic names for each of \code{var.*}:
 #' \itemize{
 #'  \item \code{var.smoothTerms}: c("edf","ref.df","statistic","p.value"); For interpretation please see `broom::tidy(parametric=FALSE)`.
@@ -362,12 +362,17 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #'       \item Formula #2: \code{y ~ ti(x) + ti(z) + ti(x,z) + other_covariate}, where \code{x} and \code{z} should be continuous variables. The interaction term will be displayed as "ti_x_z" in the column name in the returned data.frame. You may use function `generator_gamFormula_continuousInteraction()` to generate one.
 #'   }
 #' }
-#' Effect size is calculated by the difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the term requested)
+#' You may be interested in how important a term is in a model. We provide two ways of quantification (see below). Both of them require running the reduced model without this term of interest, thus it will take longer time to run. You can make such request via argument \code{changed.rsq.term.index}, and you'll get both quantifications.
 #' \itemize{
-#'   \item When requesting effect size, \code{fx} should be set as \code{TRUE}, so that degree of freedom is fixed.
-#'   \item For formula with interactions, only formula in above formats are tested, and only effect size for interaction term is validated. The effect size for main effect (such as s(x) in Formula #1) may not "functionally" be its effect size, as the definition should be changed to reduced formula without both main effect and interaction term.
+#'   \item Delta adjusted R-squared (delta.adj.rsq) is defined as the difference between adjusted R-squared of full model (full formula in \code{formula}) and that of reduced model (formula without the term of interest). Notice that adjusted R-squared includes the penalty from the model complexity.
+#'   \item Partial R-squared (partial.rsq) is defined as: (sse.reduced.model - sse.full.model) / sse.reduced.model, where sse is the error sum of squares (or, residual sum of squares). It quantifies the amount of variance in the response variable that cannot be explained by the reduced model (model without term of interest), but can be explained by the term of interest in the full model.
 #' }
-#' For p-value corrections (arguments \code{correct.p.value.*}), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
+#' Other notes on \code{changed.rsq.term.index}:  
+#' \itemize{
+#'   \item When requesting \code{changed.rsq.term.index}, \code{fx} should be set as \code{TRUE}, so that degree of freedom is fixed.
+#'   \item For formula with interactions, only formula in above formats are tested, and only the values of interaction term are valid. The delta.adj.rsq and partial.rsq for main effect (such as s(x) in Formula #1) may not "functionally" be these metrics, as their definitions should be changed to reduced formula without both main effect and interaction term.
+#' }
+#' For p-value corrections (arguments \code{correct.p.value.*}), supported methods include all methods in `p.adjust.methods` except "none". You can request more than one method. Turn it off by setting to "none".
 #' Please notice that different from `ModelArray.lm`, there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model.
 #' @param formula Formula (passed to `mgcv::gam()`)
 #' @param data ModelArray class
@@ -378,7 +383,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @param var.smoothTerms A list of characters. The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.
 #' @param var.parametricTerms A list of characters. The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()` and `summary()`). See "Details" section for more.
-#' @param changed.rsq.term.index A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.
+#' @param changed.rsq.term.index A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for changed R-squared between with and without it. Both delta adjusted R-squared and partial R-squared will be calculated for each of term requested. Usually term of interest is smooth term, or interaction term in models with interactions.
 #' @param correct.p.value.smoothTerms A list of characters. To perform and add a column for p.value correction for each smooth term. See "Details" section for more.
 #' @param correct.p.value.parametricTerms A list of characters. To perform and add a column for p.value correction for each parametric term. See "Details" section for more.
 #' @param verbose TRUE or FALSE, to print verbose messages or not
