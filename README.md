@@ -59,4 +59,7 @@ webpage](https://pennlinc.github.io/ModelArray/reference/index.html); Or
 in R console: `help(<function_name>)`. For example:
 `help(ModelArray.lm)`  
 For users who are not familiar with R, you may check out [this
-webpage](https://pennlinc.github.io/ModelArray/articles/basic_r_intro.html).
+webpage](https://pennlinc.github.io/ModelArray/articles/basic_r_intro.html).  
+For developers who hope to contribute to our package, you may check out
+this [documentation for
+developers](https://pennlinc.github.io/ModelArray/articles/doc_for_developer.html).

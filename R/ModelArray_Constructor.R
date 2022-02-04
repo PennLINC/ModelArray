@@ -3,9 +3,9 @@
 ### setClass of "ModelArray" #####
 #' An S4 class to represent element-wise scalar data and statistics.
 #'
-#' @slot results An h5 group of ModelArray analysis outputs
 #' @slot sources A list of source filenames
-#' @slot scalars A list of element-wise scalars
+#' @slot scalars A list of element-wise scalar matrix
+#' @slot results A list of statistical result matrix
 #' @slot path Path to the h5 file on disk
 #' @importClassesFrom DelayedArray DelayedArray
 ModelArray <- setClass(

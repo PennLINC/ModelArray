@@ -31,11 +31,11 @@ if you run into this error: "Error in h(simpleError(msg, call)) : error in evalu
 \section{Slots}{
 
 \describe{
-\item{\code{results}}{An h5 group of ModelArray analysis outputs}
-
 \item{\code{sources}}{A list of source filenames}
 
-\item{\code{scalars}}{A list of element-wise scalars}
+\item{\code{scalars}}{A list of element-wise scalar matrix}
+
+\item{\code{results}}{A list of statistical result matrix}
 
 \item{\code{path}}{Path to the h5 file on disk}
 }}
