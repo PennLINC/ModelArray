@@ -1,0 +1,109 @@
+---
+title: "Developer documentation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Developer documentation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+library(ModelArray)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+Target audience: developers, anyone who hopes to contribute to `ModelArray` to enhance functionality, fix bugs, or tailor for a specific usage. 
+
+In this documentation, we walk through important methods used in `ModelArray` package, and the structure of the package and its functions.
+
+If you hope to improve functions or fix a bug in our package, please follow the following steps:
+
+* fork the [github repository](https://github.com/PennLINC/ModelArray)
+* modify the scripts
+* update the tests and/or add necessary new tests (see folder `test`)
+* to test the package and related documentations and websites can be built: run `devtools::check()`, `devtools::build()`, `devtools::build_vignettes()`, and finally `pkgdown::build_site()`. Please check whether there is no error along the process, and the final built sites look good.
+* if everything looks good, please submit a pull request to our github repository.
+
+## Overview
+
+`ModelArray` R package supports data in HDF5 (.h5) file format. It utilizes DelayedArray, HDF5Array, etc R packages, so that statistical analysis can be performed without loading original data in HDF5 file into memory. This makes `ModelArray` very efficient in memory usage. For details, please see section "ModelArray Construction" below. \
+
+Methods for showing and accessing `ModelArray` object are basic. Please see section "Show and accessors methods of ModelArray class" for more.
+
+The key function of `ModelArray` package is to perform statistical analysis. For details, please see section "Model fitting" below. \
+
+Finally, the rest sections describe other important aspects, such as how to save statistical results to .hdf5 file on disk, deal with missing value, etc.
+
+## `ModelArray` Construction
+We first define a class called `ModelArray` using `setClass()`. An `ModelArray` object (i.e. an instance of `ModelArray` class) has several slots:
+
+* sources: source filenames
+* scalars: scalar matrix
+* results: statistical results
+
+The key feature of an `ModelArray` object is memory efficient, only taking about a couple of KB of memory. This is because the entire dataset in .hdf5 file was not loaded into the memory; only minimal information was loaded. To achieve this, we need `ModelArraySeed()`, which utilizes `HDF5Array::HDF5ArraySeed()`, acting as a pointer to the .hdf5 file on disk. 
+
+To make the arrays in the `ModelArray` object look more like "real" arrays, e.g. common array operations such as transpose can be applied, we utilize package `DelayedArray`. This is done in the `ModelArray()` function.
+
+Above functions and setups can be found in script `R/ModelArray_Constructor.R`
+
+## Show and accessors methods of `ModelArray` class
+To easily show and access an `ModelArray` object, we adopt S4 methods. 
+
+We actually are using such S4 methods frequently. For example, when showing the (summarized) content of an object, we simply enter its name in R console and press "enter". It means to use the generic `show()` method. As for showing an `ModelArray` object, we adopt the same way. As `show()` has already been a generic function, we only need to `setMethod()` for its setup.
+
+For accessors, such as accessing `ModelArray` class's:
+
+* source file information `sources()`
+* scalar matrix `scalars()`
+* statistical results (if any) `results()`
+
+We use `setMethod()` to define above methods. Unlike `show()`, these accessors are not generic yet, so developers should do additional step of `setGeneric()`.
+
+All of these show and accessors setups can be found in script `R/ModelArray_S4Methods.R`.
+
+
+## Model fitting
+Functions such as `ModelArray.lm()` and `ModelArray.gam()` are for model fitting. They are the interfaces with the user. Under the hood, these functions iteratively call `analyseOneElement.lm()` and `analyseOneElement.gam()` for fitting for one element, respectively. This also facilitates the parallel computing across all elements requested.  
+The general structure for model fitting in `ModelArray` is as below: 
+
+* Some sanity checks of arguments
+* Print out some important methods for model fitting, such as `method` in `mgcv::gam()`
+* Fit statistical models:
+  * First, initialize: run `analyseOneElement.<model_name>()` once to get the column names of the statistics in the output statistics; usually using the first element;
+  * Then, iteratively call `analyseOneElement.<model_name>()` across all elements requested (can be parallelized); within function `analyseOneElement.<model_name>()`:
+    * Fit the model for this element;
+    * Get necessary statistics via `broom::tidy()`, `broom::glance()`, and/or `summary()`. 
+    * Flatten the results into one row of data.frame for this element; add element ids; remove the column names (it's a list of numeric now) to save a bit more memory
+    * Return this result of this element
+  * Concatenate results of all requested elements, and add the column names; now we get the final result data.frame
+* If p-value correction (for terms and/or model) is requested:
+  * For each p-value correction method, apply it and add to the result data.frame
+* Return the result data.frame
+
+For `ModelArray.gam()`, there is additional step after one round of iteration:
+
+* If `changed.rsq.term.index` is not `NULL`, i.e. there is request of quantifying one (or more terms)'s importance in the model (i.e. metrics delta adjusted R-squared and partial R-squared), we need to compute the reduced model (formula without the term of interest):
+  * For each requested term of interest:
+    * Iteratively call `analyseOneElement.<model_name>()` but with reduced formula
+    * Get necessary statistics
+    * Compute delta adjusted R-squared and partial R-squared; add them to the previously got data.frame
+  
+Therefore, there could be two or more rounds of iterations on model fitting in `ModelArray.gam()`, depending on number of terms the user requested in `changed.rsq.term.index`.
+
+Functions above can be found in scripts `R/analyse.R` and `R/ModelArray_Constructor.R`.
+
+
+## Saving statistical results to .hdf5 file on disk
+After getting the data.frame of statistical results, we will flush it into the .hdf5 file on disk. The function is `writeResults()` located in script `R/ModelArray_Constructor.R`
+
+
+## Dealing with missing values
+### Missing values in `phenotypes` data.frame
+TODO
+
+### Missing values in `ModelArray` scalar data
+TODO

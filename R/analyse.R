@@ -173,6 +173,13 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   # check on validity of list of vars:
   var.terms <- var.terms[!duplicated(var.terms)]  # remove duplicated element(s)
   var.model <- var.model[!duplicated(var.model)]
+
+  # check if all var.* are empty:
+  if (length(var.terms)==0 & length(var.model) ==0) {
+    stop("All var.* arguments [var.terms, var.model] are empty!")
+  }
+
+  # check if every var is valid:
   for (var in var.terms) {
     if (!(var %in% var.terms.full)) {
       stop(paste0(var, " is not valid for var.terms!"))
@@ -335,11 +342,11 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' Run GAM for element-wise data
 #' 
 #' @description 
-#' `ModelArray.gam` fits gam model for each of elements requested, and returns a tibble dataframe of requested model statistics.
+#' `ModelArray.gam` fits gam model for each of elements requested, and returns a tibble data.frame of requested model statistics.
 #' 
 #' @details 
 #' You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}. 
-#' Note that statistics covered by \code{full.outputs} or \code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only, and do not include effect size or corrected p values.
+#' Note that statistics covered by \code{full.outputs} or \code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only, and do not include delta adjusted R-squared or partial R-squared or corrected p values.
 #' List of acceptable statistic names for each of \code{var.*}:
 #' \itemize{
 #'  \item \code{var.smoothTerms}: c("edf","ref.df","statistic","p.value"); For interpretation please see `broom::tidy(parametric=FALSE)`.
@@ -355,12 +362,17 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #'       \item Formula #2: \code{y ~ ti(x) + ti(z) + ti(x,z) + other_covariate}, where \code{x} and \code{z} should be continuous variables. The interaction term will be displayed as "ti_x_z" in the column name in the returned data.frame. You may use function `generator_gamFormula_continuousInteraction()` to generate one.
 #'   }
 #' }
-#' Effect size is calculated by the difference between adjusted R squared of full model (formula requested) and that of reduced model (formula without the term requested)
+#' You may be interested in how important a term is in a model. We provide two ways of quantification (see below). Both of them require running the reduced model without this term of interest, thus it will take longer time to run. You can make such request via argument \code{changed.rsq.term.index}, and you'll get both quantifications.
 #' \itemize{
-#'   \item When requesting effect size, \code{fx} should be set as \code{TRUE}, so that degree of freedom is fixed.
-#'   \item For formula with interactions, only formula in above formats are tested, and only effect size for interaction term is validated. The effect size for main effect (such as s(x) in Formula #1) may not "functionally" be its effect size, as the definition should be changed to reduced formula without both main effect and interaction term.
+#'   \item Delta adjusted R-squared (delta.adj.rsq) is defined as the difference between adjusted R-squared of full model (full formula in \code{formula}) and that of reduced model (formula without the term of interest). Notice that adjusted R-squared includes the penalty from the model complexity.
+#'   \item Partial R-squared (partial.rsq) is defined as: (sse.reduced.model - sse.full.model) / sse.reduced.model, where sse is the error sum of squares (or, residual sum of squares). It quantifies the amount of variance in the response variable that cannot be explained by the reduced model (model without term of interest), but can be explained by the term of interest in the full model.
 #' }
-#' For p-value corrections (arguments \code{correct.p.value.*}), supported methods include all methods in `p.adjust.methods` except "none". Can be more than one method. Turn it off by setting to "none".
+#' Other notes on \code{changed.rsq.term.index}:  
+#' \itemize{
+#'   \item When requesting \code{changed.rsq.term.index}, \code{fx} should be set as \code{TRUE}, so that degree of freedom is fixed.
+#'   \item For formula with interactions, only formula in above formats are tested, and only the values of interaction term are valid. The delta.adj.rsq and partial.rsq for main effect (such as s(x) in Formula #1) may not "functionally" be these metrics, as their definitions should be changed to reduced formula without both main effect and interaction term.
+#' }
+#' For p-value corrections (arguments \code{correct.p.value.*}), supported methods include all methods in `p.adjust.methods` except "none". You can request more than one method. Turn it off by setting to "none".
 #' Please notice that different from `ModelArray.lm`, there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model.
 #' @param formula Formula (passed to `mgcv::gam()`)
 #' @param data ModelArray class
@@ -371,7 +383,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @param var.smoothTerms A list of characters. The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.
 #' @param var.parametricTerms A list of characters. The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()` and `summary()`). See "Details" section for more.
-#' @param eff.size.term.index A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for effect size. Effect size will be calculated for each of term requested. Positive integer or integer list. Usually term of interest is smooth term, or interaction term in models with interactions.
+#' @param changed.rsq.term.index A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for changed R-squared between with and without it. Both delta adjusted R-squared and partial R-squared will be calculated for each of term requested. Usually term of interest is smooth term, or interaction term in models with interactions.
 #' @param correct.p.value.smoothTerms A list of characters. To perform and add a column for p.value correction for each smooth term. See "Details" section for more.
 #' @param correct.p.value.parametricTerms A list of characters. To perform and add a column for p.value correction for each parametric term. See "Details" section for more.
 #' @param verbose TRUE or FALSE, to print verbose messages or not
@@ -392,7 +404,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                               var.smoothTerms = c("statistic","p.value"),
                               var.parametricTerms = c("estimate", "statistic", "p.value"),
                               var.model = c("dev.expl"), 
-                              eff.size.term.index = NULL,
+                              changed.rsq.term.index = NULL,
                               correct.p.value.smoothTerms = "none", correct.p.value.parametricTerms = "none",
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...){
   # data type assertions
@@ -519,9 +531,9 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   var.parametricTerms <- var.parametricTerms[!duplicated(var.parametricTerms)]
   var.model <- var.model[!duplicated(var.model)]
   
-  # check if all var* are empty:
+  # check if all var.* are empty:
   if (length(var.smoothTerms)==0 & length(var.parametricTerms) ==0 & length(var.model) == 0) {
-    stop("All var* [var.smoothTerms, var.parametricTerms, var.model] are empty!")
+    stop("All var.* arguments [var.smoothTerms, var.parametricTerms, var.model] are empty!")
   }
 
   # check if every var is valid:
@@ -543,29 +555,35 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
 
   var.model.orig <- var.model
-  if (!is.null(eff.size.term.index)) {    # eff.size is not null --> requested
+  if (!is.null(changed.rsq.term.index)) {    # changed.rsq is not null --> requested
 
     # check if the term index is valid:
-    if (min(eff.size.term.index)<=0) {# any of not positive | can't really check if it's integer as is.integer(1) is FALSE...
-      stop(paste0("There is element(s) in eff.size.term.index <= 0. It should be a (list of) positive integer!"))
+    if (min(changed.rsq.term.index)<=0) {# any of not positive | can't really check if it's integer as is.integer(1) is FALSE...
+      stop(paste0("There is element(s) in changed.rsq.term.index <= 0. It should be a (list of) positive integer!"))
     }
 
     terms.full.formula <- stats::terms(formula, keep.order = TRUE)   # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
-    if (max(eff.size.term.index) > length(labels(terms.full.formula))) {  # if max is more than the number of terms on RHS of formula
-      stop(paste0("Largest index in eff.size.term.index is more than the term number on the right hand side of formula!"))
+    if (max(changed.rsq.term.index) > length(labels(terms.full.formula))) {  # if max is more than the number of terms on RHS of formula
+      stop(paste0("Largest index in changed.rsq.term.index is more than the term number on the right hand side of formula!"))
     }
     
     # check how many variables on RHS; if no (but intercept, i.e. xx ~ 1), stop
     if (length(labels(terms.full.formula)) ==0) {
-      stop(paste0("To analyze effect size but there is no variable (except intercept 1) on right hand side of formula! Please provide at least one valid variable."))
+      stop(paste0("To analyze changed.rsq but there is no variable (except intercept 1) on right hand side of formula! Please provide at least one valid variable."))
     }
     
     # print warning:
-    message("will get effect size (eff.size) so the execution time will be longer.")
+    message("will get changed R-squared (delta.adj.rsq and partial.rsq) so the execution time will be longer.")
     # add adj.r.squared into var.model
     if (!("adj.r.squared" %in% var.model)) {
       var.model <- c(var.model, "adj.r.squared")
     }
+    
+    # also should return model.sse (for both full and reduced model):
+    flag_sse = TRUE
+    
+  } else {   # changed.rsq is null --> not requested
+    flag_sse = FALSE  # no need to calculate sse for the model
   }
 
   ### check on arguments: p-values correction methods
@@ -587,7 +605,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   # initiate: get the example of one element and get the column names
   outputs_initiator <- analyseOneElement.gam(i_element=1, formula, data, phenotypes, scalar,
                                           var.smoothTerms, var.parametricTerms, var.model,
-                                          flag_initiate = TRUE,
+                                          flag_initiate = TRUE, flag_sse = flag_sse,
                                           ...)
   column_names <- outputs_initiator$column_names
   list.smoothTerms = outputs_initiator$list.smoothTerms
@@ -609,7 +627,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                     mc.cores = n_cores,
                                     formula, data, phenotypes, scalar,
                                     var.smoothTerms, var.parametricTerms, var.model,
-                                    flag_initiate = FALSE,
+                                    flag_initiate = FALSE, flag_sse = flag_sse,
                                     ...)
       
     } else {
@@ -621,7 +639,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                  mc.cores = n_cores,
                                  formula, data, phenotypes, scalar,
                                  var.smoothTerms, var.parametricTerms, var.model,
-                                 flag_initiate = FALSE,
+                                 flag_initiate = FALSE, flag_sse = flag_sse,
                                  ...)
       
     }
@@ -633,7 +651,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                 analyseOneElement.gam,  # the function
                                 formula, data, phenotypes, scalar,
                                 var.smoothTerms, var.parametricTerms, var.model,
-                                flag_initiate = FALSE,
+                                flag_initiate = FALSE, flag_sse = flag_sse,
                                 ...)
       
     } else {
@@ -642,7 +660,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                      analyseOneElement.gam,  # the function
                      formula, data, phenotypes, scalar,
                      var.smoothTerms, var.parametricTerms, var.model,
-                     flag_initiate = FALSE,
+                     flag_initiate = FALSE, flag_sse = flag_sse,
                      ...)
     }
   }  
@@ -654,22 +672,22 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   
 
 
-  ### get the effect size for smooth terms:
-  if (!is.null(eff.size.term.index)) {   # if eff.size is requested
-    message("Getting the effect size: running the reduced model...")
+  ### get the changed.rsq for smooth terms:
+  if (!is.null(changed.rsq.term.index)) {   # if changed.rsq is requested
+    message("Getting changed R-squared: running the reduced model...")
   
-    # list of term of interest for eff.size:
-    eff.size.term.fullFormat.list <- labels(terms.full.formula)[eff.size.term.index]  # the term for effect size, in full format
+    # list of term of interest for changed.rsq:
+    changed.rsq.term.fullFormat.list <- labels(terms.full.formula)[changed.rsq.term.index]  # the term for changed.rsq, in full format
     # get the short version:
-    eff.size.term.shortFormat.list <- list()
-    for (eff.size.term.fullFormat in eff.size.term.fullFormat.list) {
-      temp <- strsplit(eff.size.term.fullFormat, "[(]")[[1]]
+    changed.rsq.term.shortFormat.list <- list()
+    for (changed.rsq.term.fullFormat in changed.rsq.term.fullFormat.list) {
+      temp <- strsplit(changed.rsq.term.fullFormat, "[(]")[[1]]
       if (length(temp) == 1) {  # it's not a smooth term - as there is no ()
-        str_valid <- eff.size.term.fullFormat
+        str_valid <- changed.rsq.term.fullFormat
       } else {
         smooth.class <- temp[1]
         
-        theEval <- eval(parse(text = eff.size.term.fullFormat))
+        theEval <- eval(parse(text = changed.rsq.term.fullFormat))
         str_valid <- paste0(smooth.class, "_",
                             paste(theEval$term, collapse = "_"))  # ti(x,z) --> ti_x_z; s(x) --> s_x
         if (theEval$by != "NA") {
@@ -677,15 +695,15 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
         }
       }
       
-      eff.size.term.shortFormat <- str_valid  
-      eff.size.term.shortFormat.list <- append(eff.size.term.shortFormat.list, eff.size.term.shortFormat)
+      changed.rsq.term.shortFormat <- str_valid  
+      changed.rsq.term.shortFormat.list <- append(changed.rsq.term.shortFormat.list, changed.rsq.term.shortFormat)
     }
     
-    # loop of each eff.size.term.index (i.e. each term of interest)
-    for (i.eff.size.term in 1:length(eff.size.term.fullFormat.list)) {
-      idx.eff.size.term <- eff.size.term.index[i.eff.size.term]   # index
-      eff.size.term.fullFormat <- eff.size.term.fullFormat.list[i.eff.size.term]
-      eff.size.term.shortFormat <- eff.size.term.shortFormat.list[[i.eff.size.term]][1]   # it's nested
+    # loop of each changed.rsq.term.index (i.e. each term of interest)
+    for (i.changed.rsq.term in 1:length(changed.rsq.term.fullFormat.list)) {
+      idx.changed.rsq.term <- changed.rsq.term.index[i.changed.rsq.term]   # index
+      changed.rsq.term.fullFormat <- changed.rsq.term.fullFormat.list[i.changed.rsq.term]
+      changed.rsq.term.shortFormat <- changed.rsq.term.shortFormat.list[[i.changed.rsq.term]][1]   # it's nested
       
       # get the formula of reduced model
         # check if there is only one term (after removing it in reduced model, there is no term but intercept in the formula...)
@@ -693,17 +711,17 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
         temp <- toString(formula) %>% strsplit("[, ]")  
         reduced.formula <- stats::as.formula(paste0(temp[[1]][3], "~1"))
       } else {
-        reduced.formula <- formula(stats::drop.terms(terms.full.formula, idx.eff.size.term, keep.response = TRUE))  # index on RHS of formula -> change to class of formula (stats::as.formula does not work)
+        reduced.formula <- formula(stats::drop.terms(terms.full.formula, idx.changed.rsq.term, keep.response = TRUE))  # index on RHS of formula -> change to class of formula (stats::as.formula does not work)
       }
       
-      message(paste0("* Getting effect size for term: ", eff.size.term.fullFormat, " via reduced model as below","; will show up as ", eff.size.term.shortFormat, " in final dataframe"))   # NOTES: it would be great to figure out how to paste and print formula without format changed. May try out stringf?
+      message(paste0("* Getting changed R-squared for term: ", changed.rsq.term.fullFormat, " via reduced model as below","; will show up as ", changed.rsq.term.shortFormat, " in final dataframe"))   # NOTES: it would be great to figure out how to paste and print formula without format changed. May try out stringf?
       print(reduced.formula)
 
       # var* for reduced model: only adjusted r sq is enough
       # initiate:
       reduced.model.outputs_initiator <- analyseOneElement.gam(i_element=1, reduced.formula, data, phenotypes, scalar,
                                             var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                                            flag_initiate = TRUE,
+                                            flag_initiate = TRUE, flag_sse=TRUE,  # also to get model.sse
                                             ...)
       reduced.model.column_names <- reduced.model.outputs_initiator$column_names
   
@@ -717,7 +735,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                         mc.cores = n_cores,
                                         reduced.formula, data, phenotypes, scalar,
                                         var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                                        flag_initiate = FALSE,
+                                        flag_initiate = FALSE, flag_sse=TRUE,  # also to get model.sse
                                         ...)
           
         } else {
@@ -729,7 +747,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                      mc.cores = n_cores,
                                      reduced.formula, data, phenotypes, scalar,
                                      var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                                     flag_initiate = FALSE,
+                                     flag_initiate = FALSE, flag_sse=TRUE,  # also to get model.sse
                                      ...)
           
         }
@@ -741,7 +759,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                     analyseOneElement.gam,  # the function
                                     reduced.formula, data, phenotypes, scalar,
                                     var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                                    flag_initiate = FALSE,
+                                    flag_initiate = FALSE, flag_sse=TRUE,  # also to get model.sse
                                     ...)
           
         } else {
@@ -750,7 +768,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                          analyseOneElement.gam,  # the function
                          reduced.formula, data, phenotypes, scalar,
                          var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
-                         flag_initiate = FALSE,
+                         flag_initiate = FALSE, flag_sse=TRUE,  # also to get model.sse
                          ...)
         }
       }  # end of loop for calculating reduced model across elements
@@ -761,16 +779,23 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       
       # rename "adj.r.squared" as "redModel.adj.r.squared" before merging into df_out
       names(reduced.model.df_out)[names(reduced.model.df_out) == 'model.adj.r.squared'] <- "redModel.adj.r.squared"
+      # rename "model.sse" as "redModel.sse" before merging into df_out
+      names(reduced.model.df_out)[names(reduced.model.df_out) == 'model.sse'] <- "redModel.sse"
         
       # combine new df_out to original one:
       df_out <- merge(df_out, reduced.model.df_out, by = "element_id")
       
-      # calculate the eff.size, add to the df_out:
-      df_out <- df_out %>% dplyr::mutate("{eff.size.term.shortFormat}.eff.size" := model.adj.r.squared - redModel.adj.r.squared)
+      # calculate the delta.adj.rsq, add to the df_out:
+      df_out <- df_out %>% dplyr::mutate("{changed.rsq.term.shortFormat}.delta.adj.rsq" := model.adj.r.squared - redModel.adj.r.squared)
+      # calculate the partial.rsq, add to the df_out:
+      df_out <- df_out %>% dplyr::mutate("{changed.rsq.term.shortFormat}.partial.rsq" := (redModel.sse - model.sse)/redModel.sse )   # partialRsq <- (sse.red - sse.full) / sse.red
 
+      
       # remove column of redModel
-      df_out <- df_out %>% subset(select = -c(redModel.adj.r.squared))
-    }  # end of for loop across term of interest for effect size
+      df_out <- df_out %>% subset(select = -c(redModel.adj.r.squared, 
+                                              redModel.sse))
+      
+    }  # end of for loop across term of interest for changed.rsq
 
     
   
@@ -779,7 +804,10 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       df_out <- df_out %>% subset(select = -c(model.adj.r.squared))
     }
     
-  }   # end of if: requesting eff.size
+    # remove full model's sse (model.sse): 
+    df_out <- df_out %>% subset(select = -c(model.sse))
+    
+  }   # end of if: requesting changed.rsq
   
   
   
@@ -838,6 +866,4 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
 
 
-
-## TODO: add an example function for developer: ModelArray.model()
 

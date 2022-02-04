@@ -14,6 +14,7 @@ analyseOneElement.gam(
   var.parametricTerms,
   var.model,
   flag_initiate = FALSE,
+  flag_sse = FALSE,
   ...
 )
 }
@@ -35,6 +36,8 @@ analyseOneElement.gam(
 \item{var.model}{The list of variables to save for the model (got from broom::glance() and summary()).}
 
 \item{flag_initiate}{TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.}
+
+\item{flag_sse}{TRUE or FALSE, Whether to calculate SSE (sum of squared error) for the model (`model.sse`). SSE is needed for calculating partial R-squared.}
 
 \item{...}{Additional arguments for `mgcv::gam()`}
 }

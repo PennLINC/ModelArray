@@ -26,6 +26,7 @@
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/ModelArray_basics.html">ModelArray Quick Start</a>
     <a class="dropdown-item" href="../articles/basic_r_intro.html">An intro to R</a>
+    <a class="dropdown-item" href="../articles/doc_for_developer.html">Developer documentation</a>
   </div>
 </li>
       </ul><form class="form-inline my-2 my-lg-0" role="search">
@@ -59,6 +60,7 @@
   <span class="va">var.parametricTerms</span>,
   <span class="va">var.model</span>,
   flag_initiate <span class="op">=</span> <span class="cn">FALSE</span>,
+  flag_sse <span class="op">=</span> <span class="cn">FALSE</span>,
   <span class="va">...</span>
 <span class="op">)</span></code></pre></div>
     </div>
@@ -83,6 +85,8 @@
 <dd><p>The list of variables to save for the model (got from broom::glance() and summary()).</p></dd>
 <dt>flag_initiate</dt>
 <dd><p>TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.</p></dd>
+<dt>flag_sse</dt>
+<dd><p>TRUE or FALSE, Whether to calculate SSE (sum of squared error) for the model (`model.sse`). SSE is needed for calculating partial R-squared.</p></dd>
 <dt>...</dt>
 <dd><p>Additional arguments for `mgcv::gam()`</p></dd>
 </dl></div>
