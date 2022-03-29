@@ -14,7 +14,7 @@ LazyData: true
 Depends: R (>= 4.1.0)
 biocViews:
 Imports: 
-    matrixStats (>= 0.61.0),
+    MatrixGenerics,
     magrittr,
     methods,
     dplyr,
