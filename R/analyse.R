@@ -67,7 +67,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   
   ### sanity check: whether they match: modelarray's source file list and phenotypes' source file list:
   sources.modelarray <- sources(data)[[scalar]]
-  sources.phenotypes <- phenotypes[["source_file"]]
+  sources.phenotypes <- phenotypes[["source_file"]] %>% as.character()
   if (is.null(sources.phenotypes)) {
     stop(paste0("Did not find column 'source_file' in argument 'phenotypes'. Please check!"))
   }
@@ -96,7 +96,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
       # apply to phenotypes:
       phenotypes <- phenotypes[reorder_idx, ]
       row.names(phenotypes) <- NULL # reset the row name, just to be safe for later adding scalar values... see ModelArray_paper/notebooks/test_match_sourceFiles.Rmd
-      if (!identical(phenotypes[["source_file"]], sources.modelarray)) {
+      if (!identical(phenotypes[["source_file"]] %>% as.character(), sources.modelarray)) {
         stop("matching source file names were not successful...")
       }
     } else {
@@ -454,7 +454,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
   ### sanity check: whether they match: modelarray's source file list and phenotypes' source file list:
   sources.modelarray <- sources(data)[[scalar]]
-  sources.phenotypes <- phenotypes[["source_file"]]
+  sources.phenotypes <- phenotypes[["source_file"]] %>% as.character()
   if (is.null(sources.phenotypes)) {
     stop(paste0("Did not find column 'source_file' in argument 'phenotypes'. Please check!"))
   }
@@ -483,7 +483,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       # apply to phenotypes:
       phenotypes <- phenotypes[reorder_idx, ]
       row.names(phenotypes) <- NULL # reset the row name, just to be safe for later adding scalar values... see ModelArray_paper/notebooks/test_match_sourceFiles.Rmd
-      if (!identical(phenotypes[["source_file"]], sources.modelarray)) {
+      if (!identical(phenotypes[["source_file"]] %>% as.character(), sources.modelarray)) {
         stop("matching source file names were not successful...")
       }
     } else {
