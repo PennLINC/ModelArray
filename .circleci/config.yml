@@ -34,6 +34,10 @@ jobs:
     docker:
       - image: rocker/verse:4.1.0
     <<: *steps
+  releaseR3.6.3:
+    docker:
+      - image: rocker/verse:3.6.3
+    <<: *steps
   oldR3.5.3:
     docker:
       - image: rocker/verse:3.5.3
@@ -47,7 +51,11 @@ workflows:
   version: 2
   build_test_deploy:
     jobs:
-      - releaseR4.1.0:   
+      #- releaseR4.1.0:   
+      #    filters:
+      #      tags:
+      #        only: /.*/
+      - releaseR3.6.3:
           filters:
             tags:
               only: /.*/
