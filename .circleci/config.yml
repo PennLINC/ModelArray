@@ -13,11 +13,8 @@ steps: &steps
         name: Install libraries for latex
         command: apt-get update && apt-get install -y --no-install-recommends texlive-fonts-recommended
     - run:
-        name: Install R package dependencies (vctrs 0.3.0)
-        command: R -e "install.packages('https://cran.r-project.org/src/contrib/Archive/vctrs/vctrs_0.3.0.tar.gz', repo=NULL, type='source')"
-    - run:
         name: Install package dependencies (via devtools::install_deps)
-        command: R -e "devtools::install_deps(dep = TRUE)"
+        command: R -e "devtools::install_deps(dep = TRUE, upgrade = 'always')"
     - run:
         name: Install package dependencies (hdf5r)
         command: R -e "require(hdf5r)" # "lapply(c('hdf5r','HDF5Array','DelayedArray'), require, character.only=TRUE)"
