@@ -19,6 +19,9 @@ steps: &steps
         name: Install package dependencies (hdf5r)
         command: R -e "require(hdf5r)" # "lapply(c('hdf5r','HDF5Array','DelayedArray'), require, character.only=TRUE)"
     - run:
+        name: Install R package dependencies (vctrs 0.3.0)
+        command: R -e "install.packages('https://cran.r-project.org/src/contrib/Archive/vctrs/vctrs_0.3.0.tar.gz', repo=NULL, type='source')"
+    - run:
         name: Build package
         command: R CMD build .
     - run:
