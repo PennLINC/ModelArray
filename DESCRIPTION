@@ -14,10 +14,13 @@ LazyData: true
 Depends: R (>= 4.1.0)
 biocViews:
 Imports: 
+    vctrs (>= 0.3.0),
+    rlang (>= 0.4.6),
+    tidyselect (>= 1.1.0),
     magrittr,
     methods,
     dplyr,
-    tidyr,
+    tidyr (>= 1.1.0),
     tibble,
     stringr,
     glue,
@@ -27,7 +30,6 @@ Imports:
     rhdf5,
     hdf5r,
     mgcv,
-    rlang,
     DelayedArray,
     broom,
     pbmcapply,
