@@ -13,6 +13,12 @@ steps: &steps
         name: Install libraries for latex
         command: apt-get update && apt-get install -y --no-install-recommends texlive-fonts-recommended
     - run:
+        name: Install R package dependencies (vctrs)
+        command: R -e "install.packages('vctrs')"
+    - run:
+        name: Check package version of vctrs
+        command: R -e "packageVersion('vctrs')"
+    - run:
         name: Install package dependencies (via devtools::install_deps)
         command: R -e "devtools::install_deps(dep = TRUE, upgrade = 'always')"
     - run:
