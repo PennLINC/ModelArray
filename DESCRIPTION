@@ -11,14 +11,16 @@ Description: What the package does (one paragraph).
 License: BSD 3-Clause License + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Depends: R (>= 4.1.0)
+Depends: R (>= 3.6.3)
 biocViews:
 Imports: 
-    matrixStats (>= 0.60.1),
+    vctrs (>= 0.3.0),
+    rlang (>= 0.4.6),
+    tidyselect (>= 1.1.0),
     magrittr,
     methods,
     dplyr,
-    tidyr,
+    tidyr (>= 1.1.0),
     tibble,
     stringr,
     glue,
@@ -28,12 +30,11 @@ Imports:
     rhdf5,
     hdf5r,
     mgcv,
-    rlang,
     DelayedArray,
     broom,
     pbmcapply,
     pbapply,
-    crayon,
+    crayon
 RoxygenNote: 7.1.2
 Suggests: 
     rmarkdown,
