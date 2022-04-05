@@ -2,9 +2,6 @@ version: 2
 
 steps: &steps
   steps:
-    - restore_cache:
-        keys:
-          - cache-{{ .Environment.CIRCLE_JOB }}
     - checkout
     - run:
         name: Install libraries
@@ -13,14 +10,11 @@ steps: &steps
         name: Install libraries for latex
         command: apt-get update && apt-get install -y --no-install-recommends texlive-fonts-recommended
     - run:
-        name: Install R package dependencies (vctrs)
-        command: R -e "install.packages('vctrs')"
+        name: Install package dependencies (via devtools::install_deps)
+        command: R -e "devtools::install_deps(dep = TRUE, upgrade = 'always')"
     - run:
         name: Check package version of vctrs
         command: R -e "packageVersion('vctrs')"
-    - run:
-        name: Install package dependencies (via devtools::install_deps)
-        command: R -e "devtools::install_deps(dep = TRUE, upgrade = 'always')"
     - run:
         name: Install package dependencies (hdf5r)
         command: R -e "require(hdf5r)" # "lapply(c('hdf5r','HDF5Array','DelayedArray'), require, character.only=TRUE)"
@@ -30,10 +24,6 @@ steps: &steps
     - run:
         name: Check package
         command: R CMD check *tar.gz
-    - save_cache:
-        key: cache-{{ .Environment.CIRCLE_JOB }}
-        paths:
-          - "/usr/local/lib/R/site-library"
 
 jobs:
   releaseR4.1.0:
