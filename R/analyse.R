@@ -26,6 +26,8 @@
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()`). See "Details" section for more.
 #' @param correct.p.value.terms A list of characters. To perform and add a column for p.value correction for each term. See "Details" section for more.
 #' @param correct.p.value.model A list of characters. To perform and add a column for p.value correction for the model. See "Details" section for more.
+#' @param num.subj.lthr.abs An integer, lower threshold of absolute number of subjects. For an element, if number of subjects who have valid value (real number, not NA or Inf) in h5 file < \code{num.subj.lthr.abs}, then this element will be skipped and statistical outputs will be set as NA. Default is 10.
+#' @param num.subj.lthr.rel A value between 0-1, lower threshold of relative number of subjects. Similar to \code{num.subj.lthr.abs}, if proportion of subjects who have valid value < \code{num.subj.lthr.rel}, then this element will be skipped. Default is 0.2.
 #' @param verbose TRUE or FALSE, to print verbose message or not
 #' @param pbar TRUE or FALSE, to print progress bar or not
 #' @param n_cores Positive integer, The number of CPU cores to run with
@@ -43,6 +45,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                               var.terms = c("estimate", "statistic", "p.value"), 
                               var.model = c("adj.r.squared", "p.value"), 
                           correct.p.value.terms = "none", correct.p.value.model = "none",
+                          num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2, 
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...) {
   # data type assertions
   if(class(data) != "ModelArray") {
@@ -161,6 +164,11 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   m1 <- "no default"   # there is no default
   printAdditionalArgu(FUN, "offset", dots, m1)
   
+  
+  ### threshold of number of subjects:
+  num.subj.total <- nrow(phenotypes)
+  num.subj.lthr <- max(num.subj.total * num.subj.lthr.rel,
+                       num.subj.lthr.abs)    # choose the higher value as lower threshold 
   
   
   ### other setups:
