@@ -33,7 +33,7 @@ Imports:
     broom,
     pbmcapply,
     pbapply,
-    crayon,
+    crayon
 RoxygenNote: 7.1.2
 Suggests: 
     rmarkdown,

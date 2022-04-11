@@ -2,9 +2,6 @@ version: 2
 
 steps: &steps
   steps:
-    - restore_cache:
-        keys:
-          - cache-{{ .Environment.CIRCLE_JOB }}
     - checkout
     - run:
         name: Install libraries
@@ -24,19 +21,12 @@ steps: &steps
     - run:
         name: Check package
         command: R CMD check *tar.gz
-    - save_cache:
-        key: cache-{{ .Environment.CIRCLE_JOB }}
-        paths:
-          - "/usr/local/lib/R/site-library"
+
 
 jobs:
-  releaseR4.1.0:
+  releaseR4.1.2:
     docker:
-      - image: rocker/verse:4.1.0
-    <<: *steps
-  oldR3.5.3:
-    docker:
-      - image: rocker/verse:3.5.3
+      - image: rocker/verse:4.1.2
     <<: *steps
   develR:
     docker:
@@ -47,14 +37,10 @@ workflows:
   version: 2
   build_test_deploy:
     jobs:
-      #- releaseR4.1.0:   # temporarily comment out as there is error with matrixStats package
-      #    filters:
-      #      tags:
-      #        only: /.*/
-      #- oldR3.5.3:
-      #    filters:
-      #      tags:
-      #        only: /.*/
+      - releaseR4.1.2:
+          filters:
+            tags:
+              only: /.*/
       - develR:
           filters:
             tags:
