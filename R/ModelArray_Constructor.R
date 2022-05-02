@@ -237,6 +237,13 @@ analyseOneElement.lm <- function(i_element,
                                var.terms, var.model, 
                                flag_initiate = FALSE, 
                                ...) {
+  
+  # ONLY FOR DEBUGGING PURPOSE: print out the i_element
+  if (as.integer(i_element)%%100 == 0) {
+    message(paste0("element #", toString(i_element)))
+  }
+  
+  
   values <- scalars(modelarray)[[scalar]][i_element,]
   dat <- phenotypes
   dat[[scalar]] <- values
@@ -385,6 +392,12 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
                                 var.smoothTerms, var.parametricTerms, var.model, 
                                 flag_initiate = FALSE, flag_sse = FALSE,
                                 ...) {
+  # ONLY FOR DEBUGGING PURPOSE: print out the i_element
+  if (as.integer(i_element)%%100 == 0) {
+    message(paste0("element #", toString(i_element)))
+  }
+  
+  
   values <- scalars(modelarray)[[scalar]][i_element,]
   dat <- phenotypes
   dat[[scalar]] <- values
