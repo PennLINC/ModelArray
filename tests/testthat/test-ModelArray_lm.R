@@ -19,6 +19,12 @@ test_that("ModelArray.lm() works as expected", {
   var.terms <- c("estimate", "p.value")   # list of columns to keep  | , "std.error","statistic"
   var.terms.full <- c("estimate", "p.value", "std.error","statistic")
   var.model <- c("r.squared", "p.value", "AIC")
+  
+  default.var.terms = c("estimate", "statistic", "p.value")
+  default.var.model = c("adj.r.squared", "p.value")
+  var.terms.full = c("estimate","std.error","statistic","p.value")
+  var.model.full = c("r.squared", "adj.r.squared", "sigma", "statistic", "p.value", "df", "logLik", "AIC", "BIC", "deviance", "df.residual", "nobs")
+  
   element.subset = 1:10
   
   ### basic check #####
@@ -29,24 +35,37 @@ test_that("ModelArray.lm() works as expected", {
   
   expect_equal(mylm$element_id, 0:(length(element.subset)-1))   # check output$element_id 
   expect_true(is.data.frame(mylm))  # should be data.frame
-  expect_equal(as.numeric(dim(mylm)), c(length(element.subset),1+2*length(var.terms)+length(var.model))) # check shape
+  expect_equal(as.numeric(dim(mylm)), c(length(element.subset),   # check shape
+                                        1+
+                                          2*(length(var.terms)+1)+   # 2*: intercept + age; +1 in length: fdr is default
+                                          1*(length(var.model)+1)))  # 1*: lm model; +1 in length: fdr is default
+  expect_true(c("age.p.value.fdr", "Intercept.p.value.fdr", "model.p.value.fdr") %in% colnames(mylm) %>% all() )  # fdr is saved by default
   
   mylm_default <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                 n_cores = 2, pbar=FALSE)   # default full.outputs and var.*
-  expect_equal(as.numeric(dim(mylm_default)), c(length(element.subset),1+2*3+2)) # check shape  
+  expect_equal(as.numeric(dim(mylm_default)), c(length(element.subset),     # check shape  
+                                                1+
+                                                  2*(length(default.var.terms)+1)+
+                                                  1*(length(default.var.model)+1))) 
   
   mylm_fullOutputs <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                     full.outputs = TRUE,   # default: FALSE
                                 n_cores = 2, pbar=FALSE)   
-  expect_equal(as.numeric(dim(mylm_fullOutputs)), c(length(element.subset),21))
-  
+  expect_equal(as.numeric(dim(mylm_fullOutputs)), c(length(element.subset),
+                                                    1+
+                                                      2*(length(var.terms.full) + 1) + 
+                                                      1*(length(var.model.full) + 1)))
+  expect_true(c("age.p.value.fdr", "Intercept.p.value.fdr", "model.p.value.fdr") %in% colnames(mylm) %>% all())  # fdr is saved by default
   
   mylm_age_sex <- ModelArray.lm(FD ~ age + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                 var.terms = var.terms,
                                 var.model = var.model,
                                 n_cores = 2, pbar=FALSE)
   expect_equal(mylm_age_sex$element_id, 0:(length(element.subset)-1))   # check output$element_id 
-  expect_equal(as.numeric(dim(mylm_age_sex)), c(length(element.subset),1+3*length(var.terms)+length(var.model))) 
+  expect_equal(as.numeric(dim(mylm_age_sex)), c(length(element.subset),
+                                                1+
+                                                  3*(length(var.terms)+1)+
+                                                  1*(length(var.model)+1))) 
   
   expect_false(all.equal(mylm %>% dplyr::select("age.estimate"), 
                          mylm_age_sex %>% dplyr::select("age.estimate"))
@@ -86,17 +105,21 @@ test_that("ModelArray.lm() works as expected", {
   expect_equal(mylm, mylm_pbarTRUE_ncores2)
   
   ## Different output statistics #####
-  mylm_noTermsOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
+  expect_warning(mylm_noTermsOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                       var.terms = c(), var.model = var.model,
-                                      n_cores = 1, pbar=FALSE)
-  expect_equal(as.numeric(dim(mylm_noTermsOutput)), c(length(element.subset),1+length(var.model))) # check shape
+                                      n_cores = 1, pbar=FALSE))  # expect warning because there will be a warning from ModelArray.lm(): p.value was not included in var.terms, so not to perform its p.value corrections
+  expect_equal(as.numeric(dim(mylm_noTermsOutput)), c(length(element.subset),
+                                                      1+
+                                                        length(var.model)+1)) # check shape
     # there shouldn't be any NA in this output: (otherwise, there is a bug when combining empty tibble in analyseOneElement.lm())
   expect_true( (!mylm_noTermsOutput %>% is.na()) %>% all() )   # if there is any NA in the output data.frame, the result is FALSE
   
-  mylm_noModelOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
+  expect_warning(mylm_noModelOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                       var.terms = var.terms, var.model = c(),
-                                      n_cores = 1, pbar=FALSE)
-  expect_equal(as.numeric(dim(mylm_noModelOutput)), c(length(element.subset),1+2*length(var.terms))) # check shape
+                                      n_cores = 1, pbar=FALSE))   # expect warning because there will be a warning from ModelArray.lm(): p.value was not included in var.model, so not to perform its p.value corrections 
+  expect_equal(as.numeric(dim(mylm_noModelOutput)), c(length(element.subset),
+                                                      1+
+                                                        2*(length(var.terms)+1))) # check shape
   expect_true( (!mylm_noModelOutput %>% is.na()) %>% all() )   
   
   # there will be error if both var.* are empty:
@@ -126,6 +149,24 @@ test_that("ModelArray.lm() works as expected", {
                mylm_corr_pvalues_2$model.p.value %>% stats::p.adjust("fdr"))
   expect_equal(mylm_corr_pvalues_2$model.p.value.bonferroni,
                mylm_corr_pvalues_2$model.p.value %>% stats::p.adjust("bonferroni"))
+  
+  # terms + only bonferroni, no fdr:
+  mylm_corr_pvalues_3 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
+                                       var.terms = var.terms, var.model = var.model,
+                                       correct.p.value.terms = c("bonferroni"),
+                                       n_cores = 2, pbar=FALSE)
+  expect_true(c("age.p.value.bonferroni", "Intercept.p.value.bonferroni",
+                "model.p.value.fdr") %in% colnames(mylm_corr_pvalues_3) %>% all())   # correct.p.value.terms: bonferroni is in, but not fdr
+  expect_true( !( c("age.p.value.fdr", "Intercept.p.value.fdr") %in% colnames(mylm_corr_pvalues_3) ) %>% all() )  # all false
+  
+  # model + only bonferroni, no fdr:
+  mylm_corr_pvalues_4 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
+                                       var.terms = var.terms, var.model = var.model,
+                                       correct.p.value.model = c("bonferroni"),
+                                       n_cores = 2, pbar=FALSE)
+  expect_true(c("age.p.value.fdr",
+                "model.p.value.bonferroni") %in% colnames(mylm_corr_pvalues_4) %>% all())   # correct.p.value.model: bonferroni is in, but not fdr
+  expect_true( !(c("model.p.value.fdr") %in% colnames(mylm_corr_pvalues_4) ) %>% all() )   # all false
   
   
   expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
