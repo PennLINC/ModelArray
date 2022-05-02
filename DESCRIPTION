@@ -1,17 +1,22 @@
 Package: ModelArray
 Title: A generalizable, memory-efficient R package for statistical analysis of fixel data
-Version: 0.0.0.1
+Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    c(person(given = "Chenying",
+           family = "Zhao",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = structure("YOUR-ORCID-ID", .Names = "ORCID"))
+           email = "chenyzh@seas.upenn.edu"),
+       person(give = "Tinashe",
+            family = "Tapera",
+            role = c("aut")),
+       person(give = "Matthew",
+            family = "Cieslak",
+            role = c("aut")) )
 Description: What the package does (one paragraph).
 License: BSD 3-Clause License + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Depends: R (>= 4.1.0)
+Depends: R (>= 4.1.2)
 biocViews:
 Imports: 
     matrixStats (>= 0.60.1),
