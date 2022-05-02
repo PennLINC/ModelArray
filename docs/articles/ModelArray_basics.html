@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">ModelArray</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -113,7 +113,7 @@
 <span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, 
                                scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FD"</span><span class="op">)</span><span class="op">)</span>  <span class="co"># if there is more than one metric, you can do: c("FD", "FDC")</span>
 <span class="va">modelarray</span> <span class="co"># check what's in it    </span>
-<span class="co">#&gt; ModelArray located at /tmp/RtmpePPAkn/temp_libpathaa9386208e0/ModelArray/extdata/n50_fixels.h5</span>
+<span class="co">#&gt; ModelArray located at /tmp/RtmpvWdh3y/temp_libpath4ba6aa3c6b6/ModelArray/extdata/n50_fixels.h5</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt;   Source files:     50</span>
 <span class="co">#&gt;   Scalars:          FD</span>
@@ -205,34 +205,34 @@
 <span class="co">#&gt; 4          3           52.28663    0.7978552            52.78984      2.434393</span>
 <span class="co">#&gt; 5          4          177.63929   -4.4614559            57.91336      2.670664</span>
 <span class="co">#&gt; 6          5         1086.78063   -0.2157015            84.56369      3.899639</span>
-<span class="co">#&gt;   Intercept.statistic age.statistic Intercept.p.value age.p.value</span>
-<span class="co">#&gt; 1           2.6614879    -1.2534240      1.055048e-02   0.2161225</span>
-<span class="co">#&gt; 2          11.1724856     0.4650354      5.938761e-15   0.6440089</span>
-<span class="co">#&gt; 3           2.4464053    -1.4430259      1.814295e-02   0.1555078</span>
-<span class="co">#&gt; 4           0.9904678     0.3277429      3.269124e-01   0.7445313</span>
-<span class="co">#&gt; 5           3.0673281    -1.6705419      3.543869e-03   0.1013212</span>
-<span class="co">#&gt; 6          12.8516222    -0.0553132      3.737785e-17   0.9561185</span>
-<span class="co">#&gt;   model.r.squared model.adj.r.squared model.sigma model.statistic model.p.value</span>
-<span class="co">#&gt; 1    3.169332e-02          0.01152026    60.99555      1.57107176     0.2161225</span>
-<span class="co">#&gt; 2    4.485167e-03         -0.01625473    89.38539      0.21625797     0.6440089</span>
-<span class="co">#&gt; 3    4.157802e-02          0.02161090    67.91196      2.08232389     0.1555078</span>
-<span class="co">#&gt; 4    2.232825e-03         -0.01855399    52.38387      0.10741542     0.7445313</span>
-<span class="co">#&gt; 5    5.494529e-02          0.03525665    57.46799      2.79071018     0.1013212</span>
-<span class="co">#&gt; 6    6.373655e-05         -0.02076827    83.91337      0.00305955     0.9561185</span>
-<span class="co">#&gt;   model.df model.logLik model.AIC model.BIC model.deviance model.df.residual</span>
-<span class="co">#&gt; 1        1    -275.4664  556.9329  562.6689       178582.0                48</span>
-<span class="co">#&gt; 2        1    -294.5742  595.1485  600.8845       383507.9                48</span>
-<span class="co">#&gt; 3        1    -280.8370  567.6740  573.4100       221377.6                48</span>
-<span class="co">#&gt; 4        1    -267.8563  541.7126  547.4487       131715.4                48</span>
-<span class="co">#&gt; 5        1    -272.4878  550.9756  556.7116       158523.4                48</span>
-<span class="co">#&gt; 6        1    -291.4156  588.8313  594.5673       337989.8                48</span>
-<span class="co">#&gt;   model.nobs</span>
-<span class="co">#&gt; 1         50</span>
-<span class="co">#&gt; 2         50</span>
-<span class="co">#&gt; 3         50</span>
-<span class="co">#&gt; 4         50</span>
-<span class="co">#&gt; 5         50</span>
-<span class="co">#&gt; 6         50</span></code></pre></div>
+<span class="co">#&gt;   Intercept.statistic age.statistic Intercept.p.value Intercept.p.value.fdr</span>
+<span class="co">#&gt; 1           2.6614879    -1.2534240      1.055048e-02          4.396032e-02</span>
+<span class="co">#&gt; 2          11.1724856     0.4650354      5.938761e-15          1.484690e-13</span>
+<span class="co">#&gt; 3           2.4464053    -1.4430259      1.814295e-02          6.479626e-02</span>
+<span class="co">#&gt; 4           0.9904678     0.3277429      3.269124e-01          4.301479e-01</span>
+<span class="co">#&gt; 5           3.0673281    -1.6705419      3.543869e-03          1.968816e-02</span>
+<span class="co">#&gt; 6          12.8516222    -0.0553132      3.737785e-17          1.868892e-15</span>
+<span class="co">#&gt;   age.p.value age.p.value.fdr model.r.squared model.adj.r.squared model.sigma</span>
+<span class="co">#&gt; 1   0.2161225       0.8727231    3.169332e-02          0.01152026    60.99555</span>
+<span class="co">#&gt; 2   0.6440089       0.9612073    4.485167e-03         -0.01625473    89.38539</span>
+<span class="co">#&gt; 3   0.1555078       0.8727231    4.157802e-02          0.02161090    67.91196</span>
+<span class="co">#&gt; 4   0.7445313       0.9756312    2.232825e-03         -0.01855399    52.38387</span>
+<span class="co">#&gt; 5   0.1013212       0.8727231    5.494529e-02          0.03525665    57.46799</span>
+<span class="co">#&gt; 6   0.9561185       0.9756312    6.373655e-05         -0.02076827    83.91337</span>
+<span class="co">#&gt;   model.statistic model.p.value model.p.value.fdr model.df model.logLik</span>
+<span class="co">#&gt; 1      1.57107176     0.2161225         0.8727231        1    -275.4664</span>
+<span class="co">#&gt; 2      0.21625797     0.6440089         0.9612073        1    -294.5742</span>
+<span class="co">#&gt; 3      2.08232389     0.1555078         0.8727231        1    -280.8370</span>
+<span class="co">#&gt; 4      0.10741542     0.7445313         0.9756312        1    -267.8563</span>
+<span class="co">#&gt; 5      2.79071018     0.1013212         0.8727231        1    -272.4878</span>
+<span class="co">#&gt; 6      0.00305955     0.9561185         0.9756312        1    -291.4156</span>
+<span class="co">#&gt;   model.AIC model.BIC model.deviance model.df.residual model.nobs</span>
+<span class="co">#&gt; 1  556.9329  562.6689       178582.0                48         50</span>
+<span class="co">#&gt; 2  595.1485  600.8845       383507.9                48         50</span>
+<span class="co">#&gt; 3  567.6740  573.4100       221377.6                48         50</span>
+<span class="co">#&gt; 4  541.7126  547.4487       131715.4                48         50</span>
+<span class="co">#&gt; 5  550.9756  556.7116       158523.4                48         50</span>
+<span class="co">#&gt; 6  588.8313  594.5673       337989.8                48         50</span></code></pre></div>
 <p>If all statistics are too many for you, try out default list of statistics:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">mylm_default</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">formula</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FD"</span>, element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>,  
@@ -260,13 +260,20 @@
 <span class="co">#&gt; 4          3           52.28663    0.7978552           0.9904678     0.3277429</span>
 <span class="co">#&gt; 5          4          177.63929   -4.4614559           3.0673281    -1.6705419</span>
 <span class="co">#&gt; 6          5         1086.78063   -0.2157015          12.8516222    -0.0553132</span>
-<span class="co">#&gt;   Intercept.p.value age.p.value model.adj.r.squared model.p.value</span>
-<span class="co">#&gt; 1      1.055048e-02   0.2161225          0.01152026     0.2161225</span>
-<span class="co">#&gt; 2      5.938761e-15   0.6440089         -0.01625473     0.6440089</span>
-<span class="co">#&gt; 3      1.814295e-02   0.1555078          0.02161090     0.1555078</span>
-<span class="co">#&gt; 4      3.269124e-01   0.7445313         -0.01855399     0.7445313</span>
-<span class="co">#&gt; 5      3.543869e-03   0.1013212          0.03525665     0.1013212</span>
-<span class="co">#&gt; 6      3.737785e-17   0.9561185         -0.02076827     0.9561185</span></code></pre></div>
+<span class="co">#&gt;   Intercept.p.value Intercept.p.value.fdr age.p.value age.p.value.fdr</span>
+<span class="co">#&gt; 1      1.055048e-02          4.396032e-02   0.2161225       0.8727231</span>
+<span class="co">#&gt; 2      5.938761e-15          1.484690e-13   0.6440089       0.9612073</span>
+<span class="co">#&gt; 3      1.814295e-02          6.479626e-02   0.1555078       0.8727231</span>
+<span class="co">#&gt; 4      3.269124e-01          4.301479e-01   0.7445313       0.9756312</span>
+<span class="co">#&gt; 5      3.543869e-03          1.968816e-02   0.1013212       0.8727231</span>
+<span class="co">#&gt; 6      3.737785e-17          1.868892e-15   0.9561185       0.9756312</span>
+<span class="co">#&gt;   model.adj.r.squared model.p.value model.p.value.fdr</span>
+<span class="co">#&gt; 1          0.01152026     0.2161225         0.8727231</span>
+<span class="co">#&gt; 2         -0.01625473     0.6440089         0.9612073</span>
+<span class="co">#&gt; 3          0.02161090     0.1555078         0.8727231</span>
+<span class="co">#&gt; 4         -0.01855399     0.7445313         0.9756312</span>
+<span class="co">#&gt; 5          0.03525665     0.1013212         0.8727231</span>
+<span class="co">#&gt; 6         -0.02076827     0.9561185         0.9756312</span></code></pre></div>
 <p>You may be specifically interested in several statistics:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">mylm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">formula</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FD"</span>, element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>, 
@@ -337,27 +344,27 @@
 <span class="co">#&gt; initiating....</span>
 <span class="co">#&gt; looping across elements....</span>
 <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mygam</span><span class="op">)</span>
-<span class="co">#&gt;   element_id s_age.statistic s_age.p.value Intercept.estimate sexM.estimate</span>
-<span class="co">#&gt; 1          0       1.2306636    0.30963383           68.99361     36.640118</span>
-<span class="co">#&gt; 2          1       2.2871191    0.09143477         1065.70220    -35.661635</span>
-<span class="co">#&gt; 3          2       1.1269130    0.34827816           74.01208     -8.730507</span>
-<span class="co">#&gt; 4          3       0.8239727    0.48756050           62.10926     14.615306</span>
-<span class="co">#&gt; 5          4       2.1823941    0.10321419           89.36170    -15.023467</span>
-<span class="co">#&gt; 6          5       1.9297905    0.13831264         1086.74460     -9.190355</span>
-<span class="co">#&gt;   Intercept.statistic sexM.statistic Intercept.p.value sexM.p.value</span>
-<span class="co">#&gt; 1            5.726418      2.1235803      7.940891e-07   0.03923706</span>
-<span class="co">#&gt; 2           61.504732     -1.4371812      4.531281e-45   0.15758379</span>
-<span class="co">#&gt; 3            5.292183     -0.4359225      3.457228e-06   0.66497706</span>
-<span class="co">#&gt; 4            5.870646      0.9646617      4.856860e-07   0.33986996</span>
-<span class="co">#&gt; 5            7.777202     -0.9130189      7.287228e-10   0.36609851</span>
-<span class="co">#&gt; 6           66.163570     -0.3907161      1.756068e-46   0.69785074</span>
-<span class="co">#&gt;   model.dev.expl</span>
-<span class="co">#&gt; 1     0.13701296</span>
-<span class="co">#&gt; 2     0.14551292</span>
-<span class="co">#&gt; 3     0.07159834</span>
-<span class="co">#&gt; 4     0.07036785</span>
-<span class="co">#&gt; 5     0.13702724</span>
-<span class="co">#&gt; 6     0.12488886</span></code></pre></div>
+<span class="co">#&gt;   element_id s_age.statistic s_age.p.value s_age.p.value.fdr Intercept.estimate</span>
+<span class="co">#&gt; 1          0       1.2306636    0.30963383         0.9626312           68.99361</span>
+<span class="co">#&gt; 2          1       2.2871191    0.09143477         0.9085776         1065.70220</span>
+<span class="co">#&gt; 3          2       1.1269130    0.34827816         0.9626312           74.01208</span>
+<span class="co">#&gt; 4          3       0.8239727    0.48756050         0.9804550           62.10926</span>
+<span class="co">#&gt; 5          4       2.1823941    0.10321419         0.9085776           89.36170</span>
+<span class="co">#&gt; 6          5       1.9297905    0.13831264         0.9085776         1086.74460</span>
+<span class="co">#&gt;   sexM.estimate Intercept.statistic sexM.statistic Intercept.p.value</span>
+<span class="co">#&gt; 1     36.640118            5.726418      2.1235803      7.940891e-07</span>
+<span class="co">#&gt; 2    -35.661635           61.504732     -1.4371812      4.531281e-45</span>
+<span class="co">#&gt; 3     -8.730507            5.292183     -0.4359225      3.457228e-06</span>
+<span class="co">#&gt; 4     14.615306            5.870646      0.9646617      4.856860e-07</span>
+<span class="co">#&gt; 5    -15.023467            7.777202     -0.9130189      7.287228e-10</span>
+<span class="co">#&gt; 6     -9.190355           66.163570     -0.3907161      1.756068e-46</span>
+<span class="co">#&gt;   Intercept.p.value.fdr sexM.p.value sexM.p.value.fdr model.dev.expl</span>
+<span class="co">#&gt; 1          1.005176e-06   0.03923706        0.7847411     0.13701296</span>
+<span class="co">#&gt; 2          1.510427e-43   0.15758379        0.9512625     0.14551292</span>
+<span class="co">#&gt; 3          3.884525e-06   0.66497706        0.9512625     0.07159834</span>
+<span class="co">#&gt; 4          6.653232e-07   0.33986996        0.9512625     0.07036785</span>
+<span class="co">#&gt; 5          2.602581e-09   0.36609851        0.9512625     0.13702724</span>
+<span class="co">#&gt; 6          1.756068e-44   0.69785074        0.9512625     0.12488886</span></code></pre></div>
 <p>You can also set <code>full.outputs=TRUE</code> to request all statistics (except p.value corrections or partial R-squared or delta adjusted R-squared - see below for more).</p>
 <p>Or you can specify the specific statistic terms you are interested in by assigning the values of <code>var.smoothTerms</code>, <code>var.parametricTerms</code>, and <code>var.model</code>:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
@@ -369,24 +376,27 @@
 <span class="co">#&gt; <span style="color: #000000;">The formula requested: FD ~ s(age, k = 4, fx = TRUE) + sex</span> </span>
 <span class="co">#&gt; <span style="color: #000000;">s(age):   k = 4;   fx = TRUE;   bs = tp (default)</span></span>
 <span class="co">#&gt; <span style="color: #000000;">method: default</span></span>
+<span class="co">#&gt; Warning in check_validity_correctPValue(correct.p.value.parametricTerms, :</span>
+<span class="co">#&gt; p.value was not included in var.parametricTerms, so not to perform its p.value</span>
+<span class="co">#&gt; corrections</span>
 <span class="co">#&gt; Fitting element-wise GAMs for FD</span>
 <span class="co">#&gt; initiating....</span>
 <span class="co">#&gt; looping across elements....</span>
 <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mygam_specific</span><span class="op">)</span>
-<span class="co">#&gt;   element_id s_age.p.value Intercept.estimate sexM.estimate model.adj.r.squared</span>
-<span class="co">#&gt; 1          0    0.30963383           68.99361     36.640118          0.06030300</span>
-<span class="co">#&gt; 2          1    0.09143477         1065.70220    -35.661635          0.06955851</span>
-<span class="co">#&gt; 3          2    0.34827816           74.01208     -8.730507         -0.01092625</span>
-<span class="co">#&gt; 4          3    0.48756050           62.10926     14.615306         -0.01226612</span>
-<span class="co">#&gt; 5          4    0.10321419           89.36170    -15.023467          0.06031855</span>
-<span class="co">#&gt; 6          5    0.13831264         1086.74460     -9.190355          0.04710121</span>
-<span class="co">#&gt;   model.dev.expl</span>
-<span class="co">#&gt; 1     0.13701296</span>
-<span class="co">#&gt; 2     0.14551292</span>
-<span class="co">#&gt; 3     0.07159834</span>
-<span class="co">#&gt; 4     0.07036785</span>
-<span class="co">#&gt; 5     0.13702724</span>
-<span class="co">#&gt; 6     0.12488886</span></code></pre></div>
+<span class="co">#&gt;   element_id s_age.p.value s_age.p.value.fdr Intercept.estimate sexM.estimate</span>
+<span class="co">#&gt; 1          0    0.30963383         0.9626312           68.99361     36.640118</span>
+<span class="co">#&gt; 2          1    0.09143477         0.9085776         1065.70220    -35.661635</span>
+<span class="co">#&gt; 3          2    0.34827816         0.9626312           74.01208     -8.730507</span>
+<span class="co">#&gt; 4          3    0.48756050         0.9804550           62.10926     14.615306</span>
+<span class="co">#&gt; 5          4    0.10321419         0.9085776           89.36170    -15.023467</span>
+<span class="co">#&gt; 6          5    0.13831264         0.9085776         1086.74460     -9.190355</span>
+<span class="co">#&gt;   model.adj.r.squared model.dev.expl</span>
+<span class="co">#&gt; 1          0.06030300     0.13701296</span>
+<span class="co">#&gt; 2          0.06955851     0.14551292</span>
+<span class="co">#&gt; 3         -0.01092625     0.07159834</span>
+<span class="co">#&gt; 4         -0.01226612     0.07036785</span>
+<span class="co">#&gt; 5          0.06031855     0.13702724</span>
+<span class="co">#&gt; 6          0.04710121     0.12488886</span></code></pre></div>
 <p>You can also run p value correction. Notice that the argument names in <code>ModelArray.gam</code> are a bit different from those in <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">mygam_pValueCorrect</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.gam.html">ModelArray.gam</a></span><span class="op">(</span><span class="va">formula</span>, data <span class="op">=</span> <span class="va">modelarray</span>, phenotypes <span class="op">=</span> <span class="va">phenotypes</span>, scalar <span class="op">=</span> <span class="st">"FD"</span>, element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>,
@@ -418,27 +428,34 @@
 <span class="co">#&gt; FD ~ sex</span>
 
 <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mygam_changedRsq</span><span class="op">)</span>
-<span class="co">#&gt;   element_id s_age.statistic s_age.p.value Intercept.estimate sexM.estimate</span>
-<span class="co">#&gt; 1          0       1.2306636    0.30963383           68.99361     36.640118</span>
-<span class="co">#&gt; 2          1       2.2871191    0.09143477         1065.70220    -35.661635</span>
-<span class="co">#&gt; 3          2       1.1269130    0.34827816           74.01208     -8.730507</span>
-<span class="co">#&gt; 4          3       0.8239727    0.48756050           62.10926     14.615306</span>
-<span class="co">#&gt; 5          4       2.1823941    0.10321419           89.36170    -15.023467</span>
-<span class="co">#&gt; 6          5       1.9297905    0.13831264         1086.74460     -9.190355</span>
-<span class="co">#&gt;   Intercept.statistic sexM.statistic Intercept.p.value sexM.p.value</span>
-<span class="co">#&gt; 1            5.726418      2.1235803      7.940891e-07   0.03923706</span>
-<span class="co">#&gt; 2           61.504732     -1.4371812      4.531281e-45   0.15758379</span>
-<span class="co">#&gt; 3            5.292183     -0.4359225      3.457228e-06   0.66497706</span>
-<span class="co">#&gt; 4            5.870646      0.9646617      4.856860e-07   0.33986996</span>
-<span class="co">#&gt; 5            7.777202     -0.9130189      7.287228e-10   0.36609851</span>
-<span class="co">#&gt; 6           66.163570     -0.3907161      1.756068e-46   0.69785074</span>
-<span class="co">#&gt;   model.dev.expl s_age.delta.adj.rsq s_age.partial.rsq</span>
-<span class="co">#&gt; 1     0.13701296         0.013547120        0.07582337</span>
-<span class="co">#&gt; 2     0.14551292         0.074849313        0.13230192</span>
-<span class="co">#&gt; 3     0.07159834         0.008018731        0.06987779</span>
-<span class="co">#&gt; 4     0.07036785        -0.011136655        0.05207116</span>
-<span class="co">#&gt; 5     0.13702724         0.069442111        0.12701339</span>
-<span class="co">#&gt; 6     0.12488886         0.055374767        0.11398786</span></code></pre></div>
+<span class="co">#&gt;   element_id s_age.statistic s_age.p.value s_age.p.value.fdr Intercept.estimate</span>
+<span class="co">#&gt; 1          0       1.2306636    0.30963383         0.9626312           68.99361</span>
+<span class="co">#&gt; 2          1       2.2871191    0.09143477         0.9085776         1065.70220</span>
+<span class="co">#&gt; 3          2       1.1269130    0.34827816         0.9626312           74.01208</span>
+<span class="co">#&gt; 4          3       0.8239727    0.48756050         0.9804550           62.10926</span>
+<span class="co">#&gt; 5          4       2.1823941    0.10321419         0.9085776           89.36170</span>
+<span class="co">#&gt; 6          5       1.9297905    0.13831264         0.9085776         1086.74460</span>
+<span class="co">#&gt;   sexM.estimate Intercept.statistic sexM.statistic Intercept.p.value</span>
+<span class="co">#&gt; 1     36.640118            5.726418      2.1235803      7.940891e-07</span>
+<span class="co">#&gt; 2    -35.661635           61.504732     -1.4371812      4.531281e-45</span>
+<span class="co">#&gt; 3     -8.730507            5.292183     -0.4359225      3.457228e-06</span>
+<span class="co">#&gt; 4     14.615306            5.870646      0.9646617      4.856860e-07</span>
+<span class="co">#&gt; 5    -15.023467            7.777202     -0.9130189      7.287228e-10</span>
+<span class="co">#&gt; 6     -9.190355           66.163570     -0.3907161      1.756068e-46</span>
+<span class="co">#&gt;   Intercept.p.value.fdr sexM.p.value sexM.p.value.fdr model.dev.expl</span>
+<span class="co">#&gt; 1          1.005176e-06   0.03923706        0.7847411     0.13701296</span>
+<span class="co">#&gt; 2          1.510427e-43   0.15758379        0.9512625     0.14551292</span>
+<span class="co">#&gt; 3          3.884525e-06   0.66497706        0.9512625     0.07159834</span>
+<span class="co">#&gt; 4          6.653232e-07   0.33986996        0.9512625     0.07036785</span>
+<span class="co">#&gt; 5          2.602581e-09   0.36609851        0.9512625     0.13702724</span>
+<span class="co">#&gt; 6          1.756068e-44   0.69785074        0.9512625     0.12488886</span>
+<span class="co">#&gt;   s_age.delta.adj.rsq s_age.partial.rsq</span>
+<span class="co">#&gt; 1         0.013547120        0.07582337</span>
+<span class="co">#&gt; 2         0.074849313        0.13230192</span>
+<span class="co">#&gt; 3         0.008018731        0.06987779</span>
+<span class="co">#&gt; 4        -0.011136655        0.05207116</span>
+<span class="co">#&gt; 5         0.069442111        0.12701339</span>
+<span class="co">#&gt; 6         0.055374767        0.11398786</span></code></pre></div>
 <p>Now we got columns ofs <code>s_age.delta.adj.rsq</code> and <code>s_age.partial.rsq</code>, the quantifications for <code>s(age)</code>.</p>
 </div>
 <div class="section level3">
@@ -494,7 +511,7 @@
 <span class="co">#&gt;  [99,]        569.1791464</span>
 <span class="co">#&gt; [100,]        616.8408020</span>
 <span class="fu">results</span><span class="op">(</span><span class="va">modelarray_new</span><span class="op">)</span><span class="op">[[</span><span class="st">"result_gam"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">results_matrix</span>
-<span class="co">#&gt; &lt;100 x 6&gt; matrix of class DelayedMatrix and type "double":</span>
+<span class="co">#&gt; &lt;100 x 7&gt; matrix of class DelayedMatrix and type "double":</span>
 <span class="co">#&gt;                 element_id       s_age.p.value ... model.adj.r.squared</span>
 <span class="co">#&gt;   [1,]          0.00000000          0.30963383   .          0.06030300</span>
 <span class="co">#&gt;   [2,]          1.00000000          0.09143477   .          0.06955851</span>
@@ -529,7 +546,7 @@
 
     <footer><div class="pkgdown-footer-left">
   <p></p>
-<p>Developed by First Last.</p>
+<p>Developed by Chenying Zhao, Tinashe Tapera, Matthew Cieslak.</p>
 </div>
 
 <div class="pkgdown-footer-right">

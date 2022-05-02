@@ -24,6 +24,15 @@ test_that("test that ModelArray.gam() works as expected", {
   var.model = c("dev.expl", "adj.r.squared")
   element.subset = 1:10
   
+  var.smoothTerms.default <- c("statistic","p.value")
+  var.parametricTerms.default <- c("estimate", "statistic", "p.value")
+  var.model.default <- c("dev.expl")
+  
+  var.smoothTerms.full <- c("edf","ref.df","statistic","p.value")
+  var.parametricTerms.full <- c("estimate", "std.error","statistic","p.value")
+  var.model.full <- c("adj.r.squared","dev.expl", "sp.criterion", "scale",
+                      "df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs")
+  
   # calculating partial rsq for modelarray (this is not comprehensive; does not include additional methods; focus is to check if partial rsq is calculated correctly)
   partialRsq_gam_modelarray <- function(i_element, modelarray, phenotypes, scalar, full.formula, reduced.formula) {
     values <- scalars(modelarray)[[scalar]][i_element,]
@@ -69,11 +78,19 @@ test_that("test that ModelArray.gam() works as expected", {
 
   expect_equal(mygam$element_id, 0:(max(element.subset)-1))  # check output$element_id
   expect_true(is.data.frame(mygam))   # should be data.frame
-  expect_equal(as.numeric(dim(mygam)), c(length(element.subset), 1+1*length(var.smoothTerms) + 2*length(var.parametricTerms) + length(var.model)))  # check the shape
+  expect_equal(as.numeric(dim(mygam)), c(length(element.subset), 
+                                         1+
+                                           1*(length(var.smoothTerms)+1) + 
+                                           2*(length(var.parametricTerms)+1) + 
+                                           length(var.model)))  # check the shape
 
   mygam_default <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                   n_cores = 1, pbar = FALSE)   # default stat outputs
-  expect_equal(as.numeric(dim(mygam_default)), c(length(element.subset),10))
+  expect_equal(as.numeric(dim(mygam_default)), c(length(element.subset),
+                                                 1+
+                                                   1*(length(var.smoothTerms.default)+1) + 
+                                                   2*(length(var.parametricTerms.default)+1) + 
+                                                   length(var.model.default)))
 
   mygam_fullOutputs <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                       full.outputs = TRUE,    # overwrites the var* arguments below
@@ -81,38 +98,48 @@ test_that("test that ModelArray.gam() works as expected", {
                                       var.parametricTerms = var.parametricTerms,
                                       var.model = var.model,
                                       n_cores = 1, pbar = FALSE)
-  expect_equal(as.numeric(dim(mygam_fullOutputs)), c(length(element.subset),24))
+  expect_equal(as.numeric(dim(mygam_fullOutputs)), c(length(element.subset),
+                                                     1+
+                                                       1*(length(var.smoothTerms.full)+1) + 
+                                                       2*(length(var.parametricTerms.full)+1)+
+                                                       length(var.model.full)))
   
   ### when there is no term or stat output #####
   # if there is no explicit parametric term (although there will be term "Intercept") or parametric stat:
   mygam_noExplicitParamTerm <- ModelArray.gam(FD ~ s(age), data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                   n_cores = 2, pbar = FALSE)  
-  mygam_noParamStat <- ModelArray.gam(FD ~ s(age)+sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                                  var.parametricTerms = c(),
-                                  n_cores = 2, pbar = FALSE)  
+  expect_warning(mygam_noParamStat <- ModelArray.gam(FD ~ s(age)+sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                  var.parametricTerms = c(),     # there will be warning: p.value was not included in var.parametricTerms, so not to perform its p.value corrections
+                                  n_cores = 2, pbar = FALSE))
   # if there is no smooth term or stat:
   mygam_noSmoothTerm <- ModelArray.gam(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                   n_cores = 2, pbar = FALSE)   # should without error # expect_output() to test output "there is no smooth term in the requested formula" does not work
   expect_true(c("age.statistic", "age.estimate") %in% colnames(mygam_noSmoothTerm) %>% all())
   
-  mygam_noSmoothStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                                       var.smoothTerms = c(),
-                                       n_cores = 2, pbar = FALSE) 
+  expect_warning(mygam_noSmoothStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                       var.smoothTerms = c(),   # warning: p.value was not included in var.smoothTerms, so not to perform its p.value corrections
+                                       n_cores = 2, pbar = FALSE))
   expect_false("age.statistic" %in% colnames(mygam_noSmoothStat))
   
   # if there is only one var.* not empty: (test with request of reduced model - where there will calls as: c(), c(), c("adj.r.squared"))
-  mygam_onlyModelStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+  w <- capture_warnings(mygam_onlyModelStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                       var.smoothTerms=c(), var.parametricTerms=c(), var.model = c("dev.expl"),
                                       changed.rsq.term.index=c(1),
-                                      n_cores = 2, pbar = FALSE) 
-  mygam_onlyParametricTermsStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-                                        var.smoothTerms=c(), var.parametricTerms=c("estimate"), var.model = c(),
+                                      n_cores = 2, pbar = FALSE) )    # warning: p.value was not included in var.smoothTerms OR var.parametricTerms, so not to perform its p.value corrections
+    expect_match(w, "p.value was not included in var.smoothTerms", all=FALSE)   # all=FALSE: only one element instead of all elements in actual value need to match)
+    expect_match(w, "p.value was not included in var.parametricTerms", all=FALSE)
+  w <- capture_warnings(mygam_onlyParametricTermsStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                        var.smoothTerms=c(), var.parametricTerms=c("estimate"), var.model = c(),   # warning: p.value was not included in var.xxx
                                         changed.rsq.term.index=c(1),
-                                        n_cores = 2, pbar = FALSE) 
-  mygam_onlySmoothTermsStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                        n_cores = 2, pbar = FALSE))
+    expect_match(w, "p.value was not included in var.smoothTerms", all=FALSE)   # all=FALSE: only one element instead of all elements in actual value need to match)
+    expect_match(w, "p.value was not included in var.parametricTerms", all=FALSE)
+  w <- capture_warnings(mygam_onlySmoothTermsStat <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                         var.smoothTerms=c("statistic"), var.parametricTerms=c(), var.model = c(),
                                         changed.rsq.term.index=c(1),
-                                        n_cores = 2, pbar = FALSE) 
+                                        n_cores = 2, pbar = FALSE) )   # warning: p.value was not included in var.xxx
+    expect_match(w, "p.value was not included in var.smoothTerms", all=FALSE)   # all=FALSE: only one element instead of all elements in actual value need to match)
+    expect_match(w, "p.value was not included in var.parametricTerms", all=FALSE)
       # there shouldn't be any NA in these outputs: (otherwise, there is a bug when combining empty tibble in analyseOneElement.gam())
   expect_true( (!mygam_onlyModelStat %>% is.na()) %>% all())   # if there is any NA in the output data.frame, the result is FALSE
   expect_true( (!mygam_onlyParametricTermsStat %>% is.na()) %>% all()) 
