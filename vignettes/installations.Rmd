@@ -1,0 +1,75 @@
+---
+title: "installations"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Installation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This documentation walk through the installation of `ModelArray` package and necessary dependent packages/libraries.
+
+Currently there are several ways to install and use `ModelArray`:
+* Directly installation from [GitHub](https://github.com/PennLINC/ModelArray) in R
+  * This is only fully supported on Linux Ubuntu system and macOS system. If you are a Windows user, you will face errors when running with more than one CPU cores. You may install a Linux subsystem or virtual machine on your Windows machine.
+* Using ModelArray container
+
+
+
+To use `ModelArray` R package, besides installing itself, we also need to other packages/libraries including the companion python package `ConFixel`. 
+
+## Directly installation from GitHub in R
+### Set up a conda environment
+We first create a conda environment `mymodelarray` for installing `ConFixel` etc. We'll install python version 3.9. 
+```console
+foo@bar:~$ conda create --name mymodelarray python=3.9
+foo@bar:~$ conda activate mymodelarray
+```
+
+### Install MRtrix
+`ConFixel` uses function `mrconvert` from MRtrix, so please make sure MRtrix has been installed. It can either be installed via `conda` in this conda environment we just created, or be compiled from source. See [MRtrix's webpage](https://www.mrtrix.org/download/) for more. Type `mrview` in the terminal to check whether MRtrix installation is successful.
+
+### Install hdf5 libraries in the system
+Because ModelArray works with HDF5 file format, we need to make sure necessary libraries of HDF5 are installed in the system. 
+
+#### Linux Ubuntu system
+If you're on Linux Ubuntu system: First, please check if libhdf5-dev has been installed in the system:
+```console
+foo@bar:~$ ldconfig -p | grep libhdf5*
+```
+If you got more than one line of outputs, congrats, you have libhdf5-dev installed. Otherwise, please install it via:
+```console
+foo@bar:~$ sudo apt-get update -y
+foo@bar:~$ sudo apt-get install -y libhdf5-dev
+```
+
+#### macOS system
+Use `Homebrew` to install:
+```console
+foo@bar:~$ brew install hdf5
+```
+For details you may refer to the webpage [here](https://formulae.brew.sh/formula/hdf5)
+
+
+
+### Install R (>=4.1.2)
+`ModelArray` requires R >=4.1.2. If you already have installed it, you can skip this step. 
+
+There are several ways to install R. 
+
+Suppose you are at the path `$HOME/myproject`. 
+
+TODO:
+- install R
+  - either in this conda env or existing one; requirement: >= 4.1.2)
+- (optional) install RStudio
+- install ModelArray
+  - notes: if using R in conda env and have trouble installing dependent R packages - try install with conda
+- install ConFixel (in this conda env)
+
+
+## Using ModelArray container
+TODO............
+
+
+
