@@ -15,6 +15,8 @@ ModelArray.lm(
   var.model = c("adj.r.squared", "p.value"),
   correct.p.value.terms = c("fdr"),
   correct.p.value.model = c("fdr"),
+  num.subj.lthr.abs = 10,
+  num.subj.lthr.rel = 0.2,
   verbose = TRUE,
   pbar = TRUE,
   n_cores = 1,
@@ -41,6 +43,10 @@ ModelArray.lm(
 \item{correct.p.value.terms}{A list of characters. To perform and add a column for p.value correction for each term. Default: "fdr". See "Details" section for more.}
 
 \item{correct.p.value.model}{A list of characters. To perform and add a column for p.value correction for the model. Default: "fdr". See "Details" section for more.}
+
+\item{num.subj.lthr.abs}{An integer, lower threshold of absolute number of subjects. For an element, if number of subjects who have finite values (defined by `is.finite()`, i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr.abs}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN. Default is 10.}
+
+\item{num.subj.lthr.rel}{A value between 0-1, lower threshold of relative number of subjects. Similar to \code{num.subj.lthr.abs}, if proportion of subjects who have valid value > \code{num.subj.lthr.rel}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN. Default is 0.2.}
 
 \item{verbose}{TRUE or FALSE, to print verbose message or not}
 

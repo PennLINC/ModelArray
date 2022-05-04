@@ -228,10 +228,10 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                                      flag_initiate = TRUE, 
                                      ...)
   if ( is.nan(outputs_initiator$column_names)[1]) {  # not sufficient subjects
-    message("There is no sufficient subjects for initiating using the middle element; trying other elements; may take a while in this initiating process....")
+    message("There is no sufficient valid subjects for initiating using the middle element; trying other elements; may take a while in this initiating process....")
     for (i_element_temp in (i_element_try+1):num.elements.total) {   # try each element following i_element_try
       if (i_element_temp%%100 == 0) {
-        message(paste0("trying element #", toString(i_elment_temp), " and the following elements for initiating...."))
+        message(paste0("trying element #", toString(i_element_temp), " and the following elements for initiating...."))
       }
       outputs_initiator <- analyseOneElement.lm(i_element = i_element_temp, 
                                                 formula, data, phenotypes, scalar, 
@@ -245,11 +245,11 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
     }   # end of trying middle element to end
     
     if ((i_element_temp == num.elements.total) & (is.nan(outputs_initiator$column_names)[1])) { # i.e. reached the end of the elements but still haven't initiated...
-      warning("until the end of the elements, there are still no elements with sufficient subjects for initiating the process...")
+      message("until the end of the elements, there are still no elements with sufficient valid subjects for initiating the process...")
       message("start to try element #1 and the following elements for initiating; may take a while in this initiating process....")
       for (i_element_temp in 1:(i_element_try-1)) {   # try each element before i_element_try
         if (i_element_temp%%100 == 0) {
-          message(paste0("trying element #", toString(i_elment_temp), " and the following elements for initiating...."))
+          message(paste0("trying element #", toString(i_element_temp), " and the following elements for initiating...."))
         }
         outputs_initiator <- analyseOneElement.lm(i_element = i_element_temp, 
                                                   formula, data, phenotypes, scalar, 
@@ -263,7 +263,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
       }   # end of trying each element before middle element
       
       if ((i_element_temp == (i_element_try-1)) & (is.nan(outputs_initiator$column_names)[1])) { # i.e. reached the i_element_try-1 (i.e. tried all subjects) but still haven't initiated...
-        error("Have tried all elements, but there is no element with sufficient subjects with valid, finite h5 scalar values (i.e. not NaN or NA, not infinite). Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, or there were problems in the group mask or individual masks!")
+        stop("Have tried all elements, but there is no element with sufficient subjects with valid, finite h5 scalar values (i.e. not NaN or NA, not infinite). Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, or there were problems in the group mask or individual masks!")
       }
     }   # end of if reached the end of the elements but still haven't initiated...
   }   # end of if unsuccessful initiation with middle element

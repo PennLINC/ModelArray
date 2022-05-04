@@ -58,6 +58,8 @@
   <span class="va">scalar</span>,
   <span class="va">var.terms</span>,
   <span class="va">var.model</span>,
+  <span class="va">num.subj.lthr</span>,
+  num.stat.output <span class="op">=</span> <span class="cn">NULL</span>,
   flag_initiate <span class="op">=</span> <span class="cn">FALSE</span>,
   <span class="va">...</span>
 <span class="op">)</span></code></pre></div>
@@ -79,6 +81,10 @@
 <dd><p>A list of characters. The list of variables to save for terms (got from `broom::tidy()`).</p></dd>
 <dt>var.model</dt>
 <dd><p>A list of characters. The list of variables to save for the model (got from `broom::glance()`).</p></dd>
+<dt>num.subj.lthr</dt>
+<dd><p>The minimal number of subjects with valid value in input h5 file, i.e. number of subjects with finite values (defined by `is.finite()`, i.e. not missing with NaN/NA, not infinite with Inf) &gt; num.subj.lthr; otherwise, insufficient number of subjects, return NaNs</p></dd>
+<dt>num.stat.output</dt>
+<dd><p>The number of output stat metrics (for generating all NaN stat when # subjects does not meet criteria). This is required when flag_initiate = TRUE.</p></dd>
 <dt>flag_initiate</dt>
 <dd><p>TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.</p></dd>
 <dt>...</dt>
