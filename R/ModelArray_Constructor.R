@@ -222,6 +222,8 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #' @param scalar A character. The name of the element-wise scalar to be analysed
 #' @param var.terms A list of characters. The list of variables to save for terms (got from `broom::tidy()`). 
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()`).
+#' @param num.subj.lthr The minimal number of subjects with valid value in input h5 file, i.e. number of subjects with finite values (defined by `is.finite()`, i.e. not missing with NaN/NA, not infinite with Inf) > num.subj.lthr; otherwise, insufficient number of subjects, return NaNs
+#' @param num.stat.output The number of output stat metrics (for generating all NaN stat when # subjects does not meet criteria). This is required when flag_initiate = TRUE.
 #' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
 #' @param ... Additional arguments for `stats::lm()`
 #' 
@@ -235,123 +237,148 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 analyseOneElement.lm <- function(i_element, 
                                formula, modelarray, phenotypes, scalar, 
                                var.terms, var.model, 
+                               num.subj.lthr, num.stat.output = NULL,
                                flag_initiate = FALSE, 
                                ...) {
   values <- scalars(modelarray)[[scalar]][i_element,]
-  dat <- phenotypes
-  dat[[scalar]] <- values
   
-  # dots <- list(...)
-  # dots_names <- names(dots)
-  # if ("weights" %in% dots_names) {
-  #   message(dots$weights)
-  #   myWeights <- dots$weights
-  #   dots$weights <- NULL  # remove weights from 
-  #   
-  #   arguments_lm <- dots
-  #   
-  # }
-  arguments_lm <- list(...)
-  arguments_lm$formula <- formula
-  arguments_lm$data <- dat
-  
-  # onemodel <- stats::lm(formula, data = dat, ...)   
-  # onemodel <- stats::lm(formula, data = dat, weights = myWeights,...)   
-  onemodel <- do.call(stats::lm, arguments_lm)   # explicitly passing arguments into lm, to avoid error of argument "weights"
-  
-  onemodel.tidy <- onemodel %>% broom::tidy()
-  onemodel.glance <- onemodel %>% broom::glance()
-  
-  # delete columns you don't want:
-  var.terms.full <-names(onemodel.tidy)
-  
-  var.model.full <- names(onemodel.glance)
-  
-  # list to remove:
-  var.terms.orig <- var.terms
-  var.terms <- list("term", var.terms) %>% unlist()    # we will always keep "term" column
-  var.terms.remove <- list()   
-  for (l in var.terms.full) {
-    if (!(l %in% var.terms)) {
-      var.terms.remove <- var.terms.remove %>% append(., l) %>% unlist()  # the order will still be kept
-    }
-  }
-  
-  var.model.remove <- list()
-  for (l in var.model.full) {
-    if (!(l %in% var.model)) {
-      var.model.remove <- var.model.remove %>% append(., l) %>% unlist()  # the order will still be kept
-    }
-  }
-  
-  # remove those columns:
-  if (length(var.terms.remove) != 0) {    # if length=0, it's list(), nothing to remove
-    onemodel.tidy <- dplyr::select(onemodel.tidy, -all_of(var.terms.remove))
-  }
-  if (length(var.model.remove) != 0) {
-    onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
-  }
-  
-  # adjust:
-  onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
-  onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
-  
-  # get the list of terms:
-  list.terms <- onemodel.tidy$term
-  
-  # check if the onemodel.* does not have real statistics (but only a column of 'term')
-  temp_colnames <- onemodel.tidy %>% colnames()
-  temp <- union(temp_colnames, "term")    # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()), union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term", all(union) = c(TRUE, FALSE, ...)
-  if (all(temp == "term")) onemodel.tidy <- tibble()   # just an empty tibble (so below, all(dim(onemodel.tidy)) = FALSE)
-
-  temp_colnames <- onemodel.glance %>% colnames()
-  temp <- union(temp_colnames, "term")    # union of colnames and "term"; 
-  if (all(temp == "term")) onemodel.glance <- tibble() 
-
-
-
-  # flatten .tidy results into one row:
-  if (all(dim(onemodel.tidy))) {  # not empty | if any dim is 0, all=FALSE
-    onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(names_from = term,
-                                                               values_from = all_of(var.terms.orig),
-                                                               names_glue = "{term}.{.value}")
-  } else  {
-    onemodel.tidy.onerow <- onemodel.tidy
-  }
-  
-  if(all(dim(onemodel.glance))) {  # not empty
-    onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
-                                                                    values_from = all_of(var.model),
-                                                                    names_glue = "{term}.{.value}")
+  ## check number of subjects with (in)valid values:
+  flag_sufficient <- NULL   # whether number of subjects with valid values are sufficient
+  num.subj.valid <- length(values[is.finite(values)])
+  if (num.subj.valid > num.subj.lthr) {
+    flag_sufficient <- TRUE
   } else {
-    onemodel.glance.onerow <- onemodel.glance
+    flag_sufficient <- FALSE
   }
   
-  
-  # combine the tables: check if any of them is empty (tibble())
-  onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.tidy.onerow, onemodel.glance.onerow)
-
-  # add a column of element ids:
-  colnames.temp <- colnames(onemodel.onerow)
-  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element-1, .before = colnames.temp[1])   # add as the first column
-  
-  # now you can get the headers, # of columns, etc of the output results
-  
-  
-  if (flag_initiate == TRUE) { # return the column names:
+  if (flag_sufficient == TRUE) {
+    dat <- phenotypes
+    dat[[scalar]] <- values
     
-    # return:
-    column_names = colnames(onemodel.onerow)
-    toreturn <- list(column_names = column_names,
-                     list.terms = list.terms)
-    toreturn
+    # dots <- list(...)
+    # dots_names <- names(dots)
+    # if ("weights" %in% dots_names) {
+    #   message(dots$weights)
+    #   myWeights <- dots$weights
+    #   dots$weights <- NULL  # remove weights from 
+    #   
+    #   arguments_lm <- dots
+    #   
+    # }
+    arguments_lm <- list(...)
+    arguments_lm$formula <- formula
+    arguments_lm$data <- dat
     
-  } else if (flag_initiate == FALSE) {  # return the one row results:
-
-    # return: 
-    onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save some space
-    onerow
+    # onemodel <- stats::lm(formula, data = dat, ...)   
+    # onemodel <- stats::lm(formula, data = dat, weights = myWeights,...)   
+    onemodel <- do.call(stats::lm, arguments_lm)   # explicitly passing arguments into lm, to avoid error of argument "weights"
+    
+    onemodel.tidy <- onemodel %>% broom::tidy()
+    onemodel.glance <- onemodel %>% broom::glance()
+    
+    # delete columns you don't want:
+    var.terms.full <-names(onemodel.tidy)
+    
+    var.model.full <- names(onemodel.glance)
+    
+    # list to remove:
+    var.terms.orig <- var.terms
+    var.terms <- list("term", var.terms) %>% unlist()    # we will always keep "term" column
+    var.terms.remove <- list()   
+    for (l in var.terms.full) {
+      if (!(l %in% var.terms)) {
+        var.terms.remove <- var.terms.remove %>% append(., l) %>% unlist()  # the order will still be kept
+      }
+    }
+    
+    var.model.remove <- list()
+    for (l in var.model.full) {
+      if (!(l %in% var.model)) {
+        var.model.remove <- var.model.remove %>% append(., l) %>% unlist()  # the order will still be kept
+      }
+    }
+    
+    # remove those columns:
+    if (length(var.terms.remove) != 0) {    # if length=0, it's list(), nothing to remove
+      onemodel.tidy <- dplyr::select(onemodel.tidy, -all_of(var.terms.remove))
+    }
+    if (length(var.model.remove) != 0) {
+      onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
+    }
+    
+    # adjust:
+    onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
+    onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
+    
+    # get the list of terms:
+    list.terms <- onemodel.tidy$term
+    
+    # check if the onemodel.* does not have real statistics (but only a column of 'term')
+    temp_colnames <- onemodel.tidy %>% colnames()
+    temp <- union(temp_colnames, "term")    # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()), union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term", all(union) = c(TRUE, FALSE, ...)
+    if (all(temp == "term")) onemodel.tidy <- tibble()   # just an empty tibble (so below, all(dim(onemodel.tidy)) = FALSE)
+    
+    temp_colnames <- onemodel.glance %>% colnames()
+    temp <- union(temp_colnames, "term")    # union of colnames and "term"; 
+    if (all(temp == "term")) onemodel.glance <- tibble() 
+    
+    
+    
+    # flatten .tidy results into one row:
+    if (all(dim(onemodel.tidy))) {  # not empty | if any dim is 0, all=FALSE
+      onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(names_from = term,
+                                                                   values_from = all_of(var.terms.orig),
+                                                                   names_glue = "{term}.{.value}")
+    } else  {
+      onemodel.tidy.onerow <- onemodel.tidy
+    }
+    
+    if(all(dim(onemodel.glance))) {  # not empty
+      onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
+                                                                        values_from = all_of(var.model),
+                                                                        names_glue = "{term}.{.value}")
+    } else {
+      onemodel.glance.onerow <- onemodel.glance
+    }
+    
+    
+    # combine the tables: check if any of them is empty (tibble())
+    onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.tidy.onerow, onemodel.glance.onerow)
+    
+    # add a column of element ids:
+    colnames.temp <- colnames(onemodel.onerow)
+    onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element-1, .before = colnames.temp[1])   # add as the first column
+    
+    # now you can get the headers, # of columns, etc of the output results
+    
+    
+    if (flag_initiate == TRUE) { # return the column names:
+      
+      # return:
+      column_names = colnames(onemodel.onerow)
+      toreturn <- list(column_names = column_names,
+                       list.terms = list.terms)
+      toreturn
+      
+    } else if (flag_initiate == FALSE) {  # return the one row results:
+      
+      # return: 
+      onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save some space
+      onerow
+    }
+    
+  } else {   # if flag_sufficient==FALSE
+    if (flag_initiate == TRUE) {
+      toreturn <- list(column_names = NaN,
+                       list.terms = NaN)
+      
+    } else if (flag_initiate==FALSE) {
+      onerow <- rep(NaN, num.stat.output)
+        
+      onerow
+    }
   }
+  
   
   
 }  

@@ -26,8 +26,8 @@
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()`). See "Details" section for more.
 #' @param correct.p.value.terms A list of characters. To perform and add a column for p.value correction for each term. Default: "fdr". See "Details" section for more.
 #' @param correct.p.value.model A list of characters. To perform and add a column for p.value correction for the model. Default: "fdr". See "Details" section for more.
-#' @param num.subj.lthr.abs An integer, lower threshold of absolute number of subjects. For an element, if number of subjects who have valid value (not NA defined by \code{is.nan()}) in h5 file > \code{num.subj.lthr.abs}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NA. Default is 10.
-#' @param num.subj.lthr.rel A value between 0-1, lower threshold of relative number of subjects. Similar to \code{num.subj.lthr.abs}, if proportion of subjects who have valid value > \code{num.subj.lthr.rel}, then this element will be run normally; otherwise, this element will be skipped. Default is 0.2.
+#' @param num.subj.lthr.abs An integer, lower threshold of absolute number of subjects. For an element, if number of subjects who have finite values (defined by `is.finite()`, i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr.abs}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN. Default is 10.
+#' @param num.subj.lthr.rel A value between 0-1, lower threshold of relative number of subjects. Similar to \code{num.subj.lthr.abs}, if proportion of subjects who have valid value > \code{num.subj.lthr.rel}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN. Default is 0.2.
 #' @param verbose TRUE or FALSE, to print verbose message or not
 #' @param pbar TRUE or FALSE, to print progress bar or not
 #' @param n_cores Positive integer, The number of CPU cores to run with
@@ -219,13 +219,62 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 
   
   # initiate: get the example of one element and get the column names
-  outputs_initiator <- analyseOneElement.lm(i_element=1, formula, data, phenotypes, scalar, 
+  num.elements.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
+  i_element_try <- floor(num.elements.total/2)   # find the middle element of all elements, higher possibility to have sufficient subjects
+  outputs_initiator <- analyseOneElement.lm(i_element = i_element_try, 
+                                            formula, data, phenotypes, scalar, 
                                      var.terms, var.model, 
+                                     num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
                                      flag_initiate = TRUE, 
                                      ...)
+  if ( is.nan(outputs_initiator$column_names)[1]) {  # not sufficient subjects
+    message("There is no sufficient subjects for initiating using the middle element; trying other elements; may take a while in this initiating process....")
+    for (i_element_temp in (i_element_try+1):num.elements.total) {   # try each element following i_element_try
+      if (i_element_temp%%100 == 0) {
+        message(paste0("trying element #", toString(i_elment_temp), " and the following elements for initiating...."))
+      }
+      outputs_initiator <- analyseOneElement.lm(i_element = i_element_temp, 
+                                                formula, data, phenotypes, scalar, 
+                                                var.terms, var.model, 
+                                                num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
+                                                flag_initiate = TRUE, 
+                                                ...)
+      if ( !( is.nan(outputs_initiator$column_names)[1]  ) ) {  # if valid column names, the first element in column names is not nan
+        break
+      }  
+    }   # end of trying middle element to end
+    
+    if ((i_element_temp == num.elements.total) & (is.nan(outputs_initiator$column_names)[1])) { # i.e. reached the end of the elements but still haven't initiated...
+      warning("until the end of the elements, there are still no elements with sufficient subjects for initiating the process...")
+      message("start to try element #1 and the following elements for initiating; may take a while in this initiating process....")
+      for (i_element_temp in 1:(i_element_try-1)) {   # try each element before i_element_try
+        if (i_element_temp%%100 == 0) {
+          message(paste0("trying element #", toString(i_elment_temp), " and the following elements for initiating...."))
+        }
+        outputs_initiator <- analyseOneElement.lm(i_element = i_element_temp, 
+                                                  formula, data, phenotypes, scalar, 
+                                                  var.terms, var.model, 
+                                                  num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
+                                                  flag_initiate = TRUE, 
+                                                  ...)
+        if ( !( is.nan(outputs_initiator$column_names)[1]  ) ) {  # if valid column names, the first element in column names is not nan
+          break
+        }  
+      }   # end of trying each element before middle element
+      
+      if ((i_element_temp == (i_element_try-1)) & (is.nan(outputs_initiator$column_names)[1])) { # i.e. reached the i_element_try-1 (i.e. tried all subjects) but still haven't initiated...
+        error("Have tried all elements, but there is no element with sufficient subjects with valid, finite h5 scalar values (i.e. not NaN or NA, not infinite). Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, or there were problems in the group mask or individual masks!")
+      }
+    }   # end of if reached the end of the elements but still haven't initiated...
+  }   # end of if unsuccessful initiation with middle element
+  
+  
+  # otherwise, it was successful:
   column_names <- outputs_initiator$column_names
   list.terms <- outputs_initiator$list.terms
+  num.stat.output <- length(column_names)    # including element_id
 
+  
   # loop (by condition of pbar and n_cores)
   if(verbose){
     message(glue::glue("looping across elements....", ))
@@ -242,6 +291,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                                     mc.cores = n_cores,
                                     formula, data, phenotypes, scalar,
                                     var.terms, var.model,
+                                    num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
                                     flag_initiate = FALSE,
                                     ...)
       
@@ -254,6 +304,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                                  mc.cores = n_cores,
                                  formula, data, phenotypes, scalar,
                                  var.terms, var.model,
+                                 num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
                                  flag_initiate = FALSE,
                                  ...)
       
@@ -266,6 +317,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                                 analyseOneElement.lm,  # the function
                                 formula, data, phenotypes, scalar,
                                 var.terms, var.model,
+                                num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
                                 flag_initiate = FALSE,
                                 ...)
       
@@ -275,6 +327,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                      analyseOneElement.lm,  # the function
                      formula, data, phenotypes, scalar,
                      var.terms, var.model,
+                     num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
                      flag_initiate = FALSE,
                      ...)
     }
