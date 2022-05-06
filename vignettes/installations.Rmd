@@ -1,5 +1,5 @@
 ---
-title: "installations"
+title: "Installation"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Installation}
@@ -20,10 +20,10 @@ To use `ModelArray` R package, besides installing itself, we also need to other 
 
 ## Directly installation from GitHub in R
 ### Set up a conda environment
-We first create a conda environment `mymodelarray` for installing `ConFixel` etc. We'll install python version 3.9. 
+We first create a conda environment `modelarray` for installing `ConFixel` etc. We'll install python version 3.9. 
 ```console
-foo@bar:~$ conda create --name mymodelarray python=3.9
-foo@bar:~$ conda activate mymodelarray
+foo@bar:~$ conda create --name modelarray python=3.9
+foo@bar:~$ conda activate modelarray
 ```
 
 ### Install MRtrix
