@@ -63,6 +63,8 @@
   changed.rsq.term.index <span class="op">=</span> <span class="cn">NULL</span>,
   correct.p.value.smoothTerms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fdr"</span><span class="op">)</span>,
   correct.p.value.parametricTerms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fdr"</span><span class="op">)</span>,
+  num.subj.lthr.abs <span class="op">=</span> <span class="fl">10</span>,
+  num.subj.lthr.rel <span class="op">=</span> <span class="fl">0.2</span>,
   verbose <span class="op">=</span> <span class="cn">TRUE</span>,
   pbar <span class="op">=</span> <span class="cn">TRUE</span>,
   n_cores <span class="op">=</span> <span class="fl">1</span>,
@@ -96,6 +98,10 @@
 <dd><p>A list of characters. To perform and add a column for p.value correction for each smooth term. Default: "fdr". See "Details" section for more.</p></dd>
 <dt>correct.p.value.parametricTerms</dt>
 <dd><p>A list of characters. To perform and add a column for p.value correction for each parametric term. Default: "fdr". See "Details" section for more.</p></dd>
+<dt>num.subj.lthr.abs</dt>
+<dd><p>An integer, lower threshold of absolute number of subjects. For an element, if number of subjects who have finite values (defined by `is.finite()`, i.e. not NaN or NA or Inf) in h5 file &gt; <code>num.subj.lthr.abs</code>, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN. Default is 10.</p></dd>
+<dt>num.subj.lthr.rel</dt>
+<dd><p>A value between 0-1, lower threshold of relative number of subjects. Similar to <code>num.subj.lthr.abs</code>, if proportion of subjects who have valid value &gt; <code>num.subj.lthr.rel</code>, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN. Default is 0.2.</p></dd>
 <dt>verbose</dt>
 <dd><p>TRUE or FALSE, to print verbose messages or not</p></dd>
 <dt>pbar</dt>

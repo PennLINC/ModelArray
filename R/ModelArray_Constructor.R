@@ -222,8 +222,8 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #' @param scalar A character. The name of the element-wise scalar to be analysed
 #' @param var.terms A list of characters. The list of variables to save for terms (got from `broom::tidy()`). 
 #' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()`).
-#' @param num.subj.lthr The minimal number of subjects with valid value in input h5 file, i.e. number of subjects with finite values (defined by `is.finite()`, i.e. not missing with NaN/NA, not infinite with Inf) > num.subj.lthr; otherwise, insufficient number of subjects, return NaNs
-#' @param num.stat.output The number of output stat metrics (for generating all NaN stat when # subjects does not meet criteria). This is required when flag_initiate = TRUE.
+#' @param num.subj.lthr The minimal number of subjects with valid value in input h5 file, i.e. number of subjects with finite values (defined by `is.finite()`, i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN.
+#' @param num.stat.output The number of output stat metrics (for generating all NaN stat when # subjects does not meet criteria). This includes column `element_id`. This is required when flag_initiate = TRUE.
 #' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
 #' @param ... Additional arguments for `stats::lm()`
 #' 
@@ -371,9 +371,11 @@ analyseOneElement.lm <- function(i_element,
     if (flag_initiate == TRUE) {
       toreturn <- list(column_names = NaN,
                        list.terms = NaN)
-      
+      toreturn
+
     } else if (flag_initiate==FALSE) {
-      onerow <- rep(NaN, num.stat.output)
+      onerow <- c(i_element-1,    # first is element_id, which will still be a finite number
+                  rep(NaN, (num.stat.output-1)))     # other columns will be NaN
         
       onerow
     }
@@ -398,6 +400,8 @@ analyseOneElement.lm <- function(i_element,
 #' @param var.smoothTerms The list of variables to save for smooth terms (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
 #' @param var.parametricTerms The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".
 #' @param var.model The list of variables to save for the model (got from broom::glance() and summary()). 
+#' @param num.subj.lthr The minimal number of subjects with valid value in input h5 file, i.e. number of subjects with finite values (defined by `is.finite()`, i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN.
+#' @param num.stat.output The number of output stat metrics (for generating all NaN stat when # subjects does not meet criteria). This includes column `element_id`. This is required when flag_initiate = TRUE.
 #' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.
 #' @param flag_sse TRUE or FALSE, Whether to calculate SSE (sum of squared error) for the model (`model.sse`). SSE is needed for calculating partial R-squared.
 #' @param ... Additional arguments for `mgcv::gam()`
@@ -410,202 +414,229 @@ analyseOneElement.lm <- function(i_element,
 
 analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, scalar, 
                                 var.smoothTerms, var.parametricTerms, var.model, 
+                                num.subj.lthr, num.stat.output = NULL,
                                 flag_initiate = FALSE, flag_sse = FALSE,
                                 ...) {
   values <- scalars(modelarray)[[scalar]][i_element,]
-  dat <- phenotypes
-  dat[[scalar]] <- values
-  
-  arguments <- list(...)
-  arguments$formula <- formula
-  arguments$data <- dat
-  
-  onemodel <- do.call(mgcv::gam, arguments)   # explicitly passing arguments into command, to avoid error of argument "weights"
-  
-  onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
-  onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
-  onemodel.glance <- onemodel %>% broom::glance()
-  onemodel.summary <- onemodel %>% summary()
-  # add additional model's stat to onemodel.glance():
-  onemodel.glance[["adj.r.squared"]] <- onemodel.summary$r.sq
-  onemodel.glance[["dev.expl"]] <- onemodel.summary$dev.expl
 
-  sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name")
-  onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[ sp.criterion.attr.name ]] 
-  onemodel.glance[["scale"]] <- onemodel.summary$scale   # scale estimate
-
-  num.smoothTerms <- onemodel.summary$m   # The number of smooth terms in the model.
-  
-
-
-  # delete columns you don't want:
-  var.smoothTerms.full <- names(onemodel.tidy.smoothTerms)
-  var.parametricTerms.full <- names(onemodel.tidy.parametricTerms)
-  var.model.full <- names(onemodel.glance)
-
-  # list to remove:
-  var.smoothTerms.orig <- var.smoothTerms
-  var.smoothTerms <- list("term", var.smoothTerms) %>% unlist()  # we will always keep "term" column
-  var.smoothTerms.remove <- list()
-  for (l in var.smoothTerms.full) {
-    if (!(l %in% var.smoothTerms)) {
-      var.smoothTerms.remove <- var.smoothTerms.remove %>% append(., l) %>% unlist()  # the order will still be kept
-    }
-  }
-
-  var.parametricTerms.orig <- var.parametricTerms
-  var.parametricTerms <- list("term", var.parametricTerms) %>% unlist()  # we will always keep "term" column
-  var.parametricTerms.remove <- list()
-  for (l in var.parametricTerms.full) {
-    if (!(l %in% var.parametricTerms)) {
-      var.parametricTerms.remove <- var.parametricTerms.remove %>% append(., l) %>% unlist()  # the order will still be kept
-    }
-  }
-
-  var.model.remove <- list()
-  for (l in var.model.full) {
-    if (!(l %in% var.model)) {
-      var.model.remove <- var.model.remove %>% append(., l) %>% unlist()  # the order will still be kept
-    }
-  }
-
-  # remove those columns:
-  if (length(var.smoothTerms.remove) != 0) {    # if length=0, it's list(), nothing to remove
-    onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -all_of(var.smoothTerms.remove))
-  }
-  if (length(var.parametricTerms.remove) != 0) {    # if length=0, it's list(), nothing to remove
-    onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -all_of(var.parametricTerms.remove))
-  }
-  if (length(var.model.remove) != 0) {
-    onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
-  }
-
-  # adjust:
-  if (num.smoothTerms > 0) {   # if there is any smooth term
-    onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"  
-  }
-  if (nrow(onemodel.tidy.parametricTerms) > 0) {  # if there is any parametric term
-    onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
-  }
-  
-    # change from s(x) to s_x: (could be s, te, etc); from s(x):oFactor to s_x_BYoFactor; from ti(x,z) to ti_x_z
-  if (num.smoothTerms > 0) {   # if there is any smooth term
-    for (i_row in 1:nrow(onemodel.tidy.smoothTerms)) {  
-      # step 1: change from s(x) to s_x
-      term_name <- onemodel.tidy.smoothTerms$term[i_row]
-      str_list <- strsplit(term_name, split="[()]")[[1]]
-      
-      str <- str_list[2]   # extract string between ()
-      smooth_name <- str_list[1]   # "s" or some other smooth method type such as "te"
-      str_valid <- paste0(smooth_name, "_",str)
-      
-      if (length(str_list)>2) {   # there is string after variable name
-        str_valid <- paste0(str_valid, "_",
-                            paste(str_list[3:length(str_list)], collapse=""))   # combine rest of strings
-      }   
-        
-      # detect ":", and change to "BY"   # there is "_" replacing for ")" in "s()" already
-      str_valid <- gsub(":", "BY", str_valid, fixed=TRUE)
-      
-      # detect ",", and change to "_"
-      str_valid <- gsub(",", "_", str_valid, fixed=TRUE)
-      
-      onemodel.tidy.smoothTerms$term[i_row] <- str_valid
-    }
-  }
-  
-  
-  onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
-
-  # get the list of terms:
-  if (num.smoothTerms >0) {
-    list.smoothTerms <- onemodel.tidy.smoothTerms$term   # if empty, gives warning
+  ## check number of subjects with (in)valid values:
+  flag_sufficient <- NULL   # whether number of subjects with valid values are sufficient
+  num.subj.valid <- length(values[is.finite(values)])
+  if (num.subj.valid > num.subj.lthr) {
+    flag_sufficient <- TRUE
   } else {
-    list.smoothTerms <- NULL
+    flag_sufficient <- FALSE
   }
-  
-  if (nrow(onemodel.tidy.parametricTerms)>0) {
-    list.parametricTerms <- onemodel.tidy.parametricTerms$term  
-  } else {
-    list.parametricTerms <- NULL
-  }
-  
-  
-  # check if the onemodel.* does not have real statistics (but only a column of 'term')
-  temp_colnames <- onemodel.tidy.smoothTerms %>% colnames()
-  temp <- union(temp_colnames, "term")    # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()), union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term", all(union) = c(TRUE, FALSE, ...)
-  if (all(temp == "term")) onemodel.tidy.smoothTerms <- tibble()   # just an empty tibble (so below, all(dim(onemodel.tidy.smoothTerms)) = FALSE)
-  
-  temp_colnames <- onemodel.tidy.parametricTerms %>% colnames()
-  temp <- union(temp_colnames, "term")     
-  if (all(temp == "term")) onemodel.tidy.parametricTerms <- tibble()   # just an empty tibble
-  
-  temp_colnames <- onemodel.glance %>% colnames()
-  temp <- union(temp_colnames, "term")    
-  if (all(temp == "term")) onemodel.glance <- tibble()   # just an empty tibble
 
-  
-  # flatten .tidy results into one row:
-  if (all(dim(onemodel.tidy.smoothTerms))) {   # not empty | if any dim is 0, all=FALSE
-    onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(names_from = term,
-                                                                                         values_from = all_of(var.smoothTerms.orig),
-                                                                                         names_glue = "{term}.{.value}")
-  } else {
-    onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms
-  }
-  
-  if (all(dim(onemodel.tidy.parametricTerms))) {  # not empty
-    onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(names_from = term,
-                                                                                                 values_from = all_of(var.parametricTerms.orig),
-                                                                                                 names_glue = "{term}.{.value}")
-  } else {
-    onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms
-  }
-  
-  if (all(dim(onemodel.glance))) {  # not empty
-    onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
-                                                                      values_from = all_of(var.model),
-                                                                      names_glue = "{term}.{.value}")
-  } else {
-    onemodel.glance.onerow <- onemodel.glance
-  }
-  
-
-  # combine the tables: check if any of them is empty (tibble())
-  onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.tidy.smoothTerms.onerow, 
-                                                 onemodel.tidy.parametricTerms.onerow)
-  onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.onerow,
-                                                onemodel.glance.onerow)
-  
-
-  # add a column of element ids:
-  colnames.temp <- colnames(onemodel.onerow)
-  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element-1, .before = colnames.temp[1])   # add as the first column
-  
-  # add sse if requested:
-  if (flag_sse == TRUE) {
-    onemodel.onerow[["model.sse"]] <- sum( (onemodel$y - onemodel$fitted.values)^2 )   # using values from model itself, where NAs in y have been excluded --> sse won't be NA --> partial R-squared won't be NA
-  }
-  
-  
-  # now you can get the headers, # of columns, etc of the output results
-
-
-  if (flag_initiate == TRUE) { # return the column names:
+  if (flag_sufficient == TRUE) {
+    dat <- phenotypes
+    dat[[scalar]] <- values
     
-    # return:
-    column_names = colnames(onemodel.onerow)
-    toreturn <- list(column_names = column_names,
-                     list.smoothTerms = list.smoothTerms,
-                     list.parametricTerms = list.parametricTerms,
-                     sp.criterion.attr.name = sp.criterion.attr.name)
-    toreturn
+    arguments <- list(...)
+    arguments$formula <- formula
+    arguments$data <- dat
+    
+    onemodel <- do.call(mgcv::gam, arguments)   # explicitly passing arguments into command, to avoid error of argument "weights"
+    
+    onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
+    onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
+    onemodel.glance <- onemodel %>% broom::glance()
+    onemodel.summary <- onemodel %>% summary()
+    # add additional model's stat to onemodel.glance():
+    onemodel.glance[["adj.r.squared"]] <- onemodel.summary$r.sq
+    onemodel.glance[["dev.expl"]] <- onemodel.summary$dev.expl
 
-  } else if (flag_initiate == FALSE) {  # return the one row results:
+    sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name")
+    onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[ sp.criterion.attr.name ]] 
+    onemodel.glance[["scale"]] <- onemodel.summary$scale   # scale estimate
 
-    # return: 
-    onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save some space
-    onerow
+    num.smoothTerms <- onemodel.summary$m   # The number of smooth terms in the model.
+    
+
+
+    # delete columns you don't want:
+    var.smoothTerms.full <- names(onemodel.tidy.smoothTerms)
+    var.parametricTerms.full <- names(onemodel.tidy.parametricTerms)
+    var.model.full <- names(onemodel.glance)
+
+    # list to remove:
+    var.smoothTerms.orig <- var.smoothTerms
+    var.smoothTerms <- list("term", var.smoothTerms) %>% unlist()  # we will always keep "term" column
+    var.smoothTerms.remove <- list()
+    for (l in var.smoothTerms.full) {
+      if (!(l %in% var.smoothTerms)) {
+        var.smoothTerms.remove <- var.smoothTerms.remove %>% append(., l) %>% unlist()  # the order will still be kept
+      }
+    }
+
+    var.parametricTerms.orig <- var.parametricTerms
+    var.parametricTerms <- list("term", var.parametricTerms) %>% unlist()  # we will always keep "term" column
+    var.parametricTerms.remove <- list()
+    for (l in var.parametricTerms.full) {
+      if (!(l %in% var.parametricTerms)) {
+        var.parametricTerms.remove <- var.parametricTerms.remove %>% append(., l) %>% unlist()  # the order will still be kept
+      }
+    }
+
+    var.model.remove <- list()
+    for (l in var.model.full) {
+      if (!(l %in% var.model)) {
+        var.model.remove <- var.model.remove %>% append(., l) %>% unlist()  # the order will still be kept
+      }
+    }
+
+    # remove those columns:
+    if (length(var.smoothTerms.remove) != 0) {    # if length=0, it's list(), nothing to remove
+      onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -all_of(var.smoothTerms.remove))
+    }
+    if (length(var.parametricTerms.remove) != 0) {    # if length=0, it's list(), nothing to remove
+      onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -all_of(var.parametricTerms.remove))
+    }
+    if (length(var.model.remove) != 0) {
+      onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
+    }
+
+    # adjust:
+    if (num.smoothTerms > 0) {   # if there is any smooth term
+      onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"  
+    }
+    if (nrow(onemodel.tidy.parametricTerms) > 0) {  # if there is any parametric term
+      onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"  # change the term name from "(Intercept)" to "Intercept"
+    }
+    
+      # change from s(x) to s_x: (could be s, te, etc); from s(x):oFactor to s_x_BYoFactor; from ti(x,z) to ti_x_z
+    if (num.smoothTerms > 0) {   # if there is any smooth term
+      for (i_row in 1:nrow(onemodel.tidy.smoothTerms)) {  
+        # step 1: change from s(x) to s_x
+        term_name <- onemodel.tidy.smoothTerms$term[i_row]
+        str_list <- strsplit(term_name, split="[()]")[[1]]
+        
+        str <- str_list[2]   # extract string between ()
+        smooth_name <- str_list[1]   # "s" or some other smooth method type such as "te"
+        str_valid <- paste0(smooth_name, "_",str)
+        
+        if (length(str_list)>2) {   # there is string after variable name
+          str_valid <- paste0(str_valid, "_",
+                              paste(str_list[3:length(str_list)], collapse=""))   # combine rest of strings
+        }   
+          
+        # detect ":", and change to "BY"   # there is "_" replacing for ")" in "s()" already
+        str_valid <- gsub(":", "BY", str_valid, fixed=TRUE)
+        
+        # detect ",", and change to "_"
+        str_valid <- gsub(",", "_", str_valid, fixed=TRUE)
+        
+        onemodel.tidy.smoothTerms$term[i_row] <- str_valid
+      }
+    }
+    
+    
+    onemodel.glance <- onemodel.glance %>% mutate(term="model")   # add a column 
+
+    # get the list of terms:
+    if (num.smoothTerms >0) {
+      list.smoothTerms <- onemodel.tidy.smoothTerms$term   # if empty, gives warning
+    } else {
+      list.smoothTerms <- NULL
+    }
+    
+    if (nrow(onemodel.tidy.parametricTerms)>0) {
+      list.parametricTerms <- onemodel.tidy.parametricTerms$term  
+    } else {
+      list.parametricTerms <- NULL
+    }
+    
+    
+    # check if the onemodel.* does not have real statistics (but only a column of 'term')
+    temp_colnames <- onemodel.tidy.smoothTerms %>% colnames()
+    temp <- union(temp_colnames, "term")    # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()), union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term", all(union) = c(TRUE, FALSE, ...)
+    if (all(temp == "term")) onemodel.tidy.smoothTerms <- tibble()   # just an empty tibble (so below, all(dim(onemodel.tidy.smoothTerms)) = FALSE)
+    
+    temp_colnames <- onemodel.tidy.parametricTerms %>% colnames()
+    temp <- union(temp_colnames, "term")     
+    if (all(temp == "term")) onemodel.tidy.parametricTerms <- tibble()   # just an empty tibble
+    
+    temp_colnames <- onemodel.glance %>% colnames()
+    temp <- union(temp_colnames, "term")    
+    if (all(temp == "term")) onemodel.glance <- tibble()   # just an empty tibble
+
+    
+    # flatten .tidy results into one row:
+    if (all(dim(onemodel.tidy.smoothTerms))) {   # not empty | if any dim is 0, all=FALSE
+      onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(names_from = term,
+                                                                                          values_from = all_of(var.smoothTerms.orig),
+                                                                                          names_glue = "{term}.{.value}")
+    } else {
+      onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms
+    }
+    
+    if (all(dim(onemodel.tidy.parametricTerms))) {  # not empty
+      onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(names_from = term,
+                                                                                                  values_from = all_of(var.parametricTerms.orig),
+                                                                                                  names_glue = "{term}.{.value}")
+    } else {
+      onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms
+    }
+    
+    if (all(dim(onemodel.glance))) {  # not empty
+      onemodel.glance.onerow <- onemodel.glance %>%  tidyr::pivot_wider(names_from = term, 
+                                                                        values_from = all_of(var.model),
+                                                                        names_glue = "{term}.{.value}")
+    } else {
+      onemodel.glance.onerow <- onemodel.glance
+    }
+    
+
+    # combine the tables: check if any of them is empty (tibble())
+    onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.tidy.smoothTerms.onerow, 
+                                                  onemodel.tidy.parametricTerms.onerow)
+    onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.onerow,
+                                                  onemodel.glance.onerow)
+    
+
+    # add a column of element ids:
+    colnames.temp <- colnames(onemodel.onerow)
+    onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element-1, .before = colnames.temp[1])   # add as the first column
+    
+    # add sse if requested:
+    if (flag_sse == TRUE) {
+      onemodel.onerow[["model.sse"]] <- sum( (onemodel$y - onemodel$fitted.values)^2 )   # using values from model itself, where NAs in y have been excluded --> sse won't be NA --> partial R-squared won't be NA
+    }
+    
+    
+    # now you can get the headers, # of columns, etc of the output results
+
+
+    if (flag_initiate == TRUE) { # return the column names:
+      
+      # return:
+      column_names = colnames(onemodel.onerow)
+      toreturn <- list(column_names = column_names,
+                      list.smoothTerms = list.smoothTerms,
+                      list.parametricTerms = list.parametricTerms,
+                      sp.criterion.attr.name = sp.criterion.attr.name)
+      toreturn
+
+    } else if (flag_initiate == FALSE) {  # return the one row results:
+
+      # return: 
+      onerow <- as.numeric(onemodel.onerow)   # change from tibble to numeric to save some space
+      onerow
+    }
+  } else {   # if flag_sufficient==FALSE
+    if (flag_initiate == TRUE) {
+      toreturn <- list(column_names = NaN,
+                       list.smoothTerms = NaN,
+                       list.parametricTerms = NaN,
+                       sp.criterion.attr.name = NaN)
+      toreturn
+
+    } else if (flag_initiate==FALSE) {
+      onerow <- c(i_element-1,    # first is element_id, which will still be a finite number
+                  rep(NaN, (num.stat.output-1)))     # other columns will be NaN
+        
+      onerow
+    }
   }
 }
 

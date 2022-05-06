@@ -13,6 +13,8 @@ analyseOneElement.gam(
   var.smoothTerms,
   var.parametricTerms,
   var.model,
+  num.subj.lthr,
+  num.stat.output = NULL,
   flag_initiate = FALSE,
   flag_sse = FALSE,
   ...
@@ -34,6 +36,10 @@ analyseOneElement.gam(
 \item{var.parametricTerms}{The list of variables to save for parametric terms (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".}
 
 \item{var.model}{The list of variables to save for the model (got from broom::glance() and summary()).}
+
+\item{num.subj.lthr}{The minimal number of subjects with valid value in input h5 file, i.e. number of subjects with finite values (defined by `is.finite()`, i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN.}
+
+\item{num.stat.output}{The number of output stat metrics (for generating all NaN stat when # subjects does not meet criteria). This includes column `element_id`. This is required when flag_initiate = TRUE.}
 
 \item{flag_initiate}{TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.}
 

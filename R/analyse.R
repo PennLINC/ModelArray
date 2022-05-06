@@ -447,6 +447,8 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @param changed.rsq.term.index A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for changed R-squared between with and without it. Both delta adjusted R-squared and partial R-squared will be calculated for each of term requested. Usually term of interest is smooth term, or interaction term in models with interactions.
 #' @param correct.p.value.smoothTerms A list of characters. To perform and add a column for p.value correction for each smooth term. Default: "fdr". See "Details" section for more.
 #' @param correct.p.value.parametricTerms A list of characters. To perform and add a column for p.value correction for each parametric term. Default: "fdr". See "Details" section for more.
+#' @param num.subj.lthr.abs An integer, lower threshold of absolute number of subjects. For an element, if number of subjects who have finite values (defined by `is.finite()`, i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr.abs}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN. Default is 10.
+#' @param num.subj.lthr.rel A value between 0-1, lower threshold of relative number of subjects. Similar to \code{num.subj.lthr.abs}, if proportion of subjects who have valid value > \code{num.subj.lthr.rel}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN. Default is 0.2.
 #' @param verbose TRUE or FALSE, to print verbose messages or not
 #' @param pbar TRUE or FALSE, to print progress bar or not
 #' @param n_cores Positive integer, The number of CPU cores to run with
@@ -467,6 +469,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                               var.model = c("dev.expl"), 
                               changed.rsq.term.index = NULL,
                               correct.p.value.smoothTerms = c("fdr"), correct.p.value.parametricTerms = c("fdr"),
+                              num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,
                               verbose = TRUE, pbar = TRUE, n_cores = 1, ...){
   # data type assertions
   if(class(data) != "ModelArray") {
@@ -573,8 +576,13 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   # TODO: optional: check if fx=FALSE; if so, add edf to the list of var + warning: fx=TRUE is recommended
   
   
-  
-  # when full.outputs = TRUE:
+  ### threshold of number of subjects:
+  num.subj.total <- nrow(phenotypes)
+  num.subj.lthr <- max(num.subj.total * num.subj.lthr.rel,
+                       num.subj.lthr.abs)    # choose the higher value as lower threshold 
+
+
+  ### when full.outputs = TRUE:
   var.smoothTerms.full <- c("edf","ref.df","statistic","p.value")
   var.parametricTerms.full <- c("estimate", "std.error","statistic","p.value")
   var.model.full <- c("adj.r.squared","dev.expl", "sp.criterion", "scale",
@@ -664,13 +672,71 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   }
 
   # initiate: get the example of one element and get the column names
-  outputs_initiator <- analyseOneElement.gam(i_element=1, formula, data, phenotypes, scalar,
+  num.elements.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
+  i_element_try <- floor(num.elements.total/2)   # find the middle element of all elements, higher possibility to have sufficient subjects
+  outputs_initiator <- analyseOneElement.gam(i_element = i_element_try, 
+                                            formula, data, phenotypes, scalar,
                                           var.smoothTerms, var.parametricTerms, var.model,
+                                          num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
                                           flag_initiate = TRUE, flag_sse = flag_sse,
                                           ...)
+  if ( is.nan(outputs_initiator$column_names)[1]) {  # not sufficient subjects
+    message("There is no sufficient valid subjects for initiating using the middle element; trying other elements; may take a while in this initiating process....")
+    for (i_element_temp in (i_element_try+1):num.elements.total) {   # try each element following i_element_try
+      if (i_element_temp%%100 == 0) {
+        message(paste0("trying element #", toString(i_element_temp), " and the following elements for initiating...."))
+      }
+      outputs_initiator <- analyseOneElement.gam(i_element = i_element_temp, 
+                                            formula, data, phenotypes, scalar,
+                                          var.smoothTerms, var.parametricTerms, var.model,
+                                          num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
+                                          flag_initiate = TRUE, flag_sse = flag_sse,
+                                          ...)
+      if ( !( is.nan(outputs_initiator$column_names)[1]  ) ) {  # if valid column names, the first element in column names is not nan
+        break
+      }  
+    }   # end of trying middle element to end
+    
+    if ((i_element_temp == num.elements.total) & (is.nan(outputs_initiator$column_names)[1])) { # i.e. reached the end of the elements but still haven't initiated...
+      message("until the end of the elements, there are still no elements with sufficient valid subjects for initiating the process...")
+      message("start to try element #1 and the following elements for initiating; may take a while in this initiating process....")
+      for (i_element_temp in 1:(i_element_try-1)) {   # try each element before i_element_try
+        if (i_element_temp%%100 == 0) {
+          message(paste0("trying element #", toString(i_element_temp), " and the following elements for initiating...."))
+        }
+        outputs_initiator <- analyseOneElement.gam(i_element = i_element_temp, 
+                                            formula, data, phenotypes, scalar,
+                                          var.smoothTerms, var.parametricTerms, var.model,
+                                          num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
+                                          flag_initiate = TRUE, flag_sse = flag_sse,
+                                          ...)
+        if ( !( is.nan(outputs_initiator$column_names)[1]  ) ) {  # if valid column names, the first element in column names is not nan
+          break
+        }  
+      }   # end of trying each element before middle element
+      
+      if ((i_element_temp == (i_element_try-1)) & (is.nan(outputs_initiator$column_names)[1])) { # i.e. reached the i_element_try-1 (i.e. tried all subjects) but still haven't initiated...
+        stop("Have tried all elements, but there is no element with sufficient subjects with valid, finite h5 scalar values (i.e. not NaN or NA, not infinite). Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, or there were problems in the group mask or individual masks!")
+      } else {    # it has been initiated
+        i_element_success_initiate = i_element_temp
+      }
+
+      
+    } else {   # it has been initiated
+      i_element_success_initiate = i_element_temp
+    }  # end of if reached the end of the elements but still haven't initiated or not...
+
+  } else {  # if successful just with i_element_try
+    i_element_success_initiate = i_element_try
+  }  # end of if unsuccessful initiation with middle element or not
+  
+  
+  # otherwise, it was successful:
   column_names <- outputs_initiator$column_names
   list.smoothTerms = outputs_initiator$list.smoothTerms
   list.parametricTerms = outputs_initiator$list.parametricTerms
+  num.stat.output <- length(column_names)    # including element_id
+
 
   # loop (by condition of pbar and n_cores)
   if(verbose){
@@ -688,6 +754,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                     mc.cores = n_cores,
                                     formula, data, phenotypes, scalar,
                                     var.smoothTerms, var.parametricTerms, var.model,
+                                    num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
                                     flag_initiate = FALSE, flag_sse = flag_sse,
                                     ...)
       
@@ -700,6 +767,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                  mc.cores = n_cores,
                                  formula, data, phenotypes, scalar,
                                  var.smoothTerms, var.parametricTerms, var.model,
+                                 num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
                                  flag_initiate = FALSE, flag_sse = flag_sse,
                                  ...)
       
@@ -712,6 +780,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                 analyseOneElement.gam,  # the function
                                 formula, data, phenotypes, scalar,
                                 var.smoothTerms, var.parametricTerms, var.model,
+                                num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
                                 flag_initiate = FALSE, flag_sse = flag_sse,
                                 ...)
       
@@ -721,6 +790,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                      analyseOneElement.gam,  # the function
                      formula, data, phenotypes, scalar,
                      var.smoothTerms, var.parametricTerms, var.model,
+                     num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
                      flag_initiate = FALSE, flag_sse = flag_sse,
                      ...)
     }
@@ -780,12 +850,14 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
       # var* for reduced model: only adjusted r sq is enough
       # initiate:
-      reduced.model.outputs_initiator <- analyseOneElement.gam(i_element=1, reduced.formula, data, phenotypes, scalar,
+      reduced.model.outputs_initiator <- analyseOneElement.gam(i_element=i_element_success_initiate,   # directly use the i_element with known success
+                                            reduced.formula, data, phenotypes, scalar,
                                             var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                            num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
                                             flag_initiate = TRUE, flag_sse=TRUE,  # also to get model.sse
                                             ...)
       reduced.model.column_names <- reduced.model.outputs_initiator$column_names
-  
+      reduced.model.num.stat.output <- length(reduced.model.column_names)
       # run on reduced model, get the adj r sq of reduced model
       if(n_cores > 1){
       
@@ -796,6 +868,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                         mc.cores = n_cores,
                                         reduced.formula, data, phenotypes, scalar,
                                         var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                        num.subj.lthr = num.subj.lthr, num.stat.output = reduced.model.num.stat.output,
                                         flag_initiate = FALSE, flag_sse=TRUE,  # also to get model.sse
                                         ...)
           
@@ -808,6 +881,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                      mc.cores = n_cores,
                                      reduced.formula, data, phenotypes, scalar,
                                      var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                     num.subj.lthr = num.subj.lthr, num.stat.output = reduced.model.num.stat.output,
                                      flag_initiate = FALSE, flag_sse=TRUE,  # also to get model.sse
                                      ...)
           
@@ -820,6 +894,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                                     analyseOneElement.gam,  # the function
                                     reduced.formula, data, phenotypes, scalar,
                                     var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                                    num.subj.lthr = num.subj.lthr, num.stat.output = reduced.model.num.stat.output,
                                     flag_initiate = FALSE, flag_sse=TRUE,  # also to get model.sse
                                     ...)
           
@@ -829,6 +904,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                          analyseOneElement.gam,  # the function
                          reduced.formula, data, phenotypes, scalar,
                          var.smoothTerms=c(), var.parametricTerms=c(), var.model=c("adj.r.squared"),
+                         num.subj.lthr = num.subj.lthr, num.stat.output = reduced.model.num.stat.output,
                          flag_initiate = FALSE, flag_sse=TRUE,  # also to get model.sse
                          ...)
         }
