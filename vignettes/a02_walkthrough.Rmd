@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-In this example walkthrough, we will use some toy data (____TODO: TO UPDATE_____) to demonstrate the steps of using ModelArray and its companion python package ConFixel. By following the `installation` webpage, you should have successfully installed `ModelArray`, `ConFixel`, and `MRtrix`. We expect that at least `ConFixel` has been installed in a conda environment called "modelarray".
+In this example walkthrough, we will use some toy data (____TODO: TO UPDATE_____) to demonstrate the steps of using ModelArray and its companion python package ConFixel. By following the `vignette("a01_installations")` page, you should have successfully installed `ModelArray`, `ConFixel`, and `MRtrix`. We expect that at least `ConFixel` has been installed in a conda environment called "modelarray".
 
 ## Step 1. Prepare your data
 Assume you're at folder `myProject`. In a terminal console:
@@ -30,36 +30,36 @@ As you can see, the data is organized in the following way:   # TODO: to update 
 ```console
 ~/myProject
 |
-├── cohort_FDC.csv   
+├── cohort_FD.csv   
 │
-├── FDC
+├── FD
 │   ├── index.mif
 │   ├── directions.mif
-|   ├── sub1_FDC.mif
-|   ├── sub2_FDC.mif
-|   ├── sub3_FDC.mif
+|   ├── sub1_FD.mif
+|   ├── sub2_FD.mif
+|   ├── sub3_FD.mif
 │   ├── ...
 └── ...
 ```
 
-This data organization is what we recommend. In this example fixel dataset, the metric is `FDC`. If you have other metrics such as FD, you may also have folder `FD` and CSV file `cohort_FD.csv` in this `myProject` folder.
+This data organization is what we recommend. In this example fixel dataset, the metric is `FD`. If you have other metrics such as FD, you may also have folder `FD` and CSV file `cohort_FD.csv` in this `myProject` folder.
 
 As you can see, besides subject-level fixel data, there are also `index.mif` and `directions.mif`. These two files provides important information of the fixel locations - see their definitions [here](https://userdocs.mrtrix.org/en/dev/fixel_based_analysis/fixel_directory_format.html).
 
 ### Step 1.2. Prepare a CSV file of cohort phenotypes
-In addition to fixel data, we also need a CSV file of cohort phenotypes. This file will be used by both ConFixel and ModelArray. Here we provide an example CSV file: `cohort_FDC.csv`:   # TODO: update this table below based on the real CSV file
+In addition to fixel data, we also need a CSV file of cohort phenotypes. This file will be used by both ConFixel and ModelArray. Here we provide an example CSV file: `cohort_FD.csv`:   # TODO: update this table below based on the real CSV file
 
 | ***scalar_name*** | ***source_file***  | subject_id    | age    | sex     | ... |
 | :----:        | :----:         | :----:        | :----: |  :----: | :----: |
-| FDC            | FDC/sub1_FDC.mif | sub1          | 10     | F       | ... |
-| FDC            | FDC/sub2_FDC.mif | sub2          | 20     | M       | ... |
-| FDC            | FDC/sub3_FDC.mif | sub3          | 15     | F       | ... |
+| FD            | FD/sub1_FD.mif | sub1          | 10     | F       | ... |
+| FD            | FD/sub2_FD.mif | sub2          | 20     | M       | ... |
+| FD            | FD/sub3_FD.mif | sub3          | 15     | F       | ... |
 | ...            | ... | ...          | ...     | ...       | ... |
 
 We expect this CSV file at least contains these two columns highlighted in ***bold and italics***:
 
 * `scalar_name`: how should we call your metric?
-* `source_file`: the filename of the subject-level fixel data. In the next step of data conversion with ConFixel, we will use `~/myProject` as the main folder (`relative_root`), so here, we only need to provide the path starting from folder `FDC`.
+* `source_file`: the filename of the subject-level fixel data. In the next step of data conversion with ConFixel, we will use `~/myProject` as the main folder (`relative_root`), so here, we only need to provide the path starting from folder `FD`.
 
 Other columns are optional - simply add covariates you'll use in the statistical analysis in ModelArray. The order of columns can be changed.
 
@@ -69,11 +69,11 @@ One reason that `ModelArray` is memory efficient is it takes advantages of Hiera
 ```console
 $ conda activate modelarray
 $ confixel \
-    --index-file FDC/index.mif \
-    --directions-file FDC/directions.mif \
-    --cohort-file cohort_FDC.csv \
+    --index-file FD/index.mif \
+    --directions-file FD/directions.mif \
+    --cohort-file cohort_FD.csv \
     --relative-root ~/myProject \
-    --output-hdf5 FDC.h5
+    --output-hdf5 FD.h5
 ```
 
 As mentioned before, here we take `~/myProject` as the main folder, and you don't need to repeat it in the filenames for these input and output files anymore (i.e. these filenames are relative path based on this main folder).
@@ -90,12 +90,41 @@ The next step is to use this HDF5 file and the CSV file we prepared to perform s
 * You can launch RStudio 
   * If you installed xxx in conda: XXXXXXXXX
   * If ModelArray was not installed in conda environment, you can simply open RStudio
-* Some clusters may not provide good graphic access to RStudio and it may be hard to install R packages. In this case, you may use the container we provide. You can start an R session by: `singularity run --cleanenv ${modelarray_singularity} R`. For details please see `installations` page.
+* Some clusters may not provide good graphic access to RStudio and it may be hard to install R packages. In this case, you may use the container we provide. You can start an R session by: `singularity run --cleanenv ${modelarray_singularity} R`. For details please see `vignette("a01_installations")` page.
 
 All the commands in this Step 2 section will be run in R.
 
+### Step 2.1. Load ModelArray package in R
+```{r load ModelArray}
+library(ModelArray)
+```
 
-TODO ......
+### Step 2.2. Create a ModelArray-class object
+To create a ModelArray-class object that represents the HDF5 file of fixel data, we need the HDF5 filename and the scalar's name:
+```{r create ModelArray object}
+# filename of example fixel data (.h5 file):
+h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
+# create a ModelArray-class object:
+modelarray <- ModelArray(h5_path, 
+                         scalar_types = c("FD")) 
+```
 
+Let's check what's in it:
+```{r display modelarray}
+modelarray
+```
+This shows that there are ___ ? 50 ?___ source FD files in this `modelarray` you loaded.
+
+To access this ModelArray object's slots:
+```{r}
+scalars(modelarray)[["FD"]]   # FD data
+sources(modelarray)[["FD"]]  # list of source filenames for FD data
+```
+
+### Step 2.3. Load cohort phenotypes CSV file
+We then load the CSV file we just used:
+```{r load csv file}
+
+```
 
 ## Step 3. Check out the results
