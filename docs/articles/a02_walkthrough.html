@@ -71,7 +71,8 @@
 
     
     
-<p>In this example walkthrough, we will use some toy data (____TODO: TO UPDATE_____) to demonstrate the steps of using ModelArray and its companion python package ConFixel. By following the <code><a href="../articles/a01_installations.html">vignette("a01_installations")</a></code> page, you should have successfully installed <code>ModelArray</code>, <code>ConFixel</code>, and <code>MRtrix</code>. We expect that at least <code>ConFixel</code> has been installed in a conda environment called “modelarray”.</p>
+<p>In this example walkthrough, we will use some toy data (____TODO: TO UPDATE_____) to demonstrate the steps of using ModelArray and its companion python package ConFixel. By following the <code><a href="../articles/a01_installations.html">vignette("a01_installations")</a></code> page, you should have successfully installed <code>ModelArray</code>, <code>ConFixel</code>, and <code>MRtrix</code>. We expect that <code>ConFixel</code> has been installed in a conda environment called “modelarray”.</p>
+<p>We will first prepare the data and convert into the format that ModelArray needs (Step 1), then use ModelArray to perform the statistical analysis (Step 2). Finally we will convert the results into original file format and view them (Step 3).</p>
 <div class="section level2">
 <h2 id="step-1--prepare-your-data">Step 1. Prepare your data<a class="anchor" aria-label="anchor" href="#step-1--prepare-your-data"></a>
 </h2>
@@ -80,7 +81,7 @@
 $ mkdir myProject
 $ cd ~/myProject</code></pre>
 <p>Assume you are at the stage where you have got fixel data from MRtrix by following the fixel-based analysis. If we use paper <a href="https://doi.org/10.1016/j.neuroimage.2021.118417" class="external-link">Dhollander et al., 2021</a> Fig.3. The fixel-based analysis pipeline as an example, we expect you have done the step “Connectivity-based fixel smoothing”. You will use the subject-level fixel data in template space from this step for further fixel-wise statistical analysis in ModelArray. We expect the file format is mif.</p>
-<p>Here, we provide some toy data (<strong><em>TODO: TO UPDATE </em></strong>__). You can get them by:</p>
+<p>Here, we provide some toy data (<strong><em>TODO: TO UPDATE</em></strong> __). You can get them by:</p>
 <pre class="console"><code>$ wget xxxxxx # TODO
 $ unzip xxxx # TODO
 $ rm xxx.zip   # TODO</code></pre>
@@ -194,60 +195,95 @@ $ confixel \
 <p>To create a ModelArray-class object that represents the HDF5 file of fixel data, we need the HDF5 filename and the scalar’s name:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># filename of example fixel data (.h5 file):</span>
-<span class="va">h5_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"n50_fixels.h5"</span>, package <span class="op">=</span> <span class="st">"ModelArray"</span><span class="op">)</span>
+<span class="va">h5_path</span> <span class="op">&lt;-</span> <span class="st">"~/myProject/xxx.h5"</span>
 <span class="co"># create a ModelArray-class object:</span>
-<span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, 
-                         scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FD"</span><span class="op">)</span><span class="op">)</span> </code></pre></div>
-<p>Let’s check what’s in it:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">modelarray</span></code></pre></div>
-<pre><code><span class="co">## ModelArray located at /tmp/RtmpPpHvS2/temp_libpathdc373e23af92/ModelArray/extdata/n50_fixels.h5</span>
-<span class="co">## </span>
-<span class="co">##   Source files:     50</span>
-<span class="co">##   Scalars:          FD</span>
-<span class="co">##   Analyses:</span></code></pre>
+<span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FD"</span><span class="op">)</span><span class="op">)</span> 
+<span class="co"># let's check what's in it:</span>
+<span class="va">modelarray</span> </code></pre></div>
 <p>This shows that there are ___ ? 50 ?___ source FD files in this <code>modelarray</code> you loaded.</p>
 <p>To access this ModelArray object’s slots:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">scalars</span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span><span class="op">[[</span><span class="st">"FD"</span><span class="op">]</span><span class="op">]</span>   <span class="co"># FD data</span></code></pre></div>
-<pre><code><span class="co">## &lt;182581 x 50&gt; matrix of class DelayedMatrix and type "double":</span>
-<span class="co">##            FD/sub1_fd.mif  FD/sub2_fd.mif ... FD/sub49_fd.mif FD/sub50_fd.mif</span>
-<span class="co">##      [1,]      36.0214119      81.9753342   .        37.82116       237.40558</span>
-<span class="co">##      [2,]    1046.6225586    1058.1074219   .      1085.59241       986.08856</span>
-<span class="co">##      [3,]       0.2467898      83.6336441   .        20.79962       108.81217</span>
-<span class="co">##      [4,]       0.6753999      72.3661575   .        13.40481       120.06551</span>
-<span class="co">##      [5,]       0.2290502       1.7837602   .       132.53795        15.16265</span>
-<span class="co">##       ...               .               .   .               .               .</span>
-<span class="co">## [182577,]      0.02690634     14.75695896   .       31.983732      150.156906</span>
-<span class="co">## [182578,]      0.04722600     23.99450111   .       27.997149       83.266426</span>
-<span class="co">## [182579,]      0.11819888     43.39178085   .       61.914310       99.171700</span>
-<span class="co">## [182580,]     32.06180573     11.31695938   .       13.557989        3.398834</span>
-<span class="co">## [182581,]      9.01556969     12.15083504   .       35.347015       21.815554</span></code></pre>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">sources</span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span><span class="op">[[</span><span class="st">"FD"</span><span class="op">]</span><span class="op">]</span>  <span class="co"># list of source filenames for FD data</span></code></pre></div>
-<pre><code><span class="co">##  [1] "FD/sub1_fd.mif"  "FD/sub2_fd.mif"  "FD/sub3_fd.mif"  "FD/sub4_fd.mif" </span>
-<span class="co">##  [5] "FD/sub5_fd.mif"  "FD/sub6_fd.mif"  "FD/sub7_fd.mif"  "FD/sub8_fd.mif" </span>
-<span class="co">##  [9] "FD/sub9_fd.mif"  "FD/sub10_fd.mif" "FD/sub11_fd.mif" "FD/sub12_fd.mif"</span>
-<span class="co">## [13] "FD/sub13_fd.mif" "FD/sub14_fd.mif" "FD/sub15_fd.mif" "FD/sub16_fd.mif"</span>
-<span class="co">## [17] "FD/sub17_fd.mif" "FD/sub18_fd.mif" "FD/sub19_fd.mif" "FD/sub20_fd.mif"</span>
-<span class="co">## [21] "FD/sub21_fd.mif" "FD/sub22_fd.mif" "FD/sub23_fd.mif" "FD/sub24_fd.mif"</span>
-<span class="co">## [25] "FD/sub25_fd.mif" "FD/sub26_fd.mif" "FD/sub27_fd.mif" "FD/sub28_fd.mif"</span>
-<span class="co">## [29] "FD/sub29_fd.mif" "FD/sub30_fd.mif" "FD/sub31_fd.mif" "FD/sub32_fd.mif"</span>
-<span class="co">## [33] "FD/sub33_fd.mif" "FD/sub34_fd.mif" "FD/sub35_fd.mif" "FD/sub36_fd.mif"</span>
-<span class="co">## [37] "FD/sub37_fd.mif" "FD/sub38_fd.mif" "FD/sub39_fd.mif" "FD/sub40_fd.mif"</span>
-<span class="co">## [41] "FD/sub41_fd.mif" "FD/sub42_fd.mif" "FD/sub43_fd.mif" "FD/sub44_fd.mif"</span>
-<span class="co">## [45] "FD/sub45_fd.mif" "FD/sub46_fd.mif" "FD/sub47_fd.mif" "FD/sub48_fd.mif"</span>
-<span class="co">## [49] "FD/sub49_fd.mif" "FD/sub50_fd.mif"</span></code></pre>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># scalar FD data:</span>
+<span class="fu">scalars</span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span><span class="op">[[</span><span class="st">"FD"</span><span class="op">]</span><span class="op">]</span>
+<span class="co"># list of source filenames for FD data</span>
+<span class="fu">sources</span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span><span class="op">[[</span><span class="st">"FD"</span><span class="op">]</span><span class="op">]</span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-2-3--load-cohort-phenotypes-csv-file">Step 2.3. Load cohort phenotypes CSV file<a class="anchor" aria-label="anchor" href="#step-2-3--load-cohort-phenotypes-csv-file"></a>
 </h3>
-<p>We then load the CSV file we just used:</p>
+<p>We then load the CSV file we used just now:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># filename of example fixel data (.h5 file):</span>
+<span class="va">csv_path</span> <span class="op">&lt;-</span> <span class="st">"~/myProject/xxx.csv"</span>
+<span class="co"># load the CSV file:</span>
+<span class="va">phenotypes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">csv_path</span><span class="op">)</span>
+<span class="co"># let's check the first 6 rows:</span>
+<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">phenotypes</span><span class="op">)</span></code></pre></div>
+<p>As <code>phenotypes</code> already provides sufficient covariates ready for analysis, we don’t need to do extra work on it.</p>
+<p>With both <code>modelarray</code> and data frame <code>phenotypes</code> set up, we can now perform the statistical analysis. . At present, <code>ModelArray</code> supports linear models as well as generalized additive models (GAM) with penalized splines, which are particularly useful for studying nonlinear effects in lifespan data.</p>
+<p>Let’s start with linear model <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>. We first need a formula defining the model - here we specify the simplest one: <code>FD ~ age</code>. Intercept is added by default. We first try it out on first 100 fixels before we running on all fixels:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># formula:</span>
+<span class="va">formula.lm</span> <span class="op">&lt;-</span> <span class="va">FD</span> <span class="op">~</span> <span class="va">age</span>
+<span class="co"># run linear model fitting with ModelArray.lm() on the first 100 fixels:</span>
+<span class="va">mylm.try</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">formula</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FD"</span>,
+                          element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span><span class="op">)</span>
+<span class="co"># let's check the first 6 rows of the results:</span>
+<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mylm.try</span><span class="op">)</span></code></pre></div>
+<p>As you can see, by default, <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> calculates the estimations of the intercept and age, ___________</p>
+<p>Now let’s try out <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>. Because xxxx nonlinear…., <code>s(age)</code> Here we set up a more realistic formula with sex and in-scanner motion quantification added.</p>
+<p>We specify <code>full.outputs=TRUE</code> so that we can get more statistics. We can also specify the p-value corrections we want: “fdr” and “bonferroni”. In addition, <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code> can also quantify how important a covariate is. For example, with versus without “age”, how much the adjusted R-squared will change? We can do it by specifying <code>changed.rsq.term.index = c(1)</code>, which means that we request the quantification for the first covariate. Because xxxx, we recommend to use <code>fx=TRUE</code> when calculate changed.rsq…… <code>k=4</code> means ….</p>
+<p>We still first try it out on first 100 fixels:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># formula:</span>
+<span class="va">formula.lm</span> <span class="op">&lt;-</span> <span class="va">FD</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">age</span>, k<span class="op">=</span><span class="fl">4</span>, fx<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">motion</span>
+<span class="co"># run GAM fitting with ModelArray.gam() on the first 100 fixels:</span>
+<span class="va">XXXXX</span></code></pre></div>
+<p>Run on all fixels: * n_cores = 4 to accelerate</p>
+<p>XXXXX</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="step-3--check-out-the-results">Step 3. Check out the results<a class="anchor" aria-label="anchor" href="#step-3--check-out-the-results"></a>
 </h2>
+<div class="section level3">
+<h3 id="step-3-1-save-the-results-into-hdf5-file">Step 3.1 Save the results into HDF5 file<a class="anchor" aria-label="anchor" href="#step-3-1-save-the-results-into-hdf5-file"></a>
+</h3>
+<p>We now save the results data frame into the h5 file:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># write lm results with a specified analysis_name:</span>
+<span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span><span class="va">h5_path</span>, df.output <span class="op">=</span> <span class="va">mylm</span>, analysis_name <span class="op">=</span> <span class="st">"result_lm"</span><span class="op">)</span>
+<span class="co"># write gam results:</span>
+<span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span><span class="va">h5_path</span>, df.output <span class="op">=</span> <span class="va">mygam</span>, analysis_name <span class="op">=</span> <span class="st">"result_gam"</span><span class="op">)</span></code></pre></div>
+<p>Notice that the the analysis name specified in argument <code>analysis_name</code> will be used in ConFixel in the next step when converting results back to fixel mif file format. Also it will be the prefix of the mif files to be saved.</p>
+<p>We can even check out the saved results in the h5 file:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># create a new ModelArray-class object:</span>
+<span class="va">modelarray_new</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span>filepath <span class="op">=</span> <span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="st">"FD"</span>,
+                             analysis_names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"result_lm"</span>, <span class="st">"result_gam"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<p>To access the results, simply use <code>results()</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu">results</span><span class="op">(</span><span class="va">modelarray_new</span><span class="op">)</span><span class="op">[[</span><span class="st">"result_lm"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">results_matrix</span>
+<span class="fu">results</span><span class="op">(</span><span class="va">modelarray_new</span><span class="op">)</span><span class="op">[[</span><span class="st">"result_gam"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">results_matrix</span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="step-3-2-convert-the-statistical-results-into-mif-file-format-using-confixel">Step 3.2 Convert the statistical results into mif file format using ConFixel<a class="anchor" aria-label="anchor" href="#step-3-2-convert-the-statistical-results-into-mif-file-format-using-confixel"></a>
+</h3>
+<p>We now use ConFixel to convert the results into a list of mif files:</p>
+<pre class="console"><code></code></pre>
+<ul>
+<li>convert statistical results into mif file format using ConFixel
+<ul>
+<li>command</li>
+<li>view in MRtrix’s MRView
+<ul>
+<li>NOTE: steps in this section: outputs cannot be automatically generated by R pkgdown/roxygen2; will provide screenshots</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>

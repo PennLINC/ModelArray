@@ -7,27 +7,35 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-In this example walkthrough, we will use some toy data (____TODO: TO UPDATE_____) to demonstrate the steps of using ModelArray and its companion python package ConFixel. By following the `vignette("a01_installations")` page, you should have successfully installed `ModelArray`, `ConFixel`, and `MRtrix`. We expect that at least `ConFixel` has been installed in a conda environment called "modelarray".
+In this example walkthrough, we will use some toy data (\_\_\_\_TODO: TO UPDATE\_\_\_\_\_) to demonstrate the steps of using ModelArray and its companion python package ConFixel. By following the `vignette("a01_installations")` page, you should have successfully installed `ModelArray`, `ConFixel`, and `MRtrix`. We expect that `ConFixel` has been installed in a conda environment called "modelarray".
+
+We will first prepare the data and convert into the format that ModelArray needs (Step 1), then use ModelArray to perform the statistical analysis (Step 2). Finally we will convert the results into original file format and view them (Step 3).
 
 ## Step 1. Prepare your data
+
 Assume you're at folder `myProject`. In a terminal console:
-```console
+
+``` {.console}
 $ cd ~
 $ mkdir myProject
 $ cd ~/myProject
 ```
+
 Assume you are at the stage where you have got fixel data from MRtrix by following the fixel-based analysis. If we use paper [Dhollander et al., 2021](https://doi.org/10.1016/j.neuroimage.2021.118417) Fig.3. The fixel-based analysis pipeline as an example, we expect you have done the step "Connectivity-based fixel smoothing". You will use the subject-level fixel data in template space from this step for further fixel-wise statistical analysis in ModelArray. We expect the file format is mif.
 
-Here, we provide some toy data (___TODO: TO UPDATE _____). You can get them by:
-```console
+Here, we provide some toy data (***TODO: TO UPDATE*** \_\_). You can get them by:
+
+``` {.console}
 $ wget xxxxxx # TODO
 $ unzip xxxx # TODO
 $ rm xxx.zip   # TODO
 ```
 
 ### Step 1.1. Overview of the data organization
-As you can see, the data is organized in the following way:   # TODO: to update this tree
-```console
+
+As you can see, the data is organized in the following way: \# TODO: to update this tree
+
+``` {.console}
 ~/myProject
 |
 ├── cohort_FD.csv   
@@ -47,26 +55,28 @@ This data organization is what we recommend. In this example fixel dataset, the 
 As you can see, besides subject-level fixel data, there are also `index.mif` and `directions.mif`. These two files provides important information of the fixel locations - see their definitions [here](https://userdocs.mrtrix.org/en/dev/fixel_based_analysis/fixel_directory_format.html).
 
 ### Step 1.2. Prepare a CSV file of cohort phenotypes
-In addition to fixel data, we also need a CSV file of cohort phenotypes. This file will be used by both ConFixel and ModelArray. Here we provide an example CSV file: `cohort_FD.csv`:   # TODO: update this table below based on the real CSV file
 
-| ***scalar_name*** | ***source_file***  | subject_id    | age    | sex     | ... |
-| :----:        | :----:         | :----:        | :----: |  :----: | :----: |
-| FD            | FD/sub1_FD.mif | sub1          | 10     | F       | ... |
-| FD            | FD/sub2_FD.mif | sub2          | 20     | M       | ... |
-| FD            | FD/sub3_FD.mif | sub3          | 15     | F       | ... |
-| ...            | ... | ...          | ...     | ...       | ... |
+In addition to fixel data, we also need a CSV file of cohort phenotypes. This file will be used by both ConFixel and ModelArray. Here we provide an example CSV file: `cohort_FD.csv`: \# TODO: update this table below based on the real CSV file
+
+| ***scalar_name*** | ***source_file*** | subject_id | age | sex | ... |
+|:-----------------:|:-----------------:|:----------:|:---:|:---:|:---:|
+|        FD         |  FD/sub1_FD.mif   |    sub1    | 10  |  F  | ... |
+|        FD         |  FD/sub2_FD.mif   |    sub2    | 20  |  M  | ... |
+|        FD         |  FD/sub3_FD.mif   |    sub3    | 15  |  F  | ... |
+|        ...        |        ...        |    ...     | ... | ... | ... |
 
 We expect this CSV file at least contains these two columns highlighted in ***bold and italics***:
 
-* `scalar_name`: how should we call your metric?
-* `source_file`: the filename of the subject-level fixel data. In the next step of data conversion with ConFixel, we will use `~/myProject` as the main folder (`relative_root`), so here, we only need to provide the path starting from folder `FD`.
+-   `scalar_name`: how should we call your metric?
+-   `source_file`: the filename of the subject-level fixel data. In the next step of data conversion with ConFixel, we will use `~/myProject` as the main folder (`relative_root`), so here, we only need to provide the path starting from folder `FD`.
 
 Other columns are optional - simply add covariates you'll use in the statistical analysis in ModelArray. The order of columns can be changed.
 
 ### Step 1.3. Convert data into a HDF5 file using ConFixel
+
 One reason that `ModelArray` is memory efficient is it takes advantages of Hierarchical Data Format 5 (HDF5) file format. The extension of this file format is "h5". An HDF5 file stores large dataset hierarchically. We now use ConFixel to convert these list of mif files into an HDF5 file: In the terminal console:
 
-```console
+``` {.console}
 $ conda activate modelarray
 $ confixel \
     --index-file FD/index.mif \
@@ -84,47 +94,124 @@ TODO: add a screenshot of confixel's conversion!
 
 Now you got the converted HDF5 file in folder `~/myProject`.
 
-
 ## Step 2. Use ModelArray to perform statistical analysis
-The next step is to use this HDF5 file and the CSV file we prepared to perform statistical analysis in R. Now launch R with the way you preferred:
-* You can launch RStudio 
-  * If you installed xxx in conda: XXXXXXXXX
-  * If ModelArray was not installed in conda environment, you can simply open RStudio
-* Some clusters may not provide good graphic access to RStudio and it may be hard to install R packages. In this case, you may use the container we provide. You can start an R session by: `singularity run --cleanenv ${modelarray_singularity} R`. For details please see `vignette("a01_installations")` page.
+
+The next step is to use this HDF5 file and the CSV file we prepared to perform statistical analysis in R. Now launch R with the way you preferred: \* You can launch RStudio \* If you installed xxx in conda: XXXXXXXXX \* If ModelArray was not installed in conda environment, you can simply open RStudio \* Some clusters may not provide good graphic access to RStudio and it may be hard to install R packages. In this case, you may use the container we provide. You can start an R session by: `singularity run --cleanenv ${modelarray_singularity} R`. For details please see `vignette("a01_installations")` page.
 
 All the commands in this Step 2 section will be run in R.
 
 ### Step 2.1. Load ModelArray package in R
+
 ```{r load ModelArray}
 library(ModelArray)
 ```
 
 ### Step 2.2. Create a ModelArray-class object
+
 To create a ModelArray-class object that represents the HDF5 file of fixel data, we need the HDF5 filename and the scalar's name:
-```{r create ModelArray object}
+
+```{r create ModelArray object, eval=FALSE}
 # filename of example fixel data (.h5 file):
-h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
+h5_path <- "~/myProject/xxx.h5"
 # create a ModelArray-class object:
-modelarray <- ModelArray(h5_path, 
-                         scalar_types = c("FD")) 
+modelarray <- ModelArray(h5_path, scalar_types = c("FD")) 
+# let's check what's in it:
+modelarray 
 ```
 
-Let's check what's in it:
-```{r display modelarray}
-modelarray
-```
-This shows that there are ___ ? 50 ?___ source FD files in this `modelarray` you loaded.
+This shows that there are \_\_\_ ? 50 ?\_\_\_ source FD files in this `modelarray` you loaded.
 
 To access this ModelArray object's slots:
-```{r}
-scalars(modelarray)[["FD"]]   # FD data
-sources(modelarray)[["FD"]]  # list of source filenames for FD data
+
+```{r access slots, eval = FALSE}
+# scalar FD data:
+scalars(modelarray)[["FD"]]
+# list of source filenames for FD data
+sources(modelarray)[["FD"]]
 ```
 
 ### Step 2.3. Load cohort phenotypes CSV file
-We then load the CSV file we just used:
-```{r load csv file}
+
+We then load the CSV file we used just now:
+
+```{r load csv file, eval=FALSE}
+# filename of example fixel data (.h5 file):
+csv_path <- "~/myProject/xxx.csv"
+# load the CSV file:
+phenotypes <- read.csv(csv_path)
+# let's check the first 6 rows:
+head(phenotypes)
+```
+
+As `phenotypes` already provides sufficient covariates ready for analysis, we don't need to do extra work on it. 
+
+With both `modelarray` and data frame `phenotypes` set up, we can now perform the statistical analysis. . At present, `ModelArray` supports linear models as well as generalized additive models (GAM) with penalized splines, which are particularly useful for studying nonlinear effects in lifespan data.  
+
+Let's start with linear model `ModelArray.lm()`. We first need a formula defining the model - here we specify the simplest one: `FD ~ age`. Intercept is added by default. We first try it out on first 100 fixels before we running on all fixels:
+```{r example lm, eval=FALSE}
+# formula:
+formula.lm <- FD ~ age
+# run linear model fitting with ModelArray.lm() on the first 100 fixels:
+mylm.try <- ModelArray.lm(formula, modelarray, phenotypes, "FD",
+                          element.subset = 1:100)
+# let's check the first 6 rows of the results:
+head(mylm.try)
+```
+
+As you can see, by default, `ModelArray.lm()` calculates the estimations of the intercept and age, ___________
+
+Now let's try out `ModelArray.gam()`. Because xxxx nonlinear...., `s(age)`
+Here we set up a more realistic formula with sex and in-scanner motion quantification added. 
+
+We specify `full.outputs=TRUE` so that we can get more statistics. We can also specify the p-value corrections we want: "fdr" and "bonferroni". In addition, `ModelArray.gam()` can also quantify how important a covariate is. For example, with versus without "age", how much the adjusted R-squared will change? We can do it by specifying `changed.rsq.term.index = c(1)`, which means that we request the quantification for the first covariate. Because xxxx, we recommend to use `fx=TRUE` when calculate changed.rsq...... `k=4` means ....
+
+We still first try it out on first 100 fixels:
+```{r example gam, eval=FALSE}
+# formula:
+formula.lm <- FD ~ s(age, k=4, fx=TRUE) + sex + motion
+# run GAM fitting with ModelArray.gam() on the first 100 fixels:
+XXXXX
+```
+
+
+
+Run on all fixels:
+* n_cores = 4 to accelerate
+
+XXXXX
+
+
+## Step 3. Check out the results
+### Step 3.1 Save the results into HDF5 file
+We now save the results data frame into the h5 file:
+```{r write results, eval=FALSE}
+# write lm results with a specified analysis_name:
+writeResults(h5_path, df.output = mylm, analysis_name = "result_lm")
+# write gam results:
+writeResults(h5_path, df.output = mygam, analysis_name = "result_gam")
+```
+Notice that the the analysis name specified in argument `analysis_name` will be used in ConFixel in the next step when converting results back to fixel mif file format. Also it will be the prefix of the mif files to be saved.
+
+We can even check out the saved results in the h5 file:
+```{r load results, eval = FALSE}
+# create a new ModelArray-class object:
+modelarray_new <- ModelArray(filepath = h5_path, scalar_types = "FD",
+                             analysis_names = c("result_lm", "result_gam"))
+```
+To access the results, simply use `results()`:
+```{r, eval=FALSE}
+results(modelarray_new)[["result_lm"]]$results_matrix
+results(modelarray_new)[["result_gam"]]$results_matrix
+```
+
+
+### Step 3.2 Convert the statistical results into mif file format using ConFixel
+We now use ConFixel to convert the results into a list of mif files:
+```console
 
 ```
 
-## Step 3. Check out the results
+- convert statistical results into mif file format using ConFixel
+  - command
+  - view in MRtrix's MRView
+    - NOTE: steps in this section: outputs cannot be automatically generated by R pkgdown/roxygen2; will provide screenshots
