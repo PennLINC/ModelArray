@@ -13,17 +13,19 @@ We will first prepare the data and convert into the format that ModelArray needs
 
 ## Step 1. Prepare your data
 
-Assume you're at folder `myProject`. In a terminal console:
+We first create a folder called "myProject" on the Desktop. In a terminal console:
 
 ``` {.console}
-$ cd ~
+$ cd ~/Desktop
 $ mkdir myProject
-$ cd ~/myProject
+$ cd myProject
+$ pwd       # print the full path of this folder
 ```
+On a linux machine, you'll see the printed full path of this folder is `/home/<username>/Desktop/myProject`    # HOW ABOUT A MAC COMPUTER????
 
 Assume you are at the stage where you have got fixel data from MRtrix by following the fixel-based analysis. If we use paper [Dhollander et al., 2021](https://doi.org/10.1016/j.neuroimage.2021.118417) Fig.3. The fixel-based analysis pipeline as an example, we expect you have done the step "Connectivity-based fixel smoothing". You will use the subject-level fixel data in template space from this step for further fixel-wise statistical analysis in ModelArray. We expect the file format is mif.
 
-Here, we provide some toy data (***TODO: TO UPDATE*** \_\_). You can get them by:
+Here, we provide some demo data. This data is part from PNC (CITATION!!!) with subjects aged 8-23 years. You can get the data by:
 
 ``` {.console}
 $ wget xxxxxx # TODO
@@ -33,42 +35,41 @@ $ rm xxx.zip   # TODO
 
 ### Step 1.1. Overview of the data organization
 
-As you can see, the data is organized in the following way: \# TODO: to update this tree
+As you can see, the data is organized in the following way: \# TODO: to update this tree with hashed ids
 
 ``` {.console}
-~/myProject
-|
-├── cohort_FD.csv   
-│
-├── FD
-│   ├── index.mif
+~/Desktop/myProject
+├── cohort_FDC_n100.csv
+├── FDC
 │   ├── directions.mif
-|   ├── sub1_FD.mif
-|   ├── sub2_FD.mif
-|   ├── sub3_FD.mif
+│   ├── index.mif
+│   ├── sub-00001.mif
+│   ├── sub-00002.mif
+│   ├── sub-00003.mif
 │   ├── ...
 └── ...
+
 ```
 
-This data organization is what we recommend. In this example fixel dataset, the metric is `FD`. If you have other metrics such as FD, you may also have folder `FD` and CSV file `cohort_FD.csv` in this `myProject` folder.
+This data organization is what we recommend. In this example fixel dataset, the metric is `FDC`. If you have other metrics such as FC, you may also have folder `FC` and CSV file `cohort_FC_n100.csv` in this `myProject` folder.
 
 As you can see, besides subject-level fixel data, there are also `index.mif` and `directions.mif`. These two files provides important information of the fixel locations - see their definitions [here](https://userdocs.mrtrix.org/en/dev/fixel_based_analysis/fixel_directory_format.html).
 
 ### Step 1.2. Prepare a CSV file of cohort phenotypes
 
-In addition to fixel data, we also need a CSV file of cohort phenotypes. This file will be used by both ConFixel and ModelArray. Here we provide an example CSV file: `cohort_FD.csv`: \# TODO: update this table below based on the real CSV file
+In addition to fixel data, we also need a CSV file of cohort phenotypes. This file will be used by both ConFixel and ModelArray. Here we provide an example CSV file: `cohort_FDC_n100.csv`: \# TODO: update this table below based on the real CSV file
 
-| ***scalar_name*** | ***source_file*** | subject_id | age | sex | ... |
-|:-----------------:|:-----------------:|:----------:|:---:|:---:|:---:|
-|        FD         |  FD/sub1_FD.mif   |    sub1    | 10  |  F  | ... |
-|        FD         |  FD/sub2_FD.mif   |    sub2    | 20  |  M  | ... |
-|        FD         |  FD/sub3_FD.mif   |    sub3    | 15  |  F  | ... |
-|        ...        |        ...        |    ...     | ... | ... | ... |
+| subject_id | Age | sex | ... | ***scalar_name*** | ***source_file*** | ... |
+|:----------:|:---:|:---:|:---:|:-----------------:|:-----------------:|:---:|
+|    sub1    | 10  |  F  |  ...  |        FDC         |  FDC/sub1_FDC.mif   | ... |
+|    sub2    | 20  |  M  |  ... |        FDC         |  FDC/sub2_FDC.mif   | ... |
+|    sub3    | 15  |  F  |  ...  |        FDC         |  FDC/sub3_FDC.mif   | ... |
+|    ...     | ... | ... | ... |        ...        |        ...        | ... |
 
 We expect this CSV file at least contains these two columns highlighted in ***bold and italics***:
 
 -   `scalar_name`: how should we call your metric?
--   `source_file`: the filename of the subject-level fixel data. In the next step of data conversion with ConFixel, we will use `~/myProject` as the main folder (`relative_root`), so here, we only need to provide the path starting from folder `FD`.
+-   `source_file`: the filename of the subject-level fixel data. In the next step of data conversion with ConFixel, we will use `~/Desktop/myProject` as the main folder (`relative_root`), so here, we only need to provide the path starting from folder `FDC`.
 
 Other columns are optional - simply add covariates you'll use in the statistical analysis in ModelArray. The order of columns can be changed.
 
@@ -79,26 +80,28 @@ One reason that `ModelArray` is memory efficient is it takes advantages of Hiera
 ``` {.console}
 $ conda activate modelarray
 $ confixel \
-    --index-file FD/index.mif \
-    --directions-file FD/directions.mif \
-    --cohort-file cohort_FD.csv \
-    --relative-root ~/myProject \
-    --output-hdf5 FD.h5
+    --index-file FDC/index.mif \
+    --directions-file FDC/directions.mif \
+    --cohort-file cohort_FDC_n100.csv \
+    --relative-root /home/<username>/Desktop/myProject \
+    --output-hdf5 ltn_FDC_n100_demo.h5
 ```
 
-As mentioned before, here we take `~/myProject` as the main folder, and you don't need to repeat it in the filenames for these input and output files anymore (i.e. these filenames are relative path based on this main folder).
+Before running, please change `<username>` to your username, so that the path for `--relative-root` is the full path of `myProject` folder as shown previously.
+
+As mentioned before, here we take `~/Desktop/myProject` as the main folder, and you don't need to repeat it in the filenames for these input and output files (i.e. these filenames are relative path based on this main folder).
 
 When running `confixel`, you will see a moving progress bar. When it finishes, it looks like this:
+```console
+Extracting .mif data...
+100%|█████████████████████████████████████████| 100/100 [00:03<00:00, 30.33it/s]
+```
 
-TODO: add a screenshot of confixel's conversion!
-
-Now you got the converted HDF5 file in folder `~/myProject`.
+Now you got the converted HDF5 file in folder `~/Desktop/myProject`.
 
 ## Step 2. Use ModelArray to perform statistical analysis
 
-The next step is to use this HDF5 file and the CSV file we prepared to perform statistical analysis in R. Now launch R with the way you preferred: \* You can launch RStudio \* If you installed xxx in conda: XXXXXXXXX \* If ModelArray was not installed in conda environment, you can simply open RStudio \* Some clusters may not provide good graphic access to RStudio and it may be hard to install R packages. In this case, you may use the container we provide. You can start an R session by: `singularity run --cleanenv ${modelarray_singularity} R`. For details please see `vignette("a01_installations")` page.
-
-All the commands in this Step 2 section will be run in R.
+The next step is to use this HDF5 file and the CSV file we prepared to perform statistical analysis in R. Now launch R. If you installed RStudio, then you can simply launch RStudio. All the commands in this Step 2 section will be run in R.
 
 ### Step 2.1. Load ModelArray package in R
 
@@ -112,23 +115,45 @@ To create a ModelArray-class object that represents the HDF5 file of fixel data,
 
 ```{r create ModelArray object, eval=FALSE}
 # filename of example fixel data (.h5 file):
-h5_path <- "~/myProject/xxx.h5"
+h5_path <- "~/Desktop/myProject/ltn_FDC_n100_demo.h5"
 # create a ModelArray-class object:
-modelarray <- ModelArray(h5_path, scalar_types = c("FD")) 
+modelarray <- ModelArray(h5_path, scalar_types = c("FDC")) 
 # let's check what's in it:
 modelarray 
 ```
+You'll see:
+```{.console}
+ModelArray located at ~/Desktop/myProject/ltn_FDC_n100_demo.h5
 
-This shows that there are \_\_\_ ? 50 ?\_\_\_ source FD files in this `modelarray` you loaded.
-
-To access this ModelArray object's slots:
-
-```{r access slots, eval = FALSE}
-# scalar FD data:
-scalars(modelarray)[["FD"]]
-# list of source filenames for FD data
-sources(modelarray)[["FD"]]
+  Source files:     100
+  Scalars:          FDC
+  Analyses:    
 ```
+
+This shows that there are 100 source FDC files in this `modelarray` you loaded.
+
+You may take a look at what's the scalar matrix look like by using `scalars()`: 
+```{r access slots, eval = FALSE}
+# scalar FDC data:
+scalars(modelarray)[["FDC"]]
+```
+You'll see:
+```{.console}
+<602229 x 100> matrix of class DelayedMatrix and type "double":
+          FDC/sub-00001.mif FDC/sub-00002.mif ... FDC/sub-XXXXX.mif FDC/sub-XXXXX.mif
+     [1,]        0.03784793        0.04200817   .         0.4529696         0.1732799
+     [2,]        0.65316314        0.21953718   .         0.1391619         0.1342200
+     [3,]        0.64559317        0.21095504   .         0.1852238         0.1141500
+     [4,]        0.68784863        0.24132447   .         0.2505251         0.1441198
+     [5,]        0.55170876        0.28086352   .         0.2633559         0.0279180
+      ...                 .                 .   .                 .                 .
+[602225,]         0.3497599         0.2218112   .       0.491817981       0.007262965
+[602226,]         0.3839741         0.3501487   .       0.708061635       0.000000000
+[602227,]         0.4207708         0.1624578   .       0.141499192       0.031062957
+[602228,]         0.2995211         0.0000000   .       0.000000000       0.000000000
+[602229,]         0.6179006         0.1306638   .       0.125959396       0.000000000
+```
+Rows are fixels (n = 602229), and column names are the source filenames (n = 100).
 
 ### Step 2.3. Load cohort phenotypes CSV file
 
@@ -136,39 +161,68 @@ We then load the CSV file we used just now:
 
 ```{r load csv file, eval=FALSE}
 # filename of example fixel data (.h5 file):
-csv_path <- "~/myProject/xxx.csv"
+csv_path <- "~/Desktop/myProject/cohort_FDC_n100.csv"
 # load the CSV file:
 phenotypes <- read.csv(csv_path)
-# let's check the first 6 rows:
-head(phenotypes)
 ```
+As this CSV file already provides sufficient covariates ready for analysis, we don't need to do extra work on it. 
 
-As `phenotypes` already provides sufficient covariates ready for analysis, we don't need to do extra work on it. 
-
+### Step 2.4. Perform statistical analysis
 With both `modelarray` and data frame `phenotypes` set up, we can now perform the statistical analysis. . At present, `ModelArray` supports linear models as well as generalized additive models (GAM) with penalized splines, which are particularly useful for studying nonlinear effects in lifespan data.  
 
-Let's start with linear model `ModelArray.lm()`. We first need a formula defining the model - here we specify the simplest one: `FD ~ age`. Intercept is added by default. We first try it out on first 100 fixels before we running on all fixels:
+Let's start with linear model `ModelArray.lm()`. We first need a formula defining the model - here we specify the simplest one: `FDC ~ Age`. Intercept will be automatically added. We first try it out on first 100 fixels before we running on all fixels:
 ```{r example lm, eval=FALSE}
 # formula:
-formula.lm <- FD ~ age
+formula.lm <- FDC ~ Age
 # run linear model fitting with ModelArray.lm() on the first 100 fixels:
-mylm.try <- ModelArray.lm(formula, modelarray, phenotypes, "FD",
+mylm.try <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
                           element.subset = 1:100)
 # let's check the first 6 rows of the results:
 head(mylm.try)
 ```
+You'll see:
+```{.console}
+subset: default 
+weights: default 
+na.action: default 
+method: default 
+model: default 
+x: default 
+y: default 
+qr: default 
+singular.ok: default 
+contrasts: default 
+offset: default 
+Fitting element-wise linear models for FDC
+initiating....
+looping across elements....
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=06s  
+```
 
-As you can see, by default, `ModelArray.lm()` calculates the estimations of the intercept and age, ___________
 
-Now let's try out `ModelArray.gam()`. Because xxxx nonlinear...., `s(age)`
-Here we set up a more realistic formula with sex and in-scanner motion quantification added. 
+| element_id| Intercept.estimate| Age.estimate| Intercept.statistic| Age.statistic| Intercept.p.value| Intercept.p.value.fdr| Age.p.value| Age.p.value.fdr| model.adj.r.squared| model.p.value| model.p.value.fdr|
+|----------:|------------------:|------------:|-------------------:|-------------:|-----------------:|---------------------:|-----------:|---------------:|-------------------:|-------------:|-----------------:|
+|          0|          0.4810032|   -0.0118014|           1.4672474|    -0.7259007|         0.1455107|             0.4535161|   0.4696297|       0.9985636|          -0.0048014|     0.4696297|         0.9985636|
+|          1|          0.1141828|    0.0086227|           0.4029950|     0.6136593|         0.6878297|             0.7642552|   0.5408623|       0.9985636|          -0.0063371|     0.5408623|         0.9985636|
+|          2|          0.3153794|    0.0010049|           1.0108094|     0.0649440|         0.3145969|             0.5070370|   0.9483508|       0.9985636|          -0.0101606|     0.9483508|         0.9985636|
+|          3|          0.1618779|    0.0069420|           0.5643247|     0.4879896|         0.5738225|             0.6758096|   0.6266472|       0.9985636|          -0.0077553|     0.6266472|         0.9985636|
+|          4|          0.2189127|    0.0023697|           0.9160483|     0.1999502|         0.3618903|             0.5401347|   0.8419339|       0.9985636|          -0.0097921|     0.8419339|         0.9985636|
+|          5|          0.2832827|    0.0010882|           0.9288104|     0.0719461|         0.3552694|             0.5382870|   0.9427914|       0.9985636|          -0.0101507|     0.9427914|         0.9985636|
 
-We specify `full.outputs=TRUE` so that we can get more statistics. We can also specify the p-value corrections we want: "fdr" and "bonferroni". In addition, `ModelArray.gam()` can also quantify how important a covariate is. For example, with versus without "age", how much the adjusted R-squared will change? We can do it by specifying `changed.rsq.term.index = c(1)`, which means that we request the quantification for the first covariate. Because xxxx, we recommend to use `fx=TRUE` when calculate changed.rsq...... `k=4` means ....
+As you can see, for each fixel, by default, `ModelArray.lm()` calculates:
+* Several statistics for Intercept and Age's coefficient, including estimation, t-statistics, and p-value and its FDR correction.   # <---DOUBLE CHECK AGAIN 
+* Several statistics for the linear model, including the adjusted R-squared, p-value, and its FDR correction
+
+You may request more comprehensive statistics via `full.outputs=TRUE`
+
+Now let's try out `ModelArray.gam()`. Compared to linear model, GAM flexibly models both linear and nonlinear effects. As the developmental effects are often nonlinear, here we put Age in a smooth term `s(Age)`, and set up a more realistic formula with sex and in-scanner motion quantification added. 
+
+We specify `full.outputs=TRUE` so that we can get more statistics. We can also specify the p-value corrections we want: "fdr" and "bonferroni". In addition, `ModelArray.gam()` can also quantify how important a covariate is. For example, with versus without "Age", how much the adjusted R-squared will change? We can do it by specifying `changed.rsq.term.index = c(1)`, which means that we request the quantification for the first covariate. Because xxxx, we recommend to use `fx=TRUE` when calculate changed.rsq...... `k=4` means ....
 
 We still first try it out on first 100 fixels:
 ```{r example gam, eval=FALSE}
 # formula:
-formula.lm <- FD ~ s(age, k=4, fx=TRUE) + sex + motion
+formula.lm <- FDC ~ s(Age, k=4, fx=TRUE) + sex + motion
 # run GAM fitting with ModelArray.gam() on the first 100 fixels:
 XXXXX
 ```
@@ -182,7 +236,7 @@ XXXXX
 
 
 ## Step 3. Check out the results
-### Step 3.1 Save the results into HDF5 file
+### Step 3.1. Save the results into HDF5 file
 We now save the results data frame into the h5 file:
 ```{r write results, eval=FALSE}
 # write lm results with a specified analysis_name:
@@ -195,7 +249,7 @@ Notice that the the analysis name specified in argument `analysis_name` will be 
 We can even check out the saved results in the h5 file:
 ```{r load results, eval = FALSE}
 # create a new ModelArray-class object:
-modelarray_new <- ModelArray(filepath = h5_path, scalar_types = "FD",
+modelarray_new <- ModelArray(filepath = h5_path, scalar_types = "FDC",
                              analysis_names = c("result_lm", "result_gam"))
 ```
 To access the results, simply use `results()`:
@@ -205,13 +259,56 @@ results(modelarray_new)[["result_gam"]]$results_matrix
 ```
 
 
-### Step 3.2 Convert the statistical results into mif file format using ConFixel
+### Step 3.2. Convert the statistical results into mif file format using ConFixel
 We now use ConFixel to convert the results into a list of mif files:
-```console
+```{.console}
+$ fixelstats_write \
+  --index-file FDC/index.mif \
+  --directions-file FDC/directions.mif \
+  --cohort-file cohort_FDC_n100.csv \
+  --relative-root /home/<username>/Desktop/myProject \
+  --analysis-name lm_default \
+  --input-hdf5 ltn_FDC_n100_demo.h5 \
+  --output-dir lm_default
+```
+Before running, please change `<username>` to your username, so that the path for `--relative-root` is the full path of `myProject` folder as shown previously.
 
+In the main folder `myProject`, there will be a new folder called `lm_default`, and converted statistical mif files are in this new folder:
+```{.console}
+lm_default/
+├── directions.mif
+├── index.mif
+├── lm_default_Age.1m.p.value.fdr.mif
+├── lm_default_Age.1m.p.value.mif
+├── lm_default_Age.estimate.mif
+├── lm_default_Age.p.value.fdr.mif
+├── lm_default_Age.p.value.mif
+├── lm_default_Age.statistic.mif
+├── lm_default_element_id.mif
+├── lm_default_Intercept.1m.p.value.fdr.mif
+├── lm_default_Intercept.1m.p.value.mif
+├── lm_default_Intercept.estimate.mif
+├── lm_default_Intercept.p.value.fdr.mif
+├── lm_default_Intercept.p.value.mif
+├── lm_default_Intercept.statistic.mif
+├── lm_default_model.1m.p.value.fdr.mif
+├── lm_default_model.1m.p.value.mif
+├── lm_default_model.adj.r.squared.mif
+├── lm_default_model.p.value.fdr.mif
+└── lm_default_model.p.value.mif
 ```
 
-- convert statistical results into mif file format using ConFixel
-  - command
-  - view in MRtrix's MRView
-    - NOTE: steps in this section: outputs cannot be automatically generated by R pkgdown/roxygen2; will provide screenshots
+### Step 3.3. View the results in MRtrix's MRView
+Launch MRView from terminal with `mrview`:
+```{.console}
+$ cd lm_default   # switch to results folder
+$ mrview
+```
+Click File -> Open, select `index.mif`. Then click Tools -> Fixel plot, you'll see a side panel of "Fixel plot". Within this side panel, click icon "Open fixel image" (see below, highlighted in red rectangle):
+![Open fixel image](mrview_fixel_plot_panel_open.PNG)
+
+From there, select `index.mif` file again. ............
+
+
+This is an example view:   # NOTE: THIS IS NOT THE FINAL IMAGE!
+![Significant cluster](mrview_result_mrtrix_n300.PNG)

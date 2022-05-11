@@ -76,73 +76,79 @@
 <div class="section level2">
 <h2 id="step-1--prepare-your-data">Step 1. Prepare your data<a class="anchor" aria-label="anchor" href="#step-1--prepare-your-data"></a>
 </h2>
-<p>Assume you’re at folder <code>myProject</code>. In a terminal console:</p>
-<pre class="console"><code>$ cd ~
+<p>We first create a folder called “myProject” on the Desktop. In a terminal console:</p>
+<pre class="console"><code>$ cd ~/Desktop
 $ mkdir myProject
-$ cd ~/myProject</code></pre>
+$ cd myProject
+$ pwd       # print the full path of this folder</code></pre>
+<p>On a linux machine, you’ll see the printed full path of this folder is <code>/home/&lt;username&gt;/Desktop/myProject</code> # HOW ABOUT A MAC COMPUTER????</p>
 <p>Assume you are at the stage where you have got fixel data from MRtrix by following the fixel-based analysis. If we use paper <a href="https://doi.org/10.1016/j.neuroimage.2021.118417" class="external-link">Dhollander et al., 2021</a> Fig.3. The fixel-based analysis pipeline as an example, we expect you have done the step “Connectivity-based fixel smoothing”. You will use the subject-level fixel data in template space from this step for further fixel-wise statistical analysis in ModelArray. We expect the file format is mif.</p>
-<p>Here, we provide some toy data (<strong><em>TODO: TO UPDATE</em></strong> __). You can get them by:</p>
+<p>Here, we provide some demo data. This data is part from PNC (CITATION!!!) with subjects aged 8-23 years. You can get the data by:</p>
 <pre class="console"><code>$ wget xxxxxx # TODO
 $ unzip xxxx # TODO
 $ rm xxx.zip   # TODO</code></pre>
 <div class="section level3">
 <h3 id="step-1-1--overview-of-the-data-organization">Step 1.1. Overview of the data organization<a class="anchor" aria-label="anchor" href="#step-1-1--overview-of-the-data-organization"></a>
 </h3>
-<p>As you can see, the data is organized in the following way: # TODO: to update this tree</p>
-<pre class="console"><code>~/myProject
-|
-├── cohort_FD.csv   
-│
-├── FD
-│   ├── index.mif
+<p>As you can see, the data is organized in the following way: # TODO: to update this tree with hashed ids</p>
+<pre class="console"><code>~/Desktop/myProject
+├── cohort_FDC_n100.csv
+├── FDC
 │   ├── directions.mif
-|   ├── sub1_FD.mif
-|   ├── sub2_FD.mif
-|   ├── sub3_FD.mif
+│   ├── index.mif
+│   ├── sub-00001.mif
+│   ├── sub-00002.mif
+│   ├── sub-00003.mif
 │   ├── ...
-└── ...</code></pre>
-<p>This data organization is what we recommend. In this example fixel dataset, the metric is <code>FD</code>. If you have other metrics such as FD, you may also have folder <code>FD</code> and CSV file <code>cohort_FD.csv</code> in this <code>myProject</code> folder.</p>
+└── ...
+</code></pre>
+<p>This data organization is what we recommend. In this example fixel dataset, the metric is <code>FDC</code>. If you have other metrics such as FC, you may also have folder <code>FC</code> and CSV file <code>cohort_FC_n100.csv</code> in this <code>myProject</code> folder.</p>
 <p>As you can see, besides subject-level fixel data, there are also <code>index.mif</code> and <code>directions.mif</code>. These two files provides important information of the fixel locations - see their definitions <a href="https://userdocs.mrtrix.org/en/dev/fixel_based_analysis/fixel_directory_format.html" class="external-link">here</a>.</p>
 </div>
 <div class="section level3">
 <h3 id="step-1-2--prepare-a-csv-file-of-cohort-phenotypes">Step 1.2. Prepare a CSV file of cohort phenotypes<a class="anchor" aria-label="anchor" href="#step-1-2--prepare-a-csv-file-of-cohort-phenotypes"></a>
 </h3>
-<p>In addition to fixel data, we also need a CSV file of cohort phenotypes. This file will be used by both ConFixel and ModelArray. Here we provide an example CSV file: <code>cohort_FD.csv</code>: # TODO: update this table below based on the real CSV file</p>
+<p>In addition to fixel data, we also need a CSV file of cohort phenotypes. This file will be used by both ConFixel and ModelArray. Here we provide an example CSV file: <code>cohort_FDC_n100.csv</code>: # TODO: update this table below based on the real CSV file</p>
 <table class="table">
 <thead><tr class="header">
+<th align="center">subject_id</th>
+<th align="center">Age</th>
+<th align="center">sex</th>
+<th align="center">…</th>
 <th align="center"><strong><em>scalar_name</em></strong></th>
 <th align="center"><strong><em>source_file</em></strong></th>
-<th align="center">subject_id</th>
-<th align="center">age</th>
-<th align="center">sex</th>
 <th align="center">…</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="center">FD</td>
-<td align="center">FD/sub1_FD.mif</td>
 <td align="center">sub1</td>
 <td align="center">10</td>
 <td align="center">F</td>
 <td align="center">…</td>
+<td align="center">FDC</td>
+<td align="center">FDC/sub1_FDC.mif</td>
+<td align="center">…</td>
 </tr>
 <tr class="even">
-<td align="center">FD</td>
-<td align="center">FD/sub2_FD.mif</td>
 <td align="center">sub2</td>
 <td align="center">20</td>
 <td align="center">M</td>
 <td align="center">…</td>
+<td align="center">FDC</td>
+<td align="center">FDC/sub2_FDC.mif</td>
+<td align="center">…</td>
 </tr>
 <tr class="odd">
-<td align="center">FD</td>
-<td align="center">FD/sub3_FD.mif</td>
 <td align="center">sub3</td>
 <td align="center">15</td>
 <td align="center">F</td>
 <td align="center">…</td>
+<td align="center">FDC</td>
+<td align="center">FDC/sub3_FDC.mif</td>
+<td align="center">…</td>
 </tr>
 <tr class="even">
+<td align="center">…</td>
 <td align="center">…</td>
 <td align="center">…</td>
 <td align="center">…</td>
@@ -157,7 +163,7 @@ $ rm xxx.zip   # TODO</code></pre>
 <li>
 <code>scalar_name</code>: how should we call your metric?</li>
 <li>
-<code>source_file</code>: the filename of the subject-level fixel data. In the next step of data conversion with ConFixel, we will use <code>~/myProject</code> as the main folder (<code>relative_root</code>), so here, we only need to provide the path starting from folder <code>FD</code>.</li>
+<code>source_file</code>: the filename of the subject-level fixel data. In the next step of data conversion with ConFixel, we will use <code>~/Desktop/myProject</code> as the main folder (<code>relative_root</code>), so here, we only need to provide the path starting from folder <code>FDC</code>.</li>
 </ul>
 <p>Other columns are optional - simply add covariates you’ll use in the statistical analysis in ModelArray. The order of columns can be changed.</p>
 </div>
@@ -167,76 +173,231 @@ $ rm xxx.zip   # TODO</code></pre>
 <p>One reason that <code>ModelArray</code> is memory efficient is it takes advantages of Hierarchical Data Format 5 (HDF5) file format. The extension of this file format is “h5”. An HDF5 file stores large dataset hierarchically. We now use ConFixel to convert these list of mif files into an HDF5 file: In the terminal console:</p>
 <pre class="console"><code>$ conda activate modelarray
 $ confixel \
-    --index-file FD/index.mif \
-    --directions-file FD/directions.mif \
-    --cohort-file cohort_FD.csv \
-    --relative-root ~/myProject \
-    --output-hdf5 FD.h5</code></pre>
-<p>As mentioned before, here we take <code>~/myProject</code> as the main folder, and you don’t need to repeat it in the filenames for these input and output files anymore (i.e. these filenames are relative path based on this main folder).</p>
+    --index-file FDC/index.mif \
+    --directions-file FDC/directions.mif \
+    --cohort-file cohort_FDC_n100.csv \
+    --relative-root /home/&lt;username&gt;/Desktop/myProject \
+    --output-hdf5 ltn_FDC_n100_demo.h5</code></pre>
+<p>Before running, please change <code>&lt;username&gt;</code> to your username, so that the path for <code>--relative-root</code> is the full path of <code>myProject</code> folder as shown previously.</p>
+<p>As mentioned before, here we take <code>~/Desktop/myProject</code> as the main folder, and you don’t need to repeat it in the filenames for these input and output files (i.e. these filenames are relative path based on this main folder).</p>
 <p>When running <code>confixel</code>, you will see a moving progress bar. When it finishes, it looks like this:</p>
-<p>TODO: add a screenshot of confixel’s conversion!</p>
-<p>Now you got the converted HDF5 file in folder <code>~/myProject</code>.</p>
+<pre class="console"><code>Extracting .mif data...
+100%|█████████████████████████████████████████| 100/100 [00:03&lt;00:00, 30.33it/s]</code></pre>
+<p>Now you got the converted HDF5 file in folder <code>~/Desktop/myProject</code>.</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="step-2--use-modelarray-to-perform-statistical-analysis">Step 2. Use ModelArray to perform statistical analysis<a class="anchor" aria-label="anchor" href="#step-2--use-modelarray-to-perform-statistical-analysis"></a>
 </h2>
-<p>The next step is to use this HDF5 file and the CSV file we prepared to perform statistical analysis in R. Now launch R with the way you preferred: * You can launch RStudio * If you installed xxx in conda: XXXXXXXXX * If ModelArray was not installed in conda environment, you can simply open RStudio * Some clusters may not provide good graphic access to RStudio and it may be hard to install R packages. In this case, you may use the container we provide. You can start an R session by: <code>singularity run --cleanenv ${modelarray_singularity} R</code>. For details please see <code><a href="../articles/a01_installations.html">vignette("a01_installations")</a></code> page.</p>
-<p>All the commands in this Step 2 section will be run in R.</p>
+<p>The next step is to use this HDF5 file and the CSV file we prepared to perform statistical analysis in R. Now launch R. If you installed RStudio, then you can simply launch RStudio. All the commands in this Step 2 section will be run in R.</p>
 <div class="section level3">
 <h3 id="step-2-1--load-modelarray-package-in-r">Step 2.1. Load ModelArray package in R<a class="anchor" aria-label="anchor" href="#step-2-1--load-modelarray-package-in-r"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pennlinc.github.io/ModelArray">ModelArray</a></span><span class="op">)</span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-2-2--create-a-modelarray-class-object">Step 2.2. Create a ModelArray-class object<a class="anchor" aria-label="anchor" href="#step-2-2--create-a-modelarray-class-object"></a>
 </h3>
 <p>To create a ModelArray-class object that represents the HDF5 file of fixel data, we need the HDF5 filename and the scalar’s name:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># filename of example fixel data (.h5 file):</span>
-<span class="va">h5_path</span> <span class="op">&lt;-</span> <span class="st">"~/myProject/xxx.h5"</span>
+<span class="va">h5_path</span> <span class="op">&lt;-</span> <span class="st">"~/Desktop/myProject/ltn_FDC_n100_demo.h5"</span>
 <span class="co"># create a ModelArray-class object:</span>
-<span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FD"</span><span class="op">)</span><span class="op">)</span> 
+<span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FDC"</span><span class="op">)</span><span class="op">)</span> 
 <span class="co"># let's check what's in it:</span>
 <span class="va">modelarray</span> </code></pre></div>
-<p>This shows that there are ___ ? 50 ?___ source FD files in this <code>modelarray</code> you loaded.</p>
-<p>To access this ModelArray object’s slots:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># scalar FD data:</span>
-<span class="fu">scalars</span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span><span class="op">[[</span><span class="st">"FD"</span><span class="op">]</span><span class="op">]</span>
-<span class="co"># list of source filenames for FD data</span>
-<span class="fu">sources</span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span><span class="op">[[</span><span class="st">"FD"</span><span class="op">]</span><span class="op">]</span></code></pre></div>
+<p>You’ll see:</p>
+<pre class="console"><code>ModelArray located at ~/Desktop/myProject/ltn_FDC_n100_demo.h5
+
+  Source files:     100
+  Scalars:          FDC
+  Analyses:    </code></pre>
+<p>This shows that there are 100 source FDC files in this <code>modelarray</code> you loaded.</p>
+<p>You may take a look at what’s the scalar matrix look like by using <code>scalars()</code>:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># scalar FDC data:</span>
+<span class="fu">scalars</span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span><span class="op">[[</span><span class="st">"FDC"</span><span class="op">]</span><span class="op">]</span></code></pre></div>
+<p>You’ll see:</p>
+<pre class="console"><code>&lt;602229 x 100&gt; matrix of class DelayedMatrix and type "double":
+          FDC/sub-00001.mif FDC/sub-00002.mif ... FDC/sub-XXXXX.mif FDC/sub-XXXXX.mif
+     [1,]        0.03784793        0.04200817   .         0.4529696         0.1732799
+     [2,]        0.65316314        0.21953718   .         0.1391619         0.1342200
+     [3,]        0.64559317        0.21095504   .         0.1852238         0.1141500
+     [4,]        0.68784863        0.24132447   .         0.2505251         0.1441198
+     [5,]        0.55170876        0.28086352   .         0.2633559         0.0279180
+      ...                 .                 .   .                 .                 .
+[602225,]         0.3497599         0.2218112   .       0.491817981       0.007262965
+[602226,]         0.3839741         0.3501487   .       0.708061635       0.000000000
+[602227,]         0.4207708         0.1624578   .       0.141499192       0.031062957
+[602228,]         0.2995211         0.0000000   .       0.000000000       0.000000000
+[602229,]         0.6179006         0.1306638   .       0.125959396       0.000000000</code></pre>
+<p>Rows are fixels (n = 602229), and column names are the source filenames (n = 100).</p>
 </div>
 <div class="section level3">
 <h3 id="step-2-3--load-cohort-phenotypes-csv-file">Step 2.3. Load cohort phenotypes CSV file<a class="anchor" aria-label="anchor" href="#step-2-3--load-cohort-phenotypes-csv-file"></a>
 </h3>
 <p>We then load the CSV file we used just now:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># filename of example fixel data (.h5 file):</span>
-<span class="va">csv_path</span> <span class="op">&lt;-</span> <span class="st">"~/myProject/xxx.csv"</span>
+<span class="va">csv_path</span> <span class="op">&lt;-</span> <span class="st">"~/Desktop/myProject/cohort_FDC_n100.csv"</span>
 <span class="co"># load the CSV file:</span>
-<span class="va">phenotypes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">csv_path</span><span class="op">)</span>
-<span class="co"># let's check the first 6 rows:</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">phenotypes</span><span class="op">)</span></code></pre></div>
-<p>As <code>phenotypes</code> already provides sufficient covariates ready for analysis, we don’t need to do extra work on it.</p>
+<span class="va">phenotypes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">csv_path</span><span class="op">)</span></code></pre></div>
+<p>As this CSV file already provides sufficient covariates ready for analysis, we don’t need to do extra work on it.</p>
+</div>
+<div class="section level3">
+<h3 id="step-2-4--perform-statistical-analysis">Step 2.4. Perform statistical analysis<a class="anchor" aria-label="anchor" href="#step-2-4--perform-statistical-analysis"></a>
+</h3>
 <p>With both <code>modelarray</code> and data frame <code>phenotypes</code> set up, we can now perform the statistical analysis. . At present, <code>ModelArray</code> supports linear models as well as generalized additive models (GAM) with penalized splines, which are particularly useful for studying nonlinear effects in lifespan data.</p>
-<p>Let’s start with linear model <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>. We first need a formula defining the model - here we specify the simplest one: <code>FD ~ age</code>. Intercept is added by default. We first try it out on first 100 fixels before we running on all fixels:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<p>Let’s start with linear model <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>. We first need a formula defining the model - here we specify the simplest one: <code>FDC ~ Age</code>. Intercept will be automatically added. We first try it out on first 100 fixels before we running on all fixels:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># formula:</span>
-<span class="va">formula.lm</span> <span class="op">&lt;-</span> <span class="va">FD</span> <span class="op">~</span> <span class="va">age</span>
+<span class="va">formula.lm</span> <span class="op">&lt;-</span> <span class="va">FDC</span> <span class="op">~</span> <span class="va">Age</span>
 <span class="co"># run linear model fitting with ModelArray.lm() on the first 100 fixels:</span>
-<span class="va">mylm.try</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">formula</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FD"</span>,
+<span class="va">mylm.try</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">formula.lm</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FDC"</span>,
                           element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span><span class="op">)</span>
 <span class="co"># let's check the first 6 rows of the results:</span>
 <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mylm.try</span><span class="op">)</span></code></pre></div>
-<p>As you can see, by default, <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> calculates the estimations of the intercept and age, ___________</p>
-<p>Now let’s try out <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>. Because xxxx nonlinear…., <code>s(age)</code> Here we set up a more realistic formula with sex and in-scanner motion quantification added.</p>
-<p>We specify <code>full.outputs=TRUE</code> so that we can get more statistics. We can also specify the p-value corrections we want: “fdr” and “bonferroni”. In addition, <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code> can also quantify how important a covariate is. For example, with versus without “age”, how much the adjusted R-squared will change? We can do it by specifying <code>changed.rsq.term.index = c(1)</code>, which means that we request the quantification for the first covariate. Because xxxx, we recommend to use <code>fx=TRUE</code> when calculate changed.rsq…… <code>k=4</code> means ….</p>
+<p>You’ll see:</p>
+<pre class="console"><code>subset: default 
+weights: default 
+na.action: default 
+method: default 
+model: default 
+x: default 
+y: default 
+qr: default 
+singular.ok: default 
+contrasts: default 
+offset: default 
+Fitting element-wise linear models for FDC
+initiating....
+looping across elements....
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=06s  </code></pre>
+<table class="table">
+<colgroup>
+<col width="5%">
+<col width="9%">
+<col width="6%">
+<col width="10%">
+<col width="7%">
+<col width="9%">
+<col width="11%">
+<col width="6%">
+<col width="8%">
+<col width="10%">
+<col width="7%">
+<col width="9%">
+</colgroup>
+<thead><tr class="header">
+<th align="right">element_id</th>
+<th align="right">Intercept.estimate</th>
+<th align="right">Age.estimate</th>
+<th align="right">Intercept.statistic</th>
+<th align="right">Age.statistic</th>
+<th align="right">Intercept.p.value</th>
+<th align="right">Intercept.p.value.fdr</th>
+<th align="right">Age.p.value</th>
+<th align="right">Age.p.value.fdr</th>
+<th align="right">model.adj.r.squared</th>
+<th align="right">model.p.value</th>
+<th align="right">model.p.value.fdr</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="right">0</td>
+<td align="right">0.4810032</td>
+<td align="right">-0.0118014</td>
+<td align="right">1.4672474</td>
+<td align="right">-0.7259007</td>
+<td align="right">0.1455107</td>
+<td align="right">0.4535161</td>
+<td align="right">0.4696297</td>
+<td align="right">0.9985636</td>
+<td align="right">-0.0048014</td>
+<td align="right">0.4696297</td>
+<td align="right">0.9985636</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">0.1141828</td>
+<td align="right">0.0086227</td>
+<td align="right">0.4029950</td>
+<td align="right">0.6136593</td>
+<td align="right">0.6878297</td>
+<td align="right">0.7642552</td>
+<td align="right">0.5408623</td>
+<td align="right">0.9985636</td>
+<td align="right">-0.0063371</td>
+<td align="right">0.5408623</td>
+<td align="right">0.9985636</td>
+</tr>
+<tr class="odd">
+<td align="right">2</td>
+<td align="right">0.3153794</td>
+<td align="right">0.0010049</td>
+<td align="right">1.0108094</td>
+<td align="right">0.0649440</td>
+<td align="right">0.3145969</td>
+<td align="right">0.5070370</td>
+<td align="right">0.9483508</td>
+<td align="right">0.9985636</td>
+<td align="right">-0.0101606</td>
+<td align="right">0.9483508</td>
+<td align="right">0.9985636</td>
+</tr>
+<tr class="even">
+<td align="right">3</td>
+<td align="right">0.1618779</td>
+<td align="right">0.0069420</td>
+<td align="right">0.5643247</td>
+<td align="right">0.4879896</td>
+<td align="right">0.5738225</td>
+<td align="right">0.6758096</td>
+<td align="right">0.6266472</td>
+<td align="right">0.9985636</td>
+<td align="right">-0.0077553</td>
+<td align="right">0.6266472</td>
+<td align="right">0.9985636</td>
+</tr>
+<tr class="odd">
+<td align="right">4</td>
+<td align="right">0.2189127</td>
+<td align="right">0.0023697</td>
+<td align="right">0.9160483</td>
+<td align="right">0.1999502</td>
+<td align="right">0.3618903</td>
+<td align="right">0.5401347</td>
+<td align="right">0.8419339</td>
+<td align="right">0.9985636</td>
+<td align="right">-0.0097921</td>
+<td align="right">0.8419339</td>
+<td align="right">0.9985636</td>
+</tr>
+<tr class="even">
+<td align="right">5</td>
+<td align="right">0.2832827</td>
+<td align="right">0.0010882</td>
+<td align="right">0.9288104</td>
+<td align="right">0.0719461</td>
+<td align="right">0.3552694</td>
+<td align="right">0.5382870</td>
+<td align="right">0.9427914</td>
+<td align="right">0.9985636</td>
+<td align="right">-0.0101507</td>
+<td align="right">0.9427914</td>
+<td align="right">0.9985636</td>
+</tr>
+</tbody>
+</table>
+<p>As you can see, for each fixel, by default, <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> calculates: * Several statistics for Intercept and Age’s coefficient, including estimation, t-statistics, and p-value and its FDR correction. # &lt;—DOUBLE CHECK AGAIN * Several statistics for the linear model, including the adjusted R-squared, p-value, and its FDR correction</p>
+<p>You may request more comprehensive statistics via <code>full.outputs=TRUE</code></p>
+<p>Now let’s try out <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>. Compared to linear model, GAM flexibly models both linear and nonlinear effects. As the developmental effects are often nonlinear, here we put Age in a smooth term <code>s(Age)</code>, and set up a more realistic formula with sex and in-scanner motion quantification added.</p>
+<p>We specify <code>full.outputs=TRUE</code> so that we can get more statistics. We can also specify the p-value corrections we want: “fdr” and “bonferroni”. In addition, <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code> can also quantify how important a covariate is. For example, with versus without “Age”, how much the adjusted R-squared will change? We can do it by specifying <code>changed.rsq.term.index = c(1)</code>, which means that we request the quantification for the first covariate. Because xxxx, we recommend to use <code>fx=TRUE</code> when calculate changed.rsq…… <code>k=4</code> means ….</p>
 <p>We still first try it out on first 100 fixels:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># formula:</span>
-<span class="va">formula.lm</span> <span class="op">&lt;-</span> <span class="va">FD</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">age</span>, k<span class="op">=</span><span class="fl">4</span>, fx<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">motion</span>
+<span class="va">formula.lm</span> <span class="op">&lt;-</span> <span class="va">FDC</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">Age</span>, k<span class="op">=</span><span class="fl">4</span>, fx<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">motion</span>
 <span class="co"># run GAM fitting with ModelArray.gam() on the first 100 fixels:</span>
 <span class="va">XXXXX</span></code></pre></div>
 <p>Run on all fixels: * n_cores = 4 to accelerate</p>
@@ -247,42 +408,70 @@ $ confixel \
 <h2 id="step-3--check-out-the-results">Step 3. Check out the results<a class="anchor" aria-label="anchor" href="#step-3--check-out-the-results"></a>
 </h2>
 <div class="section level3">
-<h3 id="step-3-1-save-the-results-into-hdf5-file">Step 3.1 Save the results into HDF5 file<a class="anchor" aria-label="anchor" href="#step-3-1-save-the-results-into-hdf5-file"></a>
+<h3 id="step-3-1--save-the-results-into-hdf5-file">Step 3.1. Save the results into HDF5 file<a class="anchor" aria-label="anchor" href="#step-3-1--save-the-results-into-hdf5-file"></a>
 </h3>
 <p>We now save the results data frame into the h5 file:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># write lm results with a specified analysis_name:</span>
 <span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span><span class="va">h5_path</span>, df.output <span class="op">=</span> <span class="va">mylm</span>, analysis_name <span class="op">=</span> <span class="st">"result_lm"</span><span class="op">)</span>
 <span class="co"># write gam results:</span>
 <span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span><span class="va">h5_path</span>, df.output <span class="op">=</span> <span class="va">mygam</span>, analysis_name <span class="op">=</span> <span class="st">"result_gam"</span><span class="op">)</span></code></pre></div>
 <p>Notice that the the analysis name specified in argument <code>analysis_name</code> will be used in ConFixel in the next step when converting results back to fixel mif file format. Also it will be the prefix of the mif files to be saved.</p>
 <p>We can even check out the saved results in the h5 file:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># create a new ModelArray-class object:</span>
-<span class="va">modelarray_new</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span>filepath <span class="op">=</span> <span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="st">"FD"</span>,
+<span class="va">modelarray_new</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span>filepath <span class="op">=</span> <span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="st">"FDC"</span>,
                              analysis_names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"result_lm"</span>, <span class="st">"result_gam"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <p>To access the results, simply use <code>results()</code>:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">results</span><span class="op">(</span><span class="va">modelarray_new</span><span class="op">)</span><span class="op">[[</span><span class="st">"result_lm"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">results_matrix</span>
 <span class="fu">results</span><span class="op">(</span><span class="va">modelarray_new</span><span class="op">)</span><span class="op">[[</span><span class="st">"result_gam"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">results_matrix</span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="step-3-2-convert-the-statistical-results-into-mif-file-format-using-confixel">Step 3.2 Convert the statistical results into mif file format using ConFixel<a class="anchor" aria-label="anchor" href="#step-3-2-convert-the-statistical-results-into-mif-file-format-using-confixel"></a>
+<h3 id="step-3-2--convert-the-statistical-results-into-mif-file-format-using-confixel">Step 3.2. Convert the statistical results into mif file format using ConFixel<a class="anchor" aria-label="anchor" href="#step-3-2--convert-the-statistical-results-into-mif-file-format-using-confixel"></a>
 </h3>
 <p>We now use ConFixel to convert the results into a list of mif files:</p>
-<pre class="console"><code></code></pre>
-<ul>
-<li>convert statistical results into mif file format using ConFixel
-<ul>
-<li>command</li>
-<li>view in MRtrix’s MRView
-<ul>
-<li>NOTE: steps in this section: outputs cannot be automatically generated by R pkgdown/roxygen2; will provide screenshots</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
+<pre class="console"><code>$ fixelstats_write \
+  --index-file FDC/index.mif \
+  --directions-file FDC/directions.mif \
+  --cohort-file cohort_FDC_n100.csv \
+  --relative-root /home/&lt;username&gt;/Desktop/myProject \
+  --analysis-name lm_default \
+  --input-hdf5 ltn_FDC_n100_demo.h5 \
+  --output-dir lm_default</code></pre>
+<p>Before running, please change <code>&lt;username&gt;</code> to your username, so that the path for <code>--relative-root</code> is the full path of <code>myProject</code> folder as shown previously.</p>
+<p>In the main folder <code>myProject</code>, there will be a new folder called <code>lm_default</code>, and converted statistical mif files are in this new folder:</p>
+<pre class="console"><code>lm_default/
+├── directions.mif
+├── index.mif
+├── lm_default_Age.1m.p.value.fdr.mif
+├── lm_default_Age.1m.p.value.mif
+├── lm_default_Age.estimate.mif
+├── lm_default_Age.p.value.fdr.mif
+├── lm_default_Age.p.value.mif
+├── lm_default_Age.statistic.mif
+├── lm_default_element_id.mif
+├── lm_default_Intercept.1m.p.value.fdr.mif
+├── lm_default_Intercept.1m.p.value.mif
+├── lm_default_Intercept.estimate.mif
+├── lm_default_Intercept.p.value.fdr.mif
+├── lm_default_Intercept.p.value.mif
+├── lm_default_Intercept.statistic.mif
+├── lm_default_model.1m.p.value.fdr.mif
+├── lm_default_model.1m.p.value.mif
+├── lm_default_model.adj.r.squared.mif
+├── lm_default_model.p.value.fdr.mif
+└── lm_default_model.p.value.mif</code></pre>
+</div>
+<div class="section level3">
+<h3 id="step-3-3--view-the-results-in-mrtrixs-mrview">Step 3.3. View the results in MRtrix’s MRView<a class="anchor" aria-label="anchor" href="#step-3-3--view-the-results-in-mrtrixs-mrview"></a>
+</h3>
+<p>Launch MRView from terminal with <code>mrview</code>:</p>
+<pre class="console"><code>$ cd lm_default   # switch to results folder
+$ mrview</code></pre>
+<p>Click File -&gt; Open, select <code>index.mif</code>. Then click Tools -&gt; Fixel plot, you’ll see a side panel of “Fixel plot”. Within this side panel, click icon “Open fixel image” (see below, highlighted in red rectangle): <img src="mrview_fixel_plot_panel_open.PNG" alt="Open fixel image"></p>
+<p>From there, select <code>index.mif</code> file again. …………</p>
+<p>This is an example view: # NOTE: THIS IS NOT THE FINAL IMAGE! <img src="mrview_result_mrtrix_n300.PNG" alt="Significant cluster"></p>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

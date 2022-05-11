@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-This documentation walk through the installation of `ModelArray` package and necessary dependent packages/libraries.
+This page walks through the installation of `ModelArray` package and necessary dependent packages/libraries.
 
 Currently there are two ways to install and use `ModelArray`: 
 
@@ -74,7 +74,7 @@ foo@bar:myProject$ git clone https://github.com/PennLINC/ConFixel.git
 foo@bar:myProject$ cd ConFixel
 foo@bar:myProject$ pip install .
 
-# You may remove the original source code if you are an end user instead of not a developer:
+# You may remove the original source code if you are an end user instead of a developer:
 foo@bar:myProject$ cd ..
 foo@bar:myProject$ rm -r ConFixel
 ```
