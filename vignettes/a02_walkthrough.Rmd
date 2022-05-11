@@ -7,9 +7,9 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-In this example walkthrough, we will use some toy data (\_\_\_\_TODO: TO UPDATE\_\_\_\_\_) to demonstrate the steps of using ModelArray and its companion python package ConFixel. By following the `vignette("a01_installations")` page, you should have successfully installed `ModelArray`, `ConFixel`, and `MRtrix`. We expect that `ConFixel` has been installed in a conda environment called "modelarray".
+In this example walkthrough, we will use some example fixel data to demonstrate the steps of using ModelArray and its companion python package ConFixel. By following the `vignette("a01_installations")` page, you should have successfully installed `ModelArray`, `ConFixel`, and `MRtrix`. We expect that `ConFixel` has been installed in a conda environment called "modelarray".
 
-We will first prepare the data and convert into the format that ModelArray needs (Step 1), then use ModelArray to perform the statistical analysis (Step 2). Finally we will convert the results into original file format and view them (Step 3).
+We will first prepare the data and convert it into the format that `ModelArray` requires (Step 1), then we'll use `ModelArray` to perform the statistical analysis (Step 2). Finally we will convert the results into original file format and view them (Step 3).
 
 ## Step 1. Prepare your data
 
@@ -21,11 +21,11 @@ $ mkdir myProject
 $ cd myProject
 $ pwd       # print the full path of this folder
 ```
-On a linux machine, you'll see the printed full path of this folder is `/home/<username>/Desktop/myProject`    # HOW ABOUT A MAC COMPUTER????
+On a linux machine, you'll see the printed full path of this folder is `/home/<username>/Desktop/myProject`    # TODO: ASK TINASHE: HOW ABOUT A MAC COMPUTER????
 
 Assume you are at the stage where you have got fixel data from MRtrix by following the fixel-based analysis. If we use paper [Dhollander et al., 2021](https://doi.org/10.1016/j.neuroimage.2021.118417) Fig.3. The fixel-based analysis pipeline as an example, we expect you have done the step "Connectivity-based fixel smoothing". You will use the subject-level fixel data in template space from this step for further fixel-wise statistical analysis in ModelArray. We expect the file format is mif.
 
-Here, we provide some demo data. This data is part from PNC (CITATION!!!) with subjects aged 8-23 years. You can get the data by:
+Here, we provide some demo data. This data is part from PNC (CITATION!!!) with subjects aged ??? 8-23 ???? years. You can get the data by:   # TODO: check the age range!
 
 ``` {.console}
 $ wget xxxxxx # TODO
@@ -170,15 +170,13 @@ As this CSV file already provides sufficient covariates ready for analysis, we d
 ### Step 2.4. Perform statistical analysis
 With both `modelarray` and data frame `phenotypes` set up, we can now perform the statistical analysis. . At present, `ModelArray` supports linear models as well as generalized additive models (GAM) with penalized splines, which are particularly useful for studying nonlinear effects in lifespan data.  
 
-Let's start with linear model `ModelArray.lm()`. We first need a formula defining the model - here we specify the simplest one: `FDC ~ Age`. Intercept will be automatically added. We first try it out on first 100 fixels before we running on all fixels:
+Let's start with linear model `ModelArray.lm()`. We first need a formula defining the model. We mainly want to test how fixel FDC changes with age in adolescence. We also add sex and in-scanner motion quantification "dti64MeanRelRMS" as covariates. Intercept will be automatically added. We first try it out on first 100 fixels before we running on all fixels:
 ```{r example lm, eval=FALSE}
 # formula:
-formula.lm <- FDC ~ Age
+formula.lm <- FDC ~ Age + sex + dti64MeanRelRMS
 # run linear model fitting with ModelArray.lm() on the first 100 fixels:
 mylm.try <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
                           element.subset = 1:100)
-# let's check the first 6 rows of the results:
-head(mylm.try)
 ```
 You'll see:
 ```{.console}
@@ -199,6 +197,12 @@ looping across elements....
   |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=06s  
 ```
 
+Let's check the first 6 rows of the results:
+```{r, eval=FALSE}
+head(mylm.try)
+```
+
+You'll see:    # TODO: THIS NEEDS TO BE UPDATED!
 
 | element_id| Intercept.estimate| Age.estimate| Intercept.statistic| Age.statistic| Intercept.p.value| Intercept.p.value.fdr| Age.p.value| Age.p.value.fdr| model.adj.r.squared| model.p.value| model.p.value.fdr|
 |----------:|------------------:|------------:|-------------------:|-------------:|-----------------:|---------------------:|-----------:|---------------:|-------------------:|-------------:|-----------------:|
@@ -210,39 +214,46 @@ looping across elements....
 |          5|          0.2832827|    0.0010882|           0.9288104|     0.0719461|         0.3552694|             0.5382870|   0.9427914|       0.9985636|          -0.0101507|     0.9427914|         0.9985636|
 
 As you can see, for each fixel, by default, `ModelArray.lm()` calculates:
-* Several statistics for Intercept and Age's coefficient, including estimation, t-statistics, and p-value and its FDR correction.   # <---DOUBLE CHECK AGAIN 
+
+* Several statistics for Intercept, Age, sex, and motion's coefficient, including estimation, t-statistics, and p-value and its FDR correction.   # <---TODO: DOUBLE CHECK AGAIN 
 * Several statistics for the linear model, including the adjusted R-squared, p-value, and its FDR correction
 
 You may request more comprehensive statistics via `full.outputs=TRUE`
 
-Now let's try out `ModelArray.gam()`. Compared to linear model, GAM flexibly models both linear and nonlinear effects. As the developmental effects are often nonlinear, here we put Age in a smooth term `s(Age)`, and set up a more realistic formula with sex and in-scanner motion quantification added. 
+Now let's try out `ModelArray.gam()`. Compared to linear model, GAM flexibly models both linear and nonlinear effects. As the developmental effects are often nonlinear, here we put Age in a smooth term `s(Age)`. # TODO: EXPLAIN WHAT k=4 and method="REML" means.....
 
-We specify `full.outputs=TRUE` so that we can get more statistics. We can also specify the p-value corrections we want: "fdr" and "bonferroni". In addition, `ModelArray.gam()` can also quantify how important a covariate is. For example, with versus without "Age", how much the adjusted R-squared will change? We can do it by specifying `changed.rsq.term.index = c(1)`, which means that we request the quantification for the first covariate. Because xxxx, we recommend to use `fx=TRUE` when calculate changed.rsq...... `k=4` means ....
+In addition to default FDR correction, we can also request Bonferroni correction. 
 
 We still first try it out on first 100 fixels:
 ```{r example gam, eval=FALSE}
 # formula:
-formula.lm <- FDC ~ s(Age, k=4, fx=TRUE) + sex + motion
+formula.gam <- FDC ~ s(Age, k=4) + sex + dti64MeanRelRMS
 # run GAM fitting with ModelArray.gam() on the first 100 fixels:
-XXXXX
+mygam.try <- ModelArray.gam(formula.gam, modelarray, phenotypes, "FDC",
+                            element.subset = 1:100,
+                            correct.p.value.smoothTerms = c("fdr", "bonferroni"),
+                            correct.p.value.parametricTerms = c("fdr", "bonferroni"),
+                            method="REML")
 ```
 
+^^^ WARNING: THIS IS NOT EXACT WHAT I WILL USE FOR SHOWCASE IN PAPER, AS THAT IS EVEN MORE COMPLICATED AND REQUIRED A LOT OF EXPLANATIONS...
+
+For more options, please view pages for `ModelArray.lm()` and `ModelArray.gam()`.
 
 
-Run on all fixels:
-* n_cores = 4 to accelerate
+### Step 2.5. Run a full run and save the results into HDF5 file
+Previous examples only run on a small subset of the fixels. Now we formally run across all fixels and save the results. Because running all fixels will take a substantial amount of time, here we only run the linear model. 
 
-XXXXX
+Notice that the command below use the default value of `element.subset=NULL` so that all fixels will be analyzed. Also notice that, to speed up, we're requesting 4 CPU cores to run in parallel. You may adjust this number based how many CPU cores you have on your machine. On a Linux machine with Intel(R) Xeon(R) 10th Gen CPU @ 2.81GHz and using 4 CPU cores, it takes around 2 hours to finish.
+```{r, eval=FALSE}
+# run linear model fitting with ModelArray.lm() on the all fixels:
+mylm <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
+                      n_cores = 4)
+```
 
-
-## Step 3. Check out the results
-### Step 3.1. Save the results into HDF5 file
 We now save the results data frame into the h5 file:
 ```{r write results, eval=FALSE}
-# write lm results with a specified analysis_name:
 writeResults(h5_path, df.output = mylm, analysis_name = "result_lm")
-# write gam results:
-writeResults(h5_path, df.output = mygam, analysis_name = "result_gam")
 ```
 Notice that the the analysis name specified in argument `analysis_name` will be used in ConFixel in the next step when converting results back to fixel mif file format. Also it will be the prefix of the mif files to be saved.
 
@@ -250,18 +261,23 @@ We can even check out the saved results in the h5 file:
 ```{r load results, eval = FALSE}
 # create a new ModelArray-class object:
 modelarray_new <- ModelArray(filepath = h5_path, scalar_types = "FDC",
-                             analysis_names = c("result_lm", "result_gam"))
+                             analysis_names = c("result_lm"))
 ```
 To access the results, simply use `results()`:
 ```{r, eval=FALSE}
 results(modelarray_new)[["result_lm"]]$results_matrix
-results(modelarray_new)[["result_gam"]]$results_matrix
+```
+You'll see:
+```{.console}
+XXX
 ```
 
+## Step 3. Check out the result images
 
-### Step 3.2. Convert the statistical results into mif file format using ConFixel
+### Step 3.1. Convert the statistical results into mif file format using ConFixel
 We now use ConFixel to convert the results into a list of mif files:
 ```{.console}
+$ conda activate modelarray   # activate the conda environment we created
 $ fixelstats_write \
   --index-file FDC/index.mif \
   --directions-file FDC/directions.mif \
@@ -298,7 +314,7 @@ lm_default/
 └── lm_default_model.p.value.mif
 ```
 
-### Step 3.3. View the results in MRtrix's MRView
+### Step 3.2. View the results in MRtrix's MRView
 Launch MRView from terminal with `mrview`:
 ```{.console}
 $ cd lm_default   # switch to results folder
@@ -307,7 +323,7 @@ $ mrview
 Click File -> Open, select `index.mif`. Then click Tools -> Fixel plot, you'll see a side panel of "Fixel plot". Within this side panel, click icon "Open fixel image" (see below, highlighted in red rectangle):
 ![Open fixel image](mrview_fixel_plot_panel_open.PNG)
 
-From there, select `index.mif` file again. ............
+From there, select `index.mif` file again. ............  # TODO: FINISH THESE STEPS...
 
 
 This is an example view:   # NOTE: THIS IS NOT THE FINAL IMAGE!

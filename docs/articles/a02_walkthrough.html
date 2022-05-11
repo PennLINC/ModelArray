@@ -71,8 +71,8 @@
 
     
     
-<p>In this example walkthrough, we will use some toy data (____TODO: TO UPDATE_____) to demonstrate the steps of using ModelArray and its companion python package ConFixel. By following the <code><a href="../articles/a01_installations.html">vignette("a01_installations")</a></code> page, you should have successfully installed <code>ModelArray</code>, <code>ConFixel</code>, and <code>MRtrix</code>. We expect that <code>ConFixel</code> has been installed in a conda environment called “modelarray”.</p>
-<p>We will first prepare the data and convert into the format that ModelArray needs (Step 1), then use ModelArray to perform the statistical analysis (Step 2). Finally we will convert the results into original file format and view them (Step 3).</p>
+<p>In this example walkthrough, we will use some example fixel data to demonstrate the steps of using ModelArray and its companion python package ConFixel. By following the <code><a href="../articles/a01_installations.html">vignette("a01_installations")</a></code> page, you should have successfully installed <code>ModelArray</code>, <code>ConFixel</code>, and <code>MRtrix</code>. We expect that <code>ConFixel</code> has been installed in a conda environment called “modelarray”.</p>
+<p>We will first prepare the data and convert it into the format that <code>ModelArray</code> requires (Step 1), then we’ll use <code>ModelArray</code> to perform the statistical analysis (Step 2). Finally we will convert the results into original file format and view them (Step 3).</p>
 <div class="section level2">
 <h2 id="step-1--prepare-your-data">Step 1. Prepare your data<a class="anchor" aria-label="anchor" href="#step-1--prepare-your-data"></a>
 </h2>
@@ -81,9 +81,9 @@
 $ mkdir myProject
 $ cd myProject
 $ pwd       # print the full path of this folder</code></pre>
-<p>On a linux machine, you’ll see the printed full path of this folder is <code>/home/&lt;username&gt;/Desktop/myProject</code> # HOW ABOUT A MAC COMPUTER????</p>
+<p>On a linux machine, you’ll see the printed full path of this folder is <code>/home/&lt;username&gt;/Desktop/myProject</code> # TODO: ASK TINASHE: HOW ABOUT A MAC COMPUTER????</p>
 <p>Assume you are at the stage where you have got fixel data from MRtrix by following the fixel-based analysis. If we use paper <a href="https://doi.org/10.1016/j.neuroimage.2021.118417" class="external-link">Dhollander et al., 2021</a> Fig.3. The fixel-based analysis pipeline as an example, we expect you have done the step “Connectivity-based fixel smoothing”. You will use the subject-level fixel data in template space from this step for further fixel-wise statistical analysis in ModelArray. We expect the file format is mif.</p>
-<p>Here, we provide some demo data. This data is part from PNC (CITATION!!!) with subjects aged 8-23 years. You can get the data by:</p>
+<p>Here, we provide some demo data. This data is part from PNC (CITATION!!!) with subjects aged ??? 8-23 ???? years. You can get the data by: # TODO: check the age range!</p>
 <pre class="console"><code>$ wget xxxxxx # TODO
 $ unzip xxxx # TODO
 $ rm xxx.zip   # TODO</code></pre>
@@ -249,15 +249,13 @@ $ confixel \
 <h3 id="step-2-4--perform-statistical-analysis">Step 2.4. Perform statistical analysis<a class="anchor" aria-label="anchor" href="#step-2-4--perform-statistical-analysis"></a>
 </h3>
 <p>With both <code>modelarray</code> and data frame <code>phenotypes</code> set up, we can now perform the statistical analysis. . At present, <code>ModelArray</code> supports linear models as well as generalized additive models (GAM) with penalized splines, which are particularly useful for studying nonlinear effects in lifespan data.</p>
-<p>Let’s start with linear model <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>. We first need a formula defining the model - here we specify the simplest one: <code>FDC ~ Age</code>. Intercept will be automatically added. We first try it out on first 100 fixels before we running on all fixels:</p>
+<p>Let’s start with linear model <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>. We first need a formula defining the model. We mainly want to test how fixel FDC changes with age in adolescence. We also add sex and in-scanner motion quantification “dti64MeanRelRMS” as covariates. Intercept will be automatically added. We first try it out on first 100 fixels before we running on all fixels:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># formula:</span>
-<span class="va">formula.lm</span> <span class="op">&lt;-</span> <span class="va">FDC</span> <span class="op">~</span> <span class="va">Age</span>
+<span class="va">formula.lm</span> <span class="op">&lt;-</span> <span class="va">FDC</span> <span class="op">~</span> <span class="va">Age</span> <span class="op">+</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">dti64MeanRelRMS</span>
 <span class="co"># run linear model fitting with ModelArray.lm() on the first 100 fixels:</span>
 <span class="va">mylm.try</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">formula.lm</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FDC"</span>,
-                          element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span><span class="op">)</span>
-<span class="co"># let's check the first 6 rows of the results:</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mylm.try</span><span class="op">)</span></code></pre></div>
+                          element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span><span class="op">)</span></code></pre></div>
 <p>You’ll see:</p>
 <pre class="console"><code>subset: default 
 weights: default 
@@ -274,6 +272,10 @@ Fitting element-wise linear models for FDC
 initiating....
 looping across elements....
   |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=06s  </code></pre>
+<p>Let’s check the first 6 rows of the results:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mylm.try</span><span class="op">)</span></code></pre></div>
+<p>You’ll see: # TODO: THIS NEEDS TO BE UPDATED!</p>
 <table class="table">
 <colgroup>
 <col width="5%">
@@ -390,48 +392,61 @@ looping across elements....
 </tr>
 </tbody>
 </table>
-<p>As you can see, for each fixel, by default, <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> calculates: * Several statistics for Intercept and Age’s coefficient, including estimation, t-statistics, and p-value and its FDR correction. # &lt;—DOUBLE CHECK AGAIN * Several statistics for the linear model, including the adjusted R-squared, p-value, and its FDR correction</p>
+<p>As you can see, for each fixel, by default, <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> calculates:</p>
+<ul>
+<li>Several statistics for Intercept, Age, sex, and motion’s coefficient, including estimation, t-statistics, and p-value and its FDR correction. # &lt;—TODO: DOUBLE CHECK AGAIN</li>
+<li>Several statistics for the linear model, including the adjusted R-squared, p-value, and its FDR correction</li>
+</ul>
 <p>You may request more comprehensive statistics via <code>full.outputs=TRUE</code></p>
-<p>Now let’s try out <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>. Compared to linear model, GAM flexibly models both linear and nonlinear effects. As the developmental effects are often nonlinear, here we put Age in a smooth term <code>s(Age)</code>, and set up a more realistic formula with sex and in-scanner motion quantification added.</p>
-<p>We specify <code>full.outputs=TRUE</code> so that we can get more statistics. We can also specify the p-value corrections we want: “fdr” and “bonferroni”. In addition, <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code> can also quantify how important a covariate is. For example, with versus without “Age”, how much the adjusted R-squared will change? We can do it by specifying <code>changed.rsq.term.index = c(1)</code>, which means that we request the quantification for the first covariate. Because xxxx, we recommend to use <code>fx=TRUE</code> when calculate changed.rsq…… <code>k=4</code> means ….</p>
+<p>Now let’s try out <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>. Compared to linear model, GAM flexibly models both linear and nonlinear effects. As the developmental effects are often nonlinear, here we put Age in a smooth term <code>s(Age)</code>. # TODO: EXPLAIN WHAT k=4 and method=“REML” means…..</p>
+<p>In addition to default FDR correction, we can also request Bonferroni correction.</p>
 <p>We still first try it out on first 100 fixels:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># formula:</span>
-<span class="va">formula.lm</span> <span class="op">&lt;-</span> <span class="va">FDC</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">Age</span>, k<span class="op">=</span><span class="fl">4</span>, fx<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">motion</span>
+<span class="va">formula.gam</span> <span class="op">&lt;-</span> <span class="va">FDC</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">Age</span>, k<span class="op">=</span><span class="fl">4</span><span class="op">)</span> <span class="op">+</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">dti64MeanRelRMS</span>
 <span class="co"># run GAM fitting with ModelArray.gam() on the first 100 fixels:</span>
-<span class="va">XXXXX</span></code></pre></div>
-<p>Run on all fixels: * n_cores = 4 to accelerate</p>
-<p>XXXXX</p>
+<span class="va">mygam.try</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.gam.html">ModelArray.gam</a></span><span class="op">(</span><span class="va">formula.gam</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FDC"</span>,
+                            element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>,
+                            correct.p.value.smoothTerms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fdr"</span>, <span class="st">"bonferroni"</span><span class="op">)</span>,
+                            correct.p.value.parametricTerms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fdr"</span>, <span class="st">"bonferroni"</span><span class="op">)</span>,
+                            method<span class="op">=</span><span class="st">"REML"</span><span class="op">)</span></code></pre></div>
+<p>^^^ WARNING: THIS IS NOT EXACT WHAT I WILL USE FOR SHOWCASE IN PAPER, AS THAT IS EVEN MORE COMPLICATED AND REQUIRED A LOT OF EXPLANATIONS…</p>
+<p>For more options, please view pages for <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>.</p>
+</div>
+<div class="section level3">
+<h3 id="step-2-5--run-a-full-run-and-save-the-results-into-hdf5-file">Step 2.5. Run a full run and save the results into HDF5 file<a class="anchor" aria-label="anchor" href="#step-2-5--run-a-full-run-and-save-the-results-into-hdf5-file"></a>
+</h3>
+<p>Previous examples only run on a small subset of the fixels. Now we formally run across all fixels and save the results. Because running all fixels will take a substantial amount of time, here we only run the linear model.</p>
+<p>Notice that the command below use the default value of <code>element.subset=NULL</code> so that all fixels will be analyzed. Also notice that, to speed up, we’re requesting 4 CPU cores to run in parallel. You may adjust this number based how many CPU cores you have on your machine. On a Linux machine with Intel(R) Xeon(R) 10th Gen CPU @ 2.81GHz and using 4 CPU cores, it takes around 2 hours to finish.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># run linear model fitting with ModelArray.lm() on the all fixels:</span>
+<span class="va">mylm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">formula.lm</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FDC"</span>,
+                      n_cores <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></code></pre></div>
+<p>We now save the results data frame into the h5 file:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span><span class="va">h5_path</span>, df.output <span class="op">=</span> <span class="va">mylm</span>, analysis_name <span class="op">=</span> <span class="st">"result_lm"</span><span class="op">)</span></code></pre></div>
+<p>Notice that the the analysis name specified in argument <code>analysis_name</code> will be used in ConFixel in the next step when converting results back to fixel mif file format. Also it will be the prefix of the mif files to be saved.</p>
+<p>We can even check out the saved results in the h5 file:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># create a new ModelArray-class object:</span>
+<span class="va">modelarray_new</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span>filepath <span class="op">=</span> <span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="st">"FDC"</span>,
+                             analysis_names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"result_lm"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<p>To access the results, simply use <code>results()</code>:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu">results</span><span class="op">(</span><span class="va">modelarray_new</span><span class="op">)</span><span class="op">[[</span><span class="st">"result_lm"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">results_matrix</span></code></pre></div>
+<p>You’ll see:</p>
+<pre class="console"><code><span class="va">XXX</span></code></pre>
 </div>
 </div>
 <div class="section level2">
-<h2 id="step-3--check-out-the-results">Step 3. Check out the results<a class="anchor" aria-label="anchor" href="#step-3--check-out-the-results"></a>
+<h2 id="step-3--check-out-the-result-images">Step 3. Check out the result images<a class="anchor" aria-label="anchor" href="#step-3--check-out-the-result-images"></a>
 </h2>
 <div class="section level3">
-<h3 id="step-3-1--save-the-results-into-hdf5-file">Step 3.1. Save the results into HDF5 file<a class="anchor" aria-label="anchor" href="#step-3-1--save-the-results-into-hdf5-file"></a>
-</h3>
-<p>We now save the results data frame into the h5 file:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># write lm results with a specified analysis_name:</span>
-<span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span><span class="va">h5_path</span>, df.output <span class="op">=</span> <span class="va">mylm</span>, analysis_name <span class="op">=</span> <span class="st">"result_lm"</span><span class="op">)</span>
-<span class="co"># write gam results:</span>
-<span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span><span class="va">h5_path</span>, df.output <span class="op">=</span> <span class="va">mygam</span>, analysis_name <span class="op">=</span> <span class="st">"result_gam"</span><span class="op">)</span></code></pre></div>
-<p>Notice that the the analysis name specified in argument <code>analysis_name</code> will be used in ConFixel in the next step when converting results back to fixel mif file format. Also it will be the prefix of the mif files to be saved.</p>
-<p>We can even check out the saved results in the h5 file:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># create a new ModelArray-class object:</span>
-<span class="va">modelarray_new</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span>filepath <span class="op">=</span> <span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="st">"FDC"</span>,
-                             analysis_names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"result_lm"</span>, <span class="st">"result_gam"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p>To access the results, simply use <code>results()</code>:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">results</span><span class="op">(</span><span class="va">modelarray_new</span><span class="op">)</span><span class="op">[[</span><span class="st">"result_lm"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">results_matrix</span>
-<span class="fu">results</span><span class="op">(</span><span class="va">modelarray_new</span><span class="op">)</span><span class="op">[[</span><span class="st">"result_gam"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">results_matrix</span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="step-3-2--convert-the-statistical-results-into-mif-file-format-using-confixel">Step 3.2. Convert the statistical results into mif file format using ConFixel<a class="anchor" aria-label="anchor" href="#step-3-2--convert-the-statistical-results-into-mif-file-format-using-confixel"></a>
+<h3 id="step-3-1--convert-the-statistical-results-into-mif-file-format-using-confixel">Step 3.1. Convert the statistical results into mif file format using ConFixel<a class="anchor" aria-label="anchor" href="#step-3-1--convert-the-statistical-results-into-mif-file-format-using-confixel"></a>
 </h3>
 <p>We now use ConFixel to convert the results into a list of mif files:</p>
-<pre class="console"><code>$ fixelstats_write \
+<pre class="console"><code>$ conda activate modelarray   # activate the conda environment we created
+$ fixelstats_write \
   --index-file FDC/index.mif \
   --directions-file FDC/directions.mif \
   --cohort-file cohort_FDC_n100.csv \
@@ -464,13 +479,13 @@ looping across elements....
 └── lm_default_model.p.value.mif</code></pre>
 </div>
 <div class="section level3">
-<h3 id="step-3-3--view-the-results-in-mrtrixs-mrview">Step 3.3. View the results in MRtrix’s MRView<a class="anchor" aria-label="anchor" href="#step-3-3--view-the-results-in-mrtrixs-mrview"></a>
+<h3 id="step-3-2--view-the-results-in-mrtrixs-mrview">Step 3.2. View the results in MRtrix’s MRView<a class="anchor" aria-label="anchor" href="#step-3-2--view-the-results-in-mrtrixs-mrview"></a>
 </h3>
 <p>Launch MRView from terminal with <code>mrview</code>:</p>
 <pre class="console"><code>$ cd lm_default   # switch to results folder
 $ mrview</code></pre>
 <p>Click File -&gt; Open, select <code>index.mif</code>. Then click Tools -&gt; Fixel plot, you’ll see a side panel of “Fixel plot”. Within this side panel, click icon “Open fixel image” (see below, highlighted in red rectangle): <img src="mrview_fixel_plot_panel_open.PNG" alt="Open fixel image"></p>
-<p>From there, select <code>index.mif</code> file again. …………</p>
+<p>From there, select <code>index.mif</code> file again. ………… # TODO: FINISH THESE STEPS…</p>
 <p>This is an example view: # NOTE: THIS IS NOT THE FINAL IMAGE! <img src="mrview_result_mrtrix_n300.PNG" alt="Significant cluster"></p>
 </div>
 </div>
