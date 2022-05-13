@@ -14,7 +14,9 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
-Here we will use some example data to show you the basic use of `ModelArray`.
+UNDER DEVELOPMENT...
+
+Here we will use some example data to show you more example use of `ModelArray`.
 
 ## Concepts and Goals
 ### Goals

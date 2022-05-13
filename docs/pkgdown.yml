@@ -7,7 +7,8 @@ articles:
   a03_ModelArray_basics: a03_ModelArray_basics.html
   a04_basic_r_intro: a04_basic_r_intro.html
   a05_doc_for_developer: a05_doc_for_developer.html
-last_built: 2022-05-11T02:54Z
+  a06_faq: a06_faq.html
+last_built: 2022-05-13T01:56Z
 urls:
   reference: https://pennlinc.github.io/ModelArray/reference
   article: https://pennlinc.github.io/ModelArray/articles

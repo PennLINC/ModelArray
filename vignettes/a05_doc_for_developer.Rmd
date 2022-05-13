@@ -15,6 +15,8 @@ knitr::opts_chunk$set(
 )
 ```
 
+UNDER DEVELOPMENT....
+
 Target audience: developers, anyone who hopes to contribute to `ModelArray` to enhance functionality, fix bugs, or tailor for a specific usage. 
 
 In this documentation, we walk through important methods used in `ModelArray` package, and the structure of the package and its functions.
