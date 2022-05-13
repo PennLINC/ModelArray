@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-UNDER DEVELOPMENT....
+***UNDER DEVELOPMENT...***
 
 Target audience: developers, anyone who hopes to contribute to `ModelArray` to enhance functionality, fix bugs, or tailor for a specific usage. 
 

@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-UNDER DEVELOPMENT...
+***UNDER DEVELOPMENT...***
 
 This document is a quick introduction to basic R. Audience would be users who are not familiar with R.
 

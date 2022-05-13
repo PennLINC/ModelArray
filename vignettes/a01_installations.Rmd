@@ -9,17 +9,9 @@ vignette: >
 
 This page walks through the installation of `ModelArray` package and necessary dependent packages/libraries.
 
-Currently there are two ways to install and use `ModelArray`: 
+We'll directly install `ModelArray` from [GitHub](https://github.com/PennLINC/ModelArray). Please notice that, this is only fully tested and supported on Linux Ubuntu system and macOS system. If you are a Windows user, you will face errors when running with more than one CPU cores (`n_cores = 2 or above`). You may install a Linux subsystem or virtual machine on your Windows machine.
 
-* Directly installing from [GitHub](https://github.com/PennLINC/ModelArray)
-  * This is only fully tested and supported on Linux Ubuntu system and macOS system. If you are a Windows user, you will face errors when running with more than one CPU cores (`n_cores = 2 or above`). You may install a Linux subsystem or virtual machine on your Windows machine.
-* Using ModelArray container
-  * Just like usual packages, ModelArray also depends on other packages/libraries including the companion python package `ConFixel`. A ModelArray container has wrapped all these dependencies and it is ready to use. This is suitable for running ModelArray on a cluster.
-
-
-
-## Directly installing from GitHub
-We will first set up the environment, then install some dependent packages and libraries, and finally install ModelArray.
+We will first set up the conda environment, then install some dependent packages and libraries, and finally install ModelArray.
 
 ### Set up a conda environment
 
@@ -27,7 +19,8 @@ We first create a conda environment `modelarray` for installing `ConFixel` etc. 
 
 ``` {.console}
 foo@bar:~$ conda create --name modelarray python=3.9
-foo@bar:~$ conda activate modelarray
+foo@bar:~$ conda 
+activate modelarray
 ```
 
 ### Install MRtrix
@@ -106,9 +99,10 @@ Now, ModelArray is ready to use:
 library(ModelArray)
 ```
 
+### (Optional) Other potential packages only neededfor downloading demo data in `vignette("a02_walkthrough")` page
+There are several potential packages only needed for downloading demo data in `vignette("a02_walkthrough")` page. You may skip this step if you will not use the demo data.
 
-## Using ModelArray container
-This container not only includes ModelArray, but also ConFixel and dependent packages/libraries.
+* wget
+* tar
 
-You can pull the docker image from xxxxxx
-TODO............
+If you don't have them, please install them first. For macOS system, you may try out `brew` to install them. For Linux Ubuntu system, you may try out `sudo apt-get` to install them.

@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
-UNDER DEVELOPMENT...
+***UNDER DEVELOPMENT...***
 
 Here we will use some example data to show you more example use of `ModelArray`.
 
@@ -80,14 +80,14 @@ Now, let's perform linear regression metric FD (y) over subject's age, using `Mo
 ```{r}
 formula <- FD ~ age
 mylm_fullOutputs <- ModelArray.lm(formula, modelarray, phenotypes, "FD",  # dependent variable
-                      element.subset = 1:100,  # let's check out first 100 fixels
+                      element.subset = 1:10,  # let's check out first 10 fixels
                       full.outputs = TRUE, # let's first view all statistics
                       )
 head(mylm_fullOutputs)
 ```
 If all statistics are too many for you, try out default list of statistics:
 ```{r}
-mylm_default <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:100,  
+mylm_default <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:10,  
                       n_cores = 2,  # running on 2 CPU cores for speeding up
                       )
 head(mylm_default)
@@ -95,7 +95,7 @@ head(mylm_default)
 
 You may be specifically interested in several statistics:
 ```{r}
-mylm <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:100, 
+mylm <- ModelArray.lm(formula, modelarray, phenotypes, "FD", element.subset = 1:10, 
                       var.terms = c("estimate", "p.value"), # statistics for terms such as intercept, age
                       var.model = c("r.squared", "p.value", "AIC"),    # statistics for the model
                       correct.p.value.terms = c("fdr","bonferroni"),   # p value corrections for terms (i.e. age and intercept in our case)
@@ -112,7 +112,7 @@ To run across all fixels, simply use default setting that `element.subset = NULL
 Modelling age effect with GAM is often useful for developing population because of GAM's flexibility. Running `ModelArray.gam()` is similar to `ModelArray.lm()`:
 ```{r}
 formula <- FD ~ s(age, k=4, fx=TRUE) + sex  # we add sex as a covariate
-mygam <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
+mygam <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:10,
                         n_cores = 2, pbar = TRUE)
 head(mygam)
 ```
@@ -120,7 +120,7 @@ You can also set `full.outputs=TRUE` to request all statistics (except p.value c
 
 Or you can specify the specific statistic terms you are interested in by assigning the values of `var.smoothTerms`, `var.parametricTerms`, and `var.model`:
 ```{r}
-mygam_specific <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
+mygam_specific <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:10,
                           var.smoothTerms = c("p.value"),  # this is for smooth term, e.g. s(age) in our case
                           var.parametricTerms = c("estimate"),   # this is for parametric term, e.g. sex in our case
                           var.model = c("adj.r.squared", "dev.expl"),  # this is for the model
@@ -130,7 +130,7 @@ head(mygam_specific)
 
 You can also run p value correction. Notice that the argument names in `ModelArray.gam` are a bit different from those in `ModelArray.lm()`.
 ```{r}
-mygam_pValueCorrect <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
+mygam_pValueCorrect <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:10,
                                       # we use default list of statistics output here
                                       correct.p.value.smoothTerms = c("fdr","bonferroni"),  # for smooth terms, i.e. s(age) in our case
                                       correct.p.value.parametricTerms = c("bonferroni"),  # for parametric terms, i.e. sex (and intercept) in our case
@@ -141,7 +141,7 @@ mygam_pValueCorrect <- ModelArray.gam(formula, data = modelarray, phenotypes = p
 
 In addition, you can also request quantification of how important a specific term is in the model. Usually the term of interest is a smooth term. To quantify, two metrics are provided and run: delta adjusted R-squared (delta.adj.rsq) and partial R-squared (partial.rsq). See `help(ModelArray.gam)` for detailed descriptions. Please use `changed.rsq.term.index` to turn on the quantification. Notice that because both metrics involve running the reduced model (formula without the term of interest), run time would be longer. 
 ```{r}
-mygam_changedRsq <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:100,
+mygam_changedRsq <- ModelArray.gam(formula, data = modelarray, phenotypes = phenotypes, scalar = "FD", element.subset = 1:10,
                           changed.rsq.term.index = c(1),   # requesting the 1st term on right hand side of formula, i.e. s(age) in this case
                         n_cores = 2, pbar = TRUE)
 

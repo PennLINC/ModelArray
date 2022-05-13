@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-UNDER DEVELOPMENT...
+***UNDER DEVELOPMENT...***
 
 This page is to answer potential questions from users.
 
@@ -30,5 +30,5 @@ Other columns are optional - simply add covariates you'll use in the statistical
 
 ## When using ModelArray.*() for statistical analysis
 ### How many CPU cores does my computer have?
-You may check it out using `parallel::detectCores()`
+You may check this out: `parallel::detectCores()`
 
