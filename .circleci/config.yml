@@ -28,14 +28,14 @@ jobs:
     docker:
       - image: rocker/verse:4.1.2
     <<: *steps
-  releaseR4.2.0:
-    docker:
-      - image: rocker/verse:4.2.0
-    <<: *steps
-  # develR:
+  # releaseR4.2.0:
   #   docker:
-  #     - image: rocker/verse:devel
+  #     - image: rocker/verse:4.2.0
   #   <<: *steps
+  develR:
+    docker:
+      - image: rocker/verse:devel
+    <<: *steps
 
 workflows:
   version: 2
@@ -45,13 +45,13 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - releaseR4.2.0:
-          filters:
-            tags:
-              only: /.*/
-      # - develR:
+      # - releaseR4.2.0:
       #     filters:
       #       tags:
       #         only: /.*/
+      - develR:
+          filters:
+            tags:
+              only: /.*/
 
 
