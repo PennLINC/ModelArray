@@ -73,9 +73,9 @@ foo@bar:myProject$ rm -r ConFixel
 ```
 
 
-### Install R (>=4.1.2)
+### Install R
 
-`ModelArray` requires R >=4.1.2. If you have already installed it, you can skip this step. If you don't, you may download it from [CRAN](https://cran.r-project.org/).
+`ModelArray` requires R >=4.1.2, and we currently only tests ModelArray on R 4.1.2. If you have already installed it, you can skip this step. If you don't, you may download it from [CRAN](https://cran.r-project.org/).
 
 ### (Optional) Install RStudio
 

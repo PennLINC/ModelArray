@@ -187,7 +187,8 @@ test_that("ModelArray.lm() works as expected", {
                                 correct.p.value.model = c("fdr","bonferroni"),
                                 n_cores = 2, pbar=FALSE))
   
-  ## How about other variables as covariate? factorA is literally correlated with age; factorB is another random variable
+  ## How about other variables as covariate? #####
+  # factorA is literally correlated with age; factorB is another random variable
   # factor A is fully correlated with age, expecting testing results are NA:
   mylm_age_factorA <- ModelArray.lm(FD ~ age + factorA, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                     var.terms = var.terms.full,
