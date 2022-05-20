@@ -23,7 +23,7 @@ statistical analysis of fixel data. Its features include:
 Please refer to webpage
 [Installation](https://pennlinc.github.io/ModelArray/articles/a01_installations.html)
 for a full guidance of installation of `ModelArray` and its companion
-python package ConFixel(<https://github.com/PennLINC/ConFixel>). The
+python package [ConFixel](https://github.com/PennLINC/ConFixel). The
 most important steps for installing `ModelArray` are:
 
 -   Make sure you have necessary libraries for HDF5 - see [this

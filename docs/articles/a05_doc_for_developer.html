@@ -90,7 +90,8 @@
 <p><code>ModelArray</code> R package supports data in HDF5 (.h5) file format. It utilizes DelayedArray, HDF5Array, etc R packages, so that statistical analysis can be performed without loading original data in HDF5 file into memory. This makes <code>ModelArray</code> very efficient in memory usage. For details, please see section “ModelArray Construction” below.<br></p>
 <p>Methods for showing and accessing <code>ModelArray</code> object are basic. Please see section “Show and accessors methods of ModelArray class” for more.</p>
 <p>The key function of <code>ModelArray</code> package is to perform statistical analysis. For details, please see section “Model fitting” below.<br></p>
-<p>Finally, the rest sections describe other important aspects, such as how to save statistical results to .hdf5 file on disk, deal with missing value, etc.</p>
+<p>The next several sections describe other important aspects, such as how to save statistical results to .hdf5 file on disk, deal with missing value, etc.</p>
+<p>Finally, we describe what (CircleCI) tests are needed to ensure accuracy and error-free.</p>
 </div>
 <div class="section level2">
 <h2 id="modelarray-construction">
@@ -188,6 +189,26 @@ The general structure for model fitting in <code>ModelArray</code> is as below:<
 </h3>
 <p>TODO</p>
 </div>
+</div>
+<div class="section level2">
+<h2 id="writing-tests-for-circleci">Writing tests for CircleCI<a class="anchor" aria-label="anchor" href="#writing-tests-for-circleci"></a>
+</h2>
+<p>CircleCI will be triggered each time when pushing to GitHub. One important thing it will do is to run the tests in <code>testthat</code>. Tests serve the goal of:</p>
+<ol style="list-style-type: decimal">
+<li>Run different scenarios (with different requests) and expect no error. This is to ensure when new features added, it will run without error;</li>
+</ol>
+<ul>
+<li>For some scenarios, some special data is needed. For example, when testing NAs in input data (for volume data analysis)</li>
+</ul>
+<ol start="2" style="list-style-type: decimal">
+<li>Expect the output data.frame will contain xxx column, or check the dimensions of the output data.frame. This is to ensure expected columns show up.</li>
+<li>Most importantly, check the values are as expected.</li>
+</ol>
+<ul>
+<li>First, we generated data for each statistical model, then injected into the test .h5 file; we also calculated the expected values.</li>
+<li>When a new statistical model is added, new data + its expected results need to be prepared.</li>
+<li>Scripts please see: GitHub repo ModelArray_tests/testdata_ModelArray/README.md</li>
+</ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>
