@@ -249,7 +249,7 @@ helper_generate_expect_lm <- function(fn.phenotypes,
   expected.results[[thename]] <- dfout
   
   # weights in lm() is different:
-  weights.random <- abs(rnorm(nrow(phenotypes)))
+  weights.random <- abs(rnorm(nrow(phenotypes)))  # this requires `set.seed()`
   thename <- "age_weights-random"
   formula <- FD ~ age
   dfout <- calcu_stat_lm(formula, data, idx.fixel.lm, 

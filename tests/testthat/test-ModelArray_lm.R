@@ -29,7 +29,7 @@ test_that("ModelArray.lm() works as expected", {
   
   ### generate + load expected results #####
   idx.fixel.lm <- 1
-  num.set.seed <- 5
+  num.set.seed <- 5  # this will be used when generating random numbers (in expected results and below)
   # generate the expected results, and get `expected.results`, a list of the expected results
   expected.results <- helper_generate_expect_lm(fn.phenotypes = csv_path, 
                                                 fn.h5 = h5_path,
@@ -306,7 +306,7 @@ test_that("ModelArray.lm() works as expected", {
   expect_equal(mylm, mylm_weights1)
   
   
-  set.seed(5)
+  set.seed(num.set.seed)
   mylm_weightsRnorm <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                      var.terms = var.terms,
                                      var.model = var.model,
