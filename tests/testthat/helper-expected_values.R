@@ -259,3 +259,162 @@ helper_generate_expect_lm <- function(fn.phenotypes,
   # return:
   return(expected.results)
 }
+
+#' Generate expected results for gam
+#' 
+#' @param fn.phenotypes A character, the filename of the csv file, usually the n50_cohort.csv
+#' @param fn.h5 A character, the filename of the h5 file, usually the n50_fixels.h5
+#' @param idx.fixel.gam An integer (>=1), the fixel index that is used for this gam testing
+#' @param num.set.seed An integer, which will be used by `set.seed()`
+#' @return expected.results A list of the expected results
+helper_generate_expect_gam <- function(fn.phenotypes,
+                                       fn.h5,
+                                       idx.fixel.gam = 11,
+                                       num.set.seed = 5) {
+  ## basic setups:
+  phenotypes <- read.csv(fn.phenotypes)
+  nsubj <- nrow(phenotypes)
+  # ordered factor:
+  phenotypes$oSex <- ordered(phenotypes$sex, levels = c("F", "M"))  # ordered factor, "F" as reference group
+  
+  # set the seed:
+  set.seed(num.set.seed)
+  
+  
+  ## start to calculate:
+  expected.results <- list()
+  
+  # load data for gam:
+  h5f <- rhdf5::H5Fopen(fn.h5)
+  h5d <- h5f$scalars$FD$values  # enter the dataset
+  
+  fd.simu <- h5d[idx.fixel.gam,]
+  
+  h5closeAll()
+  
+  data <- phenotypes
+  data$FD <- fd.simu
+  
+  # different scenario:
+  thename <- "s-age_sex"
+  formula <- FD ~ s(age) + sex
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age"
+  formula <- FD ~ s(age)
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "age"
+  formula <- FD ~ age
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)   # compared to lm()'s results with same formula & data, random selected stat; 2022.5.23. Chenying
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age_s-factorA"
+  formula <- FD ~ s(age) + s(factorA)
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age-k-4_sex"
+  formula <- FD ~ s(age, k=4) + sex
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age-fx-T_sex"
+  formula <- FD ~ s(age, fx=TRUE) + sex
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age-bs-cr_sex"
+  formula <- FD ~ s(age, bs="cr") + sex
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age_sex_method-REML"
+  formula <- FD ~ s(age) + sex
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam, method="REML")   # MAKE SURE THIS IS IN! TODO
+  expected.results[[thename]] <- dfout
+  
+  thename <- "factorB_s-age_s-factorA"
+  formula <- FD ~ factorB + s(age) + s(factorA)
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "factorB_s-factorA"
+  formula <- FD ~ factorB + s(factorA)
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "factorB_s-age"
+  formula <- FD ~ factorB + s(age)
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age-k-4"
+  formula <- FD ~ s(age, k=4)
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "te-age"
+  formula <- FD ~ te(age)
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age-factorA-fx-F-bs-tpcr"
+  formula <- FD ~ s(age, factorA, fx = FALSE, bs = c("tp", "cr")) 
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age-factorA-k-4-bs-tptp"
+  formula <- FD ~ s(age, factorA, k=4, bs = c("tp", "tp"))
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "ti-age-fx-F-bs-cr"
+  formula <- FD ~ ti(age, fx = FALSE, bs = c("cr"))
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "ti-age-factorA-fx-T-bs-crtp"
+  formula <- FD ~ ti(age, factorA, fx = TRUE, bs = c("cr", "tp")) 
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "oSex_s-age-k-4-fx-T_s-age-byoSex-fx-T_factorB"
+  formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "oSex_s-age-k-4-fx-T_factorB"
+  formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + factorB
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "oSex_s-age-byoSex-fx-T_factorB"
+  formula <- FD ~ oSex + s(age, by=oSex, fx=TRUE) + factorB
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age-k-4-fx-T_s-age-byoSex-fx-T_factorB"
+  formula <- FD ~ s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "ti-age-fx-T_ti-factorB-fx-T_ti-age-factorB-fx-T_factorA"
+  formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "ti-age-fx-T_ti-factorB-fx-T_factorA"
+  formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE)+ factorA
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "intercept"   # not to replicate the process here.... otherwise dfout's class is "tbl_df"...
+  formula <- FD ~ 1
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  return(expected.results)
+}

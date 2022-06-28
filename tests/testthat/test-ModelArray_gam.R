@@ -33,12 +33,15 @@ test_that("test that ModelArray.gam() works as expected", {
   var.model.full <- c("adj.r.squared","dev.expl", "sp.criterion", "scale",
                       "df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs")
   
-  ### load expected results #####
+  ### generate + load expected results #####
   idx.fixel.gam <- 11
-  fn.expected.results <- system.file("extdata",
-                                     "n50_fixels_gam_expectedResults.RData",
-                                     package="ModelArray")
-  load(fn.expected.results)  # variable name: expected.results
+  num.set.seed <- 5
+  # generate the expected results, and get `expected.results`, a list of the expected results
+  expected.results <- helper_generate_expect_gam(fn.phenotypes = csv_path, 
+                                                fn.h5 = h5_path,
+                                                idx.fixel.gam = idx.fixel.gam,
+                                                num.set.seed = num.set.seed)
+  
   
   # extract the last several characters in a string - ref: https://stackoverflow.com/questions/7963898/extracting-the-last-n-characters-from-a-string-in-r
   substrRight <- function(x, n){
