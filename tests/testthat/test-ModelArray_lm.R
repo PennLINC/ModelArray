@@ -27,12 +27,14 @@ test_that("ModelArray.lm() works as expected", {
   
   element.subset = 1:10
   
-  ### load expected results #####
+  ### generate + load expected results #####
   idx.fixel.lm <- 1
-  fn.expected.results <- system.file("extdata",
-                                     "n50_fixels_lm_expectedResults.RData",
-                                     package="ModelArray")
-  load(fn.expected.results)  # variable name: expected.results
+  num.set.seed <- 5
+  # generate the expected results, and get `expected.results`, a list of the expected results
+  expected.results <- helper_generate_expect_lm(fn.phenotypes = csv_path, 
+                                                fn.h5 = h5_path,
+                                                idx.fixel.lm = idx.fixel.lm,
+                                                num.set.seed = num.set.seed)
   
   #' @param idx.fixel starts from 1
   #' 
