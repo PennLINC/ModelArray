@@ -62,10 +62,8 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
   onemodel.glance[["adj.r.squared"]] <- onemodel.summary$r.sq
   onemodel.glance[["dev.expl"]] <- onemodel.summary$dev.expl
   
-  # TODO: test what is "sp.criterion.attr.name"!!!!!!!!!!!!!
-  
-  sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name")
-  onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[ sp.criterion.attr.name ]] 
+  sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name")   # get the attr name  # maually checked: default (GCV.Cp) and "REML", and the *.attr.name string is correct
+  onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[ sp.criterion.attr.name ]]   # use the attr name to extract the value
   onemodel.glance[["scale"]] <- onemodel.summary$scale   # scale estimate
   
   #num.smoothTerms <- onemodel.summary$m   # The number of smooth terms in the model.
@@ -417,4 +415,23 @@ helper_generate_expect_gam <- function(fn.phenotypes,
   expected.results[[thename]] <- dfout
   
   return(expected.results)
+}
+
+
+
+#' Generate expected values for accessors, without using ModelArray functions
+#' 
+#' @param fn.h5 A character, the filename of the h5 file
+#' @return the matrix of the scalar values
+helper_generate_expect_accessors <- function(fn.h5) {
+  # load the data:
+  h5f <- rhdf5::H5Fopen(fn.h5)
+  scalar.value.full <- h5f$scalars$FD$values  # enter the dataset
+  # ^ has been realized as matrix, taking ~70MB of memory if using n50_fixels.h5 file
+  
+  h5closeAll()
+  
+  return(scalar.value.full)
+  
+  
 }
