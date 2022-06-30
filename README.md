@@ -15,8 +15,9 @@ statistical analysis of fixel data. Its features include:
 -   Easy to use: set up your analysis with just several lines of codes;
 -   Low memory requirement, even for large datasets;
 -   At present, `ModelArray` supports linear models as well as
-    generalized additive models (GAM) with penalized splines, which are
-    particularly useful for studying nonlinear effects in lifespan data.
+    generalized additive models (GAM) with and without penalized
+    splines, which are particularly useful for studying nonlinear
+    effects in lifespan data.
 
 ## Installation
 
@@ -30,6 +31,8 @@ most important steps for installing `ModelArray` are:
     section](https://pennlinc.github.io/ModelArray/articles/a01_installations.html#install-hdf5-libraries-in-the-system)
 -   Install `ModelArray` from GitHub - see [this
     section](https://pennlinc.github.io/ModelArray/articles/a01_installations.html#install-modelarray-r-package-from-github)
+
+<!-- check above links work, esp those with section titles!!! -->
 
 ## How to use
 

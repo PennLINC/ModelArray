@@ -459,16 +459,21 @@ looping across elements....
 <li>Several statistics for the <code>Intercept</code>, <code>Age</code>, <code>sex</code>, and motion <code>dti64MeanRelRMS</code>. These statistics include:
 <ul>
 <li>estimation of Intercept and the coefficients or slopes of other terms</li>
-<li>t-statistics</li>
-<li>p-value</li>
-<li>p-value after FDR correction</li>
+<li>
+<em>t</em>-statistics</li>
+<li>
+<em>p</em>-value</li>
+<li>
+<em>p</em>-value after FDR correction</li>
 </ul>
 </li>
 <li>Several statistics for the linear model, including:
 <ul>
-<li>adjusted R-squared</li>
-<li>p-value</li>
-<li>p-value after FDR correction</li>
+<li>adjusted <em>R</em>-squared</li>
+<li>
+<em>p</em>-value</li>
+<li>
+<em>p</em>-value after FDR correction</li>
 </ul>
 </li>
 </ul>
@@ -687,8 +692,8 @@ looping across elements....
 </table>
 <p>As you can see, for each fixel, here <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code> returns:</p>
 <ul>
-<li>Several statistics for the smooth term <code>s(Age)</code>, including F statistics and p-values (and those after FDR and Bonferroni correction);</li>
-<li>Several statistics for the parametric terms <code>Intercept</code>, <code>sex</code>, and motion <code>dti64MeanRelRMS</code>, including estimation of the coefficient (or the slope), t-statistics, and p-values (and those after FDR and Bonferroni correction);</li>
+<li>Several statistics for the smooth term <code>s(Age)</code>, including <em>F</em>-statistics and <em>p</em>-values (and those after FDR and Bonferroni correction);</li>
+<li>Several statistics for the parametric terms <code>Intercept</code>, <code>sex</code>, and motion <code>dti64MeanRelRMS</code>, including estimation of the coefficient (or the slope), <em>t</em>-statistics, and <em>p</em>-values (and those after FDR and Bonferroni correction);</li>
 <li>One statistic for the model: <code>dev.expl</code>, which is the proportion of the null deviance explained by the model.</li>
 </ul>
 <p>For more options, please view pages for <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>.</p>
@@ -769,6 +774,7 @@ $ fixelstats_write \
 
 0 directories, 32 files</code></pre>
 <p>Here, <code>1m.p.value.*</code> means it’s the <code>1 - p-value</code> image.</p>
+<!-- may not be able to change above p in backquotes into italic... -->
 </div>
 <div class="section level3">
 <h3 id="step-3-2--view-the-results-in-mrtrixs-mrview">Step 3.2. View the results in MRtrix’s MRView<a class="anchor" aria-label="anchor" href="#step-3-2--view-the-results-in-mrtrixs-mrview"></a>
@@ -778,13 +784,17 @@ $ fixelstats_write \
 $ cd results_lm   # switch to results folder
 $ mrview</code></pre>
 <p>Click File -&gt; Open, select <code>index.mif</code>. Then click Tools -&gt; Fixel plot, you’ll see a side panel of “Fixel plot”. Within this side panel, click button “Open fixel image” (see below, highlighted in red):</p>
+<center>
 <div class="figure">
 <img src="mrview_fixel_plot_panel_open.PNG" alt=""><p class="caption">Open fixel image</p>
 </div>
+</center>
 <p>From there, select <code>index.mif</code> file again. You’ll see colored <code>directions.mif</code>. Now you can choose which image to display. Click the filename next to “colour by”, select <code>results_lm_Age.estimate.mif</code>; then click the button next to “threshold by”, select <code>results_lm_model.p.value.fdr.mif</code>, check/tick the option of upper limit, then enter “0.005”. You may change the view by clicking “View” in the upper panel. Below is an example view:</p>
+<center>
 <div class="figure">
 <img src="mrview_results_lm_demo_FDC_n100.PNG" alt=""><p class="caption">An example view</p>
 </div>
+</center>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

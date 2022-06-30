@@ -220,13 +220,13 @@ As you can see, for each fixel, by default, `ModelArray.lm()` returns:
 
 * Several statistics for the `Intercept`, `Age`, `sex`, and motion `dti64MeanRelRMS`. These statistics include: 
   * estimation of Intercept and the coefficients or slopes of other terms
-  * t-statistics
-  * p-value
-  * p-value after FDR correction
+  * _t_-statistics
+  * _p_-value
+  * _p_-value after FDR correction
 * Several statistics for the linear model, including:
-  * adjusted R-squared
-  * p-value
-  * p-value after FDR correction
+  * adjusted _R_-squared
+  * _p_-value
+  * _p_-value after FDR correction
 
 You may request more comprehensive statistics with the argument `full.outputs=TRUE`.
 
@@ -278,8 +278,8 @@ You'll see:
 
 As you can see, for each fixel, here `ModelArray.gam()` returns:
 
-* Several statistics for the smooth term `s(Age)`, including F statistics and p-values (and those after FDR and Bonferroni correction);
-* Several statistics for the parametric terms `Intercept`, `sex`, and motion `dti64MeanRelRMS`, including estimation of the coefficient (or the slope), t-statistics, and p-values (and those after FDR and Bonferroni correction);
+* Several statistics for the smooth term `s(Age)`, including _F_-statistics and _p_-values (and those after FDR and Bonferroni correction);
+* Several statistics for the parametric terms `Intercept`, `sex`, and motion `dti64MeanRelRMS`, including estimation of the coefficient (or the slope), _t_-statistics, and _p_-values (and those after FDR and Bonferroni correction);
 * One statistic for the model: `dev.expl`, which is the proportion of the null deviance explained by the model.
 
 For more options, please view pages for `ModelArray.lm()` and `ModelArray.gam()`.
@@ -378,6 +378,8 @@ results_lm/
 
 Here, `1m.p.value.*` means it's the `1 - p-value` image.
 
+<!-- may not be able to change above p in backquotes into italic... -->
+
 ### Step 3.2. View the results in MRtrix's MRView
 
 You can launch MRView from the terminal with `mrview`:
@@ -390,8 +392,16 @@ $ mrview
 
 Click File -> Open, select `index.mif`. Then click Tools -> Fixel plot, you'll see a side panel of "Fixel plot". Within this side panel, click button "Open fixel image" (see below, highlighted in red):
 
+<center>
+
 ![Open fixel image](mrview_fixel_plot_panel_open.PNG)
+
+</center>
 
 From there, select `index.mif` file again. You'll see colored `directions.mif`. Now you can choose which image to display. Click the filename next to "colour by", select `results_lm_Age.estimate.mif`; then click the button next to "threshold by", select `results_lm_model.p.value.fdr.mif`, check/tick the option of upper limit, then enter "0.005". You may change the view by clicking "View" in the upper panel. Below is an example view:
 
+<center>
+
 ![An example view](mrview_results_lm_demo_FDC_n100.PNG)
+
+</center>
