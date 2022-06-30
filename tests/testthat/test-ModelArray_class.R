@@ -4,6 +4,23 @@ test_that("ModelArray interface works as expected", {
   num.fixels <- 182581
   num.subj <- 50
 
+  ### get expected values ######
+  tryCatch(
+    {
+      ## try:
+      scalar.value.full <- helper_generate_expect_accessors(h5_path)
+      # ^ has been realized as matrix, taking ~70MB of memory if using n50_fixels.h5 file
+    },
+    
+    finally = {  # regardless try is successful or not:
+      h5closeAll()
+    }
+  )
+  
+  # make sure the expected results have got successfully:
+  expect_equal(scalar.value.full %>% dim(),
+               c(num.fixels, num.subj))
+  
   ### test loading #####
   # loading data: 
   modelarray <- ModelArray(h5_path, 
@@ -20,8 +37,14 @@ test_that("ModelArray interface works as expected", {
   # scalars():
   expect_equal(scalars(modelarray) %>% length(), 1)  # one list of FD
   expect_equal(scalars(modelarray)[["FD"]] %>% dim(), c(num.fixels, num.subj)) 
+    # expect values:
+  actual <- scalars(modelarray)[["FD"]] %>% as.matrix()   # realize as in-memory matrix, instead of DelayedArray matrix
+  dimnames(actual) <- NULL   # reset the dimnames (to make it the same as `scalar.value.full`), as the expect is value only, and the dimnames (actually only colnames) will be checked later in sources()
+  expect_equal(actual,    # only checking the values, not the column names (will be checked later in sources())
+               scalar.value.full)
   # @scalars:
   expect_equal(modelarray@scalars %>% length(), 1)  # one list of FD
+  
   
   # results():
   expect_equal(results(modelarray), list())    # empty
@@ -29,13 +52,15 @@ test_that("ModelArray interface works as expected", {
   # @results:
   expect_equal(modelarray@results, list()) 
   
+  
   # sources(): 
   expect_sources_FD <- paste0("FD/sub",as.character(c(1:num.subj)), "_fd.mif")
-    
-  expect_equal(sources(modelarray)$FD, expect_sources_FD)
+  expect_equal(sources(modelarray)$FD, 
+               expect_sources_FD)
 
   # @sources:
   expect_equal(modelarray@sources$FD, expect_sources_FD)
+  
   
   ## other slot:
   # @path:  # there is no accessor for it
@@ -77,9 +102,16 @@ test_that("ModelArray interface works as expected", {
       # results():
       expect_equal(results(modelarray_new)[["result_lm"]][["results_matrix"]] %>% dim(),
                    dim(mylm))
+        # expected values:
+      expect_equal(results(modelarray_new)[["result_lm"]][["results_matrix"]] %>% as.data.frame(),
+                   mylm)
+      
       # @results [slot]; also another analysis group:
       expect_equal(modelarray_new@results$result_lm_fulloutput[["results_matrix"]] %>% dim(),
                    dim(mylm_fulloutput))
+        # expected values:
+      expect_equal(results(modelarray_new)[["result_lm_fulloutput"]][["results_matrix"]] %>% as.data.frame(),
+                   mylm_fulloutput)
       
       
       ## test if writeResults's overwrite works:    
@@ -88,6 +120,9 @@ test_that("ModelArray interface works as expected", {
                                    analysis_names = c("result_lm", "result_lm_fulloutput"))
       expect_equal(results(modelarray_new)[["result_lm"]][["results_matrix"]] %>% dim(),
                    dim(mylm_fulloutput))
+        # expected values:
+      expect_equal(results(modelarray_new)[["result_lm"]][["results_matrix"]] %>% as.data.frame(),
+                   mylm_fulloutput)
       
     },
     finally = {  # regardless try is successful or not:

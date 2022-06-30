@@ -420,13 +420,13 @@ generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, 
 #' @import tibble
 #' @noRd
 bind_cols_check_emptyTibble <- function(a, b) {
-  flag_a_emtpy <- !all(dim(a))   # if TRUE, a is empty
-  flag_b_emtpy <- !all(dim(b))   # if TRUE, b is empty
+  flag_a_empty <- !all(dim(a))   # if TRUE, a is empty
+  flag_b_empty <- !all(dim(b))   # if TRUE, b is empty
   
-  if ( flag_a_emtpy && flag_b_emtpy ) c <- tibble()    # both are empty
-  if ( flag_a_emtpy && (!flag_b_emtpy) ) c <- b     # b is not empty ==> taking b
-  if ( (!flag_a_emtpy) && flag_b_emtpy ) c <- a     # a is not empty ==> taking a
-  if ( (!flag_a_emtpy) && (!flag_b_emtpy) ) c <- dplyr::bind_cols(a, b)    # neither of them is empty ==> simply combine
+  if ( flag_a_empty && flag_b_empty ) c <- tibble()    # both are empty
+  if ( flag_a_empty && (!flag_b_empty) ) c <- b     # b is not empty ==> taking b
+  if ( (!flag_a_empty) && flag_b_empty ) c <- a     # a is not empty ==> taking a
+  if ( (!flag_a_empty) && (!flag_b_empty) ) c <- dplyr::bind_cols(a, b)    # neither of them is empty ==> simply combine
   
   return(c)
 }

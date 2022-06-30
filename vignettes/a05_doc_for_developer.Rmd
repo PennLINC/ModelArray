@@ -37,7 +37,9 @@ Methods for showing and accessing `ModelArray` object are basic. Please see sect
 
 The key function of `ModelArray` package is to perform statistical analysis. For details, please see section "Model fitting" below. \
 
-Finally, the rest sections describe other important aspects, such as how to save statistical results to .hdf5 file on disk, deal with missing value, etc.
+The next several sections describe other important aspects, such as how to save statistical results to .hdf5 file on disk, deal with missing value, etc.
+
+Finally, we describe what (CircleCI) tests are needed to ensure accuracy and error-free.
 
 ## `ModelArray` Construction
 We first define a class called `ModelArray` using `setClass()`. An `ModelArray` object (i.e. an instance of `ModelArray` class) has several slots:
@@ -109,3 +111,16 @@ TODO
 
 ### Missing values in `ModelArray` scalar data
 TODO
+
+## Writing tests for CircleCI
+CircleCI will be triggered each time when pushing to GitHub. One important thing it will do is to run the tests in `testthat`. Tests serve the goal of:
+
+1. Run different scenarios (with different requests) and expect no error. This is to ensure when new features added, it will run without error;
+  * For some scenarios, some special data is needed. For example, when testing NAs in input data (for volume data analysis)
+2. Expect the output data.frame will contain xxx column, or check the dimensions of the output data.frame. This is to ensure expected columns show up.
+3. Most importantly, check the values are as expected. 
+  * First, we generated data for each statistical model, then injected into the test .h5 file; we also calculated the expected values.
+  * When a new statistical model is added, new data + its expected results need to be prepared.
+  * Scripts please see: GitHub repo ModelArray_tests/testdata_ModelArray/README.md
+  
+  
