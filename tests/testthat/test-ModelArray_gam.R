@@ -19,6 +19,12 @@ test_that("test that ModelArray.gam() works as expected", {
   phenotypes$oSex <- ordered(phenotypes$sex, levels = c("F", "M"))  # ordered factor, "F" as reference group
   #phenotypes$sexFactor <- factor(phenotypes$sex, levels = unique(phenotypes$sex))   # factor but not ordered
   
+  # multiple levels:
+  phenotypes$oMultiLevels <- c(rep("A",15),
+                               rep("B",15),
+                               rep("C",20))
+  phenotypes$oMultiLevels <- ordered(phenotypes$oMultiLevels, levels = c("A","B","C"))  # ordered factor, "A" as reference group
+  
   var.smoothTerms = c("statistic","p.value")
   var.parametricTerms = c("estimate", "statistic", "p.value")
   var.model = c("dev.expl", "adj.r.squared")
@@ -516,7 +522,7 @@ test_that("test that ModelArray.gam() works as expected", {
   #                n_cores = 2, pbar = FALSE)
   # 
   
-  ### check for formula with interaction term #####
+  ### check for GAMs with interaction term #####
   ## s(age, by=oSex):
   formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB  # ordered factor
   mygam_sby <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
@@ -559,6 +565,21 @@ test_that("test that ModelArray.gam() works as expected", {
   expect_equal(mygam_sby$model.adj.r.squared - mygam_sby.red3$model.adj.r.squared,   
                mygam_sby$oSex.delta.adj.rsq)  
   
+  
+  ## interaction terms with multiple levels: make sure s(age, by=oMultiLevels) output column names are as expected:
+  formula <- FD ~ oMultiLevels + s(age,k=4, fx=TRUE) + s(age, by=oMultiLevels, fx=TRUE) + factorB 
+  mygam_sby_multiLevels <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                          changed.rsq.term.index = c(1), var.model = c("dev.expl","adj.r.squared"),
+                                          n_cores = 2, pbar = FALSE)
+  # expected values:
+  compare_expected_results(mygam_sby_multiLevels, expected.results[["oMultiLevels_s-age-k-4-fx-T_s-age-byoMultiLevels-fx-T_factorB"]])
+  # column names are as expected:
+  expect_true(c("s_age_BYoMultiLevelsB.statistic",   # s_age + BY + oMultiLevels + B or C
+                "s_age_BYoMultiLevelsC.statistic")
+              %in% colnames(mygam_sby_multiLevels)
+              %>% all())   # all tested names are in the colnames
+  expect_false(c("s_age_BYoMultiLevelsA.statistic")   # s_age + BY + oMultiLevels + A is not in (as A is reference group)
+               %in% colnames(mygam_sby_multiLevels))
   
   ## ti(x,z):
   formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA

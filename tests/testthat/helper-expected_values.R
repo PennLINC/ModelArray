@@ -275,6 +275,12 @@ helper_generate_expect_gam <- function(fn.phenotypes,
   # ordered factor:
   phenotypes$oSex <- ordered(phenotypes$sex, levels = c("F", "M"))  # ordered factor, "F" as reference group
   
+  # multiple levels:
+  phenotypes$oMultiLevels <- c(rep("A",15),
+                               rep("B",15),
+                               rep("C",20))
+  phenotypes$oMultiLevels <- ordered(phenotypes$oMultiLevels, levels = c("A","B","C"))  # ordered factor, "A" as reference group
+  
   # set the seed:
   set.seed(num.set.seed)
   
@@ -381,6 +387,11 @@ helper_generate_expect_gam <- function(fn.phenotypes,
   
   thename <- "oSex_s-age-k-4-fx-T_s-age-byoSex-fx-T_factorB"
   formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "oMultiLevels_s-age-k-4-fx-T_s-age-byoMultiLevels-fx-T_factorB"
+  formula <- FD ~ oMultiLevels + s(age,k=4, fx=TRUE) + s(age, by=oMultiLevels, fx=TRUE) + factorB 
   dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
   expected.results[[thename]] <- dfout
   
