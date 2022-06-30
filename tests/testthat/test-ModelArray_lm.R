@@ -188,7 +188,11 @@ test_that("ModelArray.lm() works as expected", {
                                        var.terms = var.terms, var.model = var.model,
                                        correct.p.value.terms = c("fdr","bonferroni"),
                                        n_cores = 2, pbar=FALSE)
-  compare_expected_results(mylm_corr_pvalues_1, expected.results$age)
+  compare_expected_results(mylm_corr_pvalues_1, expected.results$age)   # this includes check *.p.value.fdr and *.p.value.bonferroni values are correct
+  # check if requested p value corrections exist:
+  expect_true(c("age.p.value.bonferroni","Intercept.p.value.bonferroni")
+              %in% colnames(mylm_corr_pvalues_1)
+              %>% all())
   
   # model:
   mylm_corr_pvalues_2 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
@@ -196,6 +200,10 @@ test_that("ModelArray.lm() works as expected", {
                                        correct.p.value.model = c("fdr","bonferroni"),
                                        n_cores = 2, pbar=FALSE)
   compare_expected_results(mylm_corr_pvalues_2, expected.results$age)
+  # check if requested p value corrections exist:
+  expect_true(c("model.p.value.bonferroni")
+              %in% colnames(mylm_corr_pvalues_2)
+              %>% all())
   
   # terms + only bonferroni, no fdr:
   mylm_corr_pvalues_3 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 

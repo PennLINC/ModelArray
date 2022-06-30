@@ -306,13 +306,21 @@ test_that("test that ModelArray.gam() works as expected", {
   mygam_parametric_pCorrect <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                  correct.p.value.parametricTerms = c("fdr","bonferroni"),
                  n_cores = 2, pbar = FALSE) 
-  compare_expected_results(mygam_parametric_pCorrect, expected.results[["s-age_sex"]])
+  compare_expected_results(mygam_parametric_pCorrect, expected.results[["s-age_sex"]])  # this includes check *.p.value.fdr and *.p.value.bonferroni values are correct
+  # check if requested p value corrections exist:
+  expect_true(c("sexM.p.value.bonferroni","Intercept.p.value.bonferroni")
+                %in% colnames(mygam_parametric_pCorrect)
+                %>% all())
   
   mygam_smooth_pCorrect <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                               correct.p.value.smoothTerms = c("fdr","bonferroni"),
                               n_cores = 2, pbar = FALSE) 
-  compare_expected_results(mygam_smooth_pCorrect, expected.results[["s-age_sex"]])
-
+  compare_expected_results(mygam_smooth_pCorrect, expected.results[["s-age_sex"]])  # this includes check *.p.value.fdr and *.p.value.bonferroni values are correct
+  # check if requested p value corrections exist:
+  expect_true(c("s_age.p.value.bonferroni")
+              %in% colnames(mygam_smooth_pCorrect)
+              %>% all())
+  
   expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                               correct.p.value.parametricTerms = c("wrong_correct"),
                               n_cores = 2, pbar = FALSE))
