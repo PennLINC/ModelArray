@@ -20,11 +20,8 @@ Here we will use some example data to show you more example use of `ModelArray`.
 
 ## Concepts and Goals
 ### Goals
-ModelArray is a generalizable, memory-efficient R package for statistical analysis of fixel data. Its features include:
 
-* Easy to use: set up your analysis with just several lines of codes;
-* Low memory requirement, even for large datasets;
-* At present, ModelArray supports linear models as well as generalized additive models (GAM) with penalized splines, which are particularly useful for studying nonlinear effects in lifespan data.  
+We will use ModelArray for statistical analysis of fixel data.
 
 ### Elements
 In this package, "element" is a general name for one point of data; it could be voxel in 3D images, vertex in surface data, or fixel in fixel-based analysis. There should be scalar value associated with each element. And with some demographics or other phenotype data, we can model the scalar value with independent variables and covariates. We treat each element equally.

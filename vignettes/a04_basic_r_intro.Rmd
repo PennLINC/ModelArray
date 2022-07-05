@@ -38,10 +38,11 @@ Users may want to manipulate the data.frame `phenotypes` before passing it to `M
 library(dplyr)    # load into memory
 ```
 
+<!---
 ### De-mean and rescale covariates
 TODO
 
 ### Check whether the model is well-conditioned
 TODO
 
-
+--->

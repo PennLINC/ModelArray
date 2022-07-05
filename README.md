@@ -9,15 +9,15 @@
 status](https://circleci.com/gh/PennLINC/ModelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/ModelArray)
 <!-- badges: end -->
 
-`ModelArray` is a generalizable, memory-efficient R package for
-statistical analysis of fixel data. Its features include:
+`ModelArray` is a memory-efficient R package for statistical analysis of
+fixel data. Its features include:
 
--   Easy to use: set up your analysis with just several lines of codes;
 -   Low memory requirement, even for large datasets;
 -   At present, `ModelArray` supports linear models as well as
     generalized additive models (GAM) with and without penalized
     splines, which are particularly useful for studying nonlinear
-    effects in lifespan data.
+    effects in lifespan data. ModelArray is extensible to more models;
+-   Easy to use: set up your analysis with just several lines of codes.
 
 ## Installation
 
