@@ -4,11 +4,10 @@ pkgdown_sha: ~
 articles:
   a01_installations: a01_installations.html
   a02_walkthrough: a02_walkthrough.html
-  a03_ModelArray_basics: a03_ModelArray_basics.html
   a04_basic_r_intro: a04_basic_r_intro.html
   a05_doc_for_developer: a05_doc_for_developer.html
   a06_faq: a06_faq.html
-last_built: 2022-07-01T02:02Z
+last_built: 2022-07-05T17:52Z
 urls:
   reference: https://pennlinc.github.io/ModelArray/reference
   article: https://pennlinc.github.io/ModelArray/articles

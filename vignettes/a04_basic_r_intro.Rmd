@@ -27,6 +27,8 @@ Below is an example formula:
 ```{r}
 formula <- FD ~ age + sex
 ```
+
+* 
 ** As you can see we did not define variable "FD","age" or "sex", but it's a valid formula. 
 ** Left hand side of "~" is dependent variable (y, or response), and righ hand side includes the independent variables and covariates
 

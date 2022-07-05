@@ -43,7 +43,6 @@
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/a01_installations.html">Installation</a>
     <a class="dropdown-item" href="../articles/a02_walkthrough.html">Example walkthrough</a>
-    <a class="dropdown-item" href="../articles/a03_ModelArray_basics.html">ModelArray Quick Start</a>
     <a class="dropdown-item" href="../articles/a04_basic_r_intro.html">An intro to R</a>
     <a class="dropdown-item" href="../articles/a05_doc_for_developer.html">Developer documentation</a>
     <a class="dropdown-item" href="../articles/a06_faq.html">FAQ</a>
@@ -190,7 +189,7 @@ TODO
 <h2 id="writing-tests-for-circleci">Writing tests for CircleCI<a class="anchor" aria-label="anchor" href="#writing-tests-for-circleci"></a>
 </h2>
 <p>We use Continuous Integration (CI) testing to ensure stability and quality assurance of <code>ModelArray</code>. Therefore, when you modify the source code of <code>ModelArray</code>, it is very important to make sure you add appropriate tests of the new or modified functionality.</p>
-<p>All the tests are in folder <code>testthat</code>. Once a commit is pushed to GitHub, Circle CI (a CI testing platform) will be triggered to build the software and run the unit tests.</p>
+<p>All the test files are located in folder <code>tests/testthat</code>. Once a commit is pushed to GitHub, Circle CI (a CI testing platform) will be triggered to build the software and run the unit tests.</p>
 <p>The tests serve the goal of:</p>
 <ol style="list-style-type: decimal">
 <li>Run different scenarios (with different requests) and expect no error. This is to ensure when new features added, it will run without error;</li>
@@ -202,11 +201,11 @@ TODO
 <li>Expect the output data.frame will contain column with a specific name, or check the dimensions of the output data.frame. This is to ensure expected columns show up.</li>
 <li>Most importantly, check the values are as expected: statistical results calculated in ModelArray fitting loop = those calculated in standard R.</li>
 </ol>
-<p>Developers can test locally to see if tests in a test R script (in <code>testthat</code> folder) without errors:</p>
+<p>Developers can test locally to see if tests in a test file (in <code>tests/testthat</code> folder) without errors:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/rm.html" class="external-link">rm</a></span><span class="op">(</span>list<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/ls.html" class="external-link">ls</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>
 <span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/load_all.html" class="external-link">load_all</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
-<p>Then click “Run Test” button in RStudio to run the test R script. Check if there is anything failed.</p>
+<p>Then click “Run Test” button in RStudio to run the test file. Check if there is anything failed.</p>
 <p>For more details on how to write unit tests + test out, please check out <code>Testing</code> chapters in the book <a href="https://r-pkgs.org/index.html" class="external-link">“R Packages” written by Hadley Wickham, Jennifer Bryan</a></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
