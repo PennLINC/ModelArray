@@ -7,31 +7,13 @@
     <loc>https://pennlinc.github.io/ModelArray/LICENSE-text.html</loc>
   </url>
   <url>
-    <loc>https://pennlinc.github.io/ModelArray/articles/ModelArray_basics.html</loc>
-  </url>
-  <url>
-    <loc>https://pennlinc.github.io/ModelArray/articles/a01_installations.html</loc>
-  </url>
-  <url>
-    <loc>https://pennlinc.github.io/ModelArray/articles/a02_walkthrough.html</loc>
-  </url>
-  <url>
-    <loc>https://pennlinc.github.io/ModelArray/articles/a03_ModelArray_basics.html</loc>
-  </url>
-  <url>
-    <loc>https://pennlinc.github.io/ModelArray/articles/a04_basic_r_intro.html</loc>
-  </url>
-  <url>
-    <loc>https://pennlinc.github.io/ModelArray/articles/a05_doc_for_developer.html</loc>
-  </url>
-  <url>
-    <loc>https://pennlinc.github.io/ModelArray/articles/a06_faq.html</loc>
-  </url>
-  <url>
     <loc>https://pennlinc.github.io/ModelArray/articles/basic_r_intro.html</loc>
   </url>
   <url>
     <loc>https://pennlinc.github.io/ModelArray/articles/doc_for_developer.html</loc>
+  </url>
+  <url>
+    <loc>https://pennlinc.github.io/ModelArray/articles/faq.html</loc>
   </url>
   <url>
     <loc>https://pennlinc.github.io/ModelArray/articles/index.html</loc>

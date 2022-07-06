@@ -99,8 +99,8 @@ Now, ModelArray is ready to use:
 library(ModelArray)
 ```
 
-### (Optional) Other potential packages only needed for downloading demo data in `vignette("a02_walkthrough")` page
-There are several potential packages only needed for downloading demo data in `vignette("a02_walkthrough")` page. You may skip this step if you will not use the demo data.
+### (Optional) Other potential packages only needed for downloading demo data in `vignette("walkthrough")` page
+There are several potential packages only needed for downloading demo data in `vignette("walkthrough")` page. You may skip this step if you will not use the demo data.
 
 * wget
 * tar

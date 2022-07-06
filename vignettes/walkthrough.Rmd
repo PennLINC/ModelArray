@@ -9,7 +9,7 @@ vignette: >
 
 ## Introduction
 
-In this example walkthrough, we will use some example fixel data to demonstrate the steps of using `ModelArray` and its companion python package, `ConFixel`. By following the `vignette("a01_installations")` page, you should have successfully installed `ModelArray`, `ConFixel`, and `MRtrix`. We expect that `ConFixel` has been installed in a conda environment called `modelarray`.
+In this example walkthrough, we will use some example fixel data to demonstrate the steps of using `ModelArray` and its companion python package, `ConFixel`. By following the `vignette("installations")` page, you should have successfully installed `ModelArray`, `ConFixel`, and `MRtrix`. We expect that `ConFixel` has been installed in a conda environment called `modelarray`.
 
 We will first prepare the data and convert it into the format that `ModelArray` requires (Step 1), then we'll use `ModelArray` to perform the statistical analysis (Step 2). Finally we will convert the results into original file format and view them (Step 3).
 

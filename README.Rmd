@@ -27,10 +27,10 @@ knitr::opts_chunk$set(
 
 
 ## Installation
-Please refer to webpage [Installation](https://pennlinc.github.io/ModelArray/articles/a01_installations.html) for a full guidance of installation of `ModelArray` and its companion python package [ConFixel](https://github.com/PennLINC/ConFixel). The most important steps for installing `ModelArray` are:
+Please refer to webpage [Installation](https://pennlinc.github.io/ModelArray/articles/installations.html) for a full guidance of installation of `ModelArray` and its companion python package [ConFixel](https://github.com/PennLINC/ConFixel). The most important steps for installing `ModelArray` are:
 
-* Make sure you have necessary libraries for HDF5 - see [this section](https://pennlinc.github.io/ModelArray/articles/a01_installations.html#install-hdf5-libraries-in-the-system)
-* Install `ModelArray` from GitHub - see [this section](https://pennlinc.github.io/ModelArray/articles/a01_installations.html#install-modelarray-r-package-from-github)
+* Make sure you have necessary libraries for HDF5 - see [this section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system)
+* Install `ModelArray` from GitHub - see [this section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-modelarray-r-package-from-github)
 
 <!-- check above links work, esp those with section titles!!! -->
 
