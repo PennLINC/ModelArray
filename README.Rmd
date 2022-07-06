@@ -42,11 +42,14 @@ library(ModelArray)
 
 We provide a example walkthrough [here](https://pennlinc.github.io/ModelArray/articles/a02_walkthrough.html). 
 
-For documentations of `ModelArray` functions, you can:
+For documentation of `ModelArray` functions, you can:
 
 * Either go to [this webpage](https://pennlinc.github.io/ModelArray/reference/index.html); 
 * Or in R console, type: `help(<function_name>)`. For example: `help(ModelArray.lm)` 
 
+Full documentation of `ModelArray` can be found [here](https://pennlinc.github.io/ModelArray/).
+
+Source code of `ModelArray` can be found [here](https://github.com/PennLINC/ModelArray).
 
 
 ```{r, include = FALSE}
