@@ -1,0 +1,34 @@
+---
+title: "FAQ"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{FAQ}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+***UNDER DEVELOPMENT...***
+
+This page is to answer potential questions from users.
+
+## Prepare your data for ModelArray
+### What kind of fixel data should I use?
+Before using ModelArray, you should be at the stage where you have got fixel data for every participant in template space from MRtrix by following the fixel-based analysis. If we use paper [Dhollander et al., 2021](https://doi.org/10.1016/j.neuroimage.2021.118417) `Fig.3. The fixel-based analysis pipeline` as an example, we expect you have done the step "Connectivity-based fixel smoothing". You will use the participant-level fixel data in template space from this step for further fixel-wise statistical analysis in ModelArray. We expect the file format is `mif`.
+
+### How should I organize the data?
+The example data organization shown in the demo data (see `vignette("walkthrough")`) is what we recommend. In that example fixel dataset, the metric is `FDC`. If you have also other metrics such as FC, you may also have folder `FC` and CSV file `cohort_FC_n100.csv` in the `myProject` folder.
+
+### What are the requirements of the CSV file?
+We expect this CSV file at least contains these two columns - see example in `vignette("walkthrough")`, the required columns are highlighted in ***bold and italics***:
+
+* `scalar_name`, which tells `ModelArray` what metric is being analyzed
+* `source_file`, which tells `ModelArray` which mif file will be used for this subject
+
+Other columns are covariates that you may want to include in the statistical model. The order of columns can be changed.
+
+
+
+## When using ModelArray.*() for statistical analysis
+### How many CPU cores does my computer have?
+You may check this out: `parallel::detectCores()`
+

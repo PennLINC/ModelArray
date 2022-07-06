@@ -31,3 +31,16 @@ reference:
   contents:
   - analyseOneElement.lm
   - analyseOneElement.gam
+
+articles:
+- title: Basics
+  navbar: ~
+  contents:
+  - installations
+  - walkthrough
+  - doc_for_developer
+
+- title: More
+  contents: 
+  - basic_r_intro
+  - faq

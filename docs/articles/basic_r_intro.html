@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">ModelArray</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9000</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,9 +41,11 @@
 <li class="active nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/ModelArray_basics.html">ModelArray Quick Start</a>
-    <a class="dropdown-item" href="../articles/basic_r_intro.html">An intro to R</a>
+    <a class="dropdown-item" href="../articles/installations.html">Installation</a>
+    <a class="dropdown-item" href="../articles/walkthrough.html">Example walkthrough</a>
     <a class="dropdown-item" href="../articles/doc_for_developer.html">Developer documentation</a>
+    <div class="dropdown-divider"></div>
+    <a class="dropdown-item" href="../articles/index.html">More articles...</a>
   </div>
 </li>
       </ul>
@@ -69,22 +71,23 @@
 
     
     
+<p><strong><em>UNDER DEVELOPMENT…</em></strong></p>
 <p>This document is a quick introduction to basic R. Audience would be users who are not familiar with R.</p>
 <div class="section level2">
 <h2 id="r-syntax">R syntax<a class="anchor" aria-label="anchor" href="#r-syntax"></a>
 </h2>
 <ul>
-<li>Dot “.” is valid in a variable name or a function (e.g. variable “num.fixels”, function “ModelArray.lm()”)</li>
+<li>Dot “.” is valid in a variable name or a function (e.g. variable <code>element.subset</code>, function <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>)</li>
 <li>Syntax for formula: Below is an example formula:</li>
 </ul>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">formula</span> <span class="op">&lt;-</span> <span class="va">FD</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">sex</span></code></pre></div>
-<p>** As you can see we did not define variable “FD”,“age” or “sex”, but it’s a valid formula. ** Left hand side of “~” is dependent variable (y, or response), and righ hand side includes the independent variables and covariates</p>
+<p>As you can see even though we did not define variable “FD”,“age” or “sex”, it’s a valid formula. Left hand side of “~” is dependent variable (y, or response), and right hand side includes the independent variables / covariates.</p>
 </div>
 <div class="section level2">
 <h2 id="prepare-the-phenotypes-data-frame-manipulations">Prepare the phenotypes data.frame: manipulations<a class="anchor" aria-label="anchor" href="#prepare-the-phenotypes-data-frame-manipulations"></a>
 </h2>
-<p>Users may want to manipulate the data.frame <code>phenotypes</code> before passing it to <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> etc functions for model fitting. Examples like de-mean and rescale covariates. R package “dplyr” is useful and easy to use for manipulation.</p>
+<p>You may want to manipulate the data.frame <code>phenotypes</code> before passing it to <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> etc functions for model fitting. Examples like de-mean and rescale covariates. R package <code>dplyr</code> is useful and easy to use for manipulation.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># install is first via: install.packages("dplyr")</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span>    <span class="co"># load into memory</span>
@@ -96,16 +99,14 @@
 <span class="co">#&gt; The following objects are masked from 'package:base':</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt;     intersect, setdiff, setequal, union</span></code></pre></div>
-<div class="section level3">
-<h3 id="de-mean-and-rescale-covariates">De-mean and rescale covariates<a class="anchor" aria-label="anchor" href="#de-mean-and-rescale-covariates"></a>
-</h3>
-<p>TODO</p>
-</div>
-<div class="section level3">
-<h3 id="check-whether-the-model-is-well-conditioned">Check whether the model is well-conditioned<a class="anchor" aria-label="anchor" href="#check-whether-the-model-is-well-conditioned"></a>
-</h3>
-<p>TODO</p>
-</div>
+<!---
+### De-mean and rescale covariates
+TODO
+
+### Check whether the model is well-conditioned
+TODO
+
+--->
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>
@@ -115,7 +116,7 @@
 
     <footer><div class="pkgdown-footer-left">
   <p></p>
-<p>Developed by Chenying Zhao, Tinashe Tapera, Matthew Cieslak.</p>
+<p>Developed by Chenying Zhao, Tinashe Tapera, Matthew Cieslak, Theodore Satterthwaite.</p>
 </div>
 
 <div class="pkgdown-footer-right">

@@ -1,6 +1,6 @@
 Package: ModelArray
-Title: A generalizable, memory-efficient R package for statistical analysis of fixel data
-Version: 0.1.0
+Title: A memory-efficient R package for statistical analysis of fixel data
+Version: 0.1.0.9000
 Authors@R: 
     c(person(given = "Chenying",
            family = "Zhao",
@@ -11,8 +11,11 @@ Authors@R:
             role = c("aut")),
        person(give = "Matthew",
             family = "Cieslak",
+            role = c("aut")), 
+        person(give = "Theodore",
+            family = "Satterthwaite",
             role = c("aut")) )
-Description: What the package does (one paragraph).
+Description: ModelArray is a memory-efficient R package for statistical analysis of fixel data.
 License: BSD 3-Clause License + file LICENSE
 Encoding: UTF-8
 LazyData: true

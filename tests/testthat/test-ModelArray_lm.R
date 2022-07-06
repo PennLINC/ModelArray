@@ -27,12 +27,62 @@ test_that("ModelArray.lm() works as expected", {
   
   element.subset = 1:10
   
+  ### generate + load expected results #####
+  idx.fixel.lm <- 1
+  num.set.seed <- 5  # this will be used when generating random numbers (in expected results and below)
+  # generate the expected results, and get `expected.results`, a list of the expected results
+  expected.results <- helper_generate_expect_lm(fn.phenotypes = csv_path, 
+                                                fn.h5 = h5_path,
+                                                idx.fixel.lm = idx.fixel.lm,
+                                                num.set.seed = num.set.seed)
+  
+  #' @param idx.fixel starts from 1
+  #' 
+  compare_expected_results <- function(actual, expected, idx.fixel = idx.fixel.lm) {
+    ## check if each p.value correction is correct:
+    # before removing other rows in "actual":
+    col.names <- colnames(actual)
+    for (name.p.adjust in p.adjust.methods) {   # iterate over different correction methods
+      #message(name.p.adjust)
+      if (stringr::str_detect(col.names, name.p.adjust) %>% any()) {   # if it contains this name.p.adjust
+        #message("detected!")
+        list.idx <- stringr::str_which(col.names, name.p.adjust)  # the index of the columns that contains this name.p.adjust
+        for (idx in list.idx) {   # for each corrected term/model's p.value
+          #message(toString(idx))
+          thecolname <- col.names[idx]
+          thecolname.pvalue <- stringr::str_remove_all(thecolname, 
+                                                        paste0(".",name.p.adjust))  # remove the name.p.adjust to get the p.value's name
+          expect_equal(actual[[thecolname.pvalue]] %>% stats::p.adjust(method = name.p.adjust),
+                       actual[[thecolname]])
+          
+        }
+      }
+    }
+    
+    # now, remove any fdr, etc corrections:
+    actual <- actual %>% select(-ends_with(p.adjust.methods))
+    col.names <- colnames(actual)
+    
+    # select the corresponding row (which has the expected value):
+    actual <- actual[actual$element_id ==idx.fixel - 1, ]
+    
+    flag.belong <- col.names %in% colnames(expected) %>% all()
+    if (flag.belong == FALSE) {
+      stop("not all columns in actual data.frame are in expected data.frame")
+    }
+    
+    ## test if actual = expected values:
+    expect_equal(actual,
+                 expected %>% select(col.names))
+  }
+  
   ### basic check #####
   mylm <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                         var.terms = var.terms,
                         var.model = var.model,
                         n_cores = 1, pbar=FALSE)
   
+  compare_expected_results(mylm, expected.results$age)
   expect_equal(mylm$element_id, 0:(length(element.subset)-1))   # check output$element_id 
   expect_true(is.data.frame(mylm))  # should be data.frame
   expect_equal(as.numeric(dim(mylm)), c(length(element.subset),   # check shape
@@ -43,6 +93,7 @@ test_that("ModelArray.lm() works as expected", {
   
   mylm_default <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                 n_cores = 2, pbar=FALSE)   # default full.outputs and var.*
+  compare_expected_results(mylm_default, expected.results$age)
   expect_equal(as.numeric(dim(mylm_default)), c(length(element.subset),     # check shape  
                                                 1+
                                                   2*(length(default.var.terms)+1)+
@@ -51,6 +102,7 @@ test_that("ModelArray.lm() works as expected", {
   mylm_fullOutputs <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                     full.outputs = TRUE,   # default: FALSE
                                 n_cores = 2, pbar=FALSE)   
+  compare_expected_results(mylm_fullOutputs, expected.results$age)
   expect_equal(as.numeric(dim(mylm_fullOutputs)), c(length(element.subset),
                                                     1+
                                                       2*(length(var.terms.full) + 1) + 
@@ -61,6 +113,7 @@ test_that("ModelArray.lm() works as expected", {
                                 var.terms = var.terms,
                                 var.model = var.model,
                                 n_cores = 2, pbar=FALSE)
+  compare_expected_results(mylm_age_sex, expected.results$age_sex)
   expect_equal(mylm_age_sex$element_id, 0:(length(element.subset)-1))   # check output$element_id 
   expect_equal(as.numeric(dim(mylm_age_sex)), c(length(element.subset),
                                                 1+
@@ -108,6 +161,7 @@ test_that("ModelArray.lm() works as expected", {
   expect_warning(mylm_noTermsOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                       var.terms = c(), var.model = var.model,
                                       n_cores = 1, pbar=FALSE))  # expect warning because there will be a warning from ModelArray.lm(): p.value was not included in var.terms, so not to perform its p.value corrections
+  compare_expected_results(mylm_noTermsOutput, expected.results$age)
   expect_equal(as.numeric(dim(mylm_noTermsOutput)), c(length(element.subset),
                                                       1+
                                                         length(var.model)+1)) # check shape
@@ -117,6 +171,7 @@ test_that("ModelArray.lm() works as expected", {
   expect_warning(mylm_noModelOutput <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                       var.terms = var.terms, var.model = c(),
                                       n_cores = 1, pbar=FALSE))   # expect warning because there will be a warning from ModelArray.lm(): p.value was not included in var.model, so not to perform its p.value corrections 
+  compare_expected_results(mylm_noModelOutput, expected.results$age)
   expect_equal(as.numeric(dim(mylm_noModelOutput)), c(length(element.subset),
                                                       1+
                                                         2*(length(var.terms)+1))) # check shape
@@ -133,28 +188,29 @@ test_that("ModelArray.lm() works as expected", {
                                        var.terms = var.terms, var.model = var.model,
                                        correct.p.value.terms = c("fdr","bonferroni"),
                                        n_cores = 2, pbar=FALSE)
-  
-  expect_equal(mylm_corr_pvalues_1$age.p.value.fdr,
-               mylm_corr_pvalues_1$age.p.value %>% stats::p.adjust("fdr"))
-  expect_equal(mylm_corr_pvalues_1$age.p.value.bonferroni,
-               mylm_corr_pvalues_1$age.p.value %>% stats::p.adjust("bonferroni"))
+  compare_expected_results(mylm_corr_pvalues_1, expected.results$age)   # this includes check *.p.value.fdr and *.p.value.bonferroni values are correct
+  # check if requested p value corrections exist:
+  expect_true(c("age.p.value.bonferroni","Intercept.p.value.bonferroni")
+              %in% colnames(mylm_corr_pvalues_1)
+              %>% all())
   
   # model:
   mylm_corr_pvalues_2 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                        var.terms = var.terms, var.model = var.model,
                                        correct.p.value.model = c("fdr","bonferroni"),
                                        n_cores = 2, pbar=FALSE)
-  
-  expect_equal(mylm_corr_pvalues_2$model.p.value.fdr,
-               mylm_corr_pvalues_2$model.p.value %>% stats::p.adjust("fdr"))
-  expect_equal(mylm_corr_pvalues_2$model.p.value.bonferroni,
-               mylm_corr_pvalues_2$model.p.value %>% stats::p.adjust("bonferroni"))
+  compare_expected_results(mylm_corr_pvalues_2, expected.results$age)
+  # check if requested p value corrections exist:
+  expect_true(c("model.p.value.bonferroni")
+              %in% colnames(mylm_corr_pvalues_2)
+              %>% all())
   
   # terms + only bonferroni, no fdr:
   mylm_corr_pvalues_3 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                        var.terms = var.terms, var.model = var.model,
                                        correct.p.value.terms = c("bonferroni"),
                                        n_cores = 2, pbar=FALSE)
+  compare_expected_results(mylm_corr_pvalues_3, expected.results$age)
   expect_true(c("age.p.value.bonferroni", "Intercept.p.value.bonferroni",
                 "model.p.value.fdr") %in% colnames(mylm_corr_pvalues_3) %>% all())   # correct.p.value.terms: bonferroni is in, but not fdr
   expect_true( !( c("age.p.value.fdr", "Intercept.p.value.fdr") %in% colnames(mylm_corr_pvalues_3) ) %>% all() )  # all false
@@ -164,6 +220,7 @@ test_that("ModelArray.lm() works as expected", {
                                        var.terms = var.terms, var.model = var.model,
                                        correct.p.value.model = c("bonferroni"),
                                        n_cores = 2, pbar=FALSE)
+  compare_expected_results(mylm_corr_pvalues_4, expected.results$age)
   expect_true(c("age.p.value.fdr",
                 "model.p.value.bonferroni") %in% colnames(mylm_corr_pvalues_4) %>% all())   # correct.p.value.model: bonferroni is in, but not fdr
   expect_true( !(c("model.p.value.fdr") %in% colnames(mylm_corr_pvalues_4) ) %>% all() )   # all false
@@ -178,21 +235,26 @@ test_that("ModelArray.lm() works as expected", {
                              correct.p.value.model = c("fdr_wrong","bonferroni"),   # wrong name
                              n_cores = 2, pbar=FALSE))
   
-  expect_warning( ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
+  expect_warning( temp <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                 var.terms = c("estimate"), var.model = var.model,  # did not provide p.value
                                 correct.p.value.terms = c("fdr","bonferroni"),
                                 n_cores = 2, pbar=FALSE))
-  expect_warning( ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
+  compare_expected_results(temp, expected.results$age)
+  
+  expect_warning( temp <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                 var.terms = var.terms, var.model = c("AIC"),  # did not provide p.value
                                 correct.p.value.model = c("fdr","bonferroni"),
                                 n_cores = 2, pbar=FALSE))
+  compare_expected_results(temp, expected.results$age)
   
-  ## How about other variables as covariate? factorA is literally correlated with age; factorB is another random variable
+  ## How about other variables as covariate? #####
+  # factorA is literally correlated with age; factorB is another random variable
   # factor A is fully correlated with age, expecting testing results are NA:
   mylm_age_factorA <- ModelArray.lm(FD ~ age + factorA, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                     var.terms = var.terms.full,
                                     var.model = var.model, 
                                     n_cores = 2, pbar=FALSE)
+  compare_expected_results(mylm_age_factorA, expected.results$age_factorA)
   # temp <- mylm_age_factorA %>% dplyr::filter(term=="factorA")%>% dplyr::select(-term)  # only extracting column "factorA"
   expect_equal(mylm_age_factorA$element_id, c(0:(length(element.subset)-1)))    # test that $element_id is 0:(length(element.subset)-1)
   
@@ -207,6 +269,7 @@ test_that("ModelArray.lm() works as expected", {
                                     var.terms = var.terms.full,
                                     var.model = var.model, 
                                     n_cores = 2, pbar=FALSE)
+  compare_expected_results(mylm_age_factorB, expected.results$age_factorB)
   # temp <- mylm_age_factorB %>% dplyr::filter(term=="factorB")%>% dplyr::select(-term) %>% dplyr::select(-element_id)  
   expect_false(all(is.na(mylm_age_factorB$factorB.estimate)))
   expect_false(all(is.na(mylm_age_factorB$factorB.p.value)))
@@ -236,6 +299,7 @@ test_that("ModelArray.lm() works as expected", {
   mylm_phenotypes_naActionOmit <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset, 
                                                 var.terms = var.terms, var.model = var.model, n_cores = 2, pbar=FALSE, 
                                                 na.action="na.omit")
+  compare_expected_results(mylm_phenotypes_naActionOmit, expected.results[["age_phenotypeswNA_na.action-na.omit"]])
   # there should be differences in results, after changing one value to NA:
   expect_false(all.equal(mylm                         %>% dplyr::select(age.estimate),
                          mylm_phenotypes_naActionOmit %>% dplyr::select(age.estimate)) 
@@ -243,8 +307,6 @@ test_that("ModelArray.lm() works as expected", {
   
 
   # check if "weights" have been successfully passed into lm:
-  
-  
   mylm_weights1 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                         var.terms = var.terms, var.model = var.model, 
                         pbar=FALSE, n_cores = 2, 
@@ -252,12 +314,13 @@ test_that("ModelArray.lm() works as expected", {
   expect_equal(mylm, mylm_weights1)
   
   
-  set.seed(5)
+  set.seed(num.set.seed)
   mylm_weightsRnorm <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                                      var.terms = var.terms,
                                      var.model = var.model,
                                      n_cores = 2, pbar=FALSE, 
                                      weights = abs(rnorm(nrow(phenotypes))) )  
+  compare_expected_results(mylm_weightsRnorm, expected.results[["age_weights-random"]])
   expect_false(all.equal(mylm, mylm_weightsRnorm) %>% isTRUE() )
   
   

@@ -2,10 +2,12 @@ pandoc: 2.11.4
 pkgdown: 2.0.1
 pkgdown_sha: ~
 articles:
-  ModelArray_basics: ModelArray_basics.html
   basic_r_intro: basic_r_intro.html
   doc_for_developer: doc_for_developer.html
-last_built: 2022-05-06T16:01Z
+  faq: faq.html
+  installations: installations.html
+  walkthrough: walkthrough.html
+last_built: 2022-07-06T19:26Z
 urls:
   reference: https://pennlinc.github.io/ModelArray/reference
   article: https://pennlinc.github.io/ModelArray/articles

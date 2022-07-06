@@ -1,0 +1,108 @@
+---
+title: "Installation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Installation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This page walks through the installation of `ModelArray` package and necessary dependent packages/libraries.
+
+We'll directly install `ModelArray` from [GitHub](https://github.com/PennLINC/ModelArray). Please notice that, this is only fully tested and supported on Linux Ubuntu system and macOS system. If you are a Windows user, you will face errors when running with more than one CPU cores (`n_cores = 2 or above`). You may install a Linux subsystem or virtual machine on your Windows computer.
+
+We will first set up the conda environment, then install some dependent packages and libraries, and finally install `ModelArray`.
+
+### Set up a conda environment
+
+We first create a conda environment `modelarray` for installing the companion software `ConFixel` etc. We'll install python version 3.9:
+
+``` {.console}
+foo@bar:~$ conda create --name modelarray python=3.9
+foo@bar:~$ conda 
+activate modelarray
+```
+
+### Install MRtrix
+
+`ConFixel` uses function `mrconvert` from MRtrix, so please make sure MRtrix has been installed. It can either be installed via `conda` in this conda environment we just created, or be compiled from source. See [MRtrix's webpage](https://www.mrtrix.org/download/) for more. Type `mrview` in the terminal to check whether MRtrix installation is successful.
+
+### Install hdf5 libraries in the system
+
+Because ModelArray works with the Hierarchical Data Format 5 (HDF5) file format, we need to make sure necessary libraries of HDF5 are installed in the system.
+
+#### On a Linux Ubuntu system
+
+If you're on Linux Ubuntu system: First, please check if `libhdf5-dev` has been installed in the system:
+
+``` {.console}
+foo@bar:~$ ldconfig -p | grep libhdf5*
+```
+
+If you got more than one line of outputs, congrats, you have `libhdf5-dev` installed. Otherwise, please install it via:
+
+``` {.console}
+foo@bar:~$ sudo apt-get update -y
+foo@bar:~$ sudo apt-get install -y libhdf5-dev
+```
+
+#### On a macOS system
+
+Use `Homebrew` to install:
+
+``` {.console}
+foo@bar:~$ brew install hdf5
+```
+
+For details you may refer to the webpage [here](https://formulae.brew.sh/formula/hdf5)
+
+### Install ConFixel python package from GitHub
+``` {.console}
+# We first activate the conda environment we just created:
+foo@bar:~$ conda activate modelarray  
+
+# Then install ConFixel:
+foo@bar:~$ cd ~/myProject
+foo@bar:myProject$ git clone https://github.com/PennLINC/ConFixel.git
+foo@bar:myProject$ cd ConFixel
+foo@bar:myProject$ pip install .
+
+# You may remove the original source code if you are an end user instead of a developer:
+foo@bar:myProject$ cd ..
+foo@bar:myProject$ rm -r ConFixel
+```
+
+
+### Install R
+
+`ModelArray` requires R >=4.1.2, and we currently only tests ModelArray on R 4.1.2. If you have already installed it, you can skip this step. If you don't, you may download it from [CRAN](https://cran.r-project.org/).
+
+### (Optional) Install RStudio
+
+RStudio provides a good IDE for using R. However it's optional to install RStudio. If you haven't got one but want to install it, you may download it from [here](https://www.rstudio.com/products/rstudio/download/).
+
+### Install ModelArray R package from GitHub
+
+ModelArray R package's source code is available on GitHub. To install it in R:
+```{r install ModelArray, eval=FALSE}
+# First, load library "devtools":
+library(devtools)
+
+# if you got error, it means you don't have devtools installed, please install it by: install.packages("devtools")
+
+# Then, install ModelArray:
+devtools::install_github("PennLINC/ModelArray")
+```
+
+Now, ModelArray is ready to use:
+```{r}
+library(ModelArray)
+```
+
+### (Optional) Other potential packages only needed for downloading demo data in `vignette("walkthrough")` page
+There are several potential packages only needed for downloading demo data in `vignette("walkthrough")` page. You may skip this step if you will not use the demo data.
+
+* wget
+* tar
+
+If you don't have them, please install them first. For macOS system, you may try out `brew` to install them. For Linux Ubuntu system, you may try out `sudo apt-get` to install them.

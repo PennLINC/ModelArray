@@ -19,40 +19,37 @@ knitr::opts_chunk$set(
 [![CircleCI build status](https://circleci.com/gh/PennLINC/ModelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/ModelArray)
 <!-- badges: end -->
 
-ModelArray is a generalizable, memory-efficient R package for statistical analysis of fixel data. Its features include:
+`ModelArray` is a memory-efficient R package for statistical analysis of fixel data. Its features include:
 
-* Easy to use: set up your analysis with just several lines of codes;
+* Easy to use: set up your statistical analysis with just several lines of codes;
 * Low memory requirement, even for large datasets;
-* At present, ModelArray supports linear models as well as generalized additive models (GAM) with penalized splines, which are particularly useful for studying nonlinear effects in lifespan data.  
+* Supporting linear and nonlinear modeling: At present, `ModelArray` supports linear models as well as generalized additive models (GAM) with and without penalized splines, which are particularly useful for studying nonlinear effects in lifespan data. ModelArray is also extensible to more models.
 
 
 ## Installation
-Before you install ModelArray R package, if you are using Linux system, please check if libhdf5-dev has been installed in your system:
-```console
-foo@bar:~$ ldconfig -p | grep libhdf5*
-```
-If you got more than one line of outputs, congrats, you have libhdf5-dev installed. Otherwise, please install it. For Ubuntu user, you may install via:
-```console
-foo@bar:~$ sudo apt-get update -y
-foo@bar:~$ sudo apt-get install -y libhdf5-dev
-```
+Please refer to webpage [Installation](https://pennlinc.github.io/ModelArray/articles/installations.html) for a full guidance of installation of `ModelArray` and its companion python package [ConFixel](https://github.com/PennLINC/ConFixel). The most important steps for installing `ModelArray` are:
 
-You can install the latest version from [GitHub](https://github.com/) with:
+* Make sure you have necessary libraries for HDF5 - see [this section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system)
+* Install `ModelArray` from GitHub - see [this section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-modelarray-r-package-from-github)
 
-``` r
-# install.packages("devtools")
-devtools::install_github("PennLINC/ModelArray")
-```
+<!-- check above links work, esp those with section titles!!! -->
+
 ## How to use
-Load the package into R via:
+Load the `ModelArray` package into R via:
 ```{r example}
 library(ModelArray)
 ```
-We provide a quick start guide [here](https://pennlinc.github.io/ModelArray/articles/ModelArray_basics.html). \
-For documentations of functions, you can either refer to [this webpage](https://pennlinc.github.io/ModelArray/reference/index.html); 
-Or in R console: `help(<function_name>)`. For example: `help(ModelArray.lm)` \
-For users who are not familiar with R, you may check out [this webpage](https://pennlinc.github.io/ModelArray/articles/basic_r_intro.html). \
-For developers who hope to contribute to our package, you may check out this [documentation for developers](https://pennlinc.github.io/ModelArray/articles/doc_for_developer.html).
+
+We provide a example walkthrough [here](https://pennlinc.github.io/ModelArray/articles/a02_walkthrough.html). 
+
+For documentation of `ModelArray` functions, you can:
+
+* Either go to [this webpage](https://pennlinc.github.io/ModelArray/reference/index.html); 
+* Or in R console, type: `help(<function_name>)`. For example: `help(ModelArray.lm)` 
+
+Full documentation of `ModelArray` can be found [here](https://pennlinc.github.io/ModelArray/).
+
+Source code of `ModelArray` can be found [here](https://github.com/PennLINC/ModelArray).
 
 
 ```{r, include = FALSE}
