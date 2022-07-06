@@ -45,7 +45,7 @@ library(ModelArray)
 ```
 
 We provide a example walkthrough
-[here](https://pennlinc.github.io/ModelArray/articles/a02_walkthrough.html).
+[here](https://pennlinc.github.io/ModelArray/articles/walkthrough.html).
 
 For documentation of `ModelArray` functions, you can:
 
