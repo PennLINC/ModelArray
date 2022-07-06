@@ -21,9 +21,10 @@ knitr::opts_chunk$set(
 
 `ModelArray` is a memory-efficient R package for statistical analysis of fixel data. Its features include:
 
+* Easy to use: set up your statistical analysis with just several lines of codes;
 * Low memory requirement, even for large datasets;
-* At present, `ModelArray` supports linear models as well as generalized additive models (GAM) with and without penalized splines, which are particularly useful for studying nonlinear effects in lifespan data. ModelArray is extensible to more models;
-* Easy to use: set up your analysis with just several lines of codes.
+* Supporting linear and nonlinear modeling: At present, `ModelArray` supports linear models as well as generalized additive models (GAM) with and without penalized splines, which are particularly useful for studying nonlinear effects in lifespan data. ModelArray is also extensible to more models.
+
 
 ## Installation
 Please refer to webpage [Installation](https://pennlinc.github.io/ModelArray/articles/a01_installations.html) for a full guidance of installation of `ModelArray` and its companion python package [ConFixel](https://github.com/PennLINC/ConFixel). The most important steps for installing `ModelArray` are:

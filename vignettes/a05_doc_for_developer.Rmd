@@ -15,8 +15,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-***UNDER DEVELOPMENT...***
-
 Target audience: developers, and anyone from the broader community who hopes to contribute to `ModelArray`. 
 
 In this documentation, we walk through important methods used in `ModelArray` package, and the structure of the package and its functions.
@@ -25,13 +23,16 @@ We welcome community contributions to `ModelArray`. If you hope to improve funct
 
 * fork the [GitHub repository](https://github.com/PennLINC/ModelArray)
 * modify the scripts
-* update the tests and/or add necessary new tests (see folder `test`)
-* test the package and related documentations and websites can be built, and update any documentations: run `devtools::build_readme()`, `devtools::check()`, `devtools::build()`, `devtools::build_vignettes()`, and finally `pkgdown::build_site()`. Please check whether there is no error along the process, and the final built sites look good.
+* update the tests and/or add necessary new tests (see folder `tests`)
+* run tests + update docs and website: 
+  * to make sure the unit tests and package building are without error;
+  * to make sure the documentations and website can be built, and to update any documentations;
+  * to do so, run the following commands: `devtools::build_readme()`, `devtools::check()`, `devtools::build()`, `devtools::build_vignettes()`, and finally `pkgdown::build_site()`. Please check whether there is no error along the process, and the built website looks good.
 * if everything looks good, please submit a pull request to our github repository.
 
 ## Overview
 
-`ModelArray` R package supports data in HDF5 (.h5) file format. It utilizes DelayedArray, HDF5Array, etc R packages, so that statistical analysis can be performed without loading original data in HDF5 file into memory. This makes `ModelArray` very efficient in memory usage. For details, please see section "ModelArray Construction" below. \
+`ModelArray` R package supports data in Hierarchical Data Format 5 (HDF5) file format. It utilizes DelayedArray and HDF5Array R packages, so that statistical analysis can be performed without loading all the original data in HDF5 file into memory. This makes `ModelArray` very efficient in memory usage. For details, please see section "ModelArray Construction" below. \
 
 Methods for showing and accessing `ModelArray` object are basic. Please see section "Show and accessors methods of ModelArray class" for more.
 
@@ -51,16 +52,14 @@ We first define a class called `ModelArray` using `setClass()`. An `ModelArray` 
 * results: statistical result matrices (if any)
 * path: the path to the h5 file on disk
 
-The key feature of an `ModelArray` object is memory efficient, only taking about a couple of KB of memory. This is because the entire dataset in .hdf5 file was not loaded into the memory; only minimal data was loaded. To achieve this, we need `ModelArraySeed()`, which utilizes `HDF5Array::HDF5ArraySeed()`, acting as a pointer to the .hdf5 file on disk. 
-
-To make the arrays in the `ModelArray` object look more like "real" arrays, e.g. common array operations such as transpose can be applied, we utilize package `DelayedArray`. This is done in the `ModelArray()` function.
+The key feature of an `ModelArray` object is memory efficient. This is because the entire dataset in HDF5 (.h5) file was not loaded into the memory; only minimal data was loaded. To achieve this, we first need `ModelArraySeed()`, which utilizes `HDF5Array::HDF5ArraySeed()`, acting as a pointer to the .hdf5 file on disk. To make the arrays in the `ModelArray` object look more like "real" arrays, e.g. common array operations such as indexing and transposing can be applied, we utilize package `DelayedArray` to wraps the data in on-disk HDF5 file into a `DelayedArray` object. Finally a `ModelArray` class is defined by integrating above slots together. This is done in the `ModelArray()` function.
 
 Above functions and setups can be found in script `R/ModelArray_Constructor.R`
 
 ## Show and accessors methods of `ModelArray` class
-To easily show and access an `ModelArray` object, we adopt S4 Object Oriented Programming (OOP) model. 
+To easily show and access a `ModelArray` object, we adopt S4 Object Oriented Programming (OOP) model. 
 
-End users actually are using such S4 methods frequently. For example, when showing the (summarized) content of an object, users simply enter its name in R console and press "enter". It means to use the generic `show()` method. As for showing an `ModelArray` object, we adopt the same way. As `show()` has already been a generic function, we only need to `setMethod()` for its setup.
+End users of R actually are using such S4 methods frequently. For example, when showing the (summarized) content of an object, users simply enter its name in R console and press "enter". Under the hood, it uses the generic `show()` method. As for showing a `ModelArray` object, we adopt the same way. As `show()` has already been a generic function, we only need to `setMethod()` for its setup.
 
 With S4 OOP model, users can easily access the data they need. Below are current accessor functions for accessing different slots in `ModelArray` class's:
 
@@ -74,11 +73,11 @@ All of these show and accessors setups can be found in script `R/ModelArray_S4Me
 
 
 ## Model fitting
-Functions such as `ModelArray.lm()` and `ModelArray.gam()` are for model fitting. They are the interfaces with the user. Under the hood, these functions iteratively call `analyseOneElement.lm()` and `analyseOneElement.gam()` for fitting for one element, respectively. This also facilitates the parallel computing across all elements requested.  
+Functions such as `ModelArray.lm()` and `ModelArray.gam()` are for model fitting. Under the hood, these functions iteratively call `analyseOneElement.lm()` and `analyseOneElement.gam()` for fitting for one element, respectively. This also facilitates the parallel computing across all elements requested.  
 
 Besides the existing functions for linear models (`ModelArray.lm()`) and GAMs (`ModelArray.gam()`), new functions for diverse statistical models can be added by following the structure below.
 
-The general structure for model fitting functions `ModelArray.<model_name>()` in `ModelArray`: 
+The general structure for model fitting functions `ModelArray.<model_name>()` in `ModelArray` is as below: 
 
 * Some sanity checks of arguments
 * Print out some important methods for model fitting, such as `method` in `mgcv::gam()` for GAMs
@@ -102,7 +101,7 @@ For `ModelArray.gam()`, there is an additional step after one round of iteration
     * Get necessary statistics
     * Compute delta adjusted R-squared and partial R-squared; add them to the previously got data.frame
   
-Therefore, there could be two or more rounds of iterations on model fitting in `ModelArray.gam()`, depending on number of terms the user requested in `changed.rsq.term.index`.
+Therefore, there might be two or more rounds of iterations on model fitting in `ModelArray.gam()`, depending on number of terms the user requested in `changed.rsq.term.index`.
 
 Functions mentioned in this section can be found in scripts `R/analyse.R` and `R/ModelArray_Constructor.R`.
 
@@ -122,16 +121,16 @@ TODO
 ## Writing tests for CircleCI
 We use Continuous Integration (CI) testing to ensure stability and quality assurance of `ModelArray`. Therefore, when you modify the source code of `ModelArray`, it is very important to make sure you add appropriate tests of the new or modified functionality. 
 
-All the test files are located in folder `tests/testthat`. Once a commit is pushed to GitHub, Circle CI (a CI testing platform) will be triggered to build the software and run the unit tests.  
+All the test files are located in folder `tests/testthat`. Once a commit is pushed to GitHub, CircleCI (a CI testing platform) will be triggered to build the software and run the unit tests.  
 
-The tests serve the goal of:
+The tests serve the goals of:
 
-1. Run different scenarios (with different requests) and expect no error. This is to ensure when new features added, it will run without error;
-  * For some scenarios, some special data is needed. For example, when testing NAs in input data (for volume data)
+1. Run functions in different scenarios (with different requests) and expect no error. This is to ensure when new features added, it will run without error;
+  ** For some scenarios, some special data is needed. For example, when testing NAs in input data (for volume data)
 2. Expect the output data.frame will contain column with a specific name, or check the dimensions of the output data.frame. This is to ensure expected columns show up.
 3. Most importantly, check the values are as expected: statistical results calculated in ModelArray fitting loop = those calculated in standard R. 
 
-Developers can test locally to see if tests in a test file (in `tests/testthat` folder) without errors:
+Developers can run the tests locally to see if unit tests in a test file (in `tests/testthat` folder) can run without errors:
 
 ```{r, eval=FALSE}
 rm(list=ls())

@@ -71,7 +71,6 @@
 
     
     
-<p><strong><em>UNDER DEVELOPMENT…</em></strong></p>
 <p>Target audience: developers, and anyone from the broader community who hopes to contribute to <code>ModelArray</code>.</p>
 <p>In this documentation, we walk through important methods used in <code>ModelArray</code> package, and the structure of the package and its functions.</p>
 <p>We welcome community contributions to <code>ModelArray</code>. If you hope to improve functions or fix a bug in our package, please follow the following steps:</p>
@@ -79,14 +78,20 @@
 <li>fork the <a href="https://github.com/PennLINC/ModelArray" class="external-link">GitHub repository</a>
 </li>
 <li>modify the scripts</li>
-<li>update the tests and/or add necessary new tests (see folder <code>test</code>)</li>
-<li>test the package and related documentations and websites can be built, and update any documentations: run <code><a href="https://devtools.r-lib.org/reference/build_rmd.html" class="external-link">devtools::build_readme()</a></code>, <code><a href="https://devtools.r-lib.org/reference/check.html" class="external-link">devtools::check()</a></code>, <code><a href="https://devtools.r-lib.org/reference/build.html" class="external-link">devtools::build()</a></code>, <code><a href="https://devtools.r-lib.org/reference/build_vignettes.html" class="external-link">devtools::build_vignettes()</a></code>, and finally <code><a href="https://pkgdown.r-lib.org/reference/build_site.html" class="external-link">pkgdown::build_site()</a></code>. Please check whether there is no error along the process, and the final built sites look good.</li>
+<li>update the tests and/or add necessary new tests (see folder <code>tests</code>)</li>
+<li>run tests + update docs and website:
+<ul>
+<li>to make sure the unit tests and package building are without error,</li>
+<li>to make sure the documentations and website can be built, and to update any documentations</li>
+<li>to do so, run the following commands: <code><a href="https://devtools.r-lib.org/reference/build_rmd.html" class="external-link">devtools::build_readme()</a></code>, <code><a href="https://devtools.r-lib.org/reference/check.html" class="external-link">devtools::check()</a></code>, <code><a href="https://devtools.r-lib.org/reference/build.html" class="external-link">devtools::build()</a></code>, <code><a href="https://devtools.r-lib.org/reference/build_vignettes.html" class="external-link">devtools::build_vignettes()</a></code>, and finally <code><a href="https://pkgdown.r-lib.org/reference/build_site.html" class="external-link">pkgdown::build_site()</a></code>. Please check whether there is no error along the process, and the built website looks good.</li>
+</ul>
+</li>
 <li>if everything looks good, please submit a pull request to our github repository.</li>
 </ul>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p><code>ModelArray</code> R package supports data in HDF5 (.h5) file format. It utilizes DelayedArray, HDF5Array, etc R packages, so that statistical analysis can be performed without loading original data in HDF5 file into memory. This makes <code>ModelArray</code> very efficient in memory usage. For details, please see section “ModelArray Construction” below.<br></p>
+<p><code>ModelArray</code> R package supports data in Hierarchical Data Format 5 (HDF5) file format. It utilizes DelayedArray and HDF5Array R packages, so that statistical analysis can be performed without loading all the original data in HDF5 file into memory. This makes <code>ModelArray</code> very efficient in memory usage. For details, please see section “ModelArray Construction” below.<br></p>
 <p>Methods for showing and accessing <code>ModelArray</code> object are basic. Please see section “Show and accessors methods of ModelArray class” for more.</p>
 <p>The key function of <code>ModelArray</code> package is to perform statistical analysis. For details, please see section “Model fitting” below.<br></p>
 <p>Then we describe how to save statistical results to HDF5 file on disk.</p>
@@ -104,15 +109,14 @@
 <li>results: statistical result matrices (if any)</li>
 <li>path: the path to the h5 file on disk</li>
 </ul>
-<p>The key feature of an <code>ModelArray</code> object is memory efficient, only taking about a couple of KB of memory. This is because the entire dataset in .hdf5 file was not loaded into the memory; only minimal data was loaded. To achieve this, we need <code>ModelArraySeed()</code>, which utilizes <code><a href="https://rdrr.io/pkg/HDF5Array/man/HDF5ArraySeed-class.html" class="external-link">HDF5Array::HDF5ArraySeed()</a></code>, acting as a pointer to the .hdf5 file on disk.</p>
-<p>To make the arrays in the <code>ModelArray</code> object look more like “real” arrays, e.g. common array operations such as transpose can be applied, we utilize package <code>DelayedArray</code>. This is done in the <code><a href="../reference/ModelArray.html">ModelArray()</a></code> function.</p>
+<p>The key feature of an <code>ModelArray</code> object is memory efficient. This is because the entire dataset in HDF5 (.h5) file was not loaded into the memory; only minimal data was loaded. To achieve this, we first need <code>ModelArraySeed()</code>, which utilizes <code><a href="https://rdrr.io/pkg/HDF5Array/man/HDF5ArraySeed-class.html" class="external-link">HDF5Array::HDF5ArraySeed()</a></code>, acting as a pointer to the .hdf5 file on disk. To make the arrays in the <code>ModelArray</code> object look more like “real” arrays, e.g. common array operations such as indexing and transposing can be applied, we utilize package <code>DelayedArray</code> to wraps the data in on-disk HDF5 file into a <code>DelayedArray</code> object. Finally a <code>ModelArray</code> class is defined by integrating above slots together. This is done in the <code><a href="../reference/ModelArray.html">ModelArray()</a></code> function.</p>
 <p>Above functions and setups can be found in script <code>R/ModelArray_Constructor.R</code></p>
 </div>
 <div class="section level2">
 <h2 id="show-and-accessors-methods-of-modelarray-class">Show and accessors methods of <code>ModelArray</code> class<a class="anchor" aria-label="anchor" href="#show-and-accessors-methods-of-modelarray-class"></a>
 </h2>
-<p>To easily show and access an <code>ModelArray</code> object, we adopt S4 Object Oriented Programming (OOP) model.</p>
-<p>End users actually are using such S4 methods frequently. For example, when showing the (summarized) content of an object, users simply enter its name in R console and press “enter”. It means to use the generic <code>show()</code> method. As for showing an <code>ModelArray</code> object, we adopt the same way. As <code>show()</code> has already been a generic function, we only need to <code>setMethod()</code> for its setup.</p>
+<p>To easily show and access a <code>ModelArray</code> object, we adopt S4 Object Oriented Programming (OOP) model.</p>
+<p>End users of R actually are using such S4 methods frequently. For example, when showing the (summarized) content of an object, users simply enter its name in R console and press “enter”. Under the hood, it uses the generic <code>show()</code> method. As for showing a <code>ModelArray</code> object, we adopt the same way. As <code>show()</code> has already been a generic function, we only need to <code>setMethod()</code> for its setup.</p>
 <p>With S4 OOP model, users can easily access the data they need. Below are current accessor functions for accessing different slots in <code>ModelArray</code> class’s:</p>
 <ul>
 <li>
@@ -128,9 +132,9 @@
 <div class="section level2">
 <h2 id="model-fitting">Model fitting<a class="anchor" aria-label="anchor" href="#model-fitting"></a>
 </h2>
-<p>Functions such as <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code> are for model fitting. They are the interfaces with the user. Under the hood, these functions iteratively call <code><a href="../reference/analyseOneElement.lm.html">analyseOneElement.lm()</a></code> and <code><a href="../reference/analyseOneElement.gam.html">analyseOneElement.gam()</a></code> for fitting for one element, respectively. This also facilitates the parallel computing across all elements requested.</p>
+<p>Functions such as <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code> are for model fitting. Under the hood, these functions iteratively call <code><a href="../reference/analyseOneElement.lm.html">analyseOneElement.lm()</a></code> and <code><a href="../reference/analyseOneElement.gam.html">analyseOneElement.gam()</a></code> for fitting for one element, respectively. This also facilitates the parallel computing across all elements requested.</p>
 <p>Besides the existing functions for linear models (<code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>) and GAMs (<code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>), new functions for diverse statistical models can be added by following the structure below.</p>
-<p>The general structure for model fitting functions <code>ModelArray.&lt;model_name&gt;()</code> in <code>ModelArray</code>:</p>
+<p>The general structure for model fitting functions <code>ModelArray.&lt;model_name&gt;()</code> in <code>ModelArray</code> is as below:</p>
 <ul>
 <li>Some sanity checks of arguments</li>
 <li>Print out some important methods for model fitting, such as <code>method</code> in <code><a href="https://rdrr.io/pkg/mgcv/man/gam.html" class="external-link">mgcv::gam()</a></code> for GAMs</li>
@@ -169,7 +173,7 @@
 </ul>
 </li>
 </ul>
-<p>Therefore, there could be two or more rounds of iterations on model fitting in <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>, depending on number of terms the user requested in <code>changed.rsq.term.index</code>.</p>
+<p>Therefore, there might be two or more rounds of iterations on model fitting in <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>, depending on number of terms the user requested in <code>changed.rsq.term.index</code>.</p>
 <p>Functions mentioned in this section can be found in scripts <code>R/analyse.R</code> and <code>R/ModelArray_Constructor.R</code>.</p>
 </div>
 <div class="section level2">
@@ -189,19 +193,14 @@ TODO
 <h2 id="writing-tests-for-circleci">Writing tests for CircleCI<a class="anchor" aria-label="anchor" href="#writing-tests-for-circleci"></a>
 </h2>
 <p>We use Continuous Integration (CI) testing to ensure stability and quality assurance of <code>ModelArray</code>. Therefore, when you modify the source code of <code>ModelArray</code>, it is very important to make sure you add appropriate tests of the new or modified functionality.</p>
-<p>All the test files are located in folder <code>tests/testthat</code>. Once a commit is pushed to GitHub, Circle CI (a CI testing platform) will be triggered to build the software and run the unit tests.</p>
-<p>The tests serve the goal of:</p>
+<p>All the test files are located in folder <code>tests/testthat</code>. Once a commit is pushed to GitHub, CircleCI (a CI testing platform) will be triggered to build the software and run the unit tests.</p>
+<p>The tests serve the goals of:</p>
 <ol style="list-style-type: decimal">
-<li>Run different scenarios (with different requests) and expect no error. This is to ensure when new features added, it will run without error;</li>
-</ol>
-<ul>
-<li>For some scenarios, some special data is needed. For example, when testing NAs in input data (for volume data)</li>
-</ul>
-<ol start="2" style="list-style-type: decimal">
+<li>Run functions in different scenarios (with different requests) and expect no error. This is to ensure when new features added, it will run without error; ** For some scenarios, some special data is needed. For example, when testing NAs in input data (for volume data)</li>
 <li>Expect the output data.frame will contain column with a specific name, or check the dimensions of the output data.frame. This is to ensure expected columns show up.</li>
 <li>Most importantly, check the values are as expected: statistical results calculated in ModelArray fitting loop = those calculated in standard R.</li>
 </ol>
-<p>Developers can test locally to see if tests in a test file (in <code>tests/testthat</code> folder) without errors:</p>
+<p>Developers can run the tests locally to see if unit tests in a test file (in <code>tests/testthat</code> folder) can run without errors:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/rm.html" class="external-link">rm</a></span><span class="op">(</span>list<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/ls.html" class="external-link">ls</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>
 <span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/load_all.html" class="external-link">load_all</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>

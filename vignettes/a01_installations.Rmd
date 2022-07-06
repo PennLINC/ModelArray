@@ -9,13 +9,13 @@ vignette: >
 
 This page walks through the installation of `ModelArray` package and necessary dependent packages/libraries.
 
-We'll directly install `ModelArray` from [GitHub](https://github.com/PennLINC/ModelArray). Please notice that, this is only fully tested and supported on Linux Ubuntu system and macOS system. If you are a Windows user, you will face errors when running with more than one CPU cores (`n_cores = 2 or above`). You may install a Linux subsystem or virtual machine on your Windows machine.
+We'll directly install `ModelArray` from [GitHub](https://github.com/PennLINC/ModelArray). Please notice that, this is only fully tested and supported on Linux Ubuntu system and macOS system. If you are a Windows user, you will face errors when running with more than one CPU cores (`n_cores = 2 or above`). You may install a Linux subsystem or virtual machine on your Windows computer.
 
-We will first set up the conda environment, then install some dependent packages and libraries, and finally install ModelArray.
+We will first set up the conda environment, then install some dependent packages and libraries, and finally install `ModelArray`.
 
 ### Set up a conda environment
 
-We first create a conda environment `modelarray` for installing `ConFixel` etc. We'll install python version 3.9:
+We first create a conda environment `modelarray` for installing the companion software `ConFixel` etc. We'll install python version 3.9:
 
 ``` {.console}
 foo@bar:~$ conda create --name modelarray python=3.9
@@ -29,17 +29,17 @@ activate modelarray
 
 ### Install hdf5 libraries in the system
 
-Because ModelArray works with HDF5 file format, we need to make sure necessary libraries of HDF5 are installed in the system.
+Because ModelArray works with the Hierarchical Data Format 5 (HDF5) file format, we need to make sure necessary libraries of HDF5 are installed in the system.
 
 #### On a Linux Ubuntu system
 
-If you're on Linux Ubuntu system: First, please check if libhdf5-dev has been installed in the system:
+If you're on Linux Ubuntu system: First, please check if `libhdf5-dev` has been installed in the system:
 
 ``` {.console}
 foo@bar:~$ ldconfig -p | grep libhdf5*
 ```
 
-If you got more than one line of outputs, congrats, you have libhdf5-dev installed. Otherwise, please install it via:
+If you got more than one line of outputs, congrats, you have `libhdf5-dev` installed. Otherwise, please install it via:
 
 ``` {.console}
 foo@bar:~$ sudo apt-get update -y
@@ -99,7 +99,7 @@ Now, ModelArray is ready to use:
 library(ModelArray)
 ```
 
-### (Optional) Other potential packages only neededfor downloading demo data in `vignette("a02_walkthrough")` page
+### (Optional) Other potential packages only needed for downloading demo data in `vignette("a02_walkthrough")` page
 There are several potential packages only needed for downloading demo data in `vignette("a02_walkthrough")` page. You may skip this step if you will not use the demo data.
 
 * wget

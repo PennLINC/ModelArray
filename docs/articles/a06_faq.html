@@ -79,7 +79,7 @@
 <div class="section level3">
 <h3 id="what-kind-of-fixel-data-should-i-use">What kind of fixel data should I use?<a class="anchor" aria-label="anchor" href="#what-kind-of-fixel-data-should-i-use"></a>
 </h3>
-<p>Before using ModelArray, you should be at the stage where you have got fixel data from MRtrix by following the fixel-based analysis. If we use paper <a href="https://doi.org/10.1016/j.neuroimage.2021.118417" class="external-link">Dhollander et al., 2021</a> Fig.3. The fixel-based analysis pipeline as an example, we expect you have done the step “Connectivity-based fixel smoothing”. You will use the subject-level fixel data in template space from this step for further fixel-wise statistical analysis in ModelArray. We expect the file format is mif.</p>
+<p>Before using ModelArray, you should be at the stage where you have got fixel data for every participant in template space from MRtrix by following the fixel-based analysis. If we use paper <a href="https://doi.org/10.1016/j.neuroimage.2021.118417" class="external-link">Dhollander et al., 2021</a> <code>Fig.3. The fixel-based analysis pipeline</code> as an example, we expect you have done the step “Connectivity-based fixel smoothing”. You will use the participant-level fixel data in template space from this step for further fixel-wise statistical analysis in ModelArray. We expect the file format is <code>mif</code>.</p>
 </div>
 <div class="section level3">
 <h3 id="how-should-i-organize-the-data">How should I organize the data?<a class="anchor" aria-label="anchor" href="#how-should-i-organize-the-data"></a>
@@ -92,11 +92,11 @@
 <p>We expect this CSV file at least contains these two columns - see example in <code><a href="../articles/a02_walkthrough.html">vignette("a02_walkthrough")</a></code>, the required columns are highlighted in <strong><em>bold and italics</em></strong>:</p>
 <ul>
 <li>
-<code>scalar_name</code>: how should we call your metric?</li>
+<code>scalar_name</code>, which tells <code>ModelArray</code> what metric is being analyzed</li>
 <li>
-<code>source_file</code>: the filename of the subject-level fixel data. In the next step of data conversion with ConFixel, we will use <code>~/Desktop/myProject</code> as the main folder (<code>relative_root</code>), so here, we only need to provide the path starting from folder <code>FDC</code>.</li>
+<code>source_file</code>, which tells <code>ModelArray</code> which mif file will be used for this subject</li>
 </ul>
-<p>Other columns are optional - simply add covariates you’ll use in the statistical analysis in ModelArray. The order of columns can be changed.</p>
+<p>Other columns are covariates that you may want to include in the statistical model. The order of columns can be changed.</p>
 </div>
 </div>
 <div class="section level2">

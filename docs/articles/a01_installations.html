@@ -72,12 +72,12 @@
     
     
 <p>This page walks through the installation of <code>ModelArray</code> package and necessary dependent packages/libraries.</p>
-<p>We’ll directly install <code>ModelArray</code> from <a href="https://github.com/PennLINC/ModelArray" class="external-link">GitHub</a>. Please notice that, this is only fully tested and supported on Linux Ubuntu system and macOS system. If you are a Windows user, you will face errors when running with more than one CPU cores (<code>n_cores = 2 or above</code>). You may install a Linux subsystem or virtual machine on your Windows machine.</p>
-<p>We will first set up the conda environment, then install some dependent packages and libraries, and finally install ModelArray.</p>
+<p>We’ll directly install <code>ModelArray</code> from <a href="https://github.com/PennLINC/ModelArray" class="external-link">GitHub</a>. Please notice that, this is only fully tested and supported on Linux Ubuntu system and macOS system. If you are a Windows user, you will face errors when running with more than one CPU cores (<code>n_cores = 2 or above</code>). You may install a Linux subsystem or virtual machine on your Windows computer.</p>
+<p>We will first set up the conda environment, then install some dependent packages and libraries, and finally install <code>ModelArray</code>.</p>
 <div class="section level3">
 <h3 id="set-up-a-conda-environment">Set up a conda environment<a class="anchor" aria-label="anchor" href="#set-up-a-conda-environment"></a>
 </h3>
-<p>We first create a conda environment <code>modelarray</code> for installing <code>ConFixel</code> etc. We’ll install python version 3.9:</p>
+<p>We first create a conda environment <code>modelarray</code> for installing the companion software <code>ConFixel</code> etc. We’ll install python version 3.9:</p>
 <pre class="console"><code>foo@bar:~$ conda create --name modelarray python=3.9
 foo@bar:~$ conda 
 activate modelarray</code></pre>
@@ -90,13 +90,13 @@ activate modelarray</code></pre>
 <div class="section level3">
 <h3 id="install-hdf5-libraries-in-the-system">Install hdf5 libraries in the system<a class="anchor" aria-label="anchor" href="#install-hdf5-libraries-in-the-system"></a>
 </h3>
-<p>Because ModelArray works with HDF5 file format, we need to make sure necessary libraries of HDF5 are installed in the system.</p>
+<p>Because ModelArray works with the Hierarchical Data Format 5 (HDF5) file format, we need to make sure necessary libraries of HDF5 are installed in the system.</p>
 <div class="section level4">
 <h4 id="on-a-linux-ubuntu-system">On a Linux Ubuntu system<a class="anchor" aria-label="anchor" href="#on-a-linux-ubuntu-system"></a>
 </h4>
-<p>If you’re on Linux Ubuntu system: First, please check if libhdf5-dev has been installed in the system:</p>
+<p>If you’re on Linux Ubuntu system: First, please check if <code>libhdf5-dev</code> has been installed in the system:</p>
 <pre class="console"><code>foo@bar:~$ ldconfig -p | grep libhdf5*</code></pre>
-<p>If you got more than one line of outputs, congrats, you have libhdf5-dev installed. Otherwise, please install it via:</p>
+<p>If you got more than one line of outputs, congrats, you have <code>libhdf5-dev</code> installed. Otherwise, please install it via:</p>
 <pre class="console"><code>foo@bar:~$ sudo apt-get update -y
 foo@bar:~$ sudo apt-get install -y libhdf5-dev</code></pre>
 </div>
@@ -151,7 +151,7 @@ foo@bar:myProject$ rm -r ConFixel</code></pre>
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pennlinc.github.io/ModelArray">ModelArray</a></span><span class="op">)</span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="optional-other-potential-packages-only-neededfor-downloading-demo-data-in-vignettea02_walkthrough-page">(Optional) Other potential packages only neededfor downloading demo data in <code>vignette("a02_walkthrough")</code> page<a class="anchor" aria-label="anchor" href="#optional-other-potential-packages-only-neededfor-downloading-demo-data-in-vignettea02_walkthrough-page"></a>
+<h3 id="optional-other-potential-packages-only-needed-for-downloading-demo-data-in-vignettea02_walkthrough-page">(Optional) Other potential packages only needed for downloading demo data in <code>vignette("a02_walkthrough")</code> page<a class="anchor" aria-label="anchor" href="#optional-other-potential-packages-only-needed-for-downloading-demo-data-in-vignettea02_walkthrough-page"></a>
 </h3>
 <p>There are several potential packages only needed for downloading demo data in <code><a href="../articles/a02_walkthrough.html">vignette("a02_walkthrough")</a></code> page. You may skip this step if you will not use the demo data.</p>
 <ul>
