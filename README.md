@@ -44,7 +44,7 @@ Load the `ModelArray` package into R via:
 library(ModelArray)
 ```
 
-We provide a example walkthrough
+We provide a walkthrough
 [here](https://pennlinc.github.io/ModelArray/articles/walkthrough.html).
 
 For documentation of `ModelArray` functions, you can:
