@@ -11,35 +11,25 @@ FROM rocker/verse:4.1.2
 
 ## versions and parameters:
 # specify the commit SHA:  # e.g. https://github.com/PennLINC/qsiprep/blob/master/Dockerfile#L174
-ENV commitSHA_confixel="f9f04354940549f0a2f6c583ece36bb48b96a98d"
-
+    # should be the full SHA
+ENV commitSHA_confixel="5d0e9c43ec26a29f3bd18c315e1bfb1429b872e0"
 
 RUN mkdir /home/data
 # RUN mkdir /home/ModelArray
 
-## Install libraries 
+## Install libraries
 # ref: .circleci/config.yml from ModelArray:
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libhdf5-dev \
     texlive-fonts-recommended \
     git
 
-# # Install libraries
-# RUN apt-get update && apt-get install -y --no-install-recommends libhdf5-dev
-# # Install libraries for latex
-# RUN apt-get update && apt-get install -y --no-install-recommends texlive-fonts-recommended
-# Install git:   # ref a bit from: https://github.com/PennLINC/qsiprep_build/blob/main/Dockerfile_DSIStudio
-# RUN apt-get update && apt-get install -y --no-install-recommends git
 
 # Install python: # ref: https://github.com/PennLINC/flaudit/blob/master/Dockerfile#L23
 RUN apt-get update && apt-get install -y python3-pip python3-dev
 
 
 ## Install ConFixel (python package)
-# git clone xxxx.git${commitSHA}
-# cd to directory
-# pip install .
-
 RUN git clone -n https://github.com/PennLINC/ConFixel.git
 WORKDIR ConFixel
 RUN git checkout ${commitSHA_confixel}
@@ -48,7 +38,7 @@ WORKDIR /
 # RUN rm -r ConFixel
 
 
-## Install dependent R packages: 
+## Install dependent R packages:
 # from CRAN:   # removed base packages from the list (otherwise warning in docker build): methods and parallel
 RUN install2.r --error --ncpus -4 \
     matrixStats \
@@ -73,12 +63,8 @@ RUN R -e 'BiocManager::install("HDF5Array")'
 RUN R -e 'BiocManager::install("rhdf5")'
 RUN R -e 'BiocManager::install("DelayedArray")'
 
-# # copy necessary files and folders:
-# COPY ./install_packages.R ./install_packages.R
-# # install R-packages:
-# RUN Rscript ./install_packages.R
-
 
 ## install ModelArray (R package)
-# please update commit SHA for ModelArray if needed
-RUN R -e 'devtools::install_github("PennLINC/ModelArray@58b075d7862810463b0df307767b90674c5dceec")'
+COPY . /ModelArray
+WORKDIR ModelArray
+RUN R -e 'devtools::install()'
