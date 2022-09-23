@@ -99,9 +99,8 @@ workflows:
       #         only: /.*/
 
       - deployable:
-          # TODO: uncomment below !!!
-          # requires:
-          #   - releaseR4.1.2
+          requires:
+            - releaseR4.1.2
             # - releaseR4.2.0
             # - develR
           filters:
