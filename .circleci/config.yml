@@ -9,6 +9,7 @@ steps: &steps
           echo $CIRCLE_SHA1
           ls
           echo $CIRCLE_SHA1 > temp_file.txt   # echo the commit SHA into a file
+          ls
     # TODO: uncomment commands below !!!!!
     # - run:
     #     name: Install libraries
