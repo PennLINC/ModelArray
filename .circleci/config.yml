@@ -63,7 +63,7 @@ jobs:
             docker build \
               --cache-from=pennlinc/modelarray_confixel \
               --rm=false \
-              -t pennlinc/modelarray_confixel:latest
+              -t pennlinc/modelarray_confixel:latest .
               # TODO: add --build-arg
             # TODO: add several tries, if needed
       - run:
