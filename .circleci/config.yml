@@ -5,7 +5,10 @@ steps: &steps
     - checkout
     - run:
         name: Test if GitHub code can be changed
-        command: echo $CIRCLE_SHA1 > temp_file.txt   # echo the commit SHA into a file
+        command: |
+          echo $CIRCLE_SHA1
+          ls
+          echo $CIRCLE_SHA1 > temp_file.txt   # echo the commit SHA into a file
     # TODO: uncomment commands below !!!!!
     # - run:
     #     name: Install libraries
@@ -111,8 +114,8 @@ workflows:
             # - develR
           filters:
             # TODO: uncomments below:
-            # branches:
-            #   only: main
+            branches:
+              only: main
             tags:   # make sure any `git tag` triggers the run
               only: /.*/
 
@@ -121,8 +124,8 @@ workflows:
             - deployable
           filters:
             # TODO: uncomments below:
-            # branches:
-            #   only: main
+            branches:
+              only: main
             tags:   # make sure any `git tag` triggers the run
               only: /.*/
 
