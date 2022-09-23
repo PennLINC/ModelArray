@@ -41,6 +41,7 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
         # ^^ I did not add this, because users should check out version by `packageVersion("ModelArray")`
         # in R when running this Docker image
         # also, it's a bit hard to get this version in circleci (as the base image of docker building does not have R...)
+        # but someone says it is "git branch name"?? ref: https://guide.opencord.org/cord-5.0/build_images.html
       org.label-schema.schema-version="1.0"
 # ^^these information can be viewed by:
     # docker inspect pennlinc/modelarray_confixel:<docker_tag>

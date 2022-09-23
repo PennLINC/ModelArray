@@ -64,7 +64,7 @@ jobs:
               --rm=false \
               -t pennlinc/modelarray_confixel:latest \
               --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
-              --build-arg VCS_REF=`git rev-parse --short HEAD` .
+              --build-arg VCS_REF=`git rev-parse HEAD` .
       - run:
           name: Deploy to Docker Hub
           no_output_timeout: 40m
