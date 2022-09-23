@@ -16,11 +16,15 @@ steps: &steps
         name: Install package dependencies (hdf5r)
         command: R -e "require(hdf5r)" # "lapply(c('hdf5r','HDF5Array','DelayedArray'), require, character.only=TRUE)"
     - run:
-        name: Build package
-        command: R CMD build .
-    - run:
-        name: Check package
-        command: R CMD check *tar.gz
+        name: Test if GitHub code can be changed
+        command: echo $CIRCLE_SHA1 > temp_file.txt   # echo the commit SHA into a file
+    # TODO: uncomment commands below !!!!!
+    # - run:
+    #     name: Build package
+    #     command: R CMD build .
+    # - run:
+    #     name: Check package
+    #     command: R CMD check *tar.gz
 
 
 jobs:
