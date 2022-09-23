@@ -4,31 +4,23 @@ steps: &steps
   steps:
     - checkout
     - run:
-        name: Test if GitHub code can be changed
-        command: |
-          echo $CIRCLE_SHA1
-          ls
-          echo $CIRCLE_SHA1 > temp_file.txt   # echo the commit SHA into a file
-          ls
-    # TODO: uncomment commands below !!!!!
-    # - run:
-    #     name: Install libraries
-    #     command: apt-get update && apt-get install -y --no-install-recommends libhdf5-dev
-    # - run:
-    #     name: Install libraries for latex
-    #     command: apt-get update && apt-get install -y --no-install-recommends texlive-fonts-recommended
-    # - run:
-    #     name: Install package dependencies
-    #     command: R -e "devtools::install_deps(dep = TRUE)"
-    # - run:
-    #     name: Install package dependencies (hdf5r)
-    #     command: R -e "require(hdf5r)" # "lapply(c('hdf5r','HDF5Array','DelayedArray'), require, character.only=TRUE)"
-    # - run:
-    #     name: Build package
-    #     command: R CMD build .
-    # - run:
-    #     name: Check package
-    #     command: R CMD check *tar.gz
+        name: Install libraries
+        command: apt-get update && apt-get install -y --no-install-recommends libhdf5-dev
+    - run:
+        name: Install libraries for latex
+        command: apt-get update && apt-get install -y --no-install-recommends texlive-fonts-recommended
+    - run:
+        name: Install package dependencies
+        command: R -e "devtools::install_deps(dep = TRUE)"
+    - run:
+        name: Install package dependencies (hdf5r)
+        command: R -e "require(hdf5r)" # "lapply(c('hdf5r','HDF5Array','DelayedArray'), require, character.only=TRUE)"
+    - run:
+        name: Build package
+        command: R CMD build .
+    - run:
+        name: Check package
+        command: R CMD check *tar.gz
 
 
 jobs:
@@ -114,7 +106,6 @@ workflows:
             # - releaseR4.2.0
             # - develR
           filters:
-            # TODO: uncomments below:
             branches:
               only: main
             tags:   # make sure any `git tag` triggers the run
@@ -124,7 +115,6 @@ workflows:
           requires:
             - deployable
           filters:
-            # TODO: uncomments below:
             branches:
               only: main
             tags:   # make sure any `git tag` triggers the run
