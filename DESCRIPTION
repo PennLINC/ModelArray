@@ -1,7 +1,7 @@
 Package: ModelArray
 Title: A memory-efficient R package for statistical analysis of fixel data
-Version: 0.1.1
-Authors@R: 
+Version: 0.1.1.9000
+Authors@R:
     c(person(given = "Chenying",
            family = "Zhao",
            role = c("aut", "cre"),
@@ -11,7 +11,7 @@ Authors@R:
             role = c("aut")),
        person(give = "Matthew",
             family = "Cieslak",
-            role = c("aut")), 
+            role = c("aut")),
         person(give = "Theodore",
             family = "Satterthwaite",
             role = c("aut")) )
@@ -21,7 +21,7 @@ Encoding: UTF-8
 LazyData: true
 Depends: R (>= 4.1.2)
 biocViews:
-Imports: 
+Imports:
     matrixStats (>= 0.60.1),
     magrittr,
     methods,
@@ -43,7 +43,7 @@ Imports:
     pbapply,
     crayon
 RoxygenNote: 7.1.2
-Suggests: 
+Suggests:
     rmarkdown,
     knitr,
     testthat (>= 3.0.0)
