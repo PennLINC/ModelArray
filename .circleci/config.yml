@@ -48,7 +48,7 @@ jobs:
       TZ: "/usr/share/zoneinfo/America/New_York"
     docker:
       - image: cimg/base:2020.09
-    working_directory: tmp/src/modelarray_build    # the code will be check-ed out to here
+    # working_directory: tmp/src/modelarray_build    # the code will be check-ed out to here
     steps:
       - checkout
       - setup_remote_docker:
