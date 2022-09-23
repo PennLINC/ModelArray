@@ -55,31 +55,31 @@ jobs:
           version: 20.10.17
           docker_layer_caching: true
       - run:
-        name: Build Docker image
-        no_output_timeout: 2h
-        command: |
-          # TODO: Get version, update files in the GitHub repo
-          # Build docker image
-          docker build \
-            --cache-from=pennlinc/modelarray_confixel \
-            --rm=false \
-            -t pennlinc/modelarray_confixel:latest
-            # TODO: add --build-arg
-          # TODO: add several tries, if needed
+          name: Build Docker image
+          no_output_timeout: 2h
+          command: |
+            # TODO: Get version, update files in the GitHub repo
+            # Build docker image
+            docker build \
+              --cache-from=pennlinc/modelarray_confixel \
+              --rm=false \
+              -t pennlinc/modelarray_confixel:latest
+              # TODO: add --build-arg
+            # TODO: add several tries, if needed
       - run:
-        name: Deploy to Docker Hub
-        no_output_timeout: 40m
-        command: |
-          if [[ -n "$DOCKER_PASS" ]]; then
-              docker login -u $DOCKER_USER -p $DOCKER_PASS
-              docker tag pennlinc/modelarray_confixel pennlinc/modelarray_confixel:unstable
-              docker push pennlinc/modelarray_confixel:unstable
-              if [[ -n "$CIRCLE_TAG" ]]; then    # if exists
-                docker push pennlinc/modelarray_confixel:latest    # push to latest
-                docker tag pennlinc/modelarray_confixel pennlinc/modelarray_confixel:$CIRCLE_TAG    # tag with version from `git tag`
-                docker push pennlinc/modelarray_confixel:$CIRCLE_TAG   # push to tag
-              fi
-          fi
+          name: Deploy to Docker Hub
+          no_output_timeout: 40m
+          command: |
+            if [[ -n "$DOCKER_PASS" ]]; then
+                docker login -u $DOCKER_USER -p $DOCKER_PASS
+                docker tag pennlinc/modelarray_confixel pennlinc/modelarray_confixel:unstable
+                docker push pennlinc/modelarray_confixel:unstable
+                if [[ -n "$CIRCLE_TAG" ]]; then    # if exists
+                  docker push pennlinc/modelarray_confixel:latest    # push to latest
+                  docker tag pennlinc/modelarray_confixel pennlinc/modelarray_confixel:$CIRCLE_TAG    # tag with version from `git tag`
+                  docker push pennlinc/modelarray_confixel:$CIRCLE_TAG   # push to tag
+                fi
+            fi
 
 
 workflows:
