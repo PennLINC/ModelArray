@@ -38,6 +38,7 @@ articles:
   contents:
   - installations
   - walkthrough
+  - docker
   - doc_for_developer
 
 - title: More

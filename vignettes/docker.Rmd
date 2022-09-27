@@ -1,0 +1,144 @@
+---
+title: "docker"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using Docker}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Although ModelArray is memory efficient and it can be run on local computers, users also have an option to run it on High Performance Computing (HPC) clusters. When using HPC clusters, users may not have full privilege to install all the dependent packages. Therefore, we also provide a Docker image of `ModelArray + ConFixel` to enhance portability and to facilitate running on clusters.
+
+The Docker image is public available at [Docker Hub](https://hub.docker.com/r/pennlinc/modelarray_confixel).
+
+Here we cover how to use this Docker image to run `ModelArray` and `ConFixel`. Before going through this documentation, please download demo fixel-wise data we provide from OSF into a directory e.g., `/myProject` - please refer to Step 1.1 and Step 1.2 in `vignette("walkthrough")`. The data we provide includes subject-level fixel-wise FDC data (.mif files) and a .csv file of cohort phenotypes:
+
+``` {.console}
+/myProject
+├── cohort_FDC_n100.csv
+├── FDC
+│   ├── directions.mifs
+│   ├── index.mif
+│   ├── sub-010b693.mif
+│   ├── sub-0133f31.mif
+│   ├── sub-063fd82.mif
+│   ├── ...
+└── ...
+
+```
+
+## Using singularity to run on HPC clusters
+Prerequisite: Singularity installed HCP clusters. If not, please contact the HPC's administrator.
+
+Although HPC clusters usually only support Singularity but not Docker, it is still fine to use the Docker image.
+
+### Step 1. Pull the container from Docker Hub
+We first pull the container from Docker Hub using `singularity pull`:
+
+```{.console}
+cd /Software     # let's put the image in folder `/Software`
+singularity pull docker://pennlinc/modelarray_confixel:latest
+```
+You may replace the `latest` to any tagged version, e.g., `0.1.2`. You should see a .sif image in current directory: `modelarray_confixel_latest.sif`
+
+After pulling, let's make sure it's success:
+```{.console}
+singularity run --cleanenv \
+    modelarray_confixel_latest.sif \
+    R
+```
+
+You should have entered an R environment. You should be able to load `ModelArray` R package as you usually do in RStudio: `library(ModelArray)`. Now let's start with the data conversion.
+
+### Step 2. Convert data into an HDF5 file using ConFixel
+The `ConFixel` and dependent packages are also included in this container. Let's run the singularity image to convert the list of .mif files into an HDF5 file that `ModelArray` requires:
+<!---
+Note: tested and found that `dir_data` begins with `~` (e.g.,  `dir_data="~/myProject"`) did not work....`cd $dir_data` throws error.
+--->
+
+```{.console}
+dir_singularity="/Software"    # where the .sif file is
+fn_singularity="${dir_singularity}/modelarray_confixel_latest.sif"   # filename of singularity image with full path
+
+dir_data="/myProject"   # where the data is downloaded and unzipped
+dir_mounted_data="/mnt/mydata"   # the mounted directory within singularity image
+
+cd $dir_data
+singularity run --cleanenv -B ${dir_data}:${dir_mounted_data} \
+    ${fn_singularity} \
+    confixel \
+    --index-file FDC/index.mif \
+    --directions-file FDC/directions.mif \
+    --cohort-file cohort_FDC_n100.csv \
+    --relative-root ${dir_mounted_data} \
+    --output-hdf5 demo_FDC_n100.h5
+    
+```
+
+When this is running, you will see a moving progress bar. When it finishes, it looks like this:
+
+```console
+Extracting .mif data...
+100%|█████████████████████████████████████████| 100/100 [00:03<00:00, 30.33it/s]
+```
+
+Now you got the converted HDF5 file `demo_FDC_n100.h5` in folder `/myProject`.
+
+### Step 3. Run ModelArray
+#### Step 3.1. Prepare an R script to run
+We recommend to first prepare an R script of running ModelArray. To prepare it, you may try out the commands of `ModelArray` either on your local computer, or in the interactive R console that is launched by `singularity run --cleanenv modelarray_confixel_latest.sif R`. 
+
+TODO: ^^ try out if we can ModelArray something by `singularity run .... R` - any issue without mounting?
+
+An example R script is as below. Please refer to `vignette("walkthrough")` for detailed explanation.
+
+```{r example R script, eval=FALSE}
+# Prepare:
+# filename of example fixel data (.h5 file):
+h5_path <- "~/Desktop/myProject/demo_FDC_n100.h5"
+# create a ModelArray-class object:
+modelarray <- ModelArray(h5_path, scalar_types = c("FDC")) 
+
+# filename of example fixel data (.h5 file):
+csv_path <- "~/Desktop/myProject/cohort_FDC_n100.csv"
+# load the CSV file:
+phenotypes <- read.csv(csv_path)
+
+
+# Run statistical analysis:
+formula.lm <- FDC ~ Age + sex + dti64MeanRelRMS
+# run linear model fitting with ModelArray.lm()
+mylm <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
+                      n_cores = 4)   # Make sure you also request >=4 CPU cores on the cluster
+# Above is a full run of all fixels which will take some time; if you want to quickly test out first, add `element.subset = 1:100` in `ModelArray.lm()`
+
+
+# Write the results:
+writeResults(h5_path, df.output = mylm, analysis_name = "results_lm")
+```
+
+Let's name this R script as `run_ModelArray.R` and save it to `/myProject` folder.
+
+#### Run singularity image and call the R script
+```{.console}
+filename_Rscript="run_ModelArray.R"
+
+cd /myProject    # where the data and the R script is
+
+singularity run --cleanenv ${fn_singularity} \
+    Rscript ./${filename_Rscript}
+# Above command will take some time if running the all fixels.
+```
+
+You may run above command in an interactive terminal. To avoid the connection disruption that stops the command running, we suggest saving above commands into a bash file and submitting a job to run this on the cluster. 
+
+
+### Step 4. Convert the statistical results into mif file format using ConFixel
+
+TODO...
+
+<!---
+## Using Docker to run locally
+TODO: test on regular Mac computer; Mac M1; linux; windows computer
+
+--->

@@ -70,7 +70,7 @@ The table in this CSV file includes these columns:
 * Covariates: the covariates we want to include in the statistical model. Here `dti64MeanRelRMS` is a measure of in-scanner motion, which we want to control for.
 
 
-### Step 1.3. Convert data into a HDF5 file using ConFixel
+### Step 1.3. Convert data into an HDF5 file using ConFixel
 
 One of the reasons why `ModelArray` is memory efficient is it takes advantages of Hierarchical Data Format 5 (HDF5) file format. The extension of this file format is `.h5`. In short, an HDF5 file stores large datasets hierarchically. Let's use `ConFixel` to convert the list of mif files into an HDF5 file. In the terminal console:
 
