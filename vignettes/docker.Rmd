@@ -13,19 +13,20 @@ The Docker image is public available at [Docker Hub](https://hub.docker.com/r/pe
 
 Here we cover how to use this Docker image to run `ModelArray` and `ConFixel`. If you're new to ModelArray, we suggest to start with `vignette("walkthrough")` which has more detailed explanations.
 
-Before going through this documentation, please download demo fixel-wise data we provide from OSF into a directory e.g., `/myProject` - please refer to Step 1.1 and Step 1.2 in `vignette("walkthrough")`. The data we provide includes subject-level fixel-wise FDC data (.mif files) and a .csv file of cohort phenotypes:
+Before going through this documentation, please download demo fixel-wise data we provide from OSF into a directory e.g., `/myProject/data` - please refer to Step 1.1 and Step 1.2 in `vignette("walkthrough")`. The data we provide includes subject-level fixel-wise FDC data (.mif files) and a .csv file of cohort phenotypes:
 
 ``` {.console}
 /myProject
-├── cohort_FDC_n100.csv
-├── FDC
-│   ├── directions.mifs
-│   ├── index.mif
-│   ├── sub-010b693.mif
-│   ├── sub-0133f31.mif
-│   ├── sub-063fd82.mif
-│   ├── ...
-└── ...
+├── code    # we'll explain this folder later
+└── data
+    ├── cohort_FDC_n100.csv
+    └── FDC
+        ├── directions.mif
+        ├── index.mif
+        ├── sub-010b693.mif
+        ├── sub-0133f31.mif
+        ├── sub-063fd82.mif
+        ├── ...
 
 ```
 
@@ -55,15 +56,15 @@ You should have entered an R environment. You should be able to load `ModelArray
 ### Step 2. Convert data into an HDF5 file using ConFixel
 The `ConFixel` and dependent packages are also included in this container. Let's run the singularity image to convert the list of .mif files into an HDF5 file that `ModelArray` requires:
 <!---
-Note: tested and found that `dir_data` begins with `~` (e.g.,  `dir_data="~/myProject"`) did not work....`cd $dir_data` throws error.
+Note: tested and found that `dir_data` begins with `~` (e.g.,  `dir_data="~/myProject/data"`) did not work....`cd $dir_data` throws error.
 --->
 
 ```{.console}
 dir_singularity="/Software"    # where the .sif file is
 fn_singularity="${dir_singularity}/modelarray_confixel_latest.sif"   # filename of singularity image with full path
 
-dir_data="/myProject"   # where the data is downloaded and unzipped
-dir_mounted_data="/mnt/mydata"   # the mounted directory within singularity image
+dir_data="/myProject/data"   # where the data is downloaded and unzipped
+dir_mounted_data="/mnt/data"   # the mounted directory within singularity image
 
 cd $dir_data
 singularity run --cleanenv -B ${dir_data}:${dir_mounted_data} \
@@ -75,18 +76,23 @@ singularity run --cleanenv -B ${dir_data}:${dir_mounted_data} \
     --relative-root ${dir_mounted_data} \
     --output-hdf5 demo_FDC_n100.h5
 
-# Here, `-B` means to mount the directory that's on the cluster but outside the singularity container into another directory within the singularity container. If for your case, any input file is in another directory, please make sure that directory is mounted, too, e.g., `-B <a comma separated list of mounting>`.
-# Note that for `--relative-root` we provide the directory within the singularity container.
+
 ```
 
-When this is running, you will see a moving progress bar. When it finishes, it looks like this:
+As you probably noted, we need to "mount" directories that are on the cluster but outside the singularity container into directories within the container. This is done by `-B` when `singularity run`.  
+
+If for your case, any input file or output file is (or will be) in another directory, please make sure that directory is mounted too, by providing a comma-separated mounting list, e.g., `-B /path/to/data1:/mnt/data1,/path/to/data2:/mnt/data2`, where `path/to/*` are folders outside the singularity container, `/mnt/*` are those within the container. You may find out more about mounting [here](https://singularity-userdoc.readthedocs.io/en/latest/bind_paths_and_mounts.html).
+ 
+In addition, Note that for `--relative-root` we provide the directory within the singularity container. Other argument paths should be relative to `--relative-root` **within** the container, not outside, i.e., imagine you're inside the container and in the directory of `--relative-root`, where are those files relative to here?
+
+When the above command is running, you will see a moving progress bar. When it finishes, it looks like this:
 
 ```console
 Extracting .mif data...
 100%|█████████████████████████████████████████| 100/100 [00:03<00:00, 30.33it/s]
 ```
 
-Now you got the converted HDF5 file `demo_FDC_n100.h5` in folder `/myProject`.
+Now you got the converted HDF5 file `demo_FDC_n100.h5` in folder `/myProject/data`.
 
 ### Step 3. Run ModelArray
 #### Step 3.1. Prepare an R script to run
@@ -99,50 +105,120 @@ Note: seems like even without mounting but as long as running R, i.e., `singular
 An example R script is as below. Please refer to `vignette("walkthrough")` for detailed explanation.
 
 ```{r example R script, eval=FALSE}
-rm(list=ls())
+m(list=ls())
 library(ModelArray)
 
-# Prepare:
+# =======================================
+# Define input filenames
+# =======================================
+# the mounted data directory in singularity container:
+dir_mounted_data <- "/mnt/myProject/data"
 # filename of example fixel data (.h5 file):
-h5_path <- "/myProject/demo_FDC_n100.h5"
-# create a ModelArray-class object:
-modelarray <- ModelArray(h5_path, scalar_types = c("FDC")) 
+h5_path <- file.path(dir_mounted_data, "demo_FDC_n100.h5")
+# filename of example fixel data (.h5 file):
+csv_path <- file.path(dir_mounted_data, "cohort_FDC_n100.csv")
 
-# filename of example fixel data (.h5 file):
-csv_path <- "/myProject/cohort_FDC_n100.csv"
+# =======================================
+# Get ready
+# =======================================
+# create a ModelArray-class object:
+modelarray <- ModelArray(h5_path, scalar_types = c("FDC"))
 # load the CSV file:
 phenotypes <- read.csv(csv_path)
 
-
-# Run statistical analysis:
+# =======================================
+# Run statistical analysis
+# =======================================
 formula.lm <- FDC ~ Age + sex + dti64MeanRelRMS
 # run linear model fitting with ModelArray.lm()
 mylm <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
-                      n_cores = 4)   
+                      # element.subset = 1:100, 
+                      n_cores = 4)
 
 # Notes: Make sure you also request >=4 CPU cores on the cluster
 # Notes: Above is a full run of all fixels which will take some time; if you want to quickly test out first, add `element.subset = 1:100` in `ModelArray.lm()`
 
-
-# Write the results:
+# =======================================
+# Write the results
+# =======================================
 writeResults(h5_path, df.output = mylm, analysis_name = "results_lm")
+
+# =======================================
+# Check the results (optional)
+# =======================================
+# create a new ModelArray-class object:
+modelarray_new <- ModelArray(filepath = h5_path, scalar_types = "FDC",
+                             analysis_names = c("results_lm"))
+modelarray_new
 ```
 
-Let's name this R script as `run_ModelArray.R`, make a new folder called `code` in `/myProject`, and save this R script to `/myProject/code` folder.
+Let's name this R script as `run_ModelArray.R`, and save this R script to `/myProject/code` folder, so the current folder structure is:
+```{.console}
+/myProject
+├── code
+│   ├── run_ModelArray.R
+│   └── ...
+└── data
+    ├── cohort_FDC_n100.csv
+    ├── demo_FDC_n100.h5
+    ├── FDC
+    │   ├── directions.mifs
+    │   ├── index.mif
+    │   ├── sub-010b693.mif
+    │   ├── sub-0133f31.mif
+    │   ├── sub-063fd82.mif
+    │   ├── ...
+    └── ...
+```
 
 #### Run singularity image and call the R script
+
+Below are the example commands to run the singularity image and call above R script. Let's name it as `call_ModelArray.sh` and also save it to folder `code`, the same folder as the R script.
+
 ```{.console}
+#!/bin/bash
+
+# This is to call `run_ModelArray.R`.
+# Assume this script is in the same folder as the R script.
+
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 filename_Rscript="run_ModelArray.R"
 
-cd /myProject    # where the data and the R script is
+dir_project="/myProject"
+dir_mounted_project="/mnt/myProject"
+dir_data="${dir_project}/data"   # where the data is downloaded and unzipped
+dir_mounted_data="/mnt/data"   # the mounted directory within singularity image
+dir_code="${dir_project}/code"
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-singularity run --cleanenv -B ${dir_data}:${dir_mounted_data} \
+cd $dir_code   
+date
+
+singularity run --cleanenv -B ${dir_project}:${dir_mounted_project} \
     ${fn_singularity} \
-    Rscript ./${filename_Rscript}
-# Above command will take some time if running the all fixels.
+    Rscript ${dir_mounted_project}/code/${filename_Rscript} \
+    > printed_message.txt 2>&1   # this is path on cluster, as it's outside the singularity container
+
+date
 ```
 
-You may run above command in an interactive terminal, however, this is probably not the best practice. To avoid the connection disruption that stops the command running, we suggest saving above commands into a bash file and submitting a job to run this on the cluster. 
+Here, we directly mount the `/myProject` directory as `/mnt/myProject`. This is to make sure that data and scripts are all mounted.
+
+`> printed_message.txt 2>&1` is to save the messages that are printed in the terminal console into a text file, so that you can still view it afterwards (or during the job is running). Only for the path of this file you should use path on cluster; for other paths, you should use the path within the container.
+
+You may run above command in an interactive terminal, however, this is probably not the best practice. To avoid the connection disruption that stops the command from running, we suggest saving above commands into a bash file (e.g., `call_ModelArray.sh` in `code` folder) and submitting a job to run this on the cluster. Below are example commands for SGE clusters:
+
+```
+cd /myProject/code    # make sure you're in the same directory as `call_ModelArray.sh`
+
+h_vmem=10G   
+num_cores=4   # MAKE SURE IT'S CONSISTENT WITH pncNback_call_modelarrayR.sh!!!
+
+qsub -l h_vmem=${h_vmem} -pe threaded ${num_cores} call_ModelArray.sh
+```
+
+Here, `h_vmem` is the (max) virtual memory we need, which is usually higher than the real memory the program takes, therefore we suggest giving a bit redundancy just to be safe. Increase this value if you are requesting more CPU cores (`num_cores`).
+
 
 
 ### Step 4. Convert the statistical results into mif file format using ConFixel
