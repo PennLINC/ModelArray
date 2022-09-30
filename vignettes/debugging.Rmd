@@ -1,0 +1,23 @@
+---
+title: "debugging"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Debugging}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Here we cover possible errors and how to debug. This is a growing list and more examples will be added...
+
+## `ModelArray()`
+### "This analysis: myAnalysis does not exist..."
+When calling `ModelArray(h5_path, scalar_types = c("FDC"))`:
+```{.console}
+Error in ModelArray(h5_path, scalar_types = c("FDC")) : 
+  This analysis: myAnalysis does not exist...
+Execution halted
+```
+One reason this happen is, means that the HDF5 file you want to "load" does have some results, but you did not specify the result name, and `ModelArray()` function uses the default name `myAnalysis` which is not the result name you have.
+
+This issue happens frequently if you want to test out an R script where some results are saved to the HDF5 file; the next time when you run the script, the result name was not specified in `ModelArray()` which causes this error. One way to avoid this is to make a backup of the original HDF5 file, and if you want to use that as input, make a copy before running `ModelArray()`.
+

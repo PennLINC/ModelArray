@@ -11,7 +11,9 @@ Although ModelArray is memory efficient and it can be run on local computers, us
 
 The Docker image is public available at [Docker Hub](https://hub.docker.com/r/pennlinc/modelarray_confixel).
 
-Here we cover how to use this Docker image to run `ModelArray` and `ConFixel`. Before going through this documentation, please download demo fixel-wise data we provide from OSF into a directory e.g., `/myProject` - please refer to Step 1.1 and Step 1.2 in `vignette("walkthrough")`. The data we provide includes subject-level fixel-wise FDC data (.mif files) and a .csv file of cohort phenotypes:
+Here we cover how to use this Docker image to run `ModelArray` and `ConFixel`. If you're new to ModelArray, we suggest to start with `vignette("walkthrough")` which has more detailed explanations.
+
+Before going through this documentation, please download demo fixel-wise data we provide from OSF into a directory e.g., `/myProject` - please refer to Step 1.1 and Step 1.2 in `vignette("walkthrough")`. The data we provide includes subject-level fixel-wise FDC data (.mif files) and a .csv file of cohort phenotypes:
 
 ``` {.console}
 /myProject
@@ -72,7 +74,9 @@ singularity run --cleanenv -B ${dir_data}:${dir_mounted_data} \
     --cohort-file cohort_FDC_n100.csv \
     --relative-root ${dir_mounted_data} \
     --output-hdf5 demo_FDC_n100.h5
-    
+
+# Here, `-B` means to mount the directory that's on the cluster but outside the singularity container into another directory within the singularity container. If for your case, any input file is in another directory, please make sure that directory is mounted, too, e.g., `-B <a comma separated list of mounting>`.
+# Note that for `--relative-root` we provide the directory within the singularity container.
 ```
 
 When this is running, you will see a moving progress bar. When it finishes, it looks like this:
@@ -86,21 +90,26 @@ Now you got the converted HDF5 file `demo_FDC_n100.h5` in folder `/myProject`.
 
 ### Step 3. Run ModelArray
 #### Step 3.1. Prepare an R script to run
-We recommend to first prepare an R script of running ModelArray. To prepare it, you may try out the commands of `ModelArray` either on your local computer, or in the interactive R console that is launched by `singularity run --cleanenv modelarray_confixel_latest.sif R`. 
+We recommend to first prepare an R script of running ModelArray. To prepare it, you may try out the commands of `ModelArray` either on your local computer in RStudio, or in the interactive R console that is launched by `singularity run --cleanenv -B ${dir_data}:${dir_mounted_data} modelarray_confixel_latest.sif R`. As noted, the best practice is still to mount the directory as another one within the singularity container.
 
-TODO: ^^ try out if we can ModelArray something by `singularity run .... R` - any issue without mounting?
+<!---
+Note: seems like even without mounting but as long as running R, i.e., `singularity run --cleanenv modelarray_confixel_latest.sif R` can still see the folder outside the singularity, e.g., `/cbica/projects/xxx/xxx`. It might be only available when running R
+--->
 
 An example R script is as below. Please refer to `vignette("walkthrough")` for detailed explanation.
 
 ```{r example R script, eval=FALSE}
+rm(list=ls())
+library(ModelArray)
+
 # Prepare:
 # filename of example fixel data (.h5 file):
-h5_path <- "~/Desktop/myProject/demo_FDC_n100.h5"
+h5_path <- "/myProject/demo_FDC_n100.h5"
 # create a ModelArray-class object:
 modelarray <- ModelArray(h5_path, scalar_types = c("FDC")) 
 
 # filename of example fixel data (.h5 file):
-csv_path <- "~/Desktop/myProject/cohort_FDC_n100.csv"
+csv_path <- "/myProject/cohort_FDC_n100.csv"
 # load the CSV file:
 phenotypes <- read.csv(csv_path)
 
@@ -109,15 +118,17 @@ phenotypes <- read.csv(csv_path)
 formula.lm <- FDC ~ Age + sex + dti64MeanRelRMS
 # run linear model fitting with ModelArray.lm()
 mylm <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
-                      n_cores = 4)   # Make sure you also request >=4 CPU cores on the cluster
-# Above is a full run of all fixels which will take some time; if you want to quickly test out first, add `element.subset = 1:100` in `ModelArray.lm()`
+                      n_cores = 4)   
+
+# Notes: Make sure you also request >=4 CPU cores on the cluster
+# Notes: Above is a full run of all fixels which will take some time; if you want to quickly test out first, add `element.subset = 1:100` in `ModelArray.lm()`
 
 
 # Write the results:
 writeResults(h5_path, df.output = mylm, analysis_name = "results_lm")
 ```
 
-Let's name this R script as `run_ModelArray.R` and save it to `/myProject` folder.
+Let's name this R script as `run_ModelArray.R`, make a new folder called `code` in `/myProject`, and save this R script to `/myProject/code` folder.
 
 #### Run singularity image and call the R script
 ```{.console}
@@ -125,12 +136,13 @@ filename_Rscript="run_ModelArray.R"
 
 cd /myProject    # where the data and the R script is
 
-singularity run --cleanenv ${fn_singularity} \
+singularity run --cleanenv -B ${dir_data}:${dir_mounted_data} \
+    ${fn_singularity} \
     Rscript ./${filename_Rscript}
 # Above command will take some time if running the all fixels.
 ```
 
-You may run above command in an interactive terminal. To avoid the connection disruption that stops the command running, we suggest saving above commands into a bash file and submitting a job to run this on the cluster. 
+You may run above command in an interactive terminal, however, this is probably not the best practice. To avoid the connection disruption that stops the command running, we suggest saving above commands into a bash file and submitting a job to run this on the cluster. 
 
 
 ### Step 4. Convert the statistical results into mif file format using ConFixel
@@ -142,3 +154,9 @@ TODO...
 TODO: test on regular Mac computer; Mac M1; linux; windows computer
 
 --->
+
+For more, please refer to:
+
+* Detailed example walkthrough of ModelArray and ConFixel: `vignette("walkthrough")`
+* Possible errors and how to debug: `vignette("debugging")`
+
