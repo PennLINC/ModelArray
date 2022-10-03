@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-This page walks through the installation of `ModelArray` package and necessary dependent packages/libraries. If you have difficulty installing necessary packages (e.g., on clusters), you also have an option to use docker image of `ModelArray + ConFixel`. Please refer to `vignette("docker")` for more.
+This page walks through the installation of `ModelArray` package and necessary dependent packages/libraries. If you have difficulty installing necessary packages (e.g., on HPC clusters), you also have an option to use docker image of `ModelArray + ConFixel`. Please refer to `vignette("docker")` for more.
 
 We'll directly install `ModelArray` from [GitHub](https://github.com/PennLINC/ModelArray). Please notice that, this is only fully tested and supported on Linux Ubuntu system and macOS system. If you are a Windows user, you will face errors when running with more than one CPU cores (`n_cores = 2 or above`). You may install a Linux subsystem or virtual machine on your Windows computer; or using Docker image of `ModelArray` and running on High Performance Computing (HPC) clusters (see `vignette("docker")` for more).
 
@@ -19,8 +19,7 @@ We first create a conda environment `modelarray` for installing the companion so
 
 ``` {.console}
 foo@bar:~$ conda create --name modelarray python=3.9
-foo@bar:~$ conda 
-activate modelarray
+foo@bar:~$ conda activate modelarray
 ```
 
 ### Install MRtrix
