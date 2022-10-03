@@ -1,45 +1,19 @@
-# Building Docker file for ModelArray (R package) + ConVoxel (python package). Core is config.yml for ModelArray's circle.ci.
-# Note: this is NOT final version for ModelArray + ConFixel (MRtrix mrconvert wasn't added)
+# Building Docker file for ModelArray (R package) + ConFixel (python package). Core is config.yml for ModelArray's circle.ci.
 # When update this Dockerfile, please update:
-# 1. rocker/verse:<R_version>
+# 1. tag of pre-built docker image `pennlinc/modelarray_build:<tag>`
+    # Please make sure there is nothing to update in this pre-built docker image. To update that, see `ModelArray_tests` GitHub repo.
 # 2. commitSHA_confixel
-# 3. commitSHA_modelarray - see towards the end of this file
-# 4. ModelArray's dependent R packages - see DESCRIPTION file
 
-## Base image https://hub.docker.com/u/rocker/
-FROM rocker/verse:4.1.2
+# Base image: using pre-built docker image:
+FROM pennlinc/modelarray_build:0.0.1
 
-## versions and parameters:
+## Versions and parameters:
 # specify the commit SHA:  # e.g. https://github.com/PennLINC/qsiprep/blob/master/Dockerfile#L174
-ENV commitSHA_confixel="f9f04354940549f0a2f6c583ece36bb48b96a98d"
-
-
-RUN mkdir /home/data
-# RUN mkdir /home/ModelArray
-
-## Install libraries 
-# ref: .circleci/config.yml from ModelArray:
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libhdf5-dev \
-    texlive-fonts-recommended \
-    git
-
-# # Install libraries
-# RUN apt-get update && apt-get install -y --no-install-recommends libhdf5-dev
-# # Install libraries for latex
-# RUN apt-get update && apt-get install -y --no-install-recommends texlive-fonts-recommended
-# Install git:   # ref a bit from: https://github.com/PennLINC/qsiprep_build/blob/main/Dockerfile_DSIStudio
-# RUN apt-get update && apt-get install -y --no-install-recommends git
-
-# Install python: # ref: https://github.com/PennLINC/flaudit/blob/master/Dockerfile#L23
-RUN apt-get update && apt-get install -y python3-pip python3-dev
+    # should be the full SHA
+ENV commitSHA_confixel="5d0e9c43ec26a29f3bd18c315e1bfb1429b872e0"
 
 
 ## Install ConFixel (python package)
-# git clone xxxx.git${commitSHA}
-# cd to directory
-# pip install .
-
 RUN git clone -n https://github.com/PennLINC/ConFixel.git
 WORKDIR ConFixel
 RUN git checkout ${commitSHA_confixel}
@@ -48,37 +22,26 @@ WORKDIR /
 # RUN rm -r ConFixel
 
 
-## Install dependent R packages: 
-# from CRAN:   # removed base packages from the list (otherwise warning in docker build): methods and parallel
-RUN install2.r --error --ncpus -4 \
-    matrixStats \
-    magrittr \
-    dplyr \
-    tidyr \
-    tibble \
-    stringr \
-    glue \
-    doParallel \
-    hdf5r \
-    mgcv \
-    rlang \
-    broom \
-    pbmcapply \
-    pbapply \
-    crayon
+## Install ModelArray (R package)
+COPY . /ModelArray
+WORKDIR ModelArray
+RUN R -e 'devtools::install()'
 
-# from Bioc: # first, install BiocManager from CRAN:
-RUN install2.r --error BiocManager
-RUN R -e 'BiocManager::install("HDF5Array")'
-RUN R -e 'BiocManager::install("rhdf5")'
-RUN R -e 'BiocManager::install("DelayedArray")'
-
-# # copy necessary files and folders:
-# COPY ./install_packages.R ./install_packages.R
-# # install R-packages:
-# RUN Rscript ./install_packages.R
-
-
-## install ModelArray (R package)
-# please update commit SHA for ModelArray if needed
-RUN R -e 'devtools::install_github("PennLINC/ModelArray@58b075d7862810463b0df307767b90674c5dceec")'
+## Add metadata:
+ARG BUILD_DATE
+ARG VCS_REF
+#ARG VERSION
+LABEL org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.name="modelarray_confixel" \
+      org.label-schema.description="ModelArray - an R package for statistical analysis of fixel-wise data" \
+      org.label-schema.url="https://pennlinc.github.io/ModelArray/" \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.vcs-url="https://github.com/PennLINC/ModelArray" \
+      #org.label-schema.version=$VERSION \
+        # ^^ I did not add this, because users should check out version by `packageVersion("ModelArray")`
+        # in R when running this Docker image
+        # also, it's a bit hard to get this version in circleci (as the base image of docker building does not have R...)
+        # but someone says it is "git branch name"?? ref: https://guide.opencord.org/cord-5.0/build_images.html
+      org.label-schema.schema-version="1.0"
+# ^^these information can be viewed by:
+    # docker inspect pennlinc/modelarray_confixel:<docker_tag>

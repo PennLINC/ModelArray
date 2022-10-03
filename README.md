@@ -9,17 +9,19 @@
 status](https://circleci.com/gh/PennLINC/ModelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/ModelArray)
 <!-- badges: end -->
 
-`ModelArray` is a memory-efficient R package for statistical analysis of
-fixel data. Its features include:
+`ModelArray` is an R package for statistical analysis of fixel-wise
+data. Its features include:
 
 -   Easy to use: set up your statistical analysis with just several
     lines of codes;
--   Low memory requirement, even for large datasets;
--   Supporting linear and nonlinear modeling: At present, `ModelArray`
-    supports linear models as well as generalized additive models (GAM)
-    with and without penalized splines, which are particularly useful
-    for studying nonlinear effects in lifespan data. ModelArray is also
-    extensible to more models.
+-   Supporting linear and nonlinear modeling, and extensible to more
+    models:
+    -   At present, `ModelArray` supports linear models as well as
+        generalized additive models (GAM) with and without penalized
+        splines, which are particularly useful for studying nonlinear
+        effects in lifespan data. ModelArray is also extensible to
+        diverse models available in R.
+-   Scalable for large-scale datasets.
 
 ## Installation
 
@@ -33,6 +35,14 @@ most important steps for installing `ModelArray` are:
     section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system)
 -   Install `ModelArray` from GitHub - see [this
     section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-modelarray-r-package-from-github)
+
+Additionally, we also provide a [Docker
+image](https://hub.docker.com/r/pennlinc/modelarray_confixel) that
+includes `ModelArray` and `ConFixel`. With this Docker image, there is
+no need for the user to install `ModelArray`, `ConFixel`, and dependent
+R and Python packages. Please see [this
+webpage](https://pennlinc.github.io/ModelArray/articles/docker.html) for
+how to use this Docker image.
 
 <!-- check above links work, esp those with section titles!!! -->
 
