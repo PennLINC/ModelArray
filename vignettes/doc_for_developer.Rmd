@@ -146,6 +146,6 @@ For more details on how to write unit tests + test out, please check out `Testin
 ## Building the Docker image for ModelArray + ConFixel
 The `Dockerfile` for the Docker image can be found in the root folder of the GitHub repository of `ModelArray`.
 
-CircleCI will automatically build the Docker image and push to Docker Hub when there is a GitHub commit to main branch, or when a version is tagged. See the `.circleci/config.yml` file for more details on these setups.
+CircleCI will automatically build the Docker image and push to Docker Hub when there is a GitHub commit or a merge to main branch, or when a version is tagged. See the `.circleci/config.yml` file for more details on these setups.
 
 

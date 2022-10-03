@@ -13,7 +13,7 @@ status](https://circleci.com/gh/PennLINC/ModelArray.svg?style=svg)](https://circ
 data. Its features include:
 
 -   Easy to use: set up your statistical analysis with just several
-    lines of codes;
+    lines of code;
 -   Supporting linear and nonlinear modeling, and extensible to more
     models:
     -   At present, `ModelArray` supports linear models as well as
