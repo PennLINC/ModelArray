@@ -78,10 +78,10 @@
 <div class="section level2">
 <h2 id="preface">Preface<a class="anchor" aria-label="anchor" href="#preface"></a>
 </h2>
-<p>Target audience: Any user who wants to use container to run
+<p>Target audience: Any user who wants to use a container to run
 <code>ModelArray</code> and/or <code>ConFixel</code> on e.g., High
 Performance Computing (HPC) clusters.</p>
-<p>What are covered in this page? How to use the container of
+<p>What are covered in this page? How to use the container image of
 <code>ModelArray + ConFixel</code>.</p>
 <p>What are not covered in this page? Details on how to use
 <code>ModelArray</code> or <code>ConFixel</code>. For those, please
@@ -92,11 +92,11 @@ it if you’re new to <code>ModelArray</code>.</p>
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
 <p>Besides running <code>ModelArray</code> and <code>ConFixel</code> on
-a local computer, users also have an option to run it on HPC clusters.
+a local computer, users also have an option to run them on HPC clusters.
 When using HPC clusters, users may not have full privilege to install
-all the dependent packages. Therefore, we also provide a container that
-includes <code>ModelArray + ConFixel</code> to enhance portability and
-to facilitate running on clusters.</p>
+all the dependent packages. Therefore, we also provide a container image
+that includes <code>ModelArray + ConFixel</code> to enhance portability
+and to facilitate running on clusters.</p>
 <p>The container image is publicly available at <a href="https://hub.docker.com/r/pennlinc/modelarray_confixel" class="external-link">Docker
 Hub</a>. You might be confused at first because usually HPC clusters do
 not support <code>docker</code> commands, however, this container image
@@ -132,7 +132,7 @@ use this container image to run R.</p>
 </h3>
 <pre class="console"><code>singularity run --cleanenv -B /directory/of/your/data \
   /path/to/singularity/image/modelarray_confixel_&lt;tagName&gt;.sif \
-  &lt;commands you want to run&gt;</code></pre>
+  &lt;command you want to run&gt;</code></pre>
 <p>Here,</p>
 <ul>
 <li>
@@ -145,16 +145,18 @@ it. If you’re data is in the current directory, you might do
 is the full path to the singularity image (<code>.sif</code>) you
 pulled;</li>
 </ul>
-<p>Regarding <code>&lt;commands you want to run&gt;</code>: As both
+<p>Regarding <code>&lt;command you want to run&gt;</code>: As both
 <code>ModelArray</code> and <code>ConFixel</code> are included in this
-container, you might run any of them. To run <code>ModelArray</code>,
-you may first save the R commands into an R script, then replace
-<code>&lt;commands you want to run&gt;</code> with
+container, you might run any of them.</p>
+<p>To run <code>ModelArray</code>, you may first save the R commands
+into an R script, then replace
+<code>&lt;command you want to run&gt;</code> with
 <code>Rscript /path/to/your/Rscript</code>. Make sure this Rscript has
 been mounted (<code>-B</code>), too, e.g., If it’s not in the directory
 <code>/directory/of/your/data</code>, please do:
-<code>-B /directory/of/your/data,/directory/of/Rscript</code>.</p>
-<p>You might submit this command <code>singluarity run</code> as a job
+<code>-B /directory/of/your/data,/directory/of/Rscript</code>. See <a href="https://singularity-userdoc.readthedocs.io/en/latest/bind_paths_and_mounts.html" class="external-link">here</a>
+for more on how to mount multiple directories.</p>
+<p>You might submit this command <code>singularity run</code> as a job
 running on the cluster compute node. Please consult the cluster’s manual
 for how to do it.</p>
 </div>
@@ -164,7 +166,7 @@ for how to do it.</p>
 </h2>
 <p>We have provided a detailed example walkthrough of
 <code>ModelArray</code> and <code>ConFixel</code>at:
-<code><a href="../articles/walkthrough.html">vignette("walkthrough")</a></code>. Please refer to it for how to run
+<code><a href="../articles/walkthrough.html">vignette("walkthrough")</a></code>. Please refer to it for how to use
 <code>ModelArray</code> and <code>ConFixel</code>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
