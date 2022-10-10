@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">ModelArray</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9000</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,8 +43,7 @@
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
     <a class="dropdown-item" href="../articles/installations.html">Installation</a>
     <a class="dropdown-item" href="../articles/walkthrough.html">Example walkthrough</a>
-    <a class="dropdown-item" href="../articles/docker.html">Using Docker image</a>
-    <a class="dropdown-item" href="../articles/debugging.html">Debugging</a>
+    <a class="dropdown-item" href="../articles/container.html">Getting started with container</a>
     <a class="dropdown-item" href="../articles/doc_for_developer.html">Developer documentation</a>
     <div class="dropdown-divider"></div>
     <a class="dropdown-item" href="../articles/index.html">More articles...</a>
@@ -79,17 +78,18 @@
 <p>This page walks through the installation of <code>ModelArray</code>
 package and necessary dependent packages/libraries. If you have
 difficulty installing necessary packages (e.g., on HPC clusters), you
-also have an option to use docker image of
+also have an option to use the container image of
 <code>ModelArray + ConFixel</code>. Please refer to
-<code><a href="../articles/docker.html">vignette("docker")</a></code> for more.</p>
+<code><a href="../articles/container.html">vignette("container")</a></code> for more.</p>
 <p>We’ll directly install <code>ModelArray</code> from <a href="https://github.com/PennLINC/ModelArray" class="external-link">GitHub</a>. Please notice
 that, this is only fully tested and supported on Linux Ubuntu system and
 macOS system. If you are a Windows user, you will face errors when
 running with more than one CPU cores
 (<code>n_cores = 2 or above</code>). You may install a Linux subsystem
-or virtual machine on your Windows computer; or using Docker image of
-<code>ModelArray</code> and running on High Performance Computing (HPC)
-clusters (see <code><a href="../articles/docker.html">vignette("docker")</a></code> for more).</p>
+or virtual machine on your Windows computer; or using the container
+image of <code>ModelArray</code> and running on High Performance
+Computing (HPC) clusters (see <code><a href="../articles/container.html">vignette("container")</a></code> for
+more).</p>
 <p>We will first set up the conda environment, then install some
 dependent packages and libraries, and finally install
 <code>ModelArray</code>.</p>

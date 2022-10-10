@@ -38,11 +38,11 @@ articles:
   contents:
   - installations
   - walkthrough
-  - docker
-  - debugging
+  - container
   - doc_for_developer
 
 - title: More
   contents: 
   - basic_r_intro
+  - debugging
   - faq
