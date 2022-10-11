@@ -1,44 +1,46 @@
 ---
-title: "Getting started with container"
+title: "Getting started with containers"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Getting started with container}
+  %\VignetteIndexEntry{Getting started with containers}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ## Preface
-Target audience: Any user who wants to use a container to run `ModelArray` and/or `ConFixel` on e.g., High Performance Computing (HPC) clusters. 
+Target audience: Any user who wants to use a container to run `ModelArray` and/or `ConFixel` 
 
-What are covered in this page? How to use the container image of `ModelArray + ConFixel`.
+What is covered on this page? How to use the container image of `ModelArray + ConFixel`.
 
-What are not covered in this page? Details on how to use `ModelArray` or `ConFixel`. For those, please refer to `vignette("walkthrough")`. We highly suggest reading it if you're new to `ModelArray`.
+What is not covered on this page? Step by step details on how to run `ModelArray` and `ConFixel`. For a full walkthrough on how to use our software, please refer to `vignette("walkthrough")`. We highly suggest reviewing that page if you're new to `ModelArray`.
 
 
 ## Introduction
-Besides running `ModelArray` and `ConFixel` on a local computer, users also have an option to run them on HPC clusters. When using HPC clusters, users may not have full privilege to install all the dependent packages. Therefore, we also provide a container image that includes `ModelArray + ConFixel` to enhance portability and to facilitate running on clusters.
+Besides running `ModelArray` and `ConFixel` on a local computer, users also have an option to run them on High Performance Computing (HPC) clusters. When using HPC clusters, users may not have full privilege to install all the dependent packages. Therefore, we provide the option to download our software as a container image that includes `ModelArray + ConFixel`.
 
-The container image is publicly available at [Docker Hub](https://hub.docker.com/r/pennlinc/modelarray_confixel). You might be confused at first because usually HPC clusters do not support `docker` commands, however, this container image can be run with `singularity` commands which are usually available on HPC clusters (see below for details).
+Our container image is publicly available at [Docker Hub](https://hub.docker.com/r/pennlinc/modelarray_confixel). Although HPC clusters do not usually support `docker` commands, this container image can be run with `singularity` commands, which are usually available on HPC clusters (see below for details).
 
 ## Using singularity to run on HPC clusters
-Prerequisite: Singularity installed HCP clusters. If not, please contact the HPC's administrator.
+Prerequisite: Singularity is installed on your cluster. If not, please contact your cluster's administrator.
 
 ### Pull the container from Docker Hub
-We first pull the container from Docker Hub using `singularity pull`:
+We first pull the container from Docker Hub using the `singularity pull` command as follows:
 
 ```{.console}
 singularity pull docker://pennlinc/modelarray_confixel:<tagName>
 ```
-You may replace the `<tagName>` to any tags, e.g., `0.1.2`, or `latest`, etc. You should see a singularity image (`.sif`) in current directory: `modelarray_confixel_<tagName>.sif`
+You will replace `<tagName>` with the actual tag, e.g., `0.1.2`, or `latest`. You should see a singularity image (`.sif`) in current directory: `modelarray_confixel_<tagName>.sif`
 
-After pulling, let's make sure it's success:
+After pulling, let's make sure you can `singularity run` the image:
 ```{.console}
 singularity run --cleanenv \
     modelarray_confixel_<tagName>.sif \
     R
 ```
 
-You should have entered an R environment. You should be able to load `ModelArray` R package as you usually do in RStudio: `library(ModelArray)`. This is also the way to interactively use this container image to run R.
+You should now be inside an R environment with the capability to load the `ModelArray` R package as you would in RStudio: `library(ModelArray)`. 
+
+This is also the way to interactively use this container image to run R, but please make sure you mount necessary directories with `-B` - see below for explanations.
 
 ### How to run the container?
 ```{.console}
@@ -47,17 +49,17 @@ singularity run --cleanenv -B /directory/of/your/data \
   <command you want to run>
 ```
 
-Here,
+Here:
 
-* `-B /directory/of/your/data` means to mount the data directory, so that `singularity` can read and write data in it. If you're data is in the current directory, you might do `-B $PWD`;
-* `/path/to/singularity/image/modelarray_confixel_<tagName>.sif` is the full path to the singularity image (`.sif`) you pulled;
+`-B /directory/of/your/data` allows you to mount the data directory so that `singularity` can read and write data inside it. If your data exists inside your current working directory, you might do `-B $PWD`;
 
-Regarding `<command you want to run>`: As both `ModelArray` and `ConFixel` are included in this container, you might run any of them. 
+`/path/to/singularity/image/modelarray_confixel_<tagName>.sif` is the full path to the singularity image (`.sif`) you pulled;
+
+`ModelArray` and `ConFixel` are both included in this container. To run `ConFixel`, simply replace `<command you want to run>` with `ConFixel` commands (e.g., `confixel`).
 
 To run `ModelArray`, you may first save the R commands into an R script, then replace `<command you want to run>` with `Rscript /path/to/your/Rscript`. Make sure this Rscript has been mounted (`-B`), too, e.g., If it's not in the directory `/directory/of/your/data`, please do: `-B /directory/of/your/data,/directory/of/Rscript`. See [here](https://singularity-userdoc.readthedocs.io/en/latest/bind_paths_and_mounts.html) for more on how to mount multiple directories.
 
-You might submit this command `singularity run` as a job running on the cluster compute node. Please consult the cluster's manual for how to do it.
+You might submit this command `singularity run` as a job running on the cluster compute node.
 
 ## More information?
-We have provided a detailed example walkthrough of `ModelArray` and `ConFixel`at: `vignette("walkthrough")`. Please refer to it for how to use `ModelArray` and `ConFixel`.
-
+We have provided a detailed example walkthrough of `ModelArray` and `ConFixel` at: `vignette("walkthrough")`. Please refer to this page for a tutorial on how to use `ModelArray` and `ConFixel`.

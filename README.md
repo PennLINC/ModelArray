@@ -17,7 +17,7 @@ data. Its features include:
 -   Supporting linear and nonlinear modeling, and extensible to more
     models:
     -   At present, `ModelArray` supports linear models as well as
-        generalized additive models (GAM) with and without penalized
+        generalized additive models (GAMs) with and without penalized
         splines, which are particularly useful for studying nonlinear
         effects in lifespan data. ModelArray is also extensible to
         diverse models available in R.
