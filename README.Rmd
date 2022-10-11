@@ -23,7 +23,7 @@ knitr::opts_chunk$set(
 
 * Easy to use: set up your statistical analysis with just several lines of code;
 * Supporting linear and nonlinear modeling, and extensible to more models: 
-  * At present, `ModelArray` supports linear models as well as generalized additive models (GAM) with and without penalized splines, which are particularly useful for studying nonlinear effects in lifespan data. ModelArray is also extensible to diverse models available in R.
+  * At present, `ModelArray` supports linear models as well as generalized additive models (GAMs) with and without penalized splines, which are particularly useful for studying nonlinear effects in lifespan data. ModelArray is also extensible to diverse models available in R.
 * Scalable for large-scale datasets.
 
 ## Installation
