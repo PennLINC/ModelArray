@@ -83,11 +83,10 @@
 <strong>fixel</strong>-wise data to demonstrate the steps of using
 <code>ModelArray</code> and its companion python package,
 <code>ConFixel</code>. Analysis for <strong>voxel</strong>-wise data
-follows similar steps, with most differences in data conversion steps
-(Step 1 and Step 3); for more details regarding conversion for
-voxel-wise data, please refer to <a href="https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md" class="external-link">here</a>.
-We also provide hints for voxel-wise data throughout current
-walkthrough.</p>
+follows similar steps, but there are several differences when execution;
+for more details regarding application to voxel-wise data, please refer
+to <code><a href="../articles/voxel-wise_data.html">vignette("voxel-wise_data")</a></code> page. We also provide hints
+for voxel-wise data throughout current walkthrough.</p>
 <p>By following the <code><a href="../articles/installations.html">vignette("installations")</a></code> page, to
 perform statistical analysis for fixel-wise data, you should have
 successfully installed <code>ModelArray</code>, <code>ConFixel</code>,
@@ -120,9 +119,11 @@ get the data by running the following:</p>
 <pre class="console"><code>$ wget -cO - https://osf.io/tce9d/download &gt; download.tar.gz
 $ tar -xzf download.tar.gz
 $ rm download.tar.gz</code></pre>
+<blockquote>
 <p>Hint for voxel-wise data for Step 1: Data preparation and conversion
 steps are different for voxel-wise data. Please refer to <a href="https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md" class="external-link">here</a>
 for how to do so.</p>
+</blockquote>
 <div class="section level3">
 <h3 id="step-1-1--overview-of-the-data-organization">Step 1.1. Overview of the data organization<a class="anchor" aria-label="anchor" href="#step-1-1--overview-of-the-data-organization"></a>
 </h3>
@@ -253,12 +254,16 @@ folder <code>~/Desktop/myProject</code>.</p>
 to perform statistical analysis in R. If you installed RStudio (which we
 recommend), then you can simply launch RStudio. All the commands in this
 Step 2 section will be run in R.</p>
+<blockquote>
 <p>Hint for voxel-wise data for Step 2: You can follow the same steps
-here. Note that each “element” is a <strong>voxel</strong> now, instead
-of a <strong>fixel</strong>. Make sure you replace the scalar name,
-covariates, file paths etc with yours. In addition, as voxel-wise data
-has subject-specific masks, you can also use _________ in functions
-_______- to tailor the lower threshold of number of subjects.</p>
+here. Note that each “element” is a <em>voxel</em> now, instead of a
+<em>fixel</em>. Make sure you replace the scalar name, covariates, file
+paths etc with yours. In addition, as voxel-wise data may have
+subject-specific masks, you can also tailor the lower threshold of
+number of subjects when applying <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and
+<code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>. See
+<code><a href="../articles/voxel-wise_data.html">vignette("voxel-wise_data")</a></code> page for more.</p>
+</blockquote>
 <div class="section level3">
 <h3 id="step-2-1--load-modelarray-package-in-r">Step 2.1. Load ModelArray package in R<a class="anchor" aria-label="anchor" href="#step-2-1--load-modelarray-package-in-r"></a>
 </h3>
@@ -855,9 +860,11 @@ optional):</p>
 <div class="section level2">
 <h2 id="step-3--check-out-the-result-images">Step 3. Check out the result images<a class="anchor" aria-label="anchor" href="#step-3--check-out-the-result-images"></a>
 </h2>
+<blockquote>
 <p>Hint for voxel-wise data for Step 3: Data conversion and result
 viewing are different for voxel-wise data. Please refer to <a href="https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md" class="external-link">here</a>
 for how to do so.</p>
+</blockquote>
 <div class="section level3">
 <h3 id="step-3-1--convert-the-statistical-results-into-mif-file-format-using-confixel">Step 3.1. Convert the statistical results into mif file format using
 ConFixel<a class="anchor" aria-label="anchor" href="#step-3-1--convert-the-statistical-results-into-mif-file-format-using-confixel"></a>

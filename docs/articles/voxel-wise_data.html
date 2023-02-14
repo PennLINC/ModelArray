@@ -76,37 +76,40 @@
 
     
     
-<p><code>ModelArray</code> is compatible to not only fixel-wise data,
+<p><code>ModelArray</code> is compatible with not only fixel-wise data,
 but also voxel-wise data. The <code><a href="../articles/walkthrough.html">vignette("walkthrough")</a></code> page
-has shown example walkthrough with fixel-wise data. In general, the
+has shown example walkthrough with example fixel-wise data, with hints
+for voxel-wise data provided throughout the walkthrough. In general, the
 workflow of applying <code>ModelArray</code> to voxel-wise data is
 consistent to that of fixel-wise data, but please note several important
-differences in execution described as below.</p>
+differences when execution described as below.</p>
 <div class="section level2">
-<h2 id="conversion-of-voxel-wise-data">Conversion of voxel-wise data<a class="anchor" aria-label="anchor" href="#conversion-of-voxel-wise-data"></a>
+<h2 id="conversion-of-voxel-wise-data-format">Conversion of voxel-wise data format<a class="anchor" aria-label="anchor" href="#conversion-of-voxel-wise-data-format"></a>
 </h2>
 <p>When converting voxel-wise data between NIfTI and HDF5 file format
 that <code>ModelArray</code> requires, you will still use
 <code>ConFixel</code> software, but a different converter tailored for
 voxel-wise data, <code>ConVoxel</code>. We have provided a walkthrough
-of how to use it here.</p>
+of how to use it <a href="(https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md)" class="external-link">here</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="applying-modelarray-to-voxel-wise-data">Applying <code>ModelArray</code> to voxel-wise data<a class="anchor" aria-label="anchor" href="#applying-modelarray-to-voxel-wise-data"></a>
 </h2>
-<p>You can apply the same <code>ModelArray</code> functions, arguments
+<p>You can apply the same <code>ModelArray</code> functions, arguments,
 etc used in fixel-wise data to voxel-wise data; just be aware that an
 “element” is a “voxel” now.</p>
-<p>In addition, there is additional arguments useful for voxel-wise
-data. Different from fixel-wise data where individuals share the same
-group mask, voxel-wise data may have <em>individual masks</em>, where
-different individuals may have different boundary of the brain.
-Therefore, for voxels which do not have data from sufficient number of
-subjects, their statistic results might not be reliable. It’s better to
-exclude those voxels from the analysis.</p>
-<p>In <code>ConVoxel</code>, for voxels not within an individual mask
-(but within a larger group mask), their values will be set to
-<code>NaN</code>. Thus <code>ModelArray</code> can know the number of
+<p>In addition, there are additional arguments specifically useful for
+voxel-wise data, regarding the <strong>subject-specific masks</strong>
+(i.e., individual masks). Different from fixel-wise data where subjects
+usually share the same mask, voxel-wise data may have
+<em>subject-specific masks</em>, where different subjects may have
+different brain coverage even in template space. Therefore, for voxels
+(e.g., at the edge of the brain) which do not have data from sufficient
+number of subjects, their statistic results might not be reliable. It’s
+better to exclude those voxels from the analysis.</p>
+<p>In <code>ConVoxel</code>, for voxels not within a subject-specific
+mask (but within a larger, group-level mask), their values will be set
+to <code>NaN</code>. Thus <code>ModelArray</code> can know the number of
 subjects that have valid values in each voxel within the group mask.</p>
 <p>To set up minimal number of subjects required for a voxel, you can
 use these two arguments in <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and
@@ -116,23 +119,34 @@ use these two arguments in <code><a href="../reference/ModelArray.lm.html">Model
 <code>num.subj.lthr.abs</code>: lower threshold, absolute number of
 subjects; e.g., 10</li>
 <li>
-<code>num.subj.lthr.rel</code>: lower threshold, relative number of
-subjects, a value between 0-1; e.g., 0.2 (i.e., 20% of all
+<code>num.subj.lthr.rel</code>: lower threshold, proportion of total
+number of subjects, a value between 0-1; e.g., 0.2 (i.e., 20% of all
 subjects)</li>
 </ul>
 <p>Suppose a voxel has valid values from N subjects, where N:</p>
 <ul>
 <li>N &gt; <code>num.subj.lthr.abs</code>, and</li>
-<li>N &gt; <code>num.subj.lthr.rel</code> * <code>Ntotal</code>, where
-<code>Ntotal</code> is the total of subjects in the analysis</li>
+<li>N &gt; <code>num.subj.lthr.rel</code> * <code>Ntotal</code>
+</li>
 </ul>
-<p>TODO: define <code>Ntotal</code>: excluding NAs?? +++++++++ TODO:
-confirm it’s “&gt;”, not “&gt;=” ++++++++++++</p>
-<p>then statistical analysis of this voxel will be performed as normal;
-otherwise, this voxel will be skipped and statistical outputs will be
-set as <code>NaN</code>.</p>
-<p>Please check the reference pages of <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and
-<code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code> for more details.</p>
+<p>where <code>Ntotal</code> is the total number of subjects, which is
+quantified by number of rows in argument <code>phenotypes</code>. If N
+satisfied above criteria, statistical analysis of this voxel will be
+performed as normal; otherwise, this voxel will be skipped and
+statistical outputs will be set as <code>NaN</code>.</p>
+<!--- `Ntotal` is defined as `num.subj.total <- nrow(phenotypes)` --->
+<!--- confirmed it's `>`, not `>=` --->
+<p>For more details about these two arguments, please check the
+reference pages of <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and
+<code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>.</p>
+<p>Finally, if you choose to save number of observations used (i.e., if
+specifying <code>nobs</code> in <code>var.model</code> in
+<code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>), after
+conversion using <code>ConVoxel</code>, you’ll see an image called
+<code>*_model.nobs*</code>. If the subject-specific masks you provided
+are different across subjects, in this image you’ll probably see the
+heterogeneity of number of observations used in the brain, with fewer
+observations used at the edge of the brain.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>
