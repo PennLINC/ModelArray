@@ -28,15 +28,18 @@ Please cite our [bioRxiv preprint
 article](https://doi.org/10.1101/2022.07.12.499631) if you use
 `ModelArray`:
 
-``` console
-Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S., Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha, K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M., Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2022). ModelArray: a memory-efficient R package for statistical analysis of fixel data. bioRxiv. https://doi.org/10.1101/2022.07.12.499631
-```
+Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S., Gur,
+R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha, K.,
+Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M., Shinohara,
+R. T., Cieslak, M. & Satterthwaite, T. D. (2022). ModelArray: a
+memory-efficient R package for statistical analysis of fixel data.
+bioRxiv. <https://doi.org/10.1101/2022.07.12.499631>
 
 ## Overview
 
 <center>
 
-![Overview](overview_structure.png)
+![Overview](vignettes/overview_structure.png)
 
 </center>
 
@@ -83,7 +86,10 @@ library(ModelArray)
 ```
 
 We provide a walkthrough
-[here](https://pennlinc.github.io/ModelArray/articles/walkthrough.html).
+[here](https://pennlinc.github.io/ModelArray/articles/walkthrough.html)
+with example fixel-wise data. For additional notes on application to
+voxel-wise data, please refer to
+[here](https://pennlinc.github.io/ModelArray/articles/voxel-wise_data.html).
 
 For documentation of `ModelArray` functions, you can:
 

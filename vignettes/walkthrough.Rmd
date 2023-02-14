@@ -9,7 +9,7 @@ vignette: >
 
 ## Introduction
 
-In this example walkthrough, we will use some example **fixel**-wise data to demonstrate the steps of using `ModelArray` and its companion python package, `ConFixel`. Analysis for **voxel**-wise data follows similar steps, with most differences in data conversion steps (Step 1 and Step 3); for more details regarding conversion for voxel-wise data, please refer to [here](https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md). We also provide hints for voxel-wise data throughout current walkthrough.
+In this example walkthrough, we will use some example **fixel**-wise data to demonstrate the steps of using `ModelArray` and its companion python package, `ConFixel`. Analysis for **voxel**-wise data follows similar steps, but there are several differences when execution; for more details regarding application to voxel-wise data, please refer to `vignette("voxel-wise_data")` page. We also provide hints for voxel-wise data throughout current walkthrough.
 
 By following the `vignette("installations")` page, to perform statistical analysis for fixel-wise data, you should have successfully installed `ModelArray`, `ConFixel`, and `MRtrix`. We expect that `ConFixel` has been installed in a conda environment called `modelarray`.
 
@@ -106,7 +106,7 @@ Now you got the converted HDF5 file `demo_FDC_n100.h5` in folder `~/Desktop/myPr
 
 The next step is to use this HDF5 file and the CSV file we prepared to perform statistical analysis in R. If you installed RStudio (which we recommend), then you can simply launch RStudio. All the commands in this Step 2 section will be run in R.
 
-Hint for voxel-wise data for Step 2: You should be able follow the same steps here. Note that each "element" is a **voxel** now, instead of a **fixel**. Make sure you replace the scalar name, covariates, file paths etc with yours. In addition, as voxel-wise data has subject-specific masks, you can also use _________ in functions _______- to tailor the lower threshold of number of subjects.
+Hint for voxel-wise data for Step 2: You can follow the same steps here. Note that each "element" is a *voxel* now, instead of a *fixel*. Make sure you replace the scalar name, covariates, file paths etc with yours. In addition, as voxel-wise data may have different individual masks across subjects, you can also tailor the lower threshold of number of subjects when applying `ModelArray.lm()` and `ModelArray.gam()`. See `vignette("voxel-wise_data")` page for more.
 
 ### Step 2.1. Load ModelArray package in R
 
