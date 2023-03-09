@@ -10,7 +10,7 @@ FROM pennlinc/modelarray_build:0.0.1
 ## Versions and parameters:
 # specify the commit SHA:  # e.g. https://github.com/PennLINC/qsiprep/blob/master/Dockerfile#L174
     # should be the full SHA
-ENV commitSHA_confixel="5d0e9c43ec26a29f3bd18c315e1bfb1429b872e0"
+ENV commitSHA_confixel="ec7ad92a51fa80a484b80be7b83e5a8067ed9418"
 
 
 ## Install ConFixel (python package)

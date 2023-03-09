@@ -10,7 +10,7 @@ vignette: >
 `ModelArray` is compatible with not only fixel-wise data, but also voxel-wise data. The `vignette("walkthrough")` page has shown example walkthrough with example fixel-wise data, with hints for voxel-wise data provided throughout the walkthrough. In general, the workflow of applying `ModelArray` to voxel-wise data is consistent to that of fixel-wise data, but please note several important differences when execution described as below.
 
 ## Conversion of voxel-wise data format
-When converting voxel-wise data between NIfTI and HDF5 file format that `ModelArray` requires, you will still use `ConFixel` software, but a different converter tailored for voxel-wise data, `ConVoxel`. We have provided a walkthrough of how to use it [here]((https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md)).
+When converting voxel-wise data between NIfTI and HDF5 file format that `ModelArray` requires, you will still use `ConFixel` software, but a different converter tailored for voxel-wise data, `ConVoxel`. We have provided a walkthrough of how to use it [here](https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md).
 
 ## Applying `ModelArray` to voxel-wise data
 You can apply the same `ModelArray` functions, arguments, etc used in fixel-wise data to voxel-wise data; just be aware that an "element" is a "voxel" now.
