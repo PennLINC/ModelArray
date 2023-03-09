@@ -9,8 +9,8 @@
 status](https://circleci.com/gh/PennLINC/ModelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/ModelArray)
 <!-- badges: end -->
 
-`ModelArray` is an R package for statistical analysis of fixel-wise
-data. Its features include:
+`ModelArray` is an R package for statistical analysis of fixel-wise data
+and beyond. Its features include:
 
 - Easy to use: set up your statistical analysis with just several lines
   of code;
@@ -28,12 +28,12 @@ Please cite our [bioRxiv preprint
 article](https://doi.org/10.1101/2022.07.12.499631) if you use
 `ModelArray`:
 
-Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S., Gur,
-R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha, K.,
-Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M., Shinohara,
-R. T., Cieslak, M. & Satterthwaite, T. D. (2022). ModelArray: a
-memory-efficient R package for statistical analysis of fixel data.
-bioRxiv. <https://doi.org/10.1101/2022.07.12.499631>
+> Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S.,
+> Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha,
+> K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M.,
+> Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2022).
+> ModelArray: a memory-efficient R package for statistical analysis of
+> fixel data. bioRxiv. <https://doi.org/10.1101/2022.07.12.499631>
 
 ## Overview
 
