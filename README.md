@@ -9,19 +9,50 @@
 status](https://circleci.com/gh/PennLINC/ModelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/ModelArray)
 <!-- badges: end -->
 
-`ModelArray` is an R package for statistical analysis of fixel-wise
-data. Its features include:
+`ModelArray` is an R package for statistical analysis of fixel-wise data
+and beyond. Its features include:
 
--   Easy to use: set up your statistical analysis with just several
-    lines of code;
--   Supporting linear and nonlinear modeling, and extensible to more
-    models:
-    -   At present, `ModelArray` supports linear models as well as
-        generalized additive models (GAMs) with and without penalized
-        splines, which are particularly useful for studying nonlinear
-        effects in lifespan data. ModelArray is also extensible to
-        diverse models available in R.
--   Scalable for large-scale datasets.
+- Easy to use: set up your statistical analysis with just several lines
+  of code;
+- Supporting linear and nonlinear modeling, and extensible to more
+  models:
+  - At present, `ModelArray` supports linear models as well as
+    generalized additive models (GAMs) with and without penalized
+    splines, which are particularly useful for studying nonlinear
+    effects in lifespan data. `ModelArray` is also extensible to diverse
+    models available in R;
+- Scalable for large-scale datasets;
+- Compatible with fixel-wise data and voxel-wise data.
+
+Please cite our [bioRxiv preprint
+article](https://doi.org/10.1101/2022.07.12.499631) if you use
+`ModelArray`:
+
+> Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S.,
+> Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha,
+> K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M.,
+> Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2022).
+> ModelArray: a memory-efficient R package for statistical analysis of
+> fixel data. bioRxiv. <https://doi.org/10.1101/2022.07.12.499631>
+
+## Overview
+
+<center>
+
+![Overview](vignettes/overview_structure.png)
+
+</center>
+
+ModelArray is packaged with the companion software
+[ConFixel](https://github.com/PennLINC/ConFixel) for converting
+fixel-wise data and voxel-wise data to the expected file format that
+ModelArray uses. Specifically,
+[ConFixel](https://github.com/PennLINC/ConFixel) is Python-based
+command-line interface software, and it converts between the original
+image format (`.mif` for fixel-wise data, NIfTI for voxel-wise data) and
+the HDF5 file format (`.h5`) used for ModelArray.
+
+<!-- if there is any changes in this overview section, please also update ConFixel's frontpage! -->
 
 ## Installation
 
@@ -31,10 +62,10 @@ for a full guidance of installation of `ModelArray` and its companion
 python package [ConFixel](https://github.com/PennLINC/ConFixel). The
 most important steps for installing `ModelArray` are:
 
--   Make sure you have necessary libraries for HDF5 - see [this
-    section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system)
--   Install `ModelArray` from GitHub - see [this
-    section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-modelarray-r-package-from-github)
+- Make sure you have necessary libraries for HDF5 - see [this
+  section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system)
+- Install `ModelArray` from GitHub - see [this
+  section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-modelarray-r-package-from-github)
 
 Additionally, we also provide a [container
 image](https://hub.docker.com/r/pennlinc/modelarray_confixel) that
@@ -55,14 +86,17 @@ library(ModelArray)
 ```
 
 We provide a walkthrough
-[here](https://pennlinc.github.io/ModelArray/articles/walkthrough.html).
+[here](https://pennlinc.github.io/ModelArray/articles/walkthrough.html)
+with example fixel-wise data. For additional notes on application to
+voxel-wise data, please refer to
+[here](https://pennlinc.github.io/ModelArray/articles/voxel-wise_data.html).
 
 For documentation of `ModelArray` functions, you can:
 
--   Either go to [this
-    webpage](https://pennlinc.github.io/ModelArray/reference/index.html);
--   Or in R console, type: `help(<function_name>)`. For example:
-    `help(ModelArray.lm)`
+- Either go to [this
+  webpage](https://pennlinc.github.io/ModelArray/reference/index.html);
+- Or in R console, type: `help(<function_name>)`. For example:
+  `help(ModelArray.lm)`
 
 Full documentation of `ModelArray` can be found
 [here](https://pennlinc.github.io/ModelArray/).

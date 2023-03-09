@@ -22,11 +22,13 @@ foo@bar:~$ conda create --name modelarray python=3.9
 foo@bar:~$ conda activate modelarray
 ```
 
-### Install MRtrix
+### Install MRtrix (Only required for fixel-wise data)
 
-`ConFixel` uses function `mrconvert` from MRtrix, so please make sure MRtrix has been installed. It can either be installed via `conda` in this conda environment we just created, or be compiled from source. See [MRtrix's webpage](https://www.mrtrix.org/download/) for more. Type `mrview` in the terminal to check whether MRtrix installation is successful.
+When converting fixel-wise data's format (`.mif`), `ConFixel` uses function `mrconvert` from MRtrix, so please make sure MRtrix has been installed. It can either be installed via `conda` in this conda environment we just created, or be compiled from source. See [MRtrix's webpage](https://www.mrtrix.org/download/) for more. Type `mrview` in the terminal to check whether MRtrix installation is successful.
 
-### Install hdf5 libraries in the system
+If your input data is voxel-wise data, you can skip this step.
+
+### Install HDF5 libraries in the system
 
 Because ModelArray works with the Hierarchical Data Format 5 (HDF5) file format, we need to make sure necessary libraries of HDF5 are installed in the system.
 
@@ -56,6 +58,8 @@ foo@bar:~$ brew install hdf5
 For details you may refer to the webpage [here](https://formulae.brew.sh/formula/hdf5)
 
 ### Install ConFixel python package from GitHub
+[ConFixel](https://github.com/PennLINC/ConFixel) provides file format conversion for both fixel-wise data (`.mif`) and voxel-wise data (NIfTI). Follow the commands below to install it from GitHub: 
+
 ``` {.console}
 # We first activate the conda environment we just created:
 foo@bar:~$ conda activate modelarray  
