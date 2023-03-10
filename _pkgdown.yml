@@ -2,6 +2,10 @@ url: https://pennlinc.github.io/ModelArray
 template:
   bootstrap: 5
 
+home:
+  sidebar:
+    structure: [links, license, community, authors, dev]
+
 reference:
 - title: ModelArray
   desc: Load, access, and write ModelArray class data
