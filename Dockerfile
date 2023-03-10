@@ -33,7 +33,7 @@ ARG VCS_REF
 #ARG VERSION
 LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.name="modelarray_confixel" \
-      org.label-schema.description="ModelArray - an R package for statistical analysis of fixel-wise data" \
+      org.label-schema.description="ModelArray - an R package for statistical analysis of fixel-wise data and beyond" \
       org.label-schema.url="https://pennlinc.github.io/ModelArray/" \
       org.label-schema.vcs-ref=$VCS_REF \
       org.label-schema.vcs-url="https://github.com/PennLINC/ModelArray" \

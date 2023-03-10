@@ -9,6 +9,8 @@
 status](https://circleci.com/gh/PennLINC/ModelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/ModelArray)
 [![GitHub
 Clones](https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url=https://gist.githubusercontent.com/zhao-cy/374b45552335a37d6bd613359eb9bf67/raw/clone.json&logo=github)](https://github.com/MShawon/github-clone-count-badge)
+[![Docker
+pulls](https://img.shields.io/docker/pulls/pennlinc/modelarray_confixel.svg)](https://hub.docker.com/r/pennlinc/modelarray_confixel)
 <!-- badges: end -->
 
 `ModelArray` is an R package for statistical analysis of fixel-wise data
