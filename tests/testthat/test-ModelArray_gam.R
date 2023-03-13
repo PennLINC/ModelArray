@@ -278,6 +278,49 @@ test_that("test that ModelArray.gam() works as expected", {
                %>% isTRUE()) 
   
   ## different settings in mgcv::gam()'s additional arguments: test if the arguments have been passed into analyseOneElement.gam()
+  # handling inputs with NA:
+  phenotypes_wNA <- phenotypes
+  phenotypes_wNA$age[1] <- NA
+  
+  # using default methods in `gam()` to handle NA:
+  mygam_agewNA <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset,
+                                     n_cores = 2, pbar = FALSE)
+  compare_expected_results(mygam_agewNA, expected.results[["s-age-wNA"]])
+  expect_false(dplyr::all_equal(mygam_default %>% dplyr::select("s_age.statistic"),
+                                mygam_agewNA %>% dplyr::select("s_age.statistic"))
+               %>% isTRUE())
+  # using default methods in `gam()` to handle NA + in a formula with interaction terms:
+  # WARNING: should not request effect size for `age` without removing NA observations from it!
+  # s(x, by=orderedFactor):
+  formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB  # ordered factor
+  mygam_agewNA_sby <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset,
+                                 n_cores = 2, pbar = FALSE)
+  compare_expected_results(mygam_agewNA_sby, expected.results[["oSex_s-age-wNA-k-4-fx-T_s-age-byoSex-fx-T_factorB"]])
+  # ti(x) + ti(z) + ti(x,z), where x has NA:
+  formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
+  mygam_agewNA_tiInteract <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset,
+                                     n_cores = 2, pbar = FALSE)
+  compare_expected_results(mygam_agewNA_tiInteract, expected.results[["ti-age-wNA-fx-T_ti-factorB-fx-T_ti-age-factorB-fx-T_factorA"]])
+  # s(x) + s(z) + ti(x,z), where x has NA:
+  formula <- FD ~ s(age, fx=TRUE) + s(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
+  mygam_agewNA_s_tiInteract <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset,
+                                            n_cores = 2, pbar = FALSE)
+  compare_expected_results(mygam_agewNA_s_tiInteract, expected.results[["s-age-wNA-fx-T_s-factorB-fx-T_ti-age-factorB-fx-T_factorA"]])
+  
+  # using "na.omit" to handle NA:
+  mygam_agewNA_na.omit <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset,
+                                         na.action = "na.omit",
+                                         n_cores = 2, pbar = FALSE)
+  compare_expected_results(mygam_agewNA_na.omit, expected.results[["s-age-wNA_na.action-na.omit"]])
+  # default option to handle NA should be the same as using `na.omit`:
+  expect_true(dplyr::all_equal(mygam_agewNA %>% dplyr::select("s_age.statistic"),
+                                mygam_agewNA_na.omit %>% dplyr::select("s_age.statistic"))
+              %>% isTRUE())
+  # using "na.fail" to handle NA:
+  expect_error(ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset,
+                              na.action = "na.fail",
+                              n_cores = 2, pbar = FALSE))
+  
   # method: 
   mygam_methodREML <- ModelArray.gam(FD ~ s(age) + sex, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                                      method = "REML",  # default = "GCV.Cp"
