@@ -420,6 +420,27 @@ helper_generate_expect_gam <- function(fn.phenotypes,
   dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
   expected.results[[thename]] <- dfout
   
+  thename <- "ti-age-fx-T_ti-factorB-fx-F_ti-age-factorB-fx-T_factorA"
+  formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=FALSE) + ti(age, factorB, fx=TRUE) + factorA
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "ti-age-fx-T_ti-factorB-fx-F_factorA"
+  formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=FALSE) + factorA
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  
+  thename <- "s-age-fx-T_s-factorB-fx-T_ti-age-factorB-fx-T_factorA"
+  formula <- FD ~ s(age, fx=TRUE) + s(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age-fx-T_s-factorB-fx-T_factorA"
+  formula <- FD ~ s(age, fx=TRUE) + s(factorB, fx=TRUE)+ factorA
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
   thename <- "intercept"   # not to replicate the process here.... otherwise dfout's class is "tbl_df"...
   formula <- FD ~ 1
   dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)

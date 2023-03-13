@@ -590,6 +590,7 @@ test_that("test that ModelArray.gam() works as expected", {
                %in% colnames(mygam_sby_multiLevels))
   
   ## ti(x,z):
+  # ti(x) + ti(z) + ti(x,z):
   formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
   mygam_tiInteract <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
                               changed.rsq.term.index = c(3), var.model = c("dev.expl","adj.r.squared"),
@@ -608,6 +609,45 @@ test_that("test that ModelArray.gam() works as expected", {
   expect_equal(mygam_tiInteract$model.adj.r.squared -mygam_tiInteract_red1$model.adj.r.squared,
                mygam_tiInteract$ti_age_factorB.delta.adj.rsq)  
 
+  # ti(x) + ti(z, fx=F) + ti(x,z):
+  formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=FALSE) + ti(age, factorB, fx=TRUE) + factorA
+  mygam_tifxF_tiInteract <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                           changed.rsq.term.index = c(3), var.model = c("dev.expl","adj.r.squared"),
+                                           n_cores = 2, pbar = FALSE)
+    compare_expected_results(mygam_tifxF_tiInteract, expected.results[["ti-age-fx-T_ti-factorB-fx-F_ti-age-factorB-fx-T_factorA"]])
+  expect_true("ti_age.statistic" %in% colnames(mygam_tiInteract))
+  expect_true("ti_age_factorB.p.value" %in% colnames(mygam_tiInteract))
+  expect_true("ti_age_factorB.delta.adj.rsq" %in% colnames(mygam_tiInteract))
+  expect_true("ti_age_factorB.partial.rsq" %in% colnames(mygam_tiInteract))
+  
+  # not recommend to request effect size for this formula
+  red.formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=FALSE)+ factorA
+  mygam_tifxF_tiInteract_red1 <- ModelArray.gam(formula = red.formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                          var.model = c("adj.r.squared"),
+                                          n_cores = 2, pbar = FALSE)
+  compare_expected_results(mygam_tifxF_tiInteract_red1, expected.results[["ti-age-fx-T_ti-factorB-fx-F_factorA"]])
+  expect_equal(mygam_tifxF_tiInteract$model.adj.r.squared -mygam_tifxF_tiInteract_red1$model.adj.r.squared,
+               mygam_tifxF_tiInteract$ti_age_factorB.delta.adj.rsq)  
+  
+  # s(x) + s(z) + ti(x,z):
+  formula <- FD ~ s(age, fx=TRUE) + s(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
+  mygam_s_tiInteract <- ModelArray.gam(formula = formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                       changed.rsq.term.index = c(3), var.model = c("dev.expl","adj.r.squared"),
+                                       n_cores = 2, pbar = FALSE)
+    compare_expected_results(mygam_s_tiInteract, expected.results[["s-age-fx-T_s-factorB-fx-T_ti-age-factorB-fx-T_factorA"]])
+  expect_true("s_age.statistic" %in% colnames(mygam_s_tiInteract))
+  expect_true("ti_age_factorB.p.value" %in% colnames(mygam_s_tiInteract))
+  expect_true("ti_age_factorB.delta.adj.rsq" %in% colnames(mygam_s_tiInteract))
+  expect_true("ti_age_factorB.partial.rsq" %in% colnames(mygam_s_tiInteract))
+  
+  red.formula <- FD ~ s(age, fx=TRUE) + s(factorB, fx=TRUE)+ factorA
+  mygam_s_tiInteract_red1 <- ModelArray.gam(formula = red.formula, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
+                                          var.model = c("adj.r.squared"),
+                                          n_cores = 2, pbar = FALSE)
+    compare_expected_results(mygam_s_tiInteract_red1, expected.results[["s-age-fx-T_s-factorB-fx-T_factorA"]])
+  expect_equal(mygam_s_tiInteract$model.adj.r.squared -mygam_s_tiInteract_red1$model.adj.r.squared,
+               mygam_s_tiInteract$ti_age_factorB.delta.adj.rsq)  
+  
   
   # ## factorized, but not ordered: - NOT RECOMMEND
   # formula <- FD ~ sexFactor + s(age) + s(age, by=sexFactor, fx=TRUE)
