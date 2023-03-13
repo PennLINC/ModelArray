@@ -213,6 +213,12 @@ helper_generate_expect_lm <- function(fn.phenotypes,
   data <- phenotypes
   data$FD <- fd.simu
   
+  # phenotypes with NA:
+  phenotypes_wNA <- phenotypes
+  phenotypes_wNA$age[1] <- NA
+  data_wNA <- phenotypes_wNA
+  data_wNA$FD <- fd.simu
+
   # different scenario:
   thename <- "age"
   formula <- FD ~ age
@@ -234,12 +240,11 @@ helper_generate_expect_lm <- function(fn.phenotypes,
   dfout <- calcu_stat_lm(formula, data, idx.fixel.lm)
   expected.results[[thename]] <- dfout
   
-  # phenotypes with NA:
-  phenotypes_wNA <- phenotypes
-  phenotypes_wNA$age[1] <- NA
-  data_wNA <- phenotypes_wNA
-  data_wNA$FD <- fd.simu
-  
+  thename <- "age_phenotypeswNA"
+  formula <- FD ~ age
+  dfout <- calcu_stat_lm(formula, data_wNA, idx.fixel.lm)
+  expected.results[[thename]] <- dfout
+
   thename <- "age_phenotypeswNA_na.action-na.omit"
   formula <- FD ~ age
   dfout <- calcu_stat_lm(formula, data_wNA, idx.fixel.lm, 
@@ -298,6 +303,12 @@ helper_generate_expect_gam <- function(fn.phenotypes,
   
   data <- phenotypes
   data$FD <- fd.simu
+
+  # phenotypes with NA:
+  phenotypes_wNA <- phenotypes
+  phenotypes_wNA$age[1] <- NA
+  data_wNA <- phenotypes_wNA
+  data_wNA$FD <- fd.simu
   
   # different scenario:
   thename <- "s-age_sex"
@@ -338,6 +349,17 @@ helper_generate_expect_gam <- function(fn.phenotypes,
   thename <- "s-age_sex_method-REML"
   formula <- FD ~ s(age) + sex
   dfout <- calcu_stat_gam(formula, data, idx.fixel.gam, method="REML")   # MAKE SURE THIS IS IN! TODO
+  expected.results[[thename]] <- dfout
+
+  # with NA:
+  thename <- "s-age-wNA"
+  formula <- FD ~ s(age) + sex
+  dfout <- calcu_stat_gam(formula, data_wNA, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+
+  thename <- "s-age-wNA_na.action-na.omit"
+  formula <- FD ~ s(age) + sex
+  dfout <- calcu_stat_gam(formula, data_wNA, idx.fixel.gam, na.action = "na.omit")
   expected.results[[thename]] <- dfout
   
   thename <- "factorB_s-age_s-factorA"
@@ -389,6 +411,11 @@ helper_generate_expect_gam <- function(fn.phenotypes,
   formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB
   dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
   expected.results[[thename]] <- dfout
+
+  thename <- "oSex_s-age-wNA-k-4-fx-T_s-age-byoSex-fx-T_factorB"
+  formula <- FD ~ oSex + s(age,k=4, fx=TRUE) + s(age, by=oSex, fx=TRUE) + factorB
+  dfout <- calcu_stat_gam(formula, data_wNA, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
   
   thename <- "oMultiLevels_s-age-k-4-fx-T_s-age-byoMultiLevels-fx-T_factorB"
   formula <- FD ~ oMultiLevels + s(age,k=4, fx=TRUE) + s(age, by=oMultiLevels, fx=TRUE) + factorB 
@@ -414,9 +441,39 @@ helper_generate_expect_gam <- function(fn.phenotypes,
   formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
   dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
   expected.results[[thename]] <- dfout
+
+  thename <- "ti-age-wNA-fx-T_ti-factorB-fx-T_ti-age-factorB-fx-T_factorA"
+  formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
+  dfout <- calcu_stat_gam(formula, data_wNA, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
   
   thename <- "ti-age-fx-T_ti-factorB-fx-T_factorA"
   formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=TRUE)+ factorA
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "ti-age-fx-T_ti-factorB-fx-F_ti-age-factorB-fx-T_factorA"
+  formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=FALSE) + ti(age, factorB, fx=TRUE) + factorA
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "ti-age-fx-T_ti-factorB-fx-F_factorA"
+  formula <- FD ~ ti(age, fx=TRUE) + ti(factorB, fx=FALSE) + factorA
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age-fx-T_s-factorB-fx-T_ti-age-factorB-fx-T_factorA"
+  formula <- FD ~ s(age, fx=TRUE) + s(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+
+  thename <- "s-age-wNA-fx-T_s-factorB-fx-T_ti-age-factorB-fx-T_factorA"
+  formula <- FD ~ s(age, fx=TRUE) + s(factorB, fx=TRUE) + ti(age, factorB, fx=TRUE) + factorA
+  dfout <- calcu_stat_gam(formula, data_wNA, idx.fixel.gam)
+  expected.results[[thename]] <- dfout
+  
+  thename <- "s-age-fx-T_s-factorB-fx-T_factorA"
+  formula <- FD ~ s(age, fx=TRUE) + s(factorB, fx=TRUE)+ factorA
   dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
   expected.results[[thename]] <- dfout
   

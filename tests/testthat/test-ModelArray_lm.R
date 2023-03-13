@@ -277,9 +277,22 @@ test_that("ModelArray.lm() works as expected", {
   expect_false(all(is.na(mylm_age_factorB$factorB.statistic)))
   
   ## Different optional arguments of lm: in order to test that the additional arguments have really been passed into the lm: #####
-  # test "na.action" with inputs with NA
+  # hanlding inputs with NA:
   phenotypes_wNA <- phenotypes
   phenotypes_wNA$age[1] <- NA
+  
+  # test default `lm()` method for handling NA:
+  mylm_phenotypes_naActionDefault <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, 
+                                                   scalar = scalar_name, element.subset = element.subset, n_cores = 2, pbar=FALSE)
+  compare_expected_results(mylm_phenotypes_naActionDefault, expected.results[["age_phenotypeswNA"]])
+  
+  # there should be differences in results, after changing one value to NA:
+  expect_false(all.equal(mylm                         %>% dplyr::select(age.estimate),
+                         mylm_phenotypes_naActionDefault %>% dplyr::select(age.estimate)) 
+               %>% isTRUE())
+
+  # test different (not-default) `na.action` with inputs with NA:
+  # error if `na.action = "na.fail"`:
   expect_error(ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset, 
                              var.terms = var.terms, var.model = var.model, n_cores = 1, pbar=FALSE,
                              na.action="na.fail"))  # expect error of "missing values in object". If na.action was not passed into lm, there will not be error
@@ -295,7 +308,7 @@ test_that("ModelArray.lm() works as expected", {
                                var.terms = var.terms, var.model = var.model, n_cores = 2, pbar=TRUE,
                                na.action="na.fail"))   # after updating ModelArray.lm with one row, specifying column names to keep, expect error (instead of warning for each core with error, expect_warning) 
   
-  #mylm_phenotypes_naActionDefault <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset, n_cores = 2, pbar=FALSE)
+  # okay if `na.action = "na.omit"`:
   mylm_phenotypes_naActionOmit <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset, 
                                                 var.terms = var.terms, var.model = var.model, n_cores = 2, pbar=FALSE, 
                                                 na.action="na.omit")
@@ -304,8 +317,12 @@ test_that("ModelArray.lm() works as expected", {
   expect_false(all.equal(mylm                         %>% dplyr::select(age.estimate),
                          mylm_phenotypes_naActionOmit %>% dplyr::select(age.estimate)) 
                %>% isTRUE())
-  
+  # default option to handle NA should be the same as using `na.omit`:
+  expect_true(all.equal(mylm_phenotypes_naActionDefault %>% dplyr::select(age.estimate),
+                        mylm_phenotypes_naActionOmit %>% dplyr::select(age.estimate)) 
+               %>% isTRUE())
 
+  
   # check if "weights" have been successfully passed into lm:
   mylm_weights1 <- ModelArray.lm(FD ~ age, data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset, 
                         var.terms = var.terms, var.model = var.model, 
