@@ -28,16 +28,17 @@ and beyond. Its features include:
 - Scalable for large-scale datasets;
 - Compatible with fixel-wise data and voxel-wise data.
 
-Please cite our [bioRxiv preprint
-article](https://doi.org/10.1101/2022.07.12.499631) if you use
+Please cite our [NeuroImage
+paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use
 `ModelArray`:
 
 > Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S.,
 > Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha,
 > K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M.,
-> Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2022).
-> ModelArray: a memory-efficient R package for statistical analysis of
-> fixel data. bioRxiv. <https://doi.org/10.1101/2022.07.12.499631>
+> Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2023).
+> ModelArray: an R package for statistical analysis of fixel-wise data,
+> *NeuroImage*, In press.
+> <https://doi.org/10.1016/j.neuroimage.2023.120037>
 
 ## Overview
 
