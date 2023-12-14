@@ -37,8 +37,8 @@ paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use
 > Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha,
 > K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M.,
 > Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2023).
-> ModelArray: an R package for statistical analysis of fixel-wise data,
-> *NeuroImage*, In press.
+> ModelArray: an R package for statistical analysis of fixel-wise data.
+> *NeuroImage*, *271*, 120037.
 > <https://doi.org/10.1016/j.neuroimage.2023.120037>
 
 ## Overview

@@ -31,7 +31,7 @@ knitr::opts_chunk$set(
 
 Please cite our [NeuroImage paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use `ModelArray`: 
 
-> Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S., Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha, K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M., Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2023). ModelArray: an R package for statistical analysis of fixel-wise data, _NeuroImage_, In press. https://doi.org/10.1016/j.neuroimage.2023.120037
+> Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S., Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha, K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M., Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2023). ModelArray: an R package for statistical analysis of fixel-wise data. _NeuroImage_, _271_, 120037. https://doi.org/10.1016/j.neuroimage.2023.120037
 
 
 ## Overview
