@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="index.html">ModelArray</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4.9000</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,7 +76,7 @@
 </ul>
 </li>
 <li>Scalable for large-scale datasets;</li>
-<li>Compatible with fixel-wise data and voxel-wise data.</li>
+<li>Compatible with fixel-wise data, voxel-wise data, and greyordinate-wise data.</li>
 </ul>
 <p>Please cite our <a href="https://doi.org/10.1016/j.neuroimage.2023.120037" class="external-link">NeuroImage paper</a> if you use <code>ModelArray</code>:</p>
 <blockquote>
@@ -90,7 +90,7 @@
 <img src="articles/overview_structure.png" alt=""><p class="caption">Overview</p>
 </div>
 </center>
-<p>ModelArray is packaged with the companion software <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> for converting fixel-wise data and voxel-wise data to the expected file format that ModelArray uses. Specifically, <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> is Python-based command-line interface software, and it converts between the original image format (<code>.mif</code> for fixel-wise data, NIfTI for voxel-wise data) and the HDF5 file format (<code>.h5</code>) used for ModelArray.</p>
+<p>ModelArray is packaged with the companion software <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> for converting fixel-wise data, voxel-wise data or greyordinate-wise data to the expected file format that ModelArray uses. Specifically, <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> is Python-based command-line interface software, and it converts between the original image format (<code>.mif</code> for fixel-wise data, NIfTI for voxel-wise data, CIFTI-2 for greyordinate-wise data) and the HDF5 file format (<code>.h5</code>) used for ModelArray.</p>
 <!-- if there is any changes in this overview section, please also update ConFixel's frontpage! -->
 </div>
 <div class="section level2">
@@ -136,9 +136,9 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Chenying Zhao <br><small class="roles"> Author, maintainer </small>  </li>
+<li>Chenying Zhao <br><small class="roles"> Author </small>  </li>
 <li>Tinashe Tapera <br><small class="roles"> Author </small>  </li>
-<li>Matthew Cieslak <br><small class="roles"> Author </small>  </li>
+<li>Matthew Cieslak <br><small class="roles"> Author, maintainer </small>  </li>
 <li>Theodore Satterthwaite <br><small class="roles"> Author </small>  </li>
 </ul>
 </div>

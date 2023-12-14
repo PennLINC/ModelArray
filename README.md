@@ -26,7 +26,8 @@ and beyond. Its features include:
     effects in lifespan data. `ModelArray` is also extensible to diverse
     models available in R;
 - Scalable for large-scale datasets;
-- Compatible with fixel-wise data and voxel-wise data.
+- Compatible with fixel-wise data, voxel-wise data, and
+  greyordinate-wise data.
 
 Please cite our [NeuroImage
 paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use
@@ -50,12 +51,13 @@ paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use
 
 ModelArray is packaged with the companion software
 [ConFixel](https://github.com/PennLINC/ConFixel) for converting
-fixel-wise data and voxel-wise data to the expected file format that
-ModelArray uses. Specifically,
+fixel-wise data, voxel-wise data or greyordinate-wise data to the
+expected file format that ModelArray uses. Specifically,
 [ConFixel](https://github.com/PennLINC/ConFixel) is Python-based
 command-line interface software, and it converts between the original
-image format (`.mif` for fixel-wise data, NIfTI for voxel-wise data) and
-the HDF5 file format (`.h5`) used for ModelArray.
+image format (`.mif` for fixel-wise data, NIfTI for voxel-wise data,
+CIFTI-2 for greyordinate-wise data) and the HDF5 file format (`.h5`)
+used for ModelArray.
 
 <!-- if there is any changes in this overview section, please also update ConFixel's frontpage! -->
 
