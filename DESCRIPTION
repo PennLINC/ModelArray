@@ -1,17 +1,17 @@
 Package: ModelArray
 Title: An R package for statistical analysis of fixel-wise data and beyond
-Version: 0.1.4
+Version: 0.1.4.9000
 Authors@R:
     c(person(given = "Chenying",
            family = "Zhao",
-           role = c("aut", "cre"),
-           email = "chenyzh@seas.upenn.edu"),
+           role = c("aut")),
        person(give = "Tinashe",
             family = "Tapera",
             role = c("aut")),
        person(give = "Matthew",
             family = "Cieslak",
-            role = c("aut")),
+            role = c("aut", "cre"),
+            email = "Matthew.Cieslak@pennmedicine.upenn.edu"),
         person(give = "Theodore",
             family = "Satterthwaite",
             role = c("aut")) )
