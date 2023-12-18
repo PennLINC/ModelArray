@@ -1,6 +1,6 @@
 Package: ModelArray
 Title: An R package for statistical analysis of fixel-wise data and beyond
-Version: 0.1.4.9000
+Version: 0.1.5
 Authors@R:
     c(person(given = "Chenying",
            family = "Zhao",
