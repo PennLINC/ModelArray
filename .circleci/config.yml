@@ -24,7 +24,7 @@ steps: &steps
 
 
 jobs:
-  releaseR4.1.2:
+  releaseR4p1p2:
     docker:
       - image: rocker/verse:4.1.2
     <<: *steps
@@ -32,10 +32,10 @@ jobs:
   #   docker:
   #     - image: rocker/verse:4.2.0
   #   <<: *steps
-  develR:
-    docker:
-      - image: rocker/verse:devel
-    <<: *steps
+  # develR:
+  #   docker:
+  #     - image: rocker/verse:devel
+  #   <<: *steps
 
   deployable:
     docker:
@@ -85,7 +85,7 @@ workflows:
   version: 2
   build_test_deploy:
     jobs:
-      - releaseR4.1.2:
+      - releaseR4p1p2:
           filters:
             tags:
               only: /.*/
@@ -100,7 +100,7 @@ workflows:
 
       - deployable:
           requires:
-            - releaseR4.1.2
+            - releaseR4p1p2
             # - releaseR4.2.0
             # - develR
           filters:
