@@ -139,8 +139,7 @@ test_that("test that ModelArray.gam() works as expected", {
     partialRsq
   }
 
-  wrap_partial_rsq <- function(
-      element.subset, modelarray, phenotypes, scalar, full.formula, reduced.formula) {
+  wrap_partial_rsq <- function(element.subset, modelarray, phenotypes, scalar, full.formula, reduced.formula) {
     partial.rsq.list <- lapply(
       element.subset, # a list of i_element
       partialRsq_gam_modelarray, # the function
@@ -234,7 +233,7 @@ test_that("test that ModelArray.gam() works as expected", {
       scalar = scalar_name,
       element.subset = element.subset,
       # there will be warning: p.value was not included in var.parametricTerms,
-      #so not to perform its p.value corrections
+      # so not to perform its p.value corrections
       var.parametricTerms = c(),
       n_cores = 2,
       pbar = FALSE
@@ -573,7 +572,7 @@ test_that("test that ModelArray.gam() works as expected", {
   expect_true(
     c("sexM.p.value.bonferroni", "Intercept.p.value.bonferroni")
     %in% colnames(mygam_parametric_pCorrect)
-    %>% all()
+      %>% all()
   )
 
   mygam_smooth_pCorrect <- ModelArray.gam(FD ~ s(age) + sex,
@@ -590,8 +589,7 @@ test_that("test that ModelArray.gam() works as expected", {
   # check if requested p value corrections exist:
   expect_true(
     c("s_age.p.value.bonferroni")
-    %in% colnames(mygam_smooth_pCorrect)
-    %>% all()
+    %in% colnames(mygam_smooth_pCorrect) %>% all()
   )
 
   expect_error(

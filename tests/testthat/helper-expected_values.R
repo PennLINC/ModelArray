@@ -81,7 +81,8 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
   onemodel.glance[["adj.r.squared"]] <- onemodel.summary$r.sq
   onemodel.glance[["dev.expl"]] <- onemodel.summary$dev.expl
 
-  # get the attr name  # maually checked: default (GCV.Cp) and "REML", and the *.attr.name string is correct
+  # get the attr name  # maually checked: default (GCV.Cp) and "REML", and the *.attr.name
+  #  string is correct
   sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name")
   # use the attr name to extract the value
   onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[sp.criterion.attr.name]]
@@ -93,7 +94,7 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
   # adjust:
   # if there is any smooth term   # NOTE: I used different method for detecting if there is smooth term
   if (nrow(onemodel.tidy.smoothTerms) > 0) {
-     # change the term name from "(Intercept)" to "Intercept"
+    # change the term name from "(Intercept)" to "Intercept"
     onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept"
   }
   if (nrow(onemodel.tidy.parametricTerms) > 0) { # if there is any parametric term
@@ -167,23 +168,23 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
 
   # flatten:
   if (nrow(onemodel.tidy.smoothTerms) > 0) {
-    onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(
+    onemod_smTrm_Tdy_onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(
       names_from = term,
       values_from = all_of(var.smoothTerms),
       names_glue = "{term}.{.value}"
     )
   } else {
-    onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms
+    onemod_smTrm_Tdy_onerow <- onemodel.tidy.smoothTerms
   }
 
   if (nrow(onemodel.tidy.parametricTerms) > 0) {
-    onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(
+    onemod_parTrm_Tdy_onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(
       names_from = term,
       values_from = all_of(var.parametricTerms),
       names_glue = "{term}.{.value}"
     )
   } else {
-    onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms
+    onemod_parTrm_Tdy_onerow <- onemodel.tidy.parametricTerms
   }
 
   if (nrow(onemodel.glance) > 0) {
@@ -198,8 +199,8 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
 
   ## bind together:
   onemodel.onerow <- bind_cols_check_emptyTibble(
-    onemodel.tidy.smoothTerms.onerow,
-    onemodel.tidy.parametricTerms.onerow
+    onemod_smTrm_Tdy_onerow,
+    onemod_parTrm_Tdy_onerow
   )
   onemodel.onerow <- bind_cols_check_emptyTibble(
     onemodel.onerow,
@@ -240,12 +241,13 @@ helper_generate_expect_lm <- function(fn.phenotypes,
   # set the seed:
   set.seed(num.set.seed)
 
-
   ## start to calculate:
   expected.results <- list()
 
   # load data for lm:
-  # not to load from .txt - as it'll be off with that in .h5 (2e-6), making results a little off too (e.g. <2e-6), so cannot tell if the results are perfectly matched or not
+  # not to load from .txt - as it'll be off with that in .h5 (2e-6),
+  # making results a little off too (e.g. <2e-6), so cannot tell if the results
+  # are perfectly matched or not
   # fd.simu <- read.csv(paste0("data/n50_fixels_FD_idx-", toString(idx.fixel.lm), ".txt"))
   # fd.simu <- fd.simu$x
 
@@ -335,7 +337,10 @@ helper_generate_expect_gam <- function(fn.phenotypes,
     rep("B", 15),
     rep("C", 20)
   )
-  phenotypes$oMultiLevels <- ordered(phenotypes$oMultiLevels, levels = c("A", "B", "C")) # ordered factor, "A" as reference group
+  phenotypes$oMultiLevels <- ordered(
+    phenotypes$oMultiLevels,
+    levels = c("A", "B", "C")
+  ) # ordered factor, "A" as reference group
 
   # set the seed:
   set.seed(num.set.seed)
@@ -374,7 +379,8 @@ helper_generate_expect_gam <- function(fn.phenotypes,
 
   thename <- "age"
   formula <- FD ~ age
-  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam) # compared to lm()'s results with same formula & data, random selected stat; 2022.5.23. Chenying
+  # compared to lm()'s results with same formula & data, random selected stat; 2022.5.23. Chenying
+  dfout <- calcu_stat_gam(formula, data, idx.fixel.gam)
   expected.results[[thename]] <- dfout
 
   thename <- "s-age_s-factorA"
@@ -542,7 +548,7 @@ helper_generate_expect_gam <- function(fn.phenotypes,
 #'
 #' @param fn.h5 A character, the filename of the h5 file
 #' @return the matrix of the scalar values
-helper_generate_expect_accessors <- function(fn.h5) {
+helper_gen_exp_accessors <- function(fn.h5) {
   # load the data:
   h5f <- rhdf5::H5Fopen(fn.h5)
   scalar.value.full <- h5f$scalars$FD$values # enter the dataset
@@ -550,5 +556,5 @@ helper_generate_expect_accessors <- function(fn.h5) {
 
   h5closeAll()
 
-  return(scalar.value.full)
+  scalar.value.full
 }

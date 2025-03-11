@@ -7,7 +7,7 @@ test_that("ModelArray interface works as expected", {
   tryCatch(
     {
       ## try:
-      scalar.value.full <- helper_generate_expect_accessors(h5_path)
+      scalar.value.full <- helper_gen_exp_accessors(h5_path)
       # ^ has been realized as matrix, taking ~70MB of memory if using n50_fixels.h5 file
     },
     finally = { # regardless try is successful or not:
@@ -42,7 +42,7 @@ test_that("ModelArray interface works as expected", {
   # realize as in-memory matrix, instead of DelayedArray matrix
   actual <- scalars(modelarray)[["FD"]] %>% as.matrix()
   # reset the dimnames (to make it the same as `scalar.value.full`), as the expect is value only,
-  #and the dimnames (actually only colnames) will be checked later in sources()
+  # and the dimnames (actually only colnames) will be checked later in sources()
   dimnames(actual) <- NULL
   expect_equal(
     actual, # only checking the values, not the column names (will be checked later in sources())
