@@ -178,7 +178,7 @@ checker_gam_s <- function(ofInterest) {
   ### k (or bs.dim):   # could be multiple values
   m1 <- invisible(eval(formals(FUN)[["k"]])) # default
   m2 <- ofInterest$bs.dim # could be a list of multiple values
-  if ((length(unique(m2)) == 1) & (m1 %in% unique(m2))) { # default
+  if ((length(unique(m2)) == 1) && (m1 %in% unique(m2))) { # default
     msg_k <- " (default)"
   } else {
     msg_k <- ""
@@ -209,7 +209,7 @@ checker_gam_s <- function(ofInterest) {
   m1 <- invisible(eval(formals(FUN)[["bs"]])) # default
   # actual:
   mybs <- gsub(".smooth.spec", "", class(ofInterest)) # if there are multiple elements in bs, mybs will be a list
-  if ((length(unique(mybs)) == 1) & (m1 %in% unique(mybs))) { # default
+  if ((length(unique(mybs)) == 1) && (m1 %in% unique(mybs))) { # default
     msg_bs <- " (default)"
   } else {
     msg_bs <- ""
@@ -266,13 +266,13 @@ checker_gam_t <- function(FUN, ofInterest) {
   m1 <- invisible(eval(formals(FUN)[["bs"]])) %>% as.character() # default
 
   mybs <- list() # actual, as a list
-  for (i in 1:length(ofInterest$margin)) {
+  for (i in seq_along(ofInterest$margin)) {
     temp <- gsub(".smooth.spec", "", ofInterest$margin[[i]] %>% class())
     mybs[i] <- temp
   }
 
   # then check if all elements are default value of bs
-  if ((length(unique(mybs)) == 1) & (m1 %in% unique(mybs))) { # all elements are the same, and = default
+  if ((length(unique(mybs)) == 1) && (m1 %in% unique(mybs))) { # all elements are the same, and = default
     msg_bs <- " (default)"
   } else {
     msg_bs <- ""
@@ -310,7 +310,7 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL)
 
   if (length(gam.formula.breakdown$smooth.spec) != 0) { # if there is smooth term
     list_smooth_terms <- character(length(gam.formula.breakdown$smooth.spec))
-    for (i_smoothTerm in 1:length(gam.formula.breakdown$smooth.spec)) {
+    for (i_smoothTerm in seq_along(gam.formula.breakdown$smooth.spec)) {
       ofInterest <- gam.formula.breakdown$smooth.spec[[i_smoothTerm]]
       list_smooth_terms[i_smoothTerm] <- ofInterest$label
 
@@ -371,20 +371,22 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL)
 #' @importFrom stats as.formula
 #' @export
 #'
-generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.var, phenotypes,
-                                               reference.group = NULL, prefix.ordered.factor = "o",
-                                               fx = TRUE, k = NULL) {
+gen_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.var, phenotypes,
+                                         reference.group = NULL, prefix.ordered.factor = "o",
+                                         fx = TRUE, k = NULL) {
   class.factor.var <- class(phenotypes[[factor.var]])
   if (
     !(
-      (length(class.factor.var) == 2)
-      && (class.factor.var[1] == "ordered")
-      && (class.factor.var[2] == "factor")
+      (length(class.factor.var) == 2) &&
+        (class.factor.var[1] == "ordered") &&
+        (class.factor.var[2] == "factor")
     )
   ) { # class is not c("ordered", "factor")
 
-    message("input `factor.var` is not an ordered factor;",
-            " will generate one in data.frame `phenotypes` which will be returned")
+    message(
+      "input `factor.var` is not an ordered factor;",
+      " will generate one in data.frame `phenotypes` which will be returned"
+    )
     if (is.null(reference.group)) {
       stop("requires a reference.group to generate the ordered factor")
     }
@@ -455,7 +457,7 @@ generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.
 #' @export
 #'
 gen_gamFormula_contIx <- function(response.var, cont1.var, cont2.var,
-                                                       fx = TRUE, k = NULL) {
+                                  fx = TRUE, k = NULL) {
   if (is.null(k)) {
     k <- invisible(eval(formals(mgcv::ti)[["k"]]))
   }
