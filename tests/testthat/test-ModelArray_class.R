@@ -39,8 +39,11 @@ test_that("ModelArray interface works as expected", {
   expect_equal(scalars(modelarray) %>% length(), 1) # one list of FD
   expect_equal(scalars(modelarray)[["FD"]] %>% dim(), c(num.fixels, num.subj))
   # expect values:
-  actual <- scalars(modelarray)[["FD"]] %>% as.matrix() # realize as in-memory matrix, instead of DelayedArray matrix
-  dimnames(actual) <- NULL # reset the dimnames (to make it the same as `scalar.value.full`), as the expect is value only, and the dimnames (actually only colnames) will be checked later in sources()
+  # realize as in-memory matrix, instead of DelayedArray matrix
+  actual <- scalars(modelarray)[["FD"]] %>% as.matrix()
+  # reset the dimnames (to make it the same as `scalar.value.full`), as the expect is value only,
+  #and the dimnames (actually only colnames) will be checked later in sources()
+  dimnames(actual) <- NULL
   expect_equal(
     actual, # only checking the values, not the column names (will be checked later in sources())
     scalar.value.full
@@ -101,7 +104,12 @@ test_that("ModelArray interface works as expected", {
 
       ## test: write results:  # multiple results:
       writeResults(h5_path_output, df.output = mylm, analysis_name = "result_lm", overwrite = TRUE)
-      writeResults(h5_path_output, df.output = mylm_fulloutput, analysis_name = "result_lm_fulloutput", overwrite = TRUE)
+      writeResults(
+        h5_path_output,
+        df.output = mylm_fulloutput,
+        analysis_name = "result_lm_fulloutput",
+        overwrite = TRUE
+      )
 
       # re-load:
       modelarray_new <- ModelArray(h5_path_output,
@@ -157,7 +165,8 @@ test_that("ModelArray interface works as expected", {
 
 
 
-  # TODO: results with a column of strings - need to be converted into numeric | currently there is no need for .lm and .gam
+  # TODO: results with a column of strings - need to be converted into numeric |
+  # currently there is no need for .lm and .gam
 
 
 

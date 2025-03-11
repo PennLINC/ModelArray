@@ -1,29 +1,37 @@
-# This is to calculate expected statistical results but without using ModelArray (e.g. ModelArray(), ModelArray.lm() or ModelArray.gam()).
+# This is to calculate expected statistical results but without using ModelArray
+# (e.g. ModelArray(), ModelArray.lm() or ModelArray.gam()).
 
 #' The function for calculating the expected values for ModelArray.lm()
 #'
 #' Details:
-#' this won't include p-value corrections - as corrections depend on other calculated fixels; to check p-value corrections, directly calculate in the testthat tests.
+#' this won't include p-value corrections - as corrections depend on other
+#' calculated fixels; to check p-value corrections, directly calculate in the
+#' testthat tests.
 calcu_stat_lm <- function(formula, data, i_element, ...) {
   arguments_lm <- list(...)
   arguments_lm$formula <- formula
   arguments_lm$data <- data
 
-  onemodel <- do.call(stats::lm, arguments_lm) # explicitly passing arguments into lm, to avoid error of argument "weights"
+  # explicitly passing arguments into lm, to avoid error of argument "weights"
+  onemodel <- do.call(stats::lm, arguments_lm)
 
   onemodel.tidy <- onemodel %>% broom::tidy()
   onemodel.glance <- onemodel %>% broom::glance()
 
   # adjust:
-  onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept" # change the term name from "(Intercept)" to "Intercept"
-  onemodel.glance <- onemodel.glance %>% mutate(term = "model") # add a column
+  # change the term name from "(Intercept)" to "Intercept"
+  onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"
+  # add a column
+  onemodel.glance <- onemodel.glance %>% mutate(term = "model")
 
   # list of column names to keep:
   var.terms <- colnames(onemodel.tidy)
-  var.terms <- var.terms[var.terms != "term"] # remove "term" which is not a valid stat output
+  # remove "term" which is not a valid stat output
+  var.terms <- var.terms[var.terms != "term"]
 
   var.model <- colnames(onemodel.glance)
-  var.model <- var.model[var.model != "term"] # remove "term" which is not a valid stat output
+  # remove "term" which is not a valid stat output
+  var.model <- var.model[var.model != "term"]
 
   # turn into one row:
   onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(
@@ -41,7 +49,11 @@ calcu_stat_lm <- function(formula, data, i_element, ...) {
 
   # add a column of element ids:
   colnames.temp <- colnames(onemodel.onerow)
-  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element - 1, .before = colnames.temp[1]) # add as the first column
+  # add as the first column
+  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(
+    element_id = i_element - 1,
+    .before = colnames.temp[1]
+  )
 
   # change from tibble to a data.frame:
   onemodel.onerow <- onemodel.onerow %>% as.data.frame()
@@ -56,33 +68,44 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
   onemodel <- mgcv::gam(formula = formula, data = data, ...)
 
   # in this expected value function, I use "summary.gam()"
-
-  onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE) # needs to use broom::tidy instead of broom::tidy.gam() - the latter one is not an exported object from 'namespace:broom'
+  # needs to use broom::tidy instead of broom::tidy.gam()
+  # - the latter one is not an exported object from 'namespace:broom'
+  onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
+  # needs to use broom::tidy instead of broom::tidy.gam()
+  # - the latter one is not an exported object from 'namespace:broom'
   onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
-  onemodel.glance <- onemodel %>% broom::glance() # needs to use broom::glance instead of broom::glance.gam()!
+  # needs to use broom::glance instead of broom::glance.gam()!
+  onemodel.glance <- onemodel %>% broom::glance()
   onemodel.summary <- onemodel %>% summary.gam()
   # add additional model's stat to onemodel.glance():
   onemodel.glance[["adj.r.squared"]] <- onemodel.summary$r.sq
   onemodel.glance[["dev.expl"]] <- onemodel.summary$dev.expl
 
-  sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name") # get the attr name  # maually checked: default (GCV.Cp) and "REML", and the *.attr.name string is correct
-  onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[sp.criterion.attr.name]] # use the attr name to extract the value
-  onemodel.glance[["scale"]] <- onemodel.summary$scale # scale estimate
+  # get the attr name  # maually checked: default (GCV.Cp) and "REML", and the *.attr.name string is correct
+  sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name")
+  # use the attr name to extract the value
+  onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[sp.criterion.attr.name]]
+  # scale estimate
+  onemodel.glance[["scale"]] <- onemodel.summary$scale
 
   # num.smoothTerms <- onemodel.summary$m   # The number of smooth terms in the model.
 
   # adjust:
-  if (nrow(onemodel.tidy.smoothTerms) > 0) { # if there is any smooth term   # NOTE: I used different method for detecting if there is smooth term
-    onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept" # change the term name from "(Intercept)" to "Intercept"
+  # if there is any smooth term   # NOTE: I used different method for detecting if there is smooth term
+  if (nrow(onemodel.tidy.smoothTerms) > 0) {
+     # change the term name from "(Intercept)" to "Intercept"
+    onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept"
   }
   if (nrow(onemodel.tidy.parametricTerms) > 0) { # if there is any parametric term
-    onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept" # change the term name from "(Intercept)" to "Intercept"
+    # change the term name from "(Intercept)" to "Intercept"
+    onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"
   }
 
 
   # change from s(x) to s_x: (could be s, te, etc); from s(x):oFactor to s_x_BYoFactor; from ti(x,z) to ti_x_z
-  if (nrow(onemodel.tidy.smoothTerms) > 0) { # if there is any smooth term   # NOTE: I used different method for detecting if there is smooth term
-    for (i_row in 1:nrow(onemodel.tidy.smoothTerms)) {
+  # if there is any smooth term   # NOTE: I used different method for detecting if there is smooth term
+  if (nrow(onemodel.tidy.smoothTerms) > 0) {
+    for (i_row in seq_len(nrow(onemodel.tidy.smoothTerms))) {
       # step 1: change from s(x) to s_x
       term_name <- onemodel.tidy.smoothTerms$term[i_row]
       str_list <- strsplit(term_name, split = "[()]")[[1]]
@@ -113,16 +136,22 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
 
   # check if the onemodel.* does not have real statistics (but only a column of 'term')
   temp_colnames <- onemodel.tidy.smoothTerms %>% colnames()
-  temp <- union(temp_colnames, "term") # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()), union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term", all(union) = c(TRUE, FALSE, ...)
-  if (all(temp == "term")) onemodel.tidy.smoothTerms <- tibble() # just an empty tibble (so below, all(dim(onemodel.tidy.smoothTerms)) = FALSE)
+  # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()),
+  # union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term",
+  # all(union) = c(TRUE, FALSE, ...)
+  temp <- union(temp_colnames, "term")
+  # just an empty tibble (so below, all(dim(onemodel.tidy.smoothTerms)) = FALSE)
+  if (all(temp == "term")) onemodel.tidy.smoothTerms <- tibble()
 
   temp_colnames <- onemodel.tidy.parametricTerms %>% colnames()
   temp <- union(temp_colnames, "term")
-  if (all(temp == "term")) onemodel.tidy.parametricTerms <- tibble() # just an empty tibble
+  # just an empty tibble
+  if (all(temp == "term")) onemodel.tidy.parametricTerms <- tibble()
 
   temp_colnames <- onemodel.glance %>% colnames()
   temp <- union(temp_colnames, "term")
-  if (all(temp == "term")) onemodel.glance <- tibble() # just an empty tibble
+  # just an empty tibble
+  if (all(temp == "term")) onemodel.glance <- tibble()
 
 
   ## flatten:
@@ -179,7 +208,11 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
 
   # add a column of element ids:
   colnames.temp <- colnames(onemodel.onerow)
-  onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element - 1, .before = colnames.temp[1]) # add as the first column
+  onemodel.onerow <- onemodel.onerow %>%
+    tibble::add_column(
+      element_id = i_element - 1,
+      .before = colnames.temp[1]
+    )
 
   # change from tibble to a data.frame:
   onemodel.onerow <- onemodel.onerow %>% as.data.frame()

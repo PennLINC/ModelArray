@@ -231,12 +231,19 @@ test_that("ModelArray.lm() works as expected", {
     )
   )
   # Test handling of duplicates
-  temp <- (ModelArray.lm(FD ~ age,
-    data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-    var.terms = var.terms,
-    var.model = c(var.model, "AIC"),
-    n_cores = 2, pbar = FALSE
-  ))
+  temp <- (
+    ModelArray.lm(
+      FD ~ age,
+      data = modelarray,
+      phenotypes = phenotypes,
+      scalar = scalar_name,
+      element.subset = element.subset,
+      var.terms = var.terms,
+      var.model = c(var.model, "AIC"),
+      n_cores = 2,
+      pbar = FALSE
+    )
+  )
   expect_equal(mylm, temp)
 
 
@@ -343,11 +350,17 @@ test_that("ModelArray.lm() works as expected", {
   )
 
   # Test model corrections
-  mylm_corr_pvalues_2 <- ModelArray.lm(FD ~ age,
-    data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-    var.terms = var.terms, var.model = var.model,
+  mylm_corr_pvalues_2 <- ModelArray.lm(
+    FD ~ age,
+    data = modelarray,
+    phenotypes = phenotypes,
+    scalar = scalar_name,
+    element.subset = element.subset,
+    var.terms = var.terms,
+    var.model = var.model,
     correct.p.value.model = c("fdr", "bonferroni"),
-    n_cores = 2, pbar = FALSE
+    n_cores = 2,
+    pbar = FALSE
   )
   compare_expected_results(mylm_corr_pvalues_2, expected.results$age)
   # Check if requested p value corrections exist
