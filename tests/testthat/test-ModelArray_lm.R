@@ -339,8 +339,7 @@ test_that("ModelArray.lm() works as expected", {
   # Check if requested p value corrections exist
   expect_true(
     c("age.p.value.bonferroni", "Intercept.p.value.bonferroni")
-    %in% colnames(mylm_corr_pvalues_1)
-    %>% all()
+    %in% colnames(mylm_corr_pvalues_1) %>% all()
   )
 
   # Test model corrections
@@ -611,7 +610,8 @@ test_that("ModelArray.lm() works as expected", {
     all.equal(
       mylm %>% dplyr::select(age.estimate),
       mylm_phenotypes_naActionOmit %>% dplyr::select(age.estimate)
-    ) %>% isTRUE()
+    )
+    %>% isTRUE()
   )
   # Check default option to handle NA is same as using `na.omit`
   expect_true(
