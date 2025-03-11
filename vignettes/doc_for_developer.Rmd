@@ -135,7 +135,7 @@ The tests serve the goals of:
 Developers can run the tests locally to see if unit tests in a test file (in `tests/testthat` folder) can run without errors:
 
 ```{r, eval=FALSE}
-rm(list=ls())
+rm(list = ls())
 devtools::load_all()
 ```
 
