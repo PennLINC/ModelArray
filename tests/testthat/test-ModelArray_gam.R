@@ -1158,7 +1158,7 @@ test_that("test that ModelArray.gam() works as expected", {
 
 
   ## Formula #2:
-  myFormula_4 <- generator_gamFormula_continuousInteraction(
+  myFormula_4 <- gen_gamFormula_contIx(
     response.var = "FD",
     cont1.var = "age",
     cont2.var = "factorA"
@@ -1166,7 +1166,7 @@ test_that("test that ModelArray.gam() works as expected", {
   myFormula_4 # requires visually check
 
   # change k and fx:
-  myFormula_5 <- generator_gamFormula_continuousInteraction(
+  myFormula_5 <- gen_gamFormula_contIx(
     response.var = "FD", cont1.var = "age", cont2.var = "factorA",
     fx = FALSE, k = 3
   )
