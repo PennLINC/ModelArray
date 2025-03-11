@@ -571,8 +571,7 @@ test_that("test that ModelArray.gam() works as expected", {
   # check if requested p value corrections exist:
   expect_true(
     c("sexM.p.value.bonferroni", "Intercept.p.value.bonferroni")
-    %in% colnames(mygam_parametric_pCorrect)
-      %>% all()
+    %in% colnames(mygam_parametric_pCorrect) %>% all()
   )
 
   mygam_smooth_pCorrect <- ModelArray.gam(FD ~ s(age) + sex,
@@ -717,12 +716,12 @@ test_that("test that ModelArray.gam() works as expected", {
     pbar = FALSE
   )
   compare_expected_results(mygam_rsq_red2, expected.results[["factorB_s-age"]])
-  mygam_changedRsq_twoSmoothTerm_red3 <- ModelArray.gam(FD ~ s(age) + s(factorA),
+  mygam_chRsq_2SmTrm_red3 <- ModelArray.gam(FD ~ s(age) + s(factorA),
     data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
     var.model = c("adj.r.squared"),
     n_cores = 2, pbar = FALSE
   )
-  compare_expected_results(mygam_changedRsq_twoSmoothTerm_red3, expected.results[["s-age_s-factorA"]])
+  compare_expected_results(mygam_chRsq_2SmTrm_red3, expected.results[["s-age_s-factorA"]])
   # delta.adj.rsq:
   expect_equal(
     mygam_changedRsq_twoSmoothTerm$s_age.delta.adj.rsq,
