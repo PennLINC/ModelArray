@@ -1,0 +1,11 @@
+linters: linters_with_defaults(
+    line_length_linter(120),
+    object_name_linter = NULL,
+    cyclocomp_linter = NULL
+  )
+exclusions: list(
+    "inst/doc",
+    "man",
+    "vignettes",
+    "data-raw"
+  )
