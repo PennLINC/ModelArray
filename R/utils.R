@@ -132,8 +132,7 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
           "Some of elements in ",
           name.correct.list,
           " are not valid. Valid inputs are: ",
-          paste(p.adjust.methods.full, collapse = ", "
-          )
+          paste(p.adjust.methods.full, collapse = ", ")
         )
       )
     }
@@ -378,9 +377,9 @@ gen_gamFormula_fxSmooth <- function(response.var, factor.var, smooth.var, phenot
   class.factor.var <- class(phenotypes[[factor.var]])
   if (
     !(
-      (length(class.factor.var) == 2)
-      && (class.factor.var[1] == "ordered")
-      && (class.factor.var[2] == "factor")
+      (length(class.factor.var) == 2) &&
+        (class.factor.var[1] == "ordered") &&
+        (class.factor.var[2] == "factor")
     )
   ) { # class is not c("ordered", "factor")
 
