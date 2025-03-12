@@ -848,18 +848,3 @@ writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", ove
 
   # message("Results file written!")
 }
-
-#' @export
-#'
-generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.var, phenotypes,
-                                         reference.group = NULL, prefix.ordered.factor = "o",
-                                         fx = TRUE, k = NULL) {
-  # ... existing code ...
-}
-
-#' @export
-#'
-generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, cont2.var,
-                                  fx = TRUE, k = NULL) {
-  # ... existing code ...
-}
