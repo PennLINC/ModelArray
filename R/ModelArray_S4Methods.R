@@ -114,7 +114,8 @@ setMethod(
 
 # # NOTE: ref: https://stackoverflow.com/questions/56560280/
 # can-i-define-s4-methods-that-dispatch-on-more-than-one-argument-from-an-s3-gener
-# setGeneric("lm", function(formula, fixelarray, phenotypes, scalar, idx, ...) standardGeneric("lm"),
+# setGeneric("lm", function(formula, fixelarray, phenotypes, scalar, idx, ...)
+#            standardGeneric("lm"),
 #            signature = c(formula, fixelarray, phenotypes, scalar, idx)
 #            )
 # setMethod("lm",
