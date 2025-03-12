@@ -5,13 +5,12 @@
 #' @noRd
 #' @importFrom rhdf5 h5ls h5closeAll
 #' @importFrom dplyr filter
-#' @importFrom rlang .data
 flagObjectExistInh5 <- function(fn_h5, group_name = "/results", object_name = "myAnalysis") {
   rhdf5::h5closeAll()
 
   h5 <- rhdf5::h5ls(fn_h5)
 
-  h5.nrow <- dplyr::filter(.data$group == group_name & .data$name == object_name) %>%
+  h5.nrow <- dplyr::filter(h5, group == group_name & name == object_name) %>%
     nrow()
 
   if (h5.nrow == 0) {

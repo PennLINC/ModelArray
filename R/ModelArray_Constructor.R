@@ -784,13 +784,13 @@ writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", ove
   }
 
   # check if group "results\<analysis_name>" exists:
-  if (results.grp$exists(analysis_name) == TRUE & overwrite == FALSE) {
+  if (results.grp$exists(analysis_name) == TRUE && overwrite == FALSE) {
     warning(paste0(analysis_name, " exists but not to overwrite!"))
     # TODO: add checker for exisiting analysis_name, esp the matrix size
     results.analysis.grp <- results.grp$open(analysis_name)
     results_matrix_ds <- results.analysis.grp[["results_matrix"]]
   } else { # not exist; or exist & overwrite: to create
-    if (results.grp$exists(analysis_name) == TRUE & overwrite == TRUE) { # delete existing one first
+    if (results.grp$exists(analysis_name) == TRUE && overwrite == TRUE) { # delete existing one first
       results.grp$link_delete(analysis_name)
       # NOTE: the file size will not shrink after your deletion.. this is because of HDF5,
       # regardless of package of hdf5r or rhdf5
@@ -805,7 +805,7 @@ writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", ove
     for (i_col in seq(1, ncol(df.output), by = 1)) { # for each column of df.output
       col_class <- as.character(sapply(df.output, class)[i_col]) # class of this column
 
-      if ((col_class != "numeric") & (col_class != "integer")) { # the column class is not numeric or integer
+      if ((col_class != "numeric") && (col_class != "integer")) { # the column class is not numeric or integer
         message(
           paste0(
             "the column #",
