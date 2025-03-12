@@ -11,9 +11,9 @@ flagObjectExistInh5 <- function(fn_h5, group_name = "/results", object_name = "m
 
   h5 <- rhdf5::h5ls(fn_h5)
 
-  h5 %>%
+  h5.nrow <- h5 %>%
     dplyr::filter(.data$group == group_name & .data$name == object_name) %>%
-    nrow() -> h5.nrow
+    nrow()
 
   if (h5.nrow == 0) {
     object_exists <- FALSE
@@ -36,9 +36,9 @@ flagResultsGroupExistInh5 <- function(fn_h5) {
   rhdf5::h5closeAll()
   h5 <- rhdf5::h5ls(fn_h5)
 
-  h5 %>%
+  h5.nrow <- h5 %>%
     dplyr::filter(.data$group == "/" & .data$name == "results") %>%
-    nrow() -> h5.nrow
+    nrow()
 
   if (h5.nrow == 0) {
     object_exists <- FALSE
@@ -60,9 +60,9 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
   rhdf5::h5closeAll()
   h5 <- rhdf5::h5ls(fn_h5)
 
-  h5 %>%
+  h5.nrow <- h5 %>%
     dplyr::filter(.data$group == "/results" & .data$name == analysis_name) %>%
-    nrow() -> h5.nrow
+    nrow()
 
   if (h5.nrow == 0) {
     object_exists <- FALSE
@@ -127,11 +127,24 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
   if (all(correct.list == "none") == FALSE) { # any element is not "none"
     checker.method.in <- correct.list %in% p.adjust.methods.full
     if (all(checker.method.in) == FALSE) { # not all "TRUE"
-      stop(paste0("Some of elements in ", name.correct.list, " are not valid. Valid inputs are: ", paste(p.adjust.methods.full, collapse = ", ")))
+      stop(
+        paste0(
+          "Some of elements in ",
+          name.correct.list,
+          " are not valid. Valid inputs are: ",
+          paste(p.adjust.methods.full, collapse = ", ")
+        )
+      )
     }
 
     if ("p.value" %in% var.list == FALSE) { # not in the list | # check whether there is "p.value" in var.list
-      warning(paste0("p.value was not included in ", name.var.list, ", so not to perform its p.value corrections")) # TODO: why this warning comes out after ModelArray.aModel is done?
+      warning(
+        paste0(
+          "p.value was not included in ",
+          name.var.list,
+          ", so not to perform its p.value corrections"
+        )
+      ) # TODO: why this warning comes out after ModelArray.aModel is done?
     }
   }
 }
@@ -142,7 +155,8 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 #' @details
 #' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/s
 #'
-#' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula); ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
+#' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula);
+#' ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
 #' @importFrom mgcv s
 #' @importFrom dplyr %>%
 #' @importFrom crayon black
@@ -165,7 +179,7 @@ checker_gam_s <- function(ofInterest) {
   ### k (or bs.dim):   # could be multiple values
   m1 <- invisible(eval(formals(FUN)[["k"]])) # default
   m2 <- ofInterest$bs.dim # could be a list of multiple values
-  if ((length(unique(m2)) == 1) & (m1 %in% unique(m2))) { # default
+  if ((length(unique(m2)) == 1) && (m1 %in% unique(m2))) { # default
     msg_k <- " (default)"
   } else {
     msg_k <- ""
@@ -196,7 +210,7 @@ checker_gam_s <- function(ofInterest) {
   m1 <- invisible(eval(formals(FUN)[["bs"]])) # default
   # actual:
   mybs <- gsub(".smooth.spec", "", class(ofInterest)) # if there are multiple elements in bs, mybs will be a list
-  if ((length(unique(mybs)) == 1) & (m1 %in% unique(mybs))) { # default
+  if ((length(unique(mybs)) == 1) && (m1 %in% unique(mybs))) { # default
     msg_bs <- " (default)"
   } else {
     msg_bs <- ""
@@ -215,11 +229,13 @@ checker_gam_s <- function(ofInterest) {
 #' Print out important arguments in smooth term te() or ti() or t2() in mgcv::gam() formula
 #'
 #' @details
-#' Why a separate function is needed for t(), cannot using s(): in ofInterest, "fx" is "fx" for t(), but "fixed" for s() - so they are different.
+#' Why a separate function is needed for t(), cannot using s(): in ofInterest,
+#' "fx" is "fx" for t(), but "fixed" for s() - so they are different.
 #' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/te or /t2()
 #'
 #' @param FUN could be mgcv::te(), ti() or t2()
-#' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula); ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
+#' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula);
+#' ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
 #' @importFrom mgcv te ti t2
 #' @importFrom dplyr %>%
 #' @importFrom crayon black
@@ -230,7 +246,8 @@ checker_gam_t <- function(FUN, ofInterest) {
     crayon::black() %>%
     cat()
 
-  # t()'s interpret.gam()'s smooth.spec does not have k or bs.dim as s() does; may provided in ofInterest$margin[[i-xx]]$bs.dim but not fully clear
+  # t()'s interpret.gam()'s smooth.spec does not have k or bs.dim as s() does;
+  # may provided in ofInterest$margin[[i-xx]]$bs.dim but not fully clear
 
   ### fx:
   m1 <- invisible(eval(formals(FUN)[["fx"]])) %>% as.character() # default
@@ -250,13 +267,13 @@ checker_gam_t <- function(FUN, ofInterest) {
   m1 <- invisible(eval(formals(FUN)[["bs"]])) %>% as.character() # default
 
   mybs <- list() # actual, as a list
-  for (i in 1:length(ofInterest$margin)) {
+  for (i in seq_along(ofInterest$margin)) {
     temp <- gsub(".smooth.spec", "", ofInterest$margin[[i]] %>% class())
     mybs[i] <- temp
   }
 
   # then check if all elements are default value of bs
-  if ((length(unique(mybs)) == 1) & (m1 %in% unique(mybs))) { # all elements are the same, and = default
+  if ((length(unique(mybs)) == 1) && (m1 %in% unique(mybs))) { # all elements are the same, and = default
     msg_bs <- " (default)"
   } else {
     msg_bs <- ""
@@ -294,11 +311,12 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL)
 
   if (length(gam.formula.breakdown$smooth.spec) != 0) { # if there is smooth term
     list_smooth_terms <- character(length(gam.formula.breakdown$smooth.spec))
-    for (i_smoothTerm in 1:length(gam.formula.breakdown$smooth.spec)) {
+    for (i_smoothTerm in seq_along(gam.formula.breakdown$smooth.spec)) {
       ofInterest <- gam.formula.breakdown$smooth.spec[[i_smoothTerm]]
       list_smooth_terms[i_smoothTerm] <- ofInterest$label
 
-      # check what class of smooth term (s or ti or ?); then call the corresponding function - throw out the message for important argument for this class
+      # check what class of smooth term (s or ti or ?); then call the corresponding function
+      # - throw out the message for important argument for this class
       # ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/smooth.terms
       smooth.class <- strsplit(ofInterest$label, "[(]")[[1]][1]
       if (smooth.class == "s") {
@@ -328,30 +346,47 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL)
 #' Generate GAM formula with factor-smooth interaction
 #'
 #' @description
-#' This function will generate a formula in the following format: \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor)},
-#' where \code{y} is \code{response.var}, \code{x} is \code{smooth.var}, and \code{orderedFactor} is \code{factor.var} - see \code{factor.var} for more.
+#' This function will generate a formula in the following format:
+#' \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor)},
+#' where \code{y} is \code{response.var}, \code{x} is \code{smooth.var},
+#' and \code{orderedFactor} is \code{factor.var} - see \code{factor.var} for more.
 #' The formula generated could be further modified, e.g. adding covariates.
 #'
 #' @param response.var character class, the variable name for response
-#' @param factor.var character class, the variable name for factor. It should be an ordered factor. If not, it will generate it as a new column in `phenotypes`, which requires `reference.group`.
+#' @param factor.var character class, the variable name for factor. It should be an ordered factor.
+#' If not, it will generate it as a new column in `phenotypes`, which requires `reference.group`.
 #' @param smooth.var character class, the variable name in smooth term as main effect
-#' @param phenotypes data.frame class, the cohort matrix with columns of independent variables (including \code{factor.var} and \code{smooth.var}) to be added to the model
-#' @param reference.group character class, the reference group for ordered factor of `factor.var`; required when `factor.var` in `phenotypes` is not an ordered factor.
-#' @param prefix.ordered.factor character class, the prefix for ordered factor; required when `factor.var` in `phenotypes` is not an ordered factor.
+#' @param phenotypes data.frame class, the cohort matrix with columns of independent variables (including
+#' \code{factor.var} and \code{smooth.var}) to be added to the model
+#' @param reference.group character class, the reference group for ordered factor of `factor.var`; required when
+#' `factor.var` in `phenotypes` is not an ordered factor.
+#' @param prefix.ordered.factor character class, the prefix for ordered factor; required when `factor.var` in
+#' `phenotypes` is not an ordered factor.
 #' @param fx TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.
-#' @param k integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default value as in mgcv::s()
-#' @return a list, including: 1) formula generated; 2) data.frame phenotypes - updated if argument factor.var is not an ordered factor
+#' @param k integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default
+#' value as in mgcv::s()
+#' @return a list, including: 1) formula generated; 2) data.frame phenotypes - updated if argument factor.var
+#' is not an ordered factor
 #' @importFrom mgcv s
 #' @importFrom stats as.formula
 #' @export
 #'
-generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.var, phenotypes,
-                                               reference.group = NULL, prefix.ordered.factor = "o",
-                                               fx = TRUE, k = NULL) {
+gen_gamFormula_fxSmooth <- function(response.var, factor.var, smooth.var, phenotypes,
+                                    reference.group = NULL, prefix.ordered.factor = "o",
+                                    fx = TRUE, k = NULL) {
   class.factor.var <- class(phenotypes[[factor.var]])
-  if (!((length(class.factor.var) == 2) & (class.factor.var[1] == "ordered") & (class.factor.var[2] == "factor"))) { # class is not c("ordered", "factor")
+  if (
+    !(
+      (length(class.factor.var) == 2) &&
+        (class.factor.var[1] == "ordered") &&
+        (class.factor.var[2] == "factor")
+    )
+  ) { # class is not c("ordered", "factor")
 
-    message("input `factor.var` is not an ordered factor; will generate one in data.frame `phenotypes` which will be returned")
+    message(
+      "input `factor.var` is not an ordered factor; will generate",
+      " one in data.frame `phenotypes` which will be returned"
+    )
     if (is.null(reference.group)) {
       stop("requires a reference.group to generate the ordered factor")
     }
@@ -364,14 +399,21 @@ generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.
 
     # check if factor.var already exists:
     if (factor.var %in% colnames(phenotypes)) {
-      stop(paste0("a column with the same name '", factor.var, "' already exists in `phenotypes` data frame! Please change the `prefix.ordered.factor`!"))
+      stop(
+        paste0(
+          "a column with the same name '",
+          factor.var,
+          "' already exists in `phenotypes` data frame! Please change the `prefix.ordered.factor`!"
+        )
+      )
     }
 
     # add the column to phenotypes:
     list.groups <- unique(phenotypes[[unordered.factor.var]])
     list.groups <- list.groups[list.groups != reference.group] # temporarily drop the reference group
     list.groups <- c(reference.group, list.groups) # add as first
-    phenotypes[[factor.var]] <- ordered(phenotypes[[unordered.factor.var]], levels = list.groups) # the first element in the list.groups would be the reference group
+    phenotypes[[factor.var]] <- ordered(phenotypes[[unordered.factor.var]], levels = list.groups)
+    # the first element in the list.groups would be the reference group
   }
 
   if (is.null(k)) {
@@ -405,14 +447,15 @@ generator_gamFormula_factorXsmooth <- function(response.var, factor.var, smooth.
 #' @param cont1.var character class, the name of the first continuous variable
 #' @param cont2.var character class, the name of the second continuous variable
 #' @param fx TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.
-#' @param k integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default value as in mgcv::s()
+#' @param k integer, to be used in smooth term including the interaction term.
+#' If NULL (no entry), will use default value as in mgcv::s()
 #' @return The formula generated
 #' @importFrom mgcv ti
 #' @importFrom stats as.formula
 #' @export
 #'
-generator_gamFormula_continuousInteraction <- function(response.var, cont1.var, cont2.var,
-                                                       fx = TRUE, k = NULL) {
+gen_gamFormula_contIx <- function(response.var, cont1.var, cont2.var,
+                                  fx = TRUE, k = NULL) {
   if (is.null(k)) {
     k <- invisible(eval(formals(mgcv::ti)[["k"]]))
   }
@@ -444,5 +487,5 @@ bind_cols_check_emptyTibble <- function(a, b) {
   if ((!flag_a_empty) && flag_b_empty) c <- a # a is not empty ==> taking a
   if ((!flag_a_empty) && (!flag_b_empty)) c <- dplyr::bind_cols(a, b) # neither of them is empty ==> simply combine
 
-  return(c)
+  c
 }
