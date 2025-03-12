@@ -254,8 +254,10 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 
   ### other setups:
   var.terms.full <- c("estimate", "std.error", "statistic", "p.value")
-  var.model.full <- c("r.squared", "adj.r.squared", "sigma", "statistic", "p.value",
-                      "df", "logLik", "AIC", "BIC", "deviance", "df.residual", "nobs")
+  var.model.full <- c(
+    "r.squared", "adj.r.squared", "sigma", "statistic", "p.value",
+    "df", "logLik", "AIC", "BIC", "deviance", "df.residual", "nobs"
+  )
   if (full.outputs == TRUE) { # full set of outputs
     var.terms <- var.terms.full
     var.model <- var.model.full
@@ -265,7 +267,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   var.model <- var.model[!duplicated(var.model)]
 
   # check if all var.* are empty:
-  if (length(var.terms) == 0 & length(var.model) == 0) {
+  if (length(var.terms) == 0 && length(var.model) == 0) {
     stop("All var.* arguments [var.terms, var.model] are empty!")
   }
 
@@ -341,13 +343,25 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
       }
     } # end of trying middle element to end
 
-    if ((i_element_temp == num.elements.total) & (is.nan(outputs_initiator$column_names)[1])) {
+    if ((i_element_temp == num.elements.total) && (is.nan(outputs_initiator$column_names)[1])) {
       # i.e. reached the end of the elements but still haven't initiated...
-      message("until the end of the elements, there are still no elements with sufficient valid subjects for initiating the process...")
-      message("start to try element #1 and the following elements for initiating; may take a while in this initiating process....")
+      message(
+        paste0(
+          "until the end of the elements, there are still no elements with sufficient valid ",
+          "subjects for initiating the process...",
+          "start to try element #1 and the following elements for initiating; ",
+          "may take a while in this initiating process...."
+        )
+      )
       for (i_element_temp in 1:(i_element_try - 1)) { # try each element before i_element_try
         if (i_element_temp %% 100 == 0) {
-          message(paste0("trying element #", toString(i_element_temp), " and the following elements for initiating...."))
+          message(
+            paste0(
+              "trying element #",
+              toString(i_element_temp),
+              " and the following elements for initiating...."
+            )
+          )
         }
         outputs_initiator <- analyseOneElement.lm(
           i_element = i_element_temp,
@@ -357,13 +371,22 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
           flag_initiate = TRUE,
           ...
         )
-        if (!(is.nan(outputs_initiator$column_names)[1])) { # if valid column names, the first element in column names is not nan
+        if (!(is.nan(outputs_initiator$column_names)[1])) {
+          # if valid column names, the first element in column names is not nan
           break
         }
       } # end of trying each element before middle element
 
-      if ((i_element_temp == (i_element_try - 1)) & (is.nan(outputs_initiator$column_names)[1])) { # i.e. reached the i_element_try-1 (i.e. tried all subjects) but still haven't initiated...
-        stop("Have tried all elements, but there is no element with sufficient subjects with valid, finite h5 scalar values (i.e. not NaN or NA, not infinite). Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, or there were problems in the group mask or individual masks!")
+      if ((i_element_temp == (i_element_try - 1)) && (is.nan(outputs_initiator$column_names)[1])) {
+        # i.e. reached the i_element_try-1 (i.e. tried all subjects) but still haven't initiated...
+        stop(
+          paste0(
+            "Have tried all elements, but there is no element with sufficient subjects with valid, ",
+            "finite h5 scalar values (i.e. not NaN or NA, not infinite). ",
+            "Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, ",
+            "or there were problems in the group mask or individual masks!"
+          )
+        )
       }
     } # end of if reached the end of the elements but still haven't initiated...
   } # end of if unsuccessful initiation with middle element
@@ -728,14 +751,19 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     )
   }
   if (length(sources.phenotypes) != length(unique(sources.phenotypes))) {
-    stop(paste0("The source files from phenotypes's column 'source_file' are not unique! Please check out and remove the duplicated one!"))
+    stop(
+      paste0(
+        "The source files from phenotypes's column 'source_file' are not unique! ",
+        "Please check out and remove the duplicated one!"
+      )
+    )
   }
 
   if (identical(sources.modelarray, sources.phenotypes)) {
     # identical, pass
   } else { # not identical (but length is the same):
     # check if two lists can be matched (i.e. no unmatched source filename)
-    if ((all(sources.modelarray %in% sources.phenotypes)) & ((all(sources.phenotypes %in% sources.modelarray)))) {
+    if ((all(sources.modelarray %in% sources.phenotypes)) && ((all(sources.phenotypes %in% sources.modelarray)))) {
       # can be matched, just the order is different. Use match() function:
       reorder_idx <- match(
         sources.modelarray, # vector of values in the order we want
@@ -743,15 +771,29 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       ) # vector to be reordered
       # apply to phenotypes:
       phenotypes <- phenotypes[reorder_idx, ]
-      row.names(phenotypes) <- NULL # reset the row name, just to be safe for later adding scalar values... see ModelArray_paper/notebooks/test_match_sourceFiles.Rmd
+      row.names(phenotypes) <- NULL
+      # reset the row name, just to be safe for later adding scalar values...
+      # see ModelArray_paper/notebooks/test_match_sourceFiles.Rmd
       if (!identical(phenotypes[["source_file"]], sources.modelarray)) {
         stop("matching source file names were not successful...")
       }
     } else {
-      stop(paste0("phenotypes's column 'source_file' have different element(s) from source file list in ModelArray 'data'! Please check out! The latter one can be accessed by: sources(data)[[scalar]]"))
+      stop(
+        paste0(
+          "phenotypes's column 'source_file' have different element(s) from source file ",
+          "list in ModelArray 'data'! Please check out! The latter one can be accessed by: ",
+          "sources(data)[[scalar]]"
+        )
+      )
     }
 
-    # stop(paste0("The source file list from phenotypes's column 'source_file' is not identical to that in ModelArray 'data'! Please check out! The latter one can be accessed by: sources(data)[[scalar]] "))
+    # stop(
+    #   paste0(
+    #     "The source file list from phenotypes's column 'source_file' is not identical ",
+    #     "to that in ModelArray 'data'! Please check out! The latter one can be accessed by: ",
+    #     "sources(data)[[scalar]] "
+    #   )
+    # )
   }
 
 
@@ -763,7 +805,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   FUN <- mgcv::gam
 
   # # family:  # it works; but family may not be important
-  # m <- invisible(eval(formals(FUN)$family))    # should not use message(), but print() --> but will print out or invisible()
+  # m <- invisible(eval(formals(FUN)$family))
+  # should not use message(), but print() --> but will print out or invisible()
   # m1 <- paste0("Family: ", m$family, "; Link function: ", m$link)
   # printAdditionalArgu(FUN, "family", dots, m1)
 
@@ -801,7 +844,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   var.model <- var.model[!duplicated(var.model)]
 
   # check if all var.* are empty:
-  if (length(var.smoothTerms) == 0 & length(var.parametricTerms) == 0 & length(var.model) == 0) {
+  if (length(var.smoothTerms) == 0 && length(var.parametricTerms) == 0 && length(var.model) == 0) {
     stop("All var.* arguments [var.smoothTerms, var.parametricTerms, var.model] are empty!")
   }
 
@@ -827,22 +870,45 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   if (!is.null(changed.rsq.term.index)) { # changed.rsq is not null --> requested
 
     # check if the term index is valid:
-    if (min(changed.rsq.term.index) <= 0) { # any of not positive | can't really check if it's integer as is.integer(1) is FALSE...
-      stop(paste0("There is element(s) in changed.rsq.term.index <= 0. It should be a (list of) positive integer!"))
+    if (min(changed.rsq.term.index) <= 0) {
+      # any of not positive | can't really check if it's integer as is.integer(1) is FALSE...
+      stop(
+        paste0(
+          "There is element(s) in changed.rsq.term.index <= 0. ",
+          "It should be a (list of) positive integer!"
+        )
+      )
     }
 
-    terms.full.formula <- stats::terms(formula, keep.order = TRUE) # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
-    if (max(changed.rsq.term.index) > length(labels(terms.full.formula))) { # if max is more than the number of terms on RHS of formula
-      stop(paste0("Largest index in changed.rsq.term.index is more than the term number on the right hand side of formula!"))
+    terms.full.formula <- stats::terms(formula, keep.order = TRUE)
+    # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
+    if (max(changed.rsq.term.index) > length(labels(terms.full.formula))) {
+      # if max is more than the number of terms on RHS of formula
+      stop(
+        paste0(
+          "Largest index in changed.rsq.term.index is more than the term number on the ",
+          "right hand side of formula!"
+        )
+      )
     }
 
     # check how many variables on RHS; if no (but intercept, i.e. xx ~ 1), stop
     if (length(labels(terms.full.formula)) == 0) {
-      stop(paste0("To analyze changed.rsq but there is no variable (except intercept 1) on right hand side of formula! Please provide at least one valid variable."))
+      stop(
+        paste0(
+          "To analyze changed.rsq but there is no variable (except intercept 1) ",
+          "on right hand side of formula! Please provide at least one valid variable."
+        )
+      )
     }
 
     # print warning:
-    message("will get changed R-squared (delta.adj.rsq and partial.rsq) so the execution time will be longer.")
+    message(
+      paste0(
+        "will get changed R-squared (delta.adj.rsq and partial.rsq) so the execution time ",
+        "will be longer."
+      )
+    )
     # add adj.r.squared into var.model
     if (!("adj.r.squared" %in% var.model)) {
       var.model <- c(var.model, "adj.r.squared")
@@ -876,7 +942,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
   # initiate: get the example of one element and get the column names
   num.elements.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
-  i_element_try <- floor(num.elements.total / 2) # find the middle element of all elements, higher possibility to have sufficient subjects
+  i_element_try <- floor(num.elements.total / 2)
+  # find the middle element of all elements, higher possibility to have sufficient subjects
   outputs_initiator <- analyseOneElement.gam(
     i_element = i_element_try,
     formula, data, phenotypes, scalar,
@@ -886,10 +953,22 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     ...
   )
   if (is.nan(outputs_initiator$column_names)[1]) { # not sufficient subjects
-    message("There is no sufficient valid subjects for initiating using the middle element; trying other elements; may take a while in this initiating process....")
-    for (i_element_temp in (i_element_try + 1):num.elements.total) { # try each element following i_element_try
+    message(
+      paste0(
+        "There is no sufficient valid subjects for initiating using the middle element; ",
+        "trying other elements; may take a while in this initiating process...."
+      )
+    )
+    for (i_element_temp in (i_element_try + 1):num.elements.total) {
+      # try each element following i_element_try
       if (i_element_temp %% 100 == 0) {
-        message(paste0("trying element #", toString(i_element_temp), " and the following elements for initiating...."))
+        message(
+          paste0(
+            "trying element #",
+            toString(i_element_temp),
+            " and the following elements for initiating...."
+          )
+        )
       }
       outputs_initiator <- analyseOneElement.gam(
         i_element = i_element_temp,
@@ -899,17 +978,31 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
         flag_initiate = TRUE, flag_sse = flag_sse,
         ...
       )
-      if (!(is.nan(outputs_initiator$column_names)[1])) { # if valid column names, the first element in column names is not nan
+      if (!(is.nan(outputs_initiator$column_names)[1])) {
+        # if valid column names, the first element in column names is not nan
         break
       }
     } # end of trying middle element to end
 
-    if ((i_element_temp == num.elements.total) & (is.nan(outputs_initiator$column_names)[1])) { # i.e. reached the end of the elements but still haven't initiated...
-      message("until the end of the elements, there are still no elements with sufficient valid subjects for initiating the process...")
-      message("start to try element #1 and the following elements for initiating; may take a while in this initiating process....")
+    if ((i_element_temp == num.elements.total) && (is.nan(outputs_initiator$column_names)[1])) {
+      # i.e. reached the end of the elements but still haven't initiated...
+      message(
+        paste0(
+          "until the end of the elements, there are still no elements with sufficient valid ",
+          "subjects for initiating the process... ",
+          "start to try element #1 and the following elements for initiating; ",
+          "may take a while in this initiating process...."
+        )
+      )
       for (i_element_temp in 1:(i_element_try - 1)) { # try each element before i_element_try
         if (i_element_temp %% 100 == 0) {
-          message(paste0("trying element #", toString(i_element_temp), " and the following elements for initiating...."))
+          message(
+            paste0(
+              "trying element #",
+              toString(i_element_temp),
+              " and the following elements for initiating...."
+            )
+          )
         }
         outputs_initiator <- analyseOneElement.gam(
           i_element = i_element_temp,
@@ -919,13 +1012,22 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
           flag_initiate = TRUE, flag_sse = flag_sse,
           ...
         )
-        if (!(is.nan(outputs_initiator$column_names)[1])) { # if valid column names, the first element in column names is not nan
+        if (!(is.nan(outputs_initiator$column_names)[1])) {
+          # if valid column names, the first element in column names is not nan
           break
         }
       } # end of trying each element before middle element
 
-      if ((i_element_temp == (i_element_try - 1)) & (is.nan(outputs_initiator$column_names)[1])) { # i.e. reached the i_element_try-1 (i.e. tried all subjects) but still haven't initiated...
-        stop("Have tried all elements, but there is no element with sufficient subjects with valid, finite h5 scalar values (i.e. not NaN or NA, not infinite). Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, or there were problems in the group mask or individual masks!")
+      if ((i_element_temp == (i_element_try - 1)) && (is.nan(outputs_initiator$column_names)[1])) {
+        # i.e. reached the i_element_try-1 (i.e. tried all subjects) but still haven't initiated...
+        stop(
+          paste0(
+            "Have tried all elements, but there is no element with sufficient subjects with valid, ",
+            "finite h5 scalar values (i.e. not NaN or NA, not infinite). ",
+            "Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, ",
+            "or there were problems in the group mask or individual masks!"
+          )
+        )
       } else { # it has been initiated
         i_element_success_initiate <- i_element_temp
       }
