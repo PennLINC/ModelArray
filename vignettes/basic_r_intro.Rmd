@@ -35,7 +35,7 @@ As you can see even though we did not define variable "FD","age" or "sex", it's 
 You may want to manipulate the data.frame `phenotypes` before passing it to `ModelArray.lm()` etc functions for model fitting. Examples like de-mean and rescale covariates. R package `dplyr` is useful and easy to use for manipulation. 
 ```{r}
 # install is first via: install.packages("dplyr")
-library(dplyr)    # load into memory
+library(dplyr) # load into memory
 ```
 
 <!---

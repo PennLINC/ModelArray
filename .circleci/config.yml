@@ -16,6 +16,11 @@ steps: &steps
         name: Install package dependencies (hdf5r)
         command: R -e "require(hdf5r)" # "lapply(c('hdf5r','HDF5Array','DelayedArray'), require, character.only=TRUE)"
     - run:
+        name: Check code style
+        command: |
+          R -e "if (!requireNamespace('styler', quietly = TRUE)) install.packages('styler')"
+          R -e "result <- styler::style_pkg(dry = 'on'); if (!all(result[['changed']] == FALSE)) stop('Code is not styled according to styler rules')"
+    - run:
         name: Build package
         command: R CMD build .
     - run:

@@ -185,7 +185,8 @@ Let's start with linear model `ModelArray.lm()`. We first need a formula definin
 formula.lm <- FDC ~ Age + sex + dti64MeanRelRMS
 # run linear model fitting with ModelArray.lm() on the first 100 fixels:
 mylm.try <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
-                          element.subset = 1:100)
+  element.subset = 1:100
+)
 ```
 You'll see:
 ```{.console}
@@ -246,13 +247,14 @@ In addition to default FDR correction, we can also request Bonferroni correction
 We still first try it out on first 100 fixels:
 ```{r example gam, eval=FALSE}
 # formula:
-formula.gam <- FDC ~ s(Age, k=4) + sex + dti64MeanRelRMS
+formula.gam <- FDC ~ s(Age, k = 4) + sex + dti64MeanRelRMS
 # run GAM fitting with ModelArray.gam() on the first 100 fixels:
 mygam.try <- ModelArray.gam(formula.gam, modelarray, phenotypes, "FDC",
-                            element.subset = 1:100,
-                            correct.p.value.smoothTerms = c("fdr", "bonferroni"),
-                            correct.p.value.parametricTerms = c("fdr", "bonferroni"),
-                            method="REML")
+  element.subset = 1:100,
+  correct.p.value.smoothTerms = c("fdr", "bonferroni"),
+  correct.p.value.parametricTerms = c("fdr", "bonferroni"),
+  method = "REML"
+)
 ```
 
 You'll see:
@@ -300,7 +302,8 @@ Notice that the command below uses the default value of `element.subset=NULL` so
 ```{r, eval=FALSE}
 # run linear model fitting with ModelArray.lm() on the all fixels:
 mylm <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
-                      n_cores = 4)
+  n_cores = 4
+)
 ```
 
 We now save the results data frame into the original h5 file:
@@ -315,8 +318,10 @@ We can even check out the saved results in the h5 file (this is optional):
 
 ```{r load results, eval = FALSE}
 # create a new ModelArray-class object:
-modelarray_new <- ModelArray(filepath = h5_path, scalar_types = "FDC",
-                             analysis_names = c("results_lm"))
+modelarray_new <- ModelArray(
+  filepath = h5_path, scalar_types = "FDC",
+  analysis_names = c("results_lm")
+)
 modelarray_new
 ```
 
