@@ -81,7 +81,8 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 
     # /scalars/<scalar_type>/values:
     scalar_data[[x]] <- ModelArraySeed(
-      filepath, name = sprintf("scalars/%s/values", scalar_types[x]),
+      filepath,
+      name = sprintf("scalars/%s/values", scalar_types[x]),
       type = NA
     ) %>%
       DelayedArray::DelayedArray()
