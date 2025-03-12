@@ -1116,13 +1116,13 @@ test_that("test that ModelArray.gam() works as expected", {
 
   ### test out the functions for generating gam functions: #####
   ## Formula #1:
-  myFormula_1 <- generator_gamFormula_factorXsmooth(
+  myFormula_1 <- gen_gamFormula_fxSmooth(
     response.var = "FD", factor.var = "oSex", smooth.var = "age",
     phenotypes = phenotypes
   )
   myFormula_1$formula # requires visually check
 
-  myFormula_2 <- generator_gamFormula_factorXsmooth(
+  myFormula_2 <- gen_gamFormula_fxSmooth(
     response.var = "FD", factor.var = "sex", smooth.var = "age",
     phenotypes = phenotypes, reference.group = "F"
   )
@@ -1137,7 +1137,7 @@ test_that("test that ModelArray.gam() works as expected", {
   )
 
   expect_error(
-    generator_gamFormula_factorXsmooth(
+    gen_gamFormula_fxSmooth(
       response.var = "FD",
       factor.var = "sex",
       smooth.var = "age",
@@ -1146,7 +1146,7 @@ test_that("test that ModelArray.gam() works as expected", {
   ) # not ordered factor, and did not provide reference.group
 
   # change k and fx:
-  myFormula_3 <- generator_gamFormula_factorXsmooth(
+  myFormula_3 <- gen_gamFormula_fxSmooth(
     response.var = "FD",
     factor.var = "oSex",
     smooth.var = "age",
@@ -1158,7 +1158,7 @@ test_that("test that ModelArray.gam() works as expected", {
 
 
   ## Formula #2:
-  myFormula_4 <- generator_gamFormula_continuousInteraction(
+  myFormula_4 <- gen_gamFormula_contIx(
     response.var = "FD",
     cont1.var = "age",
     cont2.var = "factorA"
@@ -1166,7 +1166,7 @@ test_that("test that ModelArray.gam() works as expected", {
   myFormula_4 # requires visually check
 
   # change k and fx:
-  myFormula_5 <- generator_gamFormula_continuousInteraction(
+  myFormula_5 <- gen_gamFormula_contIx(
     response.var = "FD", cont1.var = "age", cont2.var = "factorA",
     fx = FALSE, k = 3
   )
