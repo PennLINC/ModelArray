@@ -14,7 +14,7 @@ steps: &steps
             pandoc \
             texlive-latex-base \
             texlive-latex-recommended \
-            texlive-fonts-recommended
+            texlive-fonts-extra
     - run:
         name: Install package dependencies
         command: R -e "devtools::install_deps(dep = TRUE, dependencies = TRUE)"
@@ -82,15 +82,6 @@ workflows:
       - releaseJammy:
           filters:
             tags:
-              only: /.*/
-
-      - deployable:
-          requires:
-            - releaseJammy
-          filters:
-            branches:
-              only: main
-            tags:   # make sure any `git tag` triggers the run
               only: /.*/
 
       - build_and_deploy:
