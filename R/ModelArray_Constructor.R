@@ -30,7 +30,6 @@ ModelArray <- setClass(
 #' @param x An object
 #' @param ... Additional arguments passed to methods
 #' @return The results slot of the object
-#' @export
 #' @aliases results
 setGeneric("results", function(x, ...) standardGeneric("results"))
 
@@ -45,7 +44,6 @@ setGeneric("results", function(x, ...) standardGeneric("results"))
 #' @param x An object
 #' @param ... Additional arguments passed to methods
 #' @return The scalars slot of the object
-#' @export
 #' @aliases scalars
 setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 
@@ -59,7 +57,6 @@ setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 #'
 #' @param x An object
 #' @return The sources slot of the object
-#' @export
 #' @aliases sources
 setGeneric("sources", function(x) standardGeneric("sources"))
 
