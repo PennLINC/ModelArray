@@ -12,8 +12,8 @@ steps: &steps
             r-bioc-rhdf5 \
             r-bioc-delayedarray \
             pandoc \
-            texlive-latex-base \
             texlive-latex-recommended \
+            texlive-fonts-recommended \
             texlive-fonts-extra
     - run:
         name: Install package dependencies
