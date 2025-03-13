@@ -17,18 +17,18 @@ reference:
   - sources,ModelArray-method
   - writeResults
   - numElementsTotal
-  
+
 - title: Model fitting
   desc: Fit models for element-wise data
   contents:
   - ModelArray.lm
   - ModelArray.gam
-  
+
 - title: Supports for model fitting
   desc: Generate GAM functions with interactions. Use them only if you hope to include interaction terms in GAM formula.
   contents:
   - generator_gamFormula_continuousInteraction
-  - generator_gamFormula_factorXsmooth
+  - gen_gamFormula_fxSmooth
 
 - title: Behind the scene
   desc: Fit a model for one element
@@ -47,7 +47,7 @@ articles:
   - doc_for_developer
 
 - title: More
-  contents: 
+  contents:
   - basic_r_intro
   - debugging
   - faq

@@ -26,7 +26,11 @@ Load element-wise data from .h5 file as an ModelArray object
 \details{
 :
 Tips for debugging:
-if you run into this error: "Error in h(simpleError(msg, call)) : error in evaluating the argument 'seed' in selecting a method for function 'DelayedArray': HDF5. Symbol table. Can't open object." Then please check if you give correct "scalar_types" - check via rhdf5::h5ls(filename_for_h5)
+if you run into this error: "Error in h(simpleError(msg, call)) :
+error in evaluating the argument 'seed' in selecting a method for
+function 'DelayedArray': HDF5. Symbol table. Can't open object."
+Then please check if you give correct "scalar_types" - check via
+rhdf5::h5ls(filename_for_h5)
 }
 \section{Slots}{
 
