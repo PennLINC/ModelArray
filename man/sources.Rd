@@ -8,7 +8,6 @@ sources(x)
 }
 \arguments{
 \item{x}{An object}
-
 }
 \value{
 The sources slot of the object
