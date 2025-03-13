@@ -566,8 +566,7 @@ test_that("test that ModelArray.gam() works as expected", {
   # check if requested p value corrections exist:
   expect_true(
     c("sexM.p.value.bonferroni", "Intercept.p.value.bonferroni")
-    %in% colnames(mygam_parametric_pCorrect)
-    %>% all()
+    %in% colnames(mygam_parametric_pCorrect) %>% all()
   )
 
   mygam_smooth_pCorrect <- ModelArray.gam(FD ~ s(age) + sex,
@@ -581,9 +580,7 @@ test_that("test that ModelArray.gam() works as expected", {
   ) # this includes check *.p.value.fdr and *.p.value.bonferroni values are correct
   # check if requested p value corrections exist:
   expect_true(
-    c("s_age.p.value.bonferroni")
-    %in% colnames(mygam_smooth_pCorrect)
-    %>% all()
+    c("s_age.p.value.bonferroni") %in% colnames(mygam_smooth_pCorrect) %>% all()
   )
 
   expect_error(
