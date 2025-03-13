@@ -5,12 +5,16 @@
 \alias{sources,ModelArray-method}
 \title{Access the sources slot of a ModelArray object}
 \usage{
+\S4method{sources}{ModelArray}(x, ...)
+
 \S4method{sources}{ModelArray}(x)
 
 \S4method{sources}{ModelArray}(x)
 }
 \arguments{
 \item{x}{An ModelArray object}
+
+\item{...}{Additional arguments (not used)}
 }
 \value{
 The sources slot of the ModelArray object

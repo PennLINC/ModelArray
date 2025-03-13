@@ -63,6 +63,7 @@ setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 #' @aliases sources
 setGeneric("sources", function(x) standardGeneric("sources"))
 
+
 #' Access the results slot of a ModelArray object
 #'
 #' @description
@@ -103,6 +104,7 @@ setMethod("scalars", "ModelArray", function(x, ...) x@scalars)
 #' @return The sources slot of the ModelArray object
 #' @export
 setMethod("sources", "ModelArray", function(x) x@sources)
+
 
 
 #' ModelArraySeed
