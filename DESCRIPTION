@@ -16,7 +16,7 @@ Authors@R:
             family = "Satterthwaite",
             role = c("aut")) )
 Description: ModelArray is an R package for statistical analysis of fixel-wise data and beyond.
-License: BSD-3-Clause + file LICENSE
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Depends: R (>= 4.1.2)
