@@ -19,13 +19,15 @@ analyseOneElement.lm(
 )
 }
 \arguments{
-\item{i_element}{An integer, the i_th element, starting from 1. For initiating (flag_initiate = TRUE), use i_element=1}
+\item{i_element}{An integer, the i_th element, starting from 1.
+For initiating (flag_initiate = TRUE), use i_element=1}
 
 \item{formula}{Formula (passed to `stats::lm()`)}
 
 \item{modelarray}{ModelArray class}
 
-\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model.}
+\item{phenotypes}{A data.frame of the cohort with columns of independent variables
+and covariates to be added to the model.}
 
 \item{scalar}{A character. The name of the element-wise scalar to be analysed}
 
@@ -33,16 +35,26 @@ analyseOneElement.lm(
 
 \item{var.model}{A list of characters. The list of variables to save for the model (got from `broom::glance()`).}
 
-\item{num.subj.lthr}{The minimal number of subjects with valid value in input h5 file, i.e. number of subjects with finite values (defined by `is.finite()`, i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN.}
+\item{num.subj.lthr}{The minimal number of subjects with valid value in input h5 file,
+i.e. number of subjects with finite values (defined by `is.finite()`,
+i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr},
+then this element will be run normally;
+otherwise, this element will be skipped and statistical outputs will be set as NaN.}
 
-\item{num.stat.output}{The number of output stat metrics (for generating all NaN stat when # subjects does not meet criteria). This includes column `element_id`. This is required when flag_initiate = TRUE.}
+\item{num.stat.output}{The number of output stat metrics
+(for generating all NaN stat when # subjects does not meet criteria).
+This includes column `element_id`.
+This is required when flag_initiate = TRUE.}
 
-\item{flag_initiate}{TRUE or FALSE, Whether this is to initiate the new analysis. If TRUE, it will return column names etc to be used for initiating data.frame; if FALSE, it will return the list of requested statistic values.}
+\item{flag_initiate}{TRUE or FALSE, Whether this is to initiate the new analysis.
+If TRUE, it will return column names etc to be used for initiating data.frame;
+if FALSE, it will return the list of requested statistic values.}
 
 \item{...}{Additional arguments for `stats::lm()`}
 }
 \value{
-If flag_initiate==TRUE, returns column names, and list of term names of final results; if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
+If flag_initiate==TRUE, returns column names, and list of term names of final results;
+if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
 }
 \description{
 `analyseOneElement.lm` fits a linear model for one element data, and returns requested model statistics.

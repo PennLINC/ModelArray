@@ -16,19 +16,17 @@ Authors@R:
             family = "Satterthwaite",
             role = c("aut")) )
 Description: ModelArray is an R package for statistical analysis of fixel-wise data and beyond.
-License: BSD 3-Clause License + file LICENSE
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Depends: R (>= 4.1.2)
 biocViews:
 Imports:
-    matrixStats (>= 0.60.1),
     magrittr,
     methods,
     dplyr,
     tidyr,
     tibble,
-    stringr,
     glue,
     parallel,
     doParallel,
@@ -42,13 +40,14 @@ Imports:
     pbmcapply,
     pbapply,
     crayon
-RoxygenNote: 7.2.1
+RoxygenNote: 7.3.1
 Suggests:
     rmarkdown,
     knitr,
     testthat (>= 3.0.0),
     styler (>= 1.6.2),
-    lintr
+    lintr,
+    stringr
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 URL: https://pennlinc.github.io/ModelArray

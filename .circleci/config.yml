@@ -5,21 +5,24 @@ steps: &steps
     - checkout
     - run:
         name: Install libraries
-        command: apt-get update && apt-get install -y --no-install-recommends libhdf5-dev
-    - run:
-        name: Install libraries for latex
-        command: apt-get update && apt-get install -y --no-install-recommends texlive-fonts-recommended
+        command: |
+          apt update \
+          && apt install -y --no-install-recommends \
+            r-cran-devtools \
+            r-bioc-rhdf5 \
+            r-bioc-delayedarray \
+            pandoc \
+            texlive-latex-recommended \
+            texlive-fonts-recommended \
+            texlive-fonts-extra
     - run:
         name: Install package dependencies
         command: R -e "devtools::install_deps(dep = TRUE, dependencies = TRUE)"
     - run:
-        name: Install package dependencies (hdf5r)
-        command: R -e "require(hdf5r)" # "lapply(c('hdf5r','HDF5Array','DelayedArray'), require, character.only=TRUE)"
-    - run:
         name: Check code style
         command: |
-          R -e "if (!requireNamespace('styler', quietly = TRUE)) install.packages('styler')"
-          R -e "result <- styler::style_pkg(dry = 'on'); if (!all(result[['changed']] == FALSE)) stop('Code is not styled according to styler rules')"
+          R -e 'if (!requireNamespace("styler", quietly = TRUE)) install.packages("styler")'
+          R -e 'result <- styler::style_pkg(dry = "on"); if (!all(result[["changed"]] == FALSE)) stop("Code is not styled according to styler rules")'
     - run:
         name: Build package
         command: R CMD build .
@@ -29,24 +32,10 @@ steps: &steps
 
 
 jobs:
-  releaseR4p1p2:
+  releaseJammy:
     docker:
-      - image: rocker/verse:4.1.2
+      - image: rocker/r2u:jammy
     <<: *steps
-  # releaseR4.2.0:
-  #   docker:
-  #     - image: rocker/verse:4.2.0
-  #   <<: *steps
-  # develR:
-  #   docker:
-  #     - image: rocker/verse:devel
-  #   <<: *steps
-
-  deployable:
-    docker:
-      - image: busybox:latest
-    steps:
-      - run: echo Deploying!
 
   build_and_deploy:
     environment:
@@ -90,33 +79,14 @@ workflows:
   version: 2
   build_test_deploy:
     jobs:
-      - releaseR4p1p2:
+      - releaseJammy:
           filters:
             tags:
-              only: /.*/
-      # - releaseR4.2.0:
-      #     filters:
-      #       tags:
-      #         only: /.*/
-      # - develR:
-      #     filters:
-      #       tags:
-      #         only: /.*/
-
-      - deployable:
-          requires:
-            - releaseR4p1p2
-            # - releaseR4.2.0
-            # - develR
-          filters:
-            branches:
-              only: main
-            tags:   # make sure any `git tag` triggers the run
               only: /.*/
 
       - build_and_deploy:
           requires:
-            - deployable
+            - releaseJammy
           filters:
             branches:
               only: main

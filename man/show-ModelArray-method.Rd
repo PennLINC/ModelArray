@@ -10,5 +10,6 @@
 \item{object}{An ModelArray object}
 }
 \description{
-Print the basic information for an ModelArray object, including number of source files, scalar names, and any analysis names.
+Print the basic information for an ModelArray object, including number of source files,
+scalar names, and any analysis names.
 }

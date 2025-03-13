@@ -1,30 +1,16 @@
-# Building Docker file for ModelArray (R package) + ConFixel (python package). Core is config.yml for ModelArray's circle.ci.
-# When update this Dockerfile, please update:
-# 1. tag of pre-built docker image `pennlinc/modelarray_build:<tag>`
-    # Please make sure there is nothing to update in this pre-built docker image. To update that, see `ModelArray_tests` GitHub repo.
-# 2. commitSHA_confixel
+FROM rocker/r2u:jammy
 
-# Base image: using pre-built docker image:
-FROM pennlinc/modelarray_build:0.0.1
-
-## Versions and parameters:
-# specify the commit SHA:  # e.g. https://github.com/PennLINC/qsiprep/blob/master/Dockerfile#L174
-    # should be the full SHA
-ENV commitSHA_confixel="4c5def285b01836a15d0ac0dd049be0a3389b762"
-
-
-## Install ConFixel (python package)
-RUN git clone -n https://github.com/PennLINC/ConFixel.git
-WORKDIR ConFixel
-RUN git checkout ${commitSHA_confixel}
-RUN pip install .
-WORKDIR /
-# RUN rm -r ConFixel
+# Install tricky bioconductor packages and minimal LaTeX for PDF generation
+RUN apt update \
+        && apt install -y --no-install-recommends \
+ 		 r-cran-devtools \
+         r-bioc-rhdf5 \
+         r-bioc-delayedarray
 
 
 ## Install ModelArray (R package)
 COPY . /ModelArray
-WORKDIR ModelArray
+WORKDIR /ModelArray
 RUN R -e 'devtools::install()'
 
 ## Add metadata:

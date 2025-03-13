@@ -30,29 +30,61 @@ ModelArray.gam(
 
 \item{data}{ModelArray class}
 
-\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates to be added to the model. It should contains a column called "source_file", and this column should match to that in \code{data}.}
+\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates
+to be added to the model. It should contains a column called "source_file",
+and this column should match to that in \code{data}.}
 
 \item{scalar}{A character. The name of the element-wise scalar to be analysed}
 
-\item{element.subset}{A list of positive integers (min = 1, max = number of elements). The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.}
+\item{element.subset}{A list of positive integers (min = 1, max = number of elements).
+The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.}
 
-\item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs. If FALSE, it will only return those requested in arguments \code{var.*} and \code{correct.p.value.*}; if TRUE, arguments \code{var.*} will be ignored, and will return all possible statistics for \code{var.*} and any options requested in arguments \code{correct.p.value.*}.}
+\item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs.
+If FALSE, it will only return those requested in arguments \code{var.*} and \code{correct.p.value.*};
+if TRUE, arguments \code{var.*} will be ignored, and will return all possible statistics for \code{var.*}
+and any options requested in arguments \code{correct.p.value.*}.}
 
-\item{var.smoothTerms}{A list of characters. The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`). Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.}
+\item{var.smoothTerms}{A list of characters.
+The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`).
+Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.}
 
-\item{var.parametricTerms}{A list of characters. The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`). Example parametric term: sex in formula "outcome ~ s(age) + sex". See "Details" section for more.}
+\item{var.parametricTerms}{A list of characters.
+The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`).
+Example parametric term: sex in formula "outcome ~ s(age) + sex".
+See "Details" section for more.}
 
-\item{var.model}{A list of characters. The list of variables to save for the model (got from `broom::glance()` and `summary()`). See "Details" section for more.}
+\item{var.model}{A list of characters.
+The list of variables to save for the model (got from `broom::glance()` and `summary()`).
+See "Details" section for more.}
 
-\item{changed.rsq.term.index}{A list of (one or several) positive integers. Each element in the list means the i-th term of the formula's right hand side as the term of interest for changed R-squared between with and without it. Both delta adjusted R-squared and partial R-squared will be calculated for each of term requested. Usually term of interest is smooth term, or interaction term in models with interactions. See "Details" section for more, especially the "WARNING" in Details section for cases with caution!!}
+\item{changed.rsq.term.index}{A list of (one or several) positive integers.
+Each element in the list means the i-th term of the formula's right hand side
+as the term of interest for changed R-squared between with and without it.
+Both delta adjusted R-squared and partial R-squared will be calculated for each of term requested.
+Usually term of interest is smooth term, or interaction term in models with interactions.
+ See "Details" section for more, especially the "WARNING" in Details section for cases with caution!!}
 
-\item{correct.p.value.smoothTerms}{A list of characters. To perform and add a column for p.value correction for each smooth term. Default: "fdr". See "Details" section for more.}
+\item{correct.p.value.smoothTerms}{A list of characters.
+To perform and add a column for p.value correction for each smooth term.
+Default: "fdr". See "Details" section for more.}
 
-\item{correct.p.value.parametricTerms}{A list of characters. To perform and add a column for p.value correction for each parametric term. Default: "fdr". See "Details" section for more.}
+\item{correct.p.value.parametricTerms}{A list of characters.
+To perform and add a column for p.value correction for each parametric term. Default: "fdr".
+See "Details" section for more.}
 
-\item{num.subj.lthr.abs}{An integer, lower threshold of absolute number of subjects. For an element, if number of subjects who have finite values (defined by `is.finite()`, i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr.abs}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN. Default is 10.}
+\item{num.subj.lthr.abs}{An integer, lower threshold of absolute number of subjects.
+For an element, if number of subjects who have finite values (defined by `is.finite()`,
+i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr.abs},
+then this element will be run normally;
+otherwise, this element will be skipped and statistical outputs will be set as NaN.
+Default is 10.}
 
-\item{num.subj.lthr.rel}{A value between 0-1, lower threshold of relative number of subjects. Similar to \code{num.subj.lthr.abs}, if proportion of subjects who have valid value > \code{num.subj.lthr.rel}, then this element will be run normally; otherwise, this element will be skipped and statistical outputs will be set as NaN. Default is 0.2.}
+\item{num.subj.lthr.rel}{A value between 0-1, lower threshold of relative number of subjects.
+Similar to \code{num.subj.lthr.abs},
+if proportion of subjects who have valid value > \code{num.subj.lthr.rel},
+then this element will be run normally; otherwise,
+this element will be skipped and statistical outputs will be set as NaN.
+Default is 0.2.}
 
 \item{verbose}{TRUE or FALSE, to print verbose messages or not}
 
@@ -66,40 +98,88 @@ ModelArray.gam(
 Tibble with the summarized model statistics for all elements requested
 }
 \description{
-`ModelArray.gam` fits gam model for each of elements requested, and returns a tibble data.frame of requested model statistics.
+`ModelArray.gam` fits gam model for each of elements requested,
+and returns a tibble data.frame of requested model statistics.
 }
 \details{
-You may request returning specific statistical variables by setting \code{var.*}, or you can get all by setting \code{full.outputs=TRUE}.
-Note that statistics covered by \code{full.outputs} or \code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only, and do not include delta adjusted R-squared or partial R-squared or corrected p-values. However FDR-corrected p-values ("fdr") are generated by default.
+You may request returning specific statistical variables by setting \code{var.*},
+or you can get all by setting \code{full.outputs=TRUE}.
+Note that statistics covered by \code{full.outputs} or
+\code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only,
+and do not include delta adjusted R-squared or partial R-squared or corrected p-values.
+However FDR-corrected p-values ("fdr") are generated by default.
+
 List of acceptable statistic names for each of \code{var.*}:
 \itemize{
- \item \code{var.smoothTerms}: c("edf","ref.df","statistic","p.value"); For interpretation please see \link[broom]{tidy.gam} with `parametric=FALSE`.
- \item \code{var.parametricTerms}: c("estimate", "std.error","statistic","p.value"); For interpretation please see \link[broom]{tidy.gam} with `parametric=TRUE`.
- \item \code{var.model}: c("adj.r.squared","dev.expl", "sp.criterion", "scale", "df", "logLik","AIC", "BIC", "deviance", "df.residual", "nobs"); "adj.r.squared" is \code{r.sq} from \link[mgcv]{summary.gam}; "sp.criterion" is \code{sp.criterion} from \link[mgcv]{summary.gam}; For interpretation please see \link[broom]{glance.gam} and \link[mgcv]{summary.gam}.
+ \item \code{var.smoothTerms}: c("edf","ref.df","statistic","p.value");
+   For interpretation please see \link[broom]{tidy.gam} with `parametric=FALSE`.
+ \item \code{var.parametricTerms}: c("estimate", "std.error","statistic","p.value");
+   For interpretation please see \link[broom]{tidy.gam} with `parametric=TRUE`.
+ \item \code{var.model}: c("adj.r.squared","dev.expl", "sp.criterion", "scale", "df",
+   "logLik","AIC", "BIC", "deviance", "df.residual", "nobs"); "adj.r.squared" is \code{r.sq} from
+   \link[mgcv]{summary.gam}; "sp.criterion" is \code{sp.criterion} from \link[mgcv]{summary.gam};
+   For interpretation please see \link[broom]{glance.gam} and \link[mgcv]{summary.gam}.
 }
+
 Regarding formula: So far these kinds of formula are tested:
 \itemize{
-  \item formula with smooth term, but without any interactions. Examples like \code{y ~ s(x) + orderedFactor}; \code{y ~ s(x) + s(z)}
+  \item formula with smooth term, but without any interactions.
+        Examples like \code{y ~ s(x) + orderedFactor}; \code{y ~ s(x) + s(z)}
   \item formula with interaction, but limited to only one interaction term, and in the formats of:
   \itemize{
-      \item Formula #1: \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor) + other_covariate}, where \code{orderedFactor} should be discrete variables and generated by `ordered`. The interaction term will be displayed as "s_x_BYorderedFactor" in the column name in returned data.frame. You may use function `generator_gamFormula_factorXsmooth()` to generate one.
-      \item Formula #2: \code{y ~ ti(x) + ti(z) + ti(x,z) + other_covariate}, where \code{x} and \code{z} should be continuous variables. The interaction term will be displayed as "ti_x_z" in the column name in the returned data.frame. You may use function `generator_gamFormula_continuousInteraction()` to generate one.
+      \item Formula #1: \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor) + other_covariate},
+         where \code{orderedFactor} should be discrete variables and generated by `ordered`.
+         The interaction term will be displayed as "s_x_BYorderedFactor"
+         in the column name in returned data.frame.
+         You may use function `gen_gamFormula_fxSmooth()` to generate one.
+      \item Formula #2: \code{y ~ ti(x) + ti(z) + ti(x,z) + other_covariate},
+         where \code{x} and \code{z} should be continuous variables.
+         The interaction term will be displayed as "ti_x_z" in the column name in the returned data.frame.
+         You may use function `gen_gamFormula_contIx()` to generate one.
   }
 }
-You may be interested in how important a term is in a model. We provide two ways of quantification (see below). Both of them require running the reduced model without this term of interest, thus it will take longer time to run. You can make such request via argument \code{changed.rsq.term.index}, and you'll get both quantifications.
+You may be interested in how important a term is in a model.
+We provide two ways of quantification (see below).
+Both of them require running the reduced model without this term of interest,
+thus it will take longer time to run.
+You can make such request via argument \code{changed.rsq.term.index}, and you'll get both quantifications.
 \itemize{
-  \item Delta adjusted R-squared (\code{delta.adj.rsq}) is defined as the difference between adjusted R-squared of full model (full formula in \code{formula}) and that of reduced model (formula without the term of interest). Notice that adjusted R-squared includes the penalty from the model complexity.
-  \item Partial R-squared (\code{partial.rsq}) is defined as: \code{(sse.reduced.model - sse.full.model) / sse.reduced.model}, where \code{sse} is the error sum of squares (or, residual sum of squares). It quantifies the amount of variance in the response variable that cannot be explained by the reduced model (model without term of interest), but can be explained by the term of interest in the full model.
+  \item Delta adjusted R-squared (\code{delta.adj.rsq}) is defined as the difference between
+     adjusted R-squared of full model (full formula in \code{formula}) and that of reduced model
+     (formula without the term of interest). Notice that adjusted R-squared includes the penalty
+     from the model complexity.
+  \item Partial R-squared (\code{partial.rsq}) is defined as:
+     \code{(sse.reduced.model - sse.full.model) / sse.reduced.model},
+     where \code{sse} is the error sum of squares (or, residual sum of squares).
+     It quantifies the amount of variance in the response variable that cannot be explained by the reduced model
+     (model without term of interest), but can be explained by the term of interest in the full model.
 }
-\strong{___!!! WARNING !!!___}: If you want to request \code{changed.rsq.term.index} for a term that has missing values, before feeding \code{phenotypes} into \code{ModelArray.gam()}, you must exclude those observations (i.e., those rows in \code{phenotypes}) who have missing values in this term of interest from \code{phenotypes}. 
-You should do the same for each term you'd like to request in \code{changed.rsq.term.index}, if that term has missing values. 
-Without such exclusion, the full and reduced models would include different number of subjects, causing inaccuracy of calculation of \code{delta.adj.rsq} and \code{partial.rsq}. \cr \cr
+\strong{___!!! WARNING !!!___}:
+If you want to request \code{changed.rsq.term.index} for a term that has missing values,
+before feeding \code{phenotypes} into \code{ModelArray.gam()},
+you must exclude those observations (i.e., those rows in \code{phenotypes})
+who have missing values in this term of interest from \code{phenotypes}.
+You should do the same for each term you'd like to request in \code{changed.rsq.term.index},
+if that term has missing values.
+Without such exclusion, the full and reduced models would include different number of subjects,
+causing inaccuracy of calculation of \code{delta.adj.rsq} and \code{partial.rsq}. \cr \cr
 Other notes on \code{changed.rsq.term.index}:
 \itemize{
-  \item When requesting \code{changed.rsq.term.index}, \code{fx} should be set as \code{TRUE}, so that degree of freedom is fixed.
-  \item For formula with interactions, only formula in above formats are tested, and only the values of interaction term are valid. The delta.adj.rsq and partial.rsq for main effect (such as s(x) in Formula #1) may not "functionally" be these metrics, as their definitions should be changed to reduced formula without both main effect and interaction term.
+  \item When requesting \code{changed.rsq.term.index},
+     \code{fx} should be set as \code{TRUE}, so that degree of freedom is fixed.
+  \item For formula with interactions, only formula in above formats are tested,
+     and only the values of interaction term are valid.
+     The delta.adj.rsq and partial.rsq for main effect (such as s(x) in Formula #1)
+     may not "functionally" be these metrics, as their definitions should be changed to
+     reduced formula without both main effect and interaction term.
 }
-For p-value corrections (arguments \code{correct.p.value.*}), supported methods include all methods in `p.adjust.methods` except "none". You can request more than one method. FDR-corrected p-values ("fdr") are calculated by default. Turn it off by setting to "none".
-Please notice that different from `ModelArray.lm`, there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model. \cr
-Arguments \code{num.subj.lthr.abs} and \code{num.subj.lthr.rel} are mainly for input data with subject-specific masks, i.e. currently only for volume data. For fixel-wise data, you may ignore these arguments.
+For p-value corrections (arguments \code{correct.p.value.*}),
+supported methods include all methods in `p.adjust.methods` except "none".
+You can request more than one method. FDR-corrected p-values ("fdr") are calculated by default.
+Turn it off by setting to "none".
+Please notice that different from `ModelArray.lm`,
+there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model. \cr
+Arguments \code{num.subj.lthr.abs} and \code{num.subj.lthr.rel}
+are mainly for input data with subject-specific masks, i.e. currently only for volume data.
+For fixel-wise data, you may ignore these arguments.
 }

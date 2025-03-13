@@ -18,11 +18,14 @@ writeResults(
 
 \item{analysis_name}{A character, the name of the results}
 
-\item{overwrite}{If a group with the same analysis_name exists in HDF5 file, whether overwrite it (TRUE) or not (FALSE)}
+\item{overwrite}{If a group with the same analysis_name exists in HDF5 file,
+whether overwrite it (TRUE) or not (FALSE)}
 }
 \description{
-Create a group named `analysis_name` in HDF5 file, then write the statistical results data.frame (i.e. for one analysis) in it.
+Create a group named `analysis_name` in HDF5 file,
+then write the statistical results data.frame (i.e. for one analysis) in it.
 }
 \details{
-debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)", check if there is message 'No such file or directory'. Try absolute .h5 filename.
+debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)",
+check if there is message 'No such file or directory'. Try absolute .h5 filename.
 }

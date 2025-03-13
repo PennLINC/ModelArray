@@ -9,3 +9,8 @@
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
+^\.lintr$
+^LICENSE\.md$
+^CLONE\.md$
+^Dockerfile$
+^README\.Rmd$
