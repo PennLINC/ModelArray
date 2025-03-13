@@ -146,14 +146,15 @@ test_that("test that ModelArray.gam() works as expected", {
 
     partialRsq <- (sse.red - sse.full) / sse.red
 
-    return(partialRsq)
+    partialRsq
     # toReturn <- list(partialRsq = partialRsq,
     #                  sse.full = sse.full,
     #                  sse.red = sse.red)
     # return(toReturn)
   }
 
-  wrapper_partialRsq_gam_modelarray <- function(element.subset, modelarray, phenotypes, scalar, full.formula, reduced.formula) {
+  wrapper_partialRsq_gam_modelarray <- function(element.subset, modelarray, phenotypes, scalar,
+                                                full.formula, reduced.formula) {
     partial.rsq.list <- lapply(
       element.subset, # a list of i_element
       partialRsq_gam_modelarray, # the function
@@ -161,7 +162,7 @@ test_that("test that ModelArray.gam() works as expected", {
     )
     partial.rsq.vec <- do.call(rbind, partial.rsq.list)
     partial.rsq.vec <- as.numeric(partial.rsq.vec)
-    return(partial.rsq.vec)
+    partial.rsq.vec
   }
 
   ### basic checks #####
@@ -235,14 +236,20 @@ test_that("test that ModelArray.gam() works as expected", {
     pbar = FALSE
   )
   compare_expected_results(mygam_noExplicitParamTerm, expected.results[["s-age"]])
-  expect_warning(mygam_noParamStat <- ModelArray.gam(FD ~ s(age) + sex,
-    data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-    var.parametricTerms = c(),
-    # there will be warning: p.value was not included in var.parametricTerms, so
-    # not to perform its p.value corrections
-    n_cores = 2,
-    pbar = FALSE
-  ))
+  expect_warning(
+    mygam_noParamStat <- ModelArray.gam(
+      FD ~ s(age) + sex,
+      data = modelarray,
+      phenotypes = phenotypes,
+      scalar = scalar_name,
+      element.subset = element.subset,
+      var.parametricTerms = c(),
+      # there will be warning: p.value was not included in var.parametricTerms, so
+      # not to perform its p.value corrections
+      n_cores = 2,
+      pbar = FALSE
+    )
+  )
   # if there is no smooth term or stat:
   mygam_noSmoothTerm <- ModelArray.gam(FD ~ age,
     data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
@@ -254,32 +261,40 @@ test_that("test that ModelArray.gam() works as expected", {
   compare_expected_results(mygam_noSmoothTerm, expected.results[["age"]])
   expect_true(c("age.statistic", "age.estimate") %in% colnames(mygam_noSmoothTerm) %>% all())
 
-  expect_warning(mygam_noSmoothStat <- ModelArray.gam(FD ~ s(age) + sex,
-    data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-    var.smoothTerms = c(),
-    # warning: p.value was not included in var.smoothTerms, so not to perform
-    # its p.value corrections
-    n_cores = 2,
-    pbar = FALSE
-  ))
+  expect_warning(
+    mygam_noSmoothStat <- ModelArray.gam(
+      FD ~ s(age) + sex,
+      data = modelarray,
+      phenotypes = phenotypes,
+      scalar = scalar_name,
+      element.subset = element.subset,
+      var.smoothTerms = c(),
+      # warning: p.value was not included in var.smoothTerms, so not to perform
+      # its p.value corrections
+      n_cores = 2,
+      pbar = FALSE
+    )
+  )
   compare_expected_results(mygam_noSmoothStat, expected.results[["s-age_sex"]])
   expect_false("age.statistic" %in% colnames(mygam_noSmoothStat))
 
   # if there is only one var.* not empty: (test with request of reduced model -
   # where there will calls as: c(), c(), c("adj.r.squared"))
-  w <- capture_warnings(mygam_onlyModelStat <- ModelArray.gam(
-    FD ~ s(age) + sex,
-    data = modelarray,
-    phenotypes = phenotypes,
-    scalar = scalar_name,
-    element.subset = element.subset,
-    var.smoothTerms = c(),
-    var.parametricTerms = c(),
-    var.model = c("dev.expl"),
-    changed.rsq.term.index = c(1),
-    n_cores = 2,
-    pbar = FALSE
-  ))
+  w <- capture_warnings(
+    mygam_onlyModelStat <- ModelArray.gam(
+      FD ~ s(age) + sex,
+      data = modelarray,
+      phenotypes = phenotypes,
+      scalar = scalar_name,
+      element.subset = element.subset,
+      var.smoothTerms = c(),
+      var.parametricTerms = c(),
+      var.model = c("dev.expl"),
+      changed.rsq.term.index = c(1),
+      n_cores = 2,
+      pbar = FALSE
+    )
+  )
   # warning: p.value was not included in var.smoothTerms OR var.parametricTerms,
   # so not to perform its p.value corrections
   compare_expected_results(mygam_onlyModelStat, expected.results[["s-age_sex"]])
@@ -287,30 +302,50 @@ test_that("test that ModelArray.gam() works as expected", {
   # all=FALSE: only one element instead of all elements in actual value need to
   # match)
   expect_match(w, "p.value was not included in var.parametricTerms", all = FALSE)
-  w <- capture_warnings(mygam_onlyParametricTermsStat <- ModelArray.gam(FD ~ s(age) + sex,
-    data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-    var.smoothTerms = c(), var.parametricTerms = c("estimate"), var.model = c(),
-    # warning: p.value was not included in var.xxx
-    changed.rsq.term.index = c(1),
-    n_cores = 2,
-    pbar = FALSE
-  ))
+  w <- capture_warnings(
+    mygam_onlyParametricTermsStat <- ModelArray.gam(
+      FD ~ s(age) + sex,
+      data = modelarray,
+      phenotypes = phenotypes,
+      scalar = scalar_name,
+      element.subset = element.subset,
+      var.smoothTerms = c(),
+      var.parametricTerms = c("estimate"),
+      var.model = c(),
+      # warning: p.value was not included in var.xxx
+      changed.rsq.term.index = c(1),
+      n_cores = 2,
+      pbar = FALSE
+    )
+  )
   compare_expected_results(mygam_onlyParametricTermsStat, expected.results[["s-age_sex"]])
   expect_match(w, "p.value was not included in var.smoothTerms", all = FALSE)
   # all=FALSE: only one element instead of all elements in actual value need to
   # match)
   expect_match(w, "p.value was not included in var.parametricTerms", all = FALSE)
-  w <- capture_warnings(mygam_onlySmoothTermsStat <- ModelArray.gam(FD ~ s(age) + sex,
-    data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-    var.smoothTerms = c("statistic"), var.parametricTerms = c(), var.model = c(),
-    changed.rsq.term.index = c(1),
-    n_cores = 2, pbar = FALSE
-  )) # warning: p.value was not included in var.xxx
+  w <- capture_warnings(
+    mygam_onlySmoothTermsStat <- ModelArray.gam(
+      FD ~ s(age) + sex,
+      data = modelarray,
+      phenotypes = phenotypes,
+      scalar = scalar_name,
+      element.subset = element.subset,
+      var.smoothTerms = c("statistic"),
+      var.parametricTerms = c(),
+      var.model = c(),
+      changed.rsq.term.index = c(1),
+      n_cores = 2,
+      pbar = FALSE
+    )
+  ) # warning: p.value was not included in var.xxx
   compare_expected_results(mygam_onlySmoothTermsStat, expected.results[["s-age_sex"]])
-  expect_match(w, "p.value was not included in var.smoothTerms", all = FALSE) # all=FALSE: only one element instead of all elements in actual value need to match)
+  expect_match(w, "p.value was not included in var.smoothTerms", all = FALSE)
+  # all=FALSE: only one element instead of all elements in actual value need to match)
   expect_match(w, "p.value was not included in var.parametricTerms", all = FALSE)
-  # there shouldn't be any NA in these outputs: (otherwise, there is a bug when combining empty tibble in analyseOneElement.gam())
-  expect_true((!mygam_onlyModelStat %>% is.na()) %>% all()) # if there is any NA in the output data.frame, the result is FALSE
+  # there shouldn't be any NA in these outputs:
+  # (otherwise, there is a bug when combining empty tibble in analyseOneElement.gam())
+  expect_true((!mygam_onlyModelStat %>% is.na()) %>% all())
+  # if there is any NA in the output data.frame, the result is FALSE
   expect_true((!mygam_onlyParametricTermsStat %>% is.na()) %>% all())
   expect_true((!mygam_onlySmoothTermsStat %>% is.na()) %>% all())
 
@@ -373,9 +408,14 @@ test_that("test that ModelArray.gam() works as expected", {
   %>% isTRUE()) # should be different when k is different
 
   # s(fx=TRUE) vs default (fx=FALSE): 1) different stat;
-  mygam_fxTRUE <- ModelArray.gam(FD ~ s(age, fx = TRUE) + sex,
-    data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
-    n_cores = 2, pbar = FALSE
+  mygam_fxTRUE <- ModelArray.gam(
+    FD ~ s(age, fx = TRUE) + sex,
+    data = modelarray,
+    phenotypes = phenotypes,
+    scalar = scalar_name,
+    element.subset = element.subset,
+    n_cores = 2,
+    pbar = FALSE
   )
   compare_expected_results(mygam_fxTRUE, expected.results[["s-age-fx-T_sex"]])
   expect_false(dplyr::all_equal(
@@ -420,24 +460,44 @@ test_that("test that ModelArray.gam() works as expected", {
   # removing NA observations from it! s(x, by=orderedFactor):
   formula <- FD ~ oSex + s(age, k = 4, fx = TRUE) + s(age, by = oSex, fx = TRUE) + factorB # ordered factor
   mygam_agewNA_sby <- ModelArray.gam(
-    formula = formula, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset,
+    formula = formula,
+    data = modelarray,
+    phenotypes = phenotypes_wNA,
+    scalar = scalar_name,
+    element.subset = element.subset,
     n_cores = 2, pbar = FALSE
   )
   compare_expected_results(mygam_agewNA_sby, expected.results[["oSex_s-age-wNA-k-4-fx-T_s-age-byoSex-fx-T_factorB"]])
   # ti(x) + ti(z) + ti(x,z), where x has NA:
   formula <- FD ~ ti(age, fx = TRUE) + ti(factorB, fx = TRUE) + ti(age, factorB, fx = TRUE) + factorA
   mygam_agewNA_tiInteract <- ModelArray.gam(
-    formula = formula, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset,
-    n_cores = 2, pbar = FALSE
+    formula = formula,
+    data = modelarray,
+    phenotypes = phenotypes_wNA,
+    scalar = scalar_name,
+    element.subset = element.subset,
+    n_cores = 2,
+    pbar = FALSE
   )
-  compare_expected_results(mygam_agewNA_tiInteract, expected.results[["ti-age-wNA-fx-T_ti-factorB-fx-T_ti-age-factorB-fx-T_factorA"]])
+  compare_expected_results(
+    mygam_agewNA_tiInteract,
+    expected.results[["ti-age-wNA-fx-T_ti-factorB-fx-T_ti-age-factorB-fx-T_factorA"]]
+  )
   # s(x) + s(z) + ti(x,z), where x has NA:
   formula <- FD ~ s(age, fx = TRUE) + s(factorB, fx = TRUE) + ti(age, factorB, fx = TRUE) + factorA
   mygam_agewNA_s_tiInteract <- ModelArray.gam(
-    formula = formula, data = modelarray, phenotypes = phenotypes_wNA, scalar = scalar_name, element.subset = element.subset,
-    n_cores = 2, pbar = FALSE
+    formula = formula,
+    data = modelarray,
+    phenotypes = phenotypes_wNA,
+    scalar = scalar_name,
+    element.subset = element.subset,
+    n_cores = 2,
+    pbar = FALSE
   )
-  compare_expected_results(mygam_agewNA_s_tiInteract, expected.results[["s-age-wNA-fx-T_s-factorB-fx-T_ti-age-factorB-fx-T_factorA"]])
+  compare_expected_results(
+    mygam_agewNA_s_tiInteract,
+    expected.results[["s-age-wNA-fx-T_s-factorB-fx-T_ti-age-factorB-fx-T_factorA"]]
+  )
 
   # using "na.omit" to handle NA:
   mygam_agewNA_na.omit <- ModelArray.gam(FD ~ s(age) + sex,
@@ -499,22 +559,29 @@ test_that("test that ModelArray.gam() works as expected", {
     correct.p.value.parametricTerms = c("fdr", "bonferroni"),
     n_cores = 2, pbar = FALSE
   )
-  compare_expected_results(mygam_parametric_pCorrect, expected.results[["s-age_sex"]]) # this includes check *.p.value.fdr and *.p.value.bonferroni values are correct
+  compare_expected_results(
+    mygam_parametric_pCorrect,
+    expected.results[["s-age_sex"]]
+  ) # this includes check *.p.value.fdr and *.p.value.bonferroni values are correct
   # check if requested p value corrections exist:
-  expect_true(c("sexM.p.value.bonferroni", "Intercept.p.value.bonferroni")
-  %in% colnames(mygam_parametric_pCorrect)
-    %>% all())
+  expect_true(
+    c("sexM.p.value.bonferroni", "Intercept.p.value.bonferroni")
+    %in% colnames(mygam_parametric_pCorrect) %>% all()
+  )
 
   mygam_smooth_pCorrect <- ModelArray.gam(FD ~ s(age) + sex,
     data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
     correct.p.value.smoothTerms = c("fdr", "bonferroni"),
     n_cores = 2, pbar = FALSE
   )
-  compare_expected_results(mygam_smooth_pCorrect, expected.results[["s-age_sex"]]) # this includes check *.p.value.fdr and *.p.value.bonferroni values are correct
+  compare_expected_results(
+    mygam_smooth_pCorrect,
+    expected.results[["s-age_sex"]]
+  ) # this includes check *.p.value.fdr and *.p.value.bonferroni values are correct
   # check if requested p value corrections exist:
-  expect_true(c("s_age.p.value.bonferroni")
-  %in% colnames(mygam_smooth_pCorrect)
-    %>% all())
+  expect_true(
+    c("s_age.p.value.bonferroni") %in% colnames(mygam_smooth_pCorrect) %>% all()
+  )
 
   expect_error(
     ModelArray.gam(
