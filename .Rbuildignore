@@ -11,3 +11,6 @@
 ^pkgdown$
 ^\.lintr$
 ^LICENSE\.md$
+^CLONE\.md$
+^Dockerfile$
+^README\.Rmd$

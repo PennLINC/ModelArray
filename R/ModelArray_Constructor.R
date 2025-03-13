@@ -19,28 +19,55 @@ ModelArray <- setClass(
   )
 )
 
-#' Generic function to access results
+#' Access the results slot of an object
+#'
+#' @description
+#' Generic function to access the results slot of an object.
+#'
+#' @usage
+#' results(x)
 #'
 #' @param x An object
 #' @return The results slot of the object
 #' @export
+#' @aliases results
 setGeneric("results", function(x) standardGeneric("results"))
 
-#' Generic function to access scalars
+#' Access the scalars slot of an object
+#'
+#' @description
+#' Generic function to access the scalars slot of an object.
+#'
+#' @usage
+#' scalars(x)
 #'
 #' @param x An object
 #' @return The scalars slot of the object
 #' @export
+#' @aliases scalars
 setGeneric("scalars", function(x) standardGeneric("scalars"))
 
-#' Generic function to access sources
+#' Access the sources slot of an object
+#'
+#' @description
+#' Generic function to access the sources slot of an object.
+#'
+#' @usage
+#' sources(x)
 #'
 #' @param x An object
 #' @return The sources slot of the object
 #' @export
+#' @aliases sources
 setGeneric("sources", function(x) standardGeneric("sources"))
 
 #' Access the results slot of a ModelArray object
+#'
+#' @description
+#' Method for accessing the results slot of a ModelArray object.
+#'
+#' @usage
+#' \S4method{results}{ModelArray}(x)
 #'
 #' @param x A ModelArray object
 #' @return The results slot of the ModelArray object
@@ -49,12 +76,24 @@ setMethod("results", "ModelArray", function(x) x@results)
 
 #' Access the scalars slot of a ModelArray object
 #'
+#' @description
+#' Method for accessing the scalars slot of a ModelArray object.
+#'
+#' @usage
+#' \S4method{scalars}{ModelArray}(x)
+#'
 #' @param x A ModelArray object
 #' @return The scalars slot of the ModelArray object
 #' @export
 setMethod("scalars", "ModelArray", function(x) x@scalars)
 
 #' Access the sources slot of a ModelArray object
+#'
+#' @description
+#' Method for accessing the sources slot of a ModelArray object.
+#'
+#' @usage
+#' \S4method{sources}{ModelArray}(x)
 #'
 #' @param x A ModelArray object
 #' @return The sources slot of the ModelArray object
