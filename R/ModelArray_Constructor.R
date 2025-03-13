@@ -55,14 +55,14 @@ setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 #' Generic function to access the sources slot of an object.
 #'
 #' @usage
-#' sources(x, ...)
+#' sources(x)
 #'
 #' @param x An object
-#' @param ... Additional arguments passed to methods
 #' @return The sources slot of the object
 #' @export
 #' @aliases sources
-setGeneric("sources", function(x, ...) standardGeneric("sources"))
+setGeneric("sources", function(x) standardGeneric("sources"))
+
 
 #' Access the results slot of a ModelArray object
 #'
@@ -98,13 +98,13 @@ setMethod("scalars", "ModelArray", function(x, ...) x@scalars)
 #' Method for accessing the sources slot of a ModelArray object.
 #'
 #' @usage
-#' \S4method{sources}{ModelArray}(x, ...)
+#' \S4method{sources}{ModelArray}(x)
 #'
 #' @param x A ModelArray object
-#' @param ... Additional arguments (not used)
 #' @return The sources slot of the ModelArray object
 #' @export
-setMethod("sources", "ModelArray", function(x, ...) x@sources)
+setMethod("sources", "ModelArray", function(x) x@sources)
+
 
 
 #' ModelArraySeed

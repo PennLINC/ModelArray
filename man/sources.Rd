@@ -4,12 +4,10 @@
 \alias{sources}
 \title{Access the sources slot of an object}
 \usage{
-sources(x, ...)
+sources(x)
 }
 \arguments{
 \item{x}{An object}
-
-\item{...}{Additional arguments passed to methods}
 }
 \value{
 The sources slot of the object
