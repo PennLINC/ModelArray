@@ -4,10 +4,12 @@
 \alias{results}
 \title{Access the results slot of an object}
 \usage{
-results(x)
+results(x, ...)
 }
 \arguments{
 \item{x}{An object}
+
+\item{...}{Additional arguments passed to methods}
 }
 \value{
 The results slot of the object

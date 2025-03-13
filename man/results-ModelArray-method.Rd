@@ -5,7 +5,7 @@
 \alias{results,ModelArray-method}
 \title{Access the results slot of a ModelArray object}
 \usage{
-\S4method{results}{ModelArray}(x)
+\S4method{results}{ModelArray}(x, ...)
 
 \S4method{results}{ModelArray}(x, ...)
 }

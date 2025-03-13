@@ -5,7 +5,7 @@
 \alias{scalars,ModelArray-method}
 \title{Access the scalars slot of a ModelArray object}
 \usage{
-\S4method{scalars}{ModelArray}(x)
+\S4method{scalars}{ModelArray}(x, ...)
 
 \S4method{scalars}{ModelArray}(x, ...)
 }

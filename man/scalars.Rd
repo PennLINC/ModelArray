@@ -4,10 +4,12 @@
 \alias{scalars}
 \title{Access the scalars slot of an object}
 \usage{
-scalars(x)
+scalars(x, ...)
 }
 \arguments{
 \item{x}{An object}
+
+\item{...}{Additional arguments passed to methods}
 }
 \value{
 The scalars slot of the object
