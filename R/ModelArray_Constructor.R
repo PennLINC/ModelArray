@@ -19,6 +19,48 @@ ModelArray <- setClass(
   )
 )
 
+#' Generic function to access results
+#'
+#' @param x An object
+#' @return The results slot of the object
+#' @export
+setGeneric("results", function(x) standardGeneric("results"))
+
+#' Generic function to access scalars
+#'
+#' @param x An object
+#' @return The scalars slot of the object
+#' @export
+setGeneric("scalars", function(x) standardGeneric("scalars"))
+
+#' Generic function to access sources
+#'
+#' @param x An object
+#' @return The sources slot of the object
+#' @export
+setGeneric("sources", function(x) standardGeneric("sources"))
+
+#' Access the results slot of a ModelArray object
+#'
+#' @param x A ModelArray object
+#' @return The results slot of the ModelArray object
+#' @export
+setMethod("results", "ModelArray", function(x) x@results)
+
+#' Access the scalars slot of a ModelArray object
+#'
+#' @param x A ModelArray object
+#' @return The scalars slot of the ModelArray object
+#' @export
+setMethod("scalars", "ModelArray", function(x) x@scalars)
+
+#' Access the sources slot of a ModelArray object
+#'
+#' @param x A ModelArray object
+#' @return The sources slot of the ModelArray object
+#' @export
+setMethod("sources", "ModelArray", function(x) x@sources)
+
 
 #' ModelArraySeed
 #'
