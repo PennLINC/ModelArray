@@ -24,12 +24,12 @@ knitr::opts_chunk$set(
 `ModelArray` is an R package for statistical analysis of fixel-wise data and beyond. Its features include:
 
 * Easy to use: set up your statistical analysis with just several lines of code;
-* Supporting linear and nonlinear modeling, and extensible to more models: 
+* Supporting linear and nonlinear modeling, and extensible to more models:
   * At present, `ModelArray` supports linear models as well as generalized additive models (GAMs) with and without penalized splines, which are particularly useful for studying nonlinear effects in lifespan data. `ModelArray` is also extensible to diverse models available in R;
 * Scalable for large-scale datasets;
 * Compatible with fixel-wise data, voxel-wise data, and greyordinate-wise data.
 
-Please cite our [NeuroImage paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use `ModelArray`: 
+Please cite our [NeuroImage paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use `ModelArray`:
 
 > Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S., Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha, K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M., Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2023). ModelArray: an R package for statistical analysis of fixel-wise data. _NeuroImage_, _271_, 120037. https://doi.org/10.1016/j.neuroimage.2023.120037
 
@@ -38,7 +38,7 @@ Please cite our [NeuroImage paper](https://doi.org/10.1016/j.neuroimage.2023.120
 
 <center>
 
-![Overview](vignettes/overview_structure.png)
+![Overview](man/figures/overview_structure.png)
 
 </center>
 
