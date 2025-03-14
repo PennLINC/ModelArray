@@ -47,3 +47,4 @@ jobs:
           clean: false
           branch: gh-pages
           folder: docs
+          commit-message: "Deploy pkgdown site [skip ci]"
