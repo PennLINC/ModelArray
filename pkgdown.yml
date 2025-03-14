@@ -1,0 +1,16 @@
+pandoc: 3.1.11
+pkgdown: 2.1.1
+pkgdown_sha: ~
+articles:
+  basic_r_intro: basic_r_intro.html
+  container: container.html
+  debugging: debugging.html
+  doc_for_developer: doc_for_developer.html
+  faq: faq.html
+  installations: installations.html
+  voxel-wise_data: voxel-wise_data.html
+  walkthrough: walkthrough.html
+last_built: 2025-03-14T13:08Z
+urls:
+  reference: https://pennlinc.github.io/ModelArray/reference
+  article: https://pennlinc.github.io/ModelArray/articles
