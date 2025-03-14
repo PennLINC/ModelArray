@@ -81,6 +81,10 @@ workflows:
     jobs:
       - releaseJammy:
           filters:
+            branches:
+              ignore:
+                - gh-pages
+                - /^gh-pages.*/
             tags:
               only: /.*/
 
@@ -90,6 +94,9 @@ workflows:
           filters:
             branches:
               only: main
+              ignore:
+                - gh-pages
+                - /^gh-pages.*/
             tags:   # make sure any `git tag` triggers the run
               only: /.*/
 
