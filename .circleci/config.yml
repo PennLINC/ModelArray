@@ -1,0 +1,17 @@
+version: 2.1
+
+workflows:
+  disabled:
+    when:
+      and:
+        - equal: [ "true", "false" ]  # This condition will never be true
+    jobs:
+      - build
+
+jobs:
+  build:
+    docker:
+      - image: cimg/base:2024.01
+    steps:
+      - checkout
+      - run: echo "This job will never run"
