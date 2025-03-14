@@ -40,3 +40,4 @@ jobs:
         with:
           folder: docs
           clean: true
+          force: true
