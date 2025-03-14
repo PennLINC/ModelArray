@@ -28,6 +28,11 @@ jobs:
           extra-packages: any::pkgdown, local::.
           needs: website
 
+      - name: Build site
+        run: |
+          Rscript -e 'pkgdown::build_site()'
+          touch docs/.nojekyll
+
       - name: Deploy package
         run: |
           git config --local user.name "$GITHUB_ACTOR"
