@@ -31,7 +31,7 @@ ModelArray <- setClass(
 #' @param ... Additional arguments passed to methods
 #' @return The results slot of the object
 #' @aliases results
-#' @export
+#' @keywords internal
 setGeneric("results", function(x, ...) standardGeneric("results"))
 
 #' Access the scalars slot of an object
@@ -46,7 +46,7 @@ setGeneric("results", function(x, ...) standardGeneric("results"))
 #' @param ... Additional arguments passed to methods
 #' @return The scalars slot of the object
 #' @aliases scalars
-#' @export
+#' @keywords internal
 setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 
 #' Access the sources slot of an object
@@ -60,7 +60,7 @@ setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 #' @param x An object
 #' @return The sources slot of the object
 #' @aliases sources
-#' @export
+#' @keywords internal
 setGeneric("sources", function(x) standardGeneric("sources"))
 
 
@@ -75,6 +75,7 @@ setGeneric("sources", function(x) standardGeneric("sources"))
 #' @param x A ModelArray object
 #' @param ... Additional arguments (not used)
 #' @return The results slot of the ModelArray object
+#' @keywords internal
 #' @export
 setMethod("results", "ModelArray", function(x, ...) x@results)
 
@@ -89,6 +90,7 @@ setMethod("results", "ModelArray", function(x, ...) x@results)
 #' @param x A ModelArray object
 #' @param ... Additional arguments (not used)
 #' @return The scalars slot of the ModelArray object
+#' @keywords internal
 #' @export
 setMethod("scalars", "ModelArray", function(x, ...) x@scalars)
 
@@ -102,6 +104,7 @@ setMethod("scalars", "ModelArray", function(x, ...) x@scalars)
 #'
 #' @param x A ModelArray object
 #' @return The sources slot of the ModelArray object
+#' @keywords internal
 #' @export
 setMethod("sources", "ModelArray", function(x) x@sources)
 
