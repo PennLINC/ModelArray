@@ -374,6 +374,7 @@ analyseOneElement.lm <- function(i_element,
                                  var.terms, var.model,
                                  num.subj.lthr, num.stat.output = NULL,
                                  flag_initiate = FALSE,
+                                 on_error = "stop",
                                  ...) {
   values <- scalars(modelarray)[[scalar]][i_element, ]
 
@@ -406,7 +407,40 @@ analyseOneElement.lm <- function(i_element,
 
     # onemodel <- stats::lm(formula, data = dat, ...)
     # onemodel <- stats::lm(formula, data = dat, weights = myWeights,...)
-    onemodel <- do.call(stats::lm, arguments_lm)
+    onemodel <- tryCatch({
+      do.call(stats::lm, arguments_lm)
+    }, error = function(e) {
+      msg <- paste0("analyseOneElement.lm error at element ", i_element, ": ", conditionMessage(e))
+      if (on_error == "debug" && interactive()) {
+        message(msg)
+        browser()
+      }
+      if (on_error == "skip" || on_error == "debug") {
+        warning(msg)
+        if (flag_initiate == TRUE) {
+          return(structure(list(.lm_error_initiate = TRUE), class = "lm_error"))
+        } else {
+          return(structure(list(.lm_error_runtime = TRUE), class = "lm_error"))
+        }
+      }
+      stop(e)
+    })
+
+    if (inherits(onemodel, "lm_error")) {
+      if (flag_initiate == TRUE) {
+        toreturn <- list(
+          column_names = NaN,
+          list.terms = NaN
+        )
+        return(toreturn)
+      } else {
+        onerow <- c(
+          i_element - 1,
+          rep(NaN, (num.stat.output - 1))
+        )
+        return(onerow)
+      }
+    }
     # explicitly passing arguments into lm, to avoid error of argument "weights"
 
     onemodel.tidy <- onemodel %>% broom::tidy()
@@ -583,6 +617,7 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
                                   var.smoothTerms, var.parametricTerms, var.model,
                                   num.subj.lthr, num.stat.output = NULL,
                                   flag_initiate = FALSE, flag_sse = FALSE,
+                                  on_error = "stop",
                                   ...) {
   values <- scalars(modelarray)[[scalar]][i_element, ]
 
@@ -604,7 +639,42 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
     arguments$data <- dat
 
     # explicitly passing arguments into command, to avoid error of argument "weights"
-    onemodel <- do.call(mgcv::gam, arguments)
+    onemodel <- tryCatch({
+      do.call(mgcv::gam, arguments)
+    }, error = function(e) {
+      msg <- paste0("analyseOneElement.gam error at element ", i_element, ": ", conditionMessage(e))
+      if (on_error == "debug" && interactive()) {
+        message(msg)
+        browser()
+      }
+      if (on_error == "skip" || on_error == "debug") {
+        warning(msg)
+        if (flag_initiate == TRUE) {
+          return(structure(list(.gam_error_initiate = TRUE), class = "gam_error"))
+        } else {
+          return(structure(list(.gam_error_runtime = TRUE), class = "gam_error"))
+        }
+      }
+      stop(e)
+    })
+
+    if (inherits(onemodel, "gam_error")) {
+      if (flag_initiate == TRUE) {
+        toreturn <- list(
+          column_names = NaN,
+          list.smoothTerms = NaN,
+          list.parametricTerms = NaN,
+          sp.criterion.attr.name = NaN
+        )
+        return(toreturn)
+      } else {
+        onerow <- c(
+          i_element - 1,
+          rep(NaN, (num.stat.output - 1))
+        )
+        return(onerow)
+      }
+    }
 
     onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
     onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
@@ -841,6 +911,147 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
 
 
 
+
+#' Run a user-supplied function for one element
+#'
+#' @description
+#' `analyseOneElement.wrap` runs a user-supplied function `FUN` on a single element's data.
+#' It prepares the per-element data by attaching the element values as a new column named by `scalar`
+#' to the provided `phenotypes` data.frame, then calls `FUN(data = dat, ...)`.
+#'
+#' @details
+#' The user-supplied `FUN` should return either a one-row data.frame/tibble, a named list, or a named vector.
+#' The result will be coerced to a one-row tibble and combined into the final results matrix across elements.
+#'
+#' @param i_element An integer, the i_th element, starting from 1.
+#' @param user_fun A function that accepts at least an argument named `data` (the per-element
+#' `phenotypes` with the response column appended) and returns a one-row data.frame/tibble,
+#' named list, or named vector.
+#' @param modelarray ModelArray class
+#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates
+#' @param scalar A character. The name of the element-wise scalar to be analysed
+#' @param num.subj.lthr The minimal number of subjects with valid value in input h5 file
+#' @param num.stat.output The number of output stat metrics (including `element_id`).
+#' Required when `flag_initiate = TRUE`.
+#' @param flag_initiate TRUE or FALSE, whether this is to initiate the new analysis to get column names
+#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs while
+#' executing the user function, choose whether to stop, skip returning all-NaN values for this
+#' element, or drop into `browser()` (if interactive) then skip. Default: "stop".
+#' @param ... Additional arguments forwarded to `FUN`
+#'
+#' @return If `flag_initiate==TRUE`, returns a list with `column_names`.
+#' If `flag_initiate==FALSE`, returns a numeric vector representing the one-row result for this element
+#' with `element_id` as the first value.
+#' @export
+#' @importFrom dplyr %>%
+#' @import tibble
+analyseOneElement.wrap <- function(i_element, user_fun, modelarray, phenotypes, scalar,
+                                   num.subj.lthr, num.stat.output = NULL,
+                                   flag_initiate = FALSE,
+                                   on_error = "stop",
+                                   ...) {
+  values <- scalars(modelarray)[[scalar]][i_element, ]
+
+  ## check number of subjects with (in)valid values:
+  flag_sufficient <- NULL
+  num.subj.valid <- length(values[is.finite(values)])
+  if (num.subj.valid > num.subj.lthr) {
+    flag_sufficient <- TRUE
+  } else {
+    flag_sufficient <- FALSE
+  }
+
+  if (flag_sufficient == TRUE) {
+    dat <- phenotypes
+    dat[[scalar]] <- values
+
+    arguments <- list(...)
+    arguments$data <- dat
+
+    # Execute user function with error handling
+    result <- tryCatch({
+      do.call(user_fun, arguments)
+    }, error = function(e) {
+      msg <- paste0("analyseOneElement.wrap error at element ", i_element, ": ", conditionMessage(e))
+      if (on_error == "debug" && interactive()) {
+        message(msg)
+        browser()
+      }
+      if (on_error == "skip" || on_error == "debug") {
+        warning(msg)
+        if (flag_initiate == TRUE) {
+          return(structure(list(.wrap_error_initiate = TRUE), class = "wrap_error"))
+        } else {
+          return(structure(list(.wrap_error_runtime = TRUE), class = "wrap_error"))
+        }
+      }
+      stop(e)
+    })
+
+    # On error in user function, return NaNs according to flag
+    if (inherits(result, "wrap_error")) {
+      if (flag_initiate == TRUE) {
+        toreturn <- list(
+          column_names = NaN
+        )
+        return(toreturn)
+      } else {
+        onerow <- c(
+          i_element - 1,
+          rep(NaN, (num.stat.output - 1))
+        )
+        return(onerow)
+      }
+    }
+
+    # Coerce to one-row tibble
+    if ("data.frame" %in% class(result)) {
+      onerow_tbl <- tibble::as_tibble(result)
+      if (nrow(onerow_tbl) != 1) {
+        stop("The user function must return a one-row data.frame/tibble, a named list, or a named vector.")
+      }
+    } else if (is.list(result)) {
+      onerow_tbl <- tibble::as_tibble_row(result)
+    } else if (is.atomic(result)) {
+      if (is.null(names(result))) {
+        names(result) <- paste0("v", seq_along(result))
+      }
+      onerow_tbl <- tibble::as_tibble_row(as.list(result))
+    } else {
+      stop(paste0(
+        "Unsupported return type from user function. ",
+        "Return a one-row data.frame/tibble, named list, or named vector."
+      ))
+    }
+
+    # add element_id as first column
+    colnames.temp <- colnames(onerow_tbl)
+    onerow_tbl <- onerow_tbl %>% tibble::add_column(element_id = i_element - 1, .before = colnames.temp[1])
+
+    if (flag_initiate == TRUE) {
+      toreturn <- list(
+        column_names = colnames(onerow_tbl)
+      )
+      toreturn
+    } else {
+      # return numeric vector to be consistent with other analysers
+      as.numeric(onerow_tbl)
+    }
+  } else { # insufficient subjects
+    if (flag_initiate == TRUE) {
+      toreturn <- list(
+        column_names = NaN
+      )
+      toreturn
+    } else {
+      onerow <- c(
+        i_element - 1,
+        rep(NaN, (num.stat.output - 1))
+      )
+      onerow
+    }
+  }
+}
 
 #' Write outputs from element-wise statistical analysis to the HDF5 file.
 #'

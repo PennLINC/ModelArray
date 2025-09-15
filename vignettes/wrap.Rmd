@@ -1,0 +1,182 @@
+---
+title: "Writing custom element-wise analyses with ModelArray.wrap"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Writing custom element-wise analyses with ModelArray.wrap}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Overview
+
+`ModelArray.wrap` lets you run your own per-element analysis function over all elements in a `ModelArray`, reusing the same alignment, subject-threshold checks, and parallel looping machinery as `ModelArray.lm` and `ModelArray.gam`.
+
+- You provide a function `FUN` that operates on a single element by receiving a `data` frame (the cohort `phenotypes` with an added response column named by `scalar`).
+- `FUN` should return a one-row data.frame/tibble, a named list, or a named vector. The column names from the first successful element define the output schema.
+- The result is a combined data.frame where the first column is `element_id` (zero-based).
+
+This vignette shows how to write a `FUN` that produces outputs equivalent to the defaults of `ModelArray.lm`.
+
+Important: `ModelArray.wrap` does not automatically adjust or otherwise modify p-values. If you want adjusted p-values (e.g., FDR), compute them inside your custom function `FUN` (as shown below for FDR).
+
+## Example: Using ModelArray.wrap to reproduce ModelArray.lm
+
+Below, we define `my_lm_fun()` that:
+
+- fits `stats::lm(formula, data=data)`;
+- extracts term-level stats via `broom::tidy()` and selects the default fields used by `ModelArray.lm` (`estimate`, `statistic`, `p.value`);
+- extracts model-level stats via `broom::glance()` and selects defaults (`adj.r.squared`, `p.value`);
+- pivots term and model summaries into a single one-row tibble with column names like `Age.estimate`, `Age.statistic`, `Age.p.value`, `model.adj.r.squared`, `model.p.value`;
+- adds FDR-corrected p-values for terms and the model to match `ModelArray.lm` defaults.
+
+```r
+#' One-element LM equivalent used by ModelArray.wrap
+my_lm_fun <- function(data, formula) {
+  # Fit lm
+  fit <- stats::lm(formula = formula, data = data)
+
+  # Term-level stats
+  td <- broom::tidy(fit)
+  if (nrow(td) > 0) {
+    td$term[td$term == "(Intercept)"] <- "Intercept"
+    td <- td[, intersect(colnames(td), c("term", "estimate", "statistic", "p.value"))]
+  }
+
+  # Model-level stats
+  gl <- broom::glance(fit)
+  gl$term <- "model"
+  gl <- gl[, intersect(colnames(gl), c("term", "adj.r.squared", "p.value"))]
+
+  # Pivot to one row per element
+  library(tidyr)
+  library(dplyr)
+
+  td_w <- if (nrow(td) > 0) {
+    pivot_wider(td, names_from = term, values_from = c(estimate, statistic, p.value),
+                names_glue = "{term}.{.value}")
+  } else td
+
+  gl_w <- pivot_wider(gl, names_from = term, values_from = c(adj.r.squared, p.value),
+                      names_glue = "{term}.{.value}")
+
+  out <- bind_cols(td_w, gl_w)
+
+  # Add FDR-corrected p-values to mirror ModelArray.lm defaults
+  term_names <- gsub("\\.estimate$|\\.statistic$|\\.p.value$", "", grep("\\.estimate$|\\.statistic$|\\.p.value$", names(out), value = TRUE))
+  term_names <- unique(term_names[term_names != "model"])  # exclude model
+
+  for (nm in term_names) {
+    pcol <- paste0(nm, ".p.value")
+    if (pcol %in% names(out)) {
+      out[[paste0(pcol, ".fdr")]] <- stats::p.adjust(out[[pcol]], method = "fdr")
+    }
+  }
+  if ("model.p.value" %in% names(out)) {
+    out[["model.p.value.fdr"]] <- stats::p.adjust(out[["model.p.value"]], method = "fdr")
+  }
+
+  # Ensure it's a one-row tibble
+  tibble::as_tibble(out)
+}
+```
+
+With the function defined, we can run it across elements with `ModelArray.wrap`. The example mirrors the linear model in the walkthrough vignette and runs on the first 100 elements for speed.
+
+```r
+library(ModelArray)
+
+# Paths and data (adapt these to your setup)
+h5_path <- "~/Desktop/myProject/demo_FDC_n100.h5"
+csv_path <- "~/Desktop/myProject/cohort_FDC_n100.csv"
+modelarray <- ModelArray(h5_path, scalar_types = c("FDC"))
+phenotypes <- read.csv(csv_path)
+
+# Same formula used by ModelArray.lm
+formula_lm <- FDC ~ Age + sex + dti64MeanRelRMS
+
+# Run user-wrapped LM on the first 100 elements
+res_wrap_lm <- ModelArray.wrap(
+  FUN = my_lm_fun,
+  data = modelarray,
+  phenotypes = phenotypes,
+  scalar = "FDC",
+  element.subset = 1:100,
+  formula = formula_lm
+)
+
+head(res_wrap_lm)
+```
+
+Optionally, save the results back into the HDF5 file:
+
+```r
+writeResults(h5_path, df.output = res_wrap_lm, analysis_name = "results_wrap_lm")
+```
+
+## Notes and tips
+
+- The schema (column names) is inferred from the first element that has sufficient valid subjects. Ensure your `FUN` returns the same shape and names for all elements.
+- `ModelArray.wrap` forwards `...` to your `FUN`. Use this to pass parameters like `formula` or other options.
+- Subject thresholds: elements with insufficient finite values are automatically filled with `NaN` outputs, keeping `element_id` for alignment with other results.
+- Parallelization: set `n_cores > 1` to enable multi-core execution; set `pbar = TRUE` to show a progress bar.
+
+## Example: Computing simple group means
+
+You can also use `ModelArray.wrap` to compute very simple statistics, such as group means of the response for each element. The example below computes the mean value of the response (the `scalar` column) within each level of a grouping variable (for example, `sex`), and also reports the difference between the first two levels if present.
+
+```r
+#' One-element group means across levels of a grouping variable
+my_group_means_fun <- function(data, group_var, response_name) {
+  if (!group_var %in% names(data)) stop("group_var not found in data")
+  if (!response_name %in% names(data)) stop("response_name not found in data")
+
+  df <- data
+  vals <- df[[response_name]]
+  # keep finite values only
+  keep <- is.finite(vals)
+  df <- df[keep, , drop = FALSE]
+  vals <- df[[response_name]]
+  grp <- df[[group_var]]
+
+  levs <- sort(unique(grp))
+  out <- list()
+  for (lv in levs) {
+    out[[paste0("mean_", response_name, "_", group_var, "_", lv)]] <- mean(vals[grp == lv], na.rm = TRUE)
+  }
+  if (length(levs) >= 2) {
+    out[[paste0("diff_mean_", response_name, "_", group_var, "_", levs[2], "_minus_", levs[1])]] <-
+      out[[paste0("mean_", response_name, "_", group_var, "_", levs[2])]] -
+      out[[paste0("mean_", response_name, "_", group_var, "_", levs[1])]]
+  }
+
+  tibble::as_tibble(out)
+}
+```
+
+Run across elements (here on the first 100 for speed), and save results:
+
+```r
+library(ModelArray)
+
+# Paths and data (adapt these to your setup)
+h5_path <- "~/Desktop/myProject/demo_FDC_n100.h5"
+csv_path <- "~/Desktop/myProject/cohort_FDC_n100.csv"
+modelarray <- ModelArray(h5_path, scalar_types = c("FDC"))
+phenotypes <- read.csv(csv_path)
+
+res_group_means <- ModelArray.wrap(
+  FUN = my_group_means_fun,
+  data = modelarray,
+  phenotypes = phenotypes,
+  scalar = "FDC",
+  element.subset = 1:100,
+  group_var = "sex",
+  response_name = "FDC"
+)
+
+head(res_group_means)
+
+writeResults(h5_path, df.output = res_group_means, analysis_name = "results_group_means")
+```
+
+
