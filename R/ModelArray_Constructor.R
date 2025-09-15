@@ -32,7 +32,8 @@ ModelArray <- setClass(
 #' @return The results slot of the object
 #' @aliases results
 #' @keywords internal
-setGeneric("results", function(x, ...) standardGeneric("results"))
+setGeneric("results", function(x, ...)
+  standardGeneric("results"))
 
 #' Access the scalars slot of an object
 #'
@@ -47,7 +48,8 @@ setGeneric("results", function(x, ...) standardGeneric("results"))
 #' @return The scalars slot of the object
 #' @aliases scalars
 #' @keywords internal
-setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
+setGeneric("scalars", function(x, ...)
+  standardGeneric("scalars"))
 
 #' Access the sources slot of an object
 #'
@@ -61,7 +63,8 @@ setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 #' @return The sources slot of the object
 #' @aliases sources
 #' @keywords internal
-setGeneric("sources", function(x) standardGeneric("sources"))
+setGeneric("sources", function(x)
+  standardGeneric("sources"))
 
 
 #' Access the results slot of a ModelArray object
@@ -77,7 +80,8 @@ setGeneric("sources", function(x) standardGeneric("sources"))
 #' @return The results slot of the ModelArray object
 #' @keywords internal
 #' @export
-setMethod("results", "ModelArray", function(x, ...) x@results)
+setMethod("results", "ModelArray", function(x, ...)
+  x@results)
 
 #' Access the scalars slot of a ModelArray object
 #'
@@ -92,7 +96,8 @@ setMethod("results", "ModelArray", function(x, ...) x@results)
 #' @return The scalars slot of the ModelArray object
 #' @keywords internal
 #' @export
-setMethod("scalars", "ModelArray", function(x, ...) x@scalars)
+setMethod("scalars", "ModelArray", function(x, ...)
+  x@scalars)
 
 #' Access the sources slot of a ModelArray object
 #'
@@ -106,7 +111,8 @@ setMethod("scalars", "ModelArray", function(x, ...) x@scalars)
 #' @return The sources slot of the ModelArray object
 #' @keywords internal
 #' @export
-setMethod("sources", "ModelArray", function(x) x@sources)
+setMethod("sources", "ModelArray", function(x)
+  x@sources)
 
 
 
@@ -125,10 +131,7 @@ ModelArraySeed <- function(filepath, name, type = NA) {
   # NOTE: the checker for if h5 groups fixels/voxels/scalars exist
   # (a.k.a valid fixel-wise data) is deleted, as ModelArray is generalized to any modality.
 
-  seed <- HDF5Array::HDF5ArraySeed(
-    filepath,
-    name = name, type = type
-  ) # HDF5Array is also from BioConductor...
+  seed <- HDF5Array::HDF5ArraySeed(filepath, name = name, type = type) # HDF5Array is also from BioConductor...
 
   seed
 }
@@ -153,7 +156,9 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @importFrom dplyr %>%
 #' @importFrom DelayedArray DelayedArray realize
 #' @importFrom rhdf5 h5readAttributes
-ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis")) {
+ModelArray <- function(filepath,
+                       scalar_types = c("FD"),
+                       analysis_names = c("myAnalysis")) {
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
   # fn.h5 <- H5File$new(filepath, mode="a")
   # open; "a": creates a new file or opens an existing one for read/write
@@ -180,10 +185,7 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
     ) %>% DelayedArray::DelayedArray()
 
     # load attribute "column_names", i.e. source filenames:
-    sources[[x]] <- rhdf5::h5readAttributes(
-      filepath,
-      name = sprintf("scalars/%s/values", scalar_types[x])
-    )$column_names %>% as.character()
+    sources[[x]] <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))$column_names %>% as.character()
 
     # transpose scalar_data[[x]] if needed:
     if (dim(scalar_data[[x]])[2] == length(sources[[x]])) {
@@ -216,7 +218,8 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
   # message(flag_results_exist)
   if (flag_results_exist == FALSE) {
     results_data <- list()
-  } else { # results group exist --> to load subfolders
+  } else {
+    # results group exist --> to load subfolders
     results_data <- vector("list", length(analysis_names))
 
     for (x in seq_along(analysis_names)) {
@@ -226,12 +229,11 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
       flag_analysis_exist <- flagAnalysisExistInh5(filepath, analysis_name = analysis_name)
       if (flag_analysis_exist == FALSE) {
         stop(paste0("This analysis: ", analysis_name, " does not exist..."))
-      } else { # exists
+      } else {
+        # exists
         # /results/<analysis_name>/has_names:
-        names_results_matrix <- rhdf5::h5readAttributes(
-          filepath,
-          name = sprintf("results/%s/results_matrix", analysis_name)
-        )$colnames # after updating writeResults()
+        names_results_matrix <- rhdf5::h5readAttributes(filepath,
+                                                        name = sprintf("results/%s/results_matrix", analysis_name))$colnames # after updating writeResults()
 
         # names_results_matrix <- ModelArraySeed(filepath, name = sprintf(
         #   "results/%s/has_names", analysis_name), type = NA) %>%
@@ -252,9 +254,7 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
           results_data[[x]]$results_matrix <- t(results_data[[x]]$results_matrix)
         }
 
-        colnames(results_data[[x]]$results_matrix) <- as.character(
-          DelayedArray::realize(names_results_matrix)
-        ) # designate the column names
+        colnames(results_data[[x]]$results_matrix) <- as.character(DelayedArray::realize(names_results_matrix)) # designate the column names
 
 
         # /results/<analysis_name>/lut_col?:   # LOOP OVER # OF COL OF $RESULTS_MATRIX, AND SEE IF THERE IS LUT_COL
@@ -321,7 +321,8 @@ ModelArray <- function(filepath, scalar_types = c("FD"), analysis_names = c("myA
 #' @return number of elements in ModelArray, for this specific scalar
 #' @export
 numElementsTotal <- function(modelarray, scalar_name = "FD") {
-  if (!(scalar_name %in% names(scalars(modelarray)))) { # not an existing scalar
+  if (!(scalar_name %in% names(scalars(modelarray)))) {
+    # not an existing scalar
     stop("scalar_name requested in not in modelarray! Please check out: scalars(modelarray)")
   }
 
@@ -370,9 +371,14 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #' @import tibble
 
 analyseOneElement.lm <- function(i_element,
-                                 formula, modelarray, phenotypes, scalar,
-                                 var.terms, var.model,
-                                 num.subj.lthr, num.stat.output = NULL,
+                                 formula,
+                                 modelarray,
+                                 phenotypes,
+                                 scalar,
+                                 var.terms,
+                                 var.model,
+                                 num.subj.lthr,
+                                 num.stat.output = NULL,
                                  flag_initiate = FALSE,
                                  on_error = "stop",
                                  ...) {
@@ -410,7 +416,10 @@ analyseOneElement.lm <- function(i_element,
     onemodel <- tryCatch({
       do.call(stats::lm, arguments_lm)
     }, error = function(e) {
-      msg <- paste0("analyseOneElement.lm error at element ", i_element, ": ", conditionMessage(e))
+      msg <- paste0("analyseOneElement.lm error at element ",
+                    i_element,
+                    ": ",
+                    conditionMessage(e))
       if (on_error == "debug" && interactive()) {
         message(msg)
         browser()
@@ -428,16 +437,10 @@ analyseOneElement.lm <- function(i_element,
 
     if (inherits(onemodel, "lm_error")) {
       if (flag_initiate == TRUE) {
-        toreturn <- list(
-          column_names = NaN,
-          list.terms = NaN
-        )
+        toreturn <- list(column_names = NaN, list.terms = NaN)
         return(toreturn)
       } else {
-        onerow <- c(
-          i_element - 1,
-          rep(NaN, (num.stat.output - 1))
-        )
+        onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
         return(onerow)
       }
     }
@@ -473,7 +476,8 @@ analyseOneElement.lm <- function(i_element,
     }
 
     # remove those columns:
-    if (length(var.terms.remove) != 0) { # if length=0, it's list(), nothing to remove
+    if (length(var.terms.remove) != 0) {
+      # if length=0, it's list(), nothing to remove
       onemodel.tidy <- dplyr::select(onemodel.tidy, -all_of(var.terms.remove))
     }
     if (length(var.model.remove) != 0) {
@@ -495,16 +499,19 @@ analyseOneElement.lm <- function(i_element,
     # all(union) = c(TRUE, FALSE, ...)
     temp <- union(temp_colnames, "term")
     # just an empty tibble (so below, all(dim(onemodel.tidy)) = FALSE)
-    if (all(temp == "term")) onemodel.tidy <- tibble()
+    if (all(temp == "term"))
+      onemodel.tidy <- tibble()
 
     temp_colnames <- onemodel.glance %>% colnames()
     temp <- union(temp_colnames, "term") # union of colnames and "term";
-    if (all(temp == "term")) onemodel.glance <- tibble()
+    if (all(temp == "term"))
+      onemodel.glance <- tibble()
 
 
 
     # flatten .tidy results into one row:
-    if (all(dim(onemodel.tidy))) { # not empty | if any dim is 0, all=FALSE
+    if (all(dim(onemodel.tidy))) {
+      # not empty | if any dim is 0, all=FALSE
       onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(
         names_from = term,
         values_from = all_of(var.terms.orig),
@@ -514,7 +521,8 @@ analyseOneElement.lm <- function(i_element,
       onemodel.tidy.onerow <- onemodel.tidy
     }
 
-    if (all(dim(onemodel.glance))) { # not empty
+    if (all(dim(onemodel.glance))) {
+      # not empty
       onemodel.glance.onerow <- onemodel.glance %>% tidyr::pivot_wider(
         names_from = term,
         values_from = all_of(var.model),
@@ -530,38 +538,34 @@ analyseOneElement.lm <- function(i_element,
 
     # add a column of element ids:
     colnames.temp <- colnames(onemodel.onerow)
-    onemodel.onerow <- onemodel.onerow %>% tibble::add_column(
-      element_id = i_element - 1, .before = colnames.temp[1]
-    ) # add as the first column
+    onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element - 1, .before = colnames.temp[1]) # add as the first column
 
     # now you can get the headers, # of columns, etc of the output results
 
 
-    if (flag_initiate == TRUE) { # return the column names:
+    if (flag_initiate == TRUE) {
+      # return the column names:
 
       # return:
       column_names <- colnames(onemodel.onerow)
-      toreturn <- list(
-        column_names = column_names,
-        list.terms = list.terms
-      )
+      toreturn <- list(column_names = column_names, list.terms = list.terms)
       toreturn
-    } else if (flag_initiate == FALSE) { # return the one row results:
+    } else if (flag_initiate == FALSE) {
+      # return the one row results:
 
       # return:
       onerow <- as.numeric(onemodel.onerow) # change from tibble to numeric to save some space
       onerow
     }
-  } else { # if flag_sufficient==FALSE
+  } else {
+    # if flag_sufficient==FALSE
     if (flag_initiate == TRUE) {
-      toreturn <- list(
-        column_names = NaN,
-        list.terms = NaN
-      )
+      toreturn <- list(column_names = NaN, list.terms = NaN)
       toreturn
     } else if (flag_initiate == FALSE) {
       onerow <- c(
-        i_element - 1, # first is element_id, which will still be a finite number
+        i_element - 1,
+        # first is element_id, which will still be a finite number
         rep(NaN, (num.stat.output - 1))
       ) # other columns will be NaN
 
@@ -613,10 +617,18 @@ analyseOneElement.lm <- function(i_element,
 #' @importFrom dplyr select %>% bind_cols
 #' @import tibble
 
-analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, scalar,
-                                  var.smoothTerms, var.parametricTerms, var.model,
-                                  num.subj.lthr, num.stat.output = NULL,
-                                  flag_initiate = FALSE, flag_sse = FALSE,
+analyseOneElement.gam <- function(i_element,
+                                  formula,
+                                  modelarray,
+                                  phenotypes,
+                                  scalar,
+                                  var.smoothTerms,
+                                  var.parametricTerms,
+                                  var.model,
+                                  num.subj.lthr,
+                                  num.stat.output = NULL,
+                                  flag_initiate = FALSE,
+                                  flag_sse = FALSE,
                                   on_error = "stop",
                                   ...) {
   values <- scalars(modelarray)[[scalar]][i_element, ]
@@ -642,7 +654,10 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
     onemodel <- tryCatch({
       do.call(mgcv::gam, arguments)
     }, error = function(e) {
-      msg <- paste0("analyseOneElement.gam error at element ", i_element, ": ", conditionMessage(e))
+      msg <- paste0("analyseOneElement.gam error at element ",
+                    i_element,
+                    ": ",
+                    conditionMessage(e))
       if (on_error == "debug" && interactive()) {
         message(msg)
         browser()
@@ -668,10 +683,7 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
         )
         return(toreturn)
       } else {
-        onerow <- c(
-          i_element - 1,
-          rep(NaN, (num.stat.output - 1))
-        )
+        onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
         return(onerow)
       }
     }
@@ -730,28 +742,35 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
     }
 
     # remove those columns:
-    if (length(var.smoothTerms.remove) != 0) { # if length=0, it's list(), nothing to remove
-      onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -all_of(var.smoothTerms.remove))
+    if (length(var.smoothTerms.remove) != 0) {
+      # if length=0, it's list(), nothing to remove
+      onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms,
+                                                 -all_of(var.smoothTerms.remove))
     }
-    if (length(var.parametricTerms.remove) != 0) { # if length=0, it's list(), nothing to remove
-      onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -all_of(var.parametricTerms.remove))
+    if (length(var.parametricTerms.remove) != 0) {
+      # if length=0, it's list(), nothing to remove
+      onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms,
+                                                     -all_of(var.parametricTerms.remove))
     }
     if (length(var.model.remove) != 0) {
       onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
     }
 
     # adjust:
-    if (num.smoothTerms > 0) { # if there is any smooth term
+    if (num.smoothTerms > 0) {
+      # if there is any smooth term
       onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept"
       # change the term name from "(Intercept)" to "Intercept"
     }
-    if (nrow(onemodel.tidy.parametricTerms) > 0) { # if there is any parametric term
+    if (nrow(onemodel.tidy.parametricTerms) > 0) {
+      # if there is any parametric term
       onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"
       # change the term name from "(Intercept)" to "Intercept"
     }
 
     # change from s(x) to s_x: (could be s, te, etc); from s(x):oFactor to s_x_BYoFactor; from ti(x,z) to ti_x_z
-    if (num.smoothTerms > 0) { # if there is any smooth term
+    if (num.smoothTerms > 0) {
+      # if there is any smooth term
       for (i_row in seq_len(nrow(onemodel.tidy.smoothTerms))) {
         # step 1: change from s(x) to s_x
         term_name <- onemodel.tidy.smoothTerms$term[i_row]
@@ -761,11 +780,9 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
         smooth_name <- str_list[1] # "s" or some other smooth method type such as "te"
         str_valid <- paste0(smooth_name, "_", str)
 
-        if (length(str_list) > 2) { # there is string after variable name
-          str_valid <- paste0(
-            str_valid, "_",
-            paste(str_list[3:length(str_list)], collapse = "")
-          ) # combine rest of strings
+        if (length(str_list) > 2) {
+          # there is string after variable name
+          str_valid <- paste0(str_valid, "_", paste(str_list[3:length(str_list)], collapse = "")) # combine rest of strings
         }
 
         # detect ":", and change to "BY"   # there is "_" replacing for ")" in "s()" already
@@ -801,20 +818,24 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
     # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()),
     # union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term",
     # all(union) = c(TRUE, FALSE, ...)
-    if (all(temp == "term")) onemodel.tidy.smoothTerms <- tibble()
+    if (all(temp == "term"))
+      onemodel.tidy.smoothTerms <- tibble()
     # just an empty tibble (so below, all(dim(onemodel.tidy.smoothTerms)) = FALSE)
 
     temp_colnames <- onemodel.tidy.parametricTerms %>% colnames()
     temp <- union(temp_colnames, "term")
-    if (all(temp == "term")) onemodel.tidy.parametricTerms <- tibble() # just an empty tibble
+    if (all(temp == "term"))
+      onemodel.tidy.parametricTerms <- tibble() # just an empty tibble
 
     temp_colnames <- onemodel.glance %>% colnames()
     temp <- union(temp_colnames, "term")
-    if (all(temp == "term")) onemodel.glance <- tibble() # just an empty tibble
+    if (all(temp == "term"))
+      onemodel.glance <- tibble() # just an empty tibble
 
 
     # flatten .tidy results into one row:
-    if (all(dim(onemodel.tidy.smoothTerms))) { # not empty | if any dim is 0, all=FALSE
+    if (all(dim(onemodel.tidy.smoothTerms))) {
+      # not empty | if any dim is 0, all=FALSE
       onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(
         names_from = term,
         values_from = all_of(var.smoothTerms.orig),
@@ -824,7 +845,8 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
       onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms
     }
 
-    if (all(dim(onemodel.tidy.parametricTerms))) { # not empty
+    if (all(dim(onemodel.tidy.parametricTerms))) {
+      # not empty
       onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(
         names_from = term,
         values_from = all_of(var.parametricTerms.orig),
@@ -834,7 +856,8 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
       onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms
     }
 
-    if (all(dim(onemodel.glance))) { # not empty
+    if (all(dim(onemodel.glance))) {
+      # not empty
       onemodel.glance.onerow <- onemodel.glance %>% tidyr::pivot_wider(
         names_from = term,
         values_from = all_of(var.model),
@@ -846,14 +869,9 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
 
 
     # combine the tables: check if any of them is empty (tibble())
-    onemodel.onerow <- bind_cols_check_emptyTibble(
-      onemodel.tidy.smoothTerms.onerow,
-      onemodel.tidy.parametricTerms.onerow
-    )
-    onemodel.onerow <- bind_cols_check_emptyTibble(
-      onemodel.onerow,
-      onemodel.glance.onerow
-    )
+    onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.tidy.smoothTerms.onerow,
+                                                   onemodel.tidy.parametricTerms.onerow)
+    onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.onerow, onemodel.glance.onerow)
 
 
     # add a column of element ids:
@@ -872,7 +890,8 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
     # now you can get the headers, # of columns, etc of the output results
 
 
-    if (flag_initiate == TRUE) { # return the column names:
+    if (flag_initiate == TRUE) {
+      # return the column names:
 
       # return:
       column_names <- colnames(onemodel.onerow)
@@ -883,13 +902,15 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
         sp.criterion.attr.name = sp.criterion.attr.name
       )
       toreturn
-    } else if (flag_initiate == FALSE) { # return the one row results:
+    } else if (flag_initiate == FALSE) {
+      # return the one row results:
 
       # return:
       onerow <- as.numeric(onemodel.onerow) # change from tibble to numeric to save some space
       onerow
     }
-  } else { # if flag_sufficient==FALSE
+  } else {
+    # if flag_sufficient==FALSE
     if (flag_initiate == TRUE) {
       toreturn <- list(
         column_names = NaN,
@@ -900,7 +921,8 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
       toreturn
     } else if (flag_initiate == FALSE) {
       onerow <- c(
-        i_element - 1, # first is element_id, which will still be a finite number
+        i_element - 1,
+        # first is element_id, which will still be a finite number
         rep(NaN, (num.stat.output - 1))
       ) # other columns will be NaN
 
@@ -945,8 +967,13 @@ analyseOneElement.gam <- function(i_element, formula, modelarray, phenotypes, sc
 #' @export
 #' @importFrom dplyr %>%
 #' @import tibble
-analyseOneElement.wrap <- function(i_element, user_fun, modelarray, phenotypes, scalar,
-                                   num.subj.lthr, num.stat.output = NULL,
+analyseOneElement.wrap <- function(i_element,
+                                   user_fun,
+                                   modelarray,
+                                   phenotypes,
+                                   scalar,
+                                   num.subj.lthr,
+                                   num.stat.output = NULL,
                                    flag_initiate = FALSE,
                                    on_error = "stop",
                                    ...) {
@@ -972,7 +999,10 @@ analyseOneElement.wrap <- function(i_element, user_fun, modelarray, phenotypes, 
     result <- tryCatch({
       do.call(user_fun, arguments)
     }, error = function(e) {
-      msg <- paste0("analyseOneElement.wrap error at element ", i_element, ": ", conditionMessage(e))
+      msg <- paste0("analyseOneElement.wrap error at element ",
+                    i_element,
+                    ": ",
+                    conditionMessage(e))
       if (on_error == "debug" && interactive()) {
         message(msg)
         browser()
@@ -991,15 +1021,10 @@ analyseOneElement.wrap <- function(i_element, user_fun, modelarray, phenotypes, 
     # On error in user function, return NaNs according to flag
     if (inherits(result, "wrap_error")) {
       if (flag_initiate == TRUE) {
-        toreturn <- list(
-          column_names = NaN
-        )
+        toreturn <- list(column_names = NaN)
         return(toreturn)
       } else {
-        onerow <- c(
-          i_element - 1,
-          rep(NaN, (num.stat.output - 1))
-        )
+        onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
         return(onerow)
       }
     }
@@ -1008,7 +1033,9 @@ analyseOneElement.wrap <- function(i_element, user_fun, modelarray, phenotypes, 
     if ("data.frame" %in% class(result)) {
       onerow_tbl <- tibble::as_tibble(result)
       if (nrow(onerow_tbl) != 1) {
-        stop("The user function must return a one-row data.frame/tibble, a named list, or a named vector.")
+        stop(
+          "The user function must return a one-row data.frame/tibble, a named list, or a named vector."
+        )
       }
     } else if (is.list(result)) {
       onerow_tbl <- tibble::as_tibble_row(result)
@@ -1018,10 +1045,12 @@ analyseOneElement.wrap <- function(i_element, user_fun, modelarray, phenotypes, 
       }
       onerow_tbl <- tibble::as_tibble_row(as.list(result))
     } else {
-      stop(paste0(
-        "Unsupported return type from user function. ",
-        "Return a one-row data.frame/tibble, named list, or named vector."
-      ))
+      stop(
+        paste0(
+          "Unsupported return type from user function. ",
+          "Return a one-row data.frame/tibble, named list, or named vector."
+        )
+      )
     }
 
     # add element_id as first column
@@ -1029,25 +1058,19 @@ analyseOneElement.wrap <- function(i_element, user_fun, modelarray, phenotypes, 
     onerow_tbl <- onerow_tbl %>% tibble::add_column(element_id = i_element - 1, .before = colnames.temp[1])
 
     if (flag_initiate == TRUE) {
-      toreturn <- list(
-        column_names = colnames(onerow_tbl)
-      )
+      toreturn <- list(column_names = colnames(onerow_tbl))
       toreturn
     } else {
       # return numeric vector to be consistent with other analysers
       as.numeric(onerow_tbl)
     }
-  } else { # insufficient subjects
+  } else {
+    # insufficient subjects
     if (flag_initiate == TRUE) {
-      toreturn <- list(
-        column_names = NaN
-      )
+      toreturn <- list(column_names = NaN)
       toreturn
     } else {
-      onerow <- c(
-        i_element - 1,
-        rep(NaN, (num.stat.output - 1))
-      )
+      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
       onerow
     }
   }
@@ -1070,7 +1093,10 @@ analyseOneElement.wrap <- function(i_element, user_fun, modelarray, phenotypes, 
 #' whether overwrite it (TRUE) or not (FALSE)
 #' @import hdf5r
 #' @export
-writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", overwrite = TRUE) {
+writeResults <- function(fn.output,
+                         df.output,
+                         analysis_name = "myAnalysis",
+                         overwrite = TRUE) {
   # This is enhanced version with: 1) change to hdf5r; 2) write results with only one row for one element
 
   # check "df.output"
@@ -1082,20 +1108,25 @@ writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", ove
   # open; "a": creates a new file or opens an existing one for read/write
 
   # check if group "results" already exists!
-  if (fn.output.h5$exists("results") == TRUE) { # group "results" exist
+  if (fn.output.h5$exists("results") == TRUE) {
+    # group "results" exist
     results.grp <- fn.output.h5$open("results")
   } else {
     results.grp <- fn.output.h5$create_group("results")
   }
 
   # check if group "results\<analysis_name>" exists:
-  if (results.grp$exists(analysis_name) == TRUE && overwrite == FALSE) {
+  if (results.grp$exists(analysis_name) == TRUE &&
+      overwrite == FALSE) {
     warning(paste0(analysis_name, " exists but not to overwrite!"))
     # TODO: add checker for exisiting analysis_name, esp the matrix size
     results.analysis.grp <- results.grp$open(analysis_name)
     results_matrix_ds <- results.analysis.grp[["results_matrix"]]
-  } else { # not exist; or exist && overwrite: to create
-    if (results.grp$exists(analysis_name) == TRUE && overwrite == TRUE) { # delete existing one first
+  } else {
+    # not exist; or exist && overwrite: to create
+    if (results.grp$exists(analysis_name) == TRUE &&
+        overwrite == TRUE) {
+      # delete existing one first
       results.grp$link_delete(analysis_name)
       # NOTE: the file size will not shrink after your deletion..
       # this is because of HDF5, regardless of package of hdf5r or rhdf5
@@ -1107,13 +1138,18 @@ writeResults <- function(fn.output, df.output, analysis_name = "myAnalysis", ove
     # create a subgroup called analysis_name under results.grp
 
     # check "df.output": make sure all columns are floats (i.e. numeric)
-    for (i_col in seq(1, ncol(df.output), by = 1)) { # for each column of df.output
+    for (i_col in seq(1, ncol(df.output), by = 1)) {
+      # for each column of df.output
       col_class <- as.character(sapply(df.output, class)[i_col]) # class of this column
 
-      if ((col_class != "numeric") && (col_class != "integer")) { # the column class is not numeric or integer
+      if ((col_class != "numeric") &&
+          (col_class != "integer")) {
+        # the column class is not numeric or integer
         message(
           paste0(
-            "the column #", as.character(i_col), " of df.output to save: ",
+            "the column #",
+            as.character(i_col),
+            " of df.output to save: ",
             "data class is not numeric or integer...fixing it"
           )
         )
