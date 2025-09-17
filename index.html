@@ -43,7 +43,7 @@
     <li><a class="dropdown-item" href="articles/installations.html">Installation</a></li>
     <li><a class="dropdown-item" href="articles/voxel-wise_data.html">Application to voxel-wise data</a></li>
     <li><a class="dropdown-item" href="articles/walkthrough.html">Example walkthrough</a></li>
-    <li><a class="dropdown-item" href="articles/wrap.html">Writing custom element-wise analyses with ModelArray.wrap</a></li>
+    <li><a class="dropdown-item" href="articles/wrap_function.html">Developing a function for ModelArray.wrap</a></li>
   </ul>
 </li>
       </ul>
@@ -82,9 +82,9 @@
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
 <center>
-<div class="float">
-<img src="reference/figures/overview_structure.png" alt="Overview"><div class="figcaption">Overview</div>
-</div>
+<figure><img src="reference/figures/overview_structure.png" alt="Overview"><figcaption aria-hidden="true">
+Overview
+</figcaption></figure>
 </center>
 <p>ModelArray is packaged with the companion software <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> for converting fixel-wise data, voxel-wise data or greyordinate-wise data to the expected file format that ModelArray uses. Specifically, <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> is Python-based command-line interface software, and it converts between the original image format (<code>.mif</code> for fixel-wise data, NIfTI for voxel-wise data, CIFTI-2 for greyordinate-wise data) and the HDF5 file format (<code>.h5</code>) used for ModelArray.</p>
 <!-- if there is any changes in this overview section, please also update ConFixel's frontpage! -->
