@@ -112,6 +112,53 @@ setMethod(
 #           )
 # ----------------above works.
 
+### Example per-element data helper #####
+
+#' @aliases exampleElementData
+setGeneric("exampleElementData", function(x, ...) standardGeneric("exampleElementData"))
+
+#' Example per-element data.frame for user functions
+#'
+#' @description
+#' Returns a copy of `phenotypes` with an extra column named by `scalar` populated
+#' with the selected element's values from the `ModelArray`. This mirrors the
+#' per-element data that `ModelArray.wrap` passes to user functions (`data = dat`).
+#'
+#' @param x An ModelArray object
+#' @param scalar A character. The name of the element-wise scalar to append
+#' @param i_element An integer, the i_th element (1-based)
+#' @param phenotypes A data.frame of the cohort with independent variables/covariates
+#' @return A data.frame with the additional response column named by `scalar`
+#' @examples
+#' \dontrun{
+#' h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
+#' csv_path <- system.file("extdata", "n50_cohort.csv", package = "ModelArray")
+#' ma <- ModelArray(h5_path, scalar_types = c("FD"))
+#' phen <- read.csv(csv_path)
+#' df <- exampleElementData(ma, scalar = "FD", i_element = 1, phenotypes = phen)
+#' }
+#' @export
+setMethod(
+  "exampleElementData",
+  "ModelArray",
+  function(x, scalar = "FD", i_element = 1L, phenotypes) {
+    if (!is.data.frame(phenotypes)) {
+      stop("phenotypes must be a data.frame")
+    }
+    if (!(scalar %in% names(scalars(x)))) {
+      stop("scalar not found in modelarray; use one of names(scalars(x))")
+    }
+    num_elements <- nrow(scalars(x)[[scalar]])
+    if (length(i_element) != 1L || is.na(i_element) || i_element < 1L || i_element > num_elements) {
+      stop("i_element is out of range")
+    }
+
+    dat <- phenotypes
+    dat[[scalar]] <- scalars(x)[[scalar]][i_element, ]
+    dat
+  }
+)
+
 # # NOTE: ref: https://stackoverflow.com/questions/56560280/
 # can-i-define-s4-methods-that-dispatch-on-more-than-one-argument-from-an-s3-gener
 # setGeneric("lm", function(formula, fixelarray, phenotypes, scalar, idx, ...) standardGeneric("lm"),

@@ -670,7 +670,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                            correct.p.value.smoothTerms = c("fdr"),
                            correct.p.value.parametricTerms = c("fdr"),
                            num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,
-                           verbose = TRUE, pbar = TRUE, n_cores = 1, ...) {
+                           verbose = TRUE, pbar = TRUE, n_cores = 1,
+                           on_error = "stop", ...) {
   # data type assertions
   if (class(data) != "ModelArray") {
     stop("data's class is not ModelArray!")

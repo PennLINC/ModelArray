@@ -11,13 +11,15 @@ vignette: >
 
 `ModelArray.wrap` lets you run your own per-element analysis function over all elements in a `ModelArray`, reusing the same alignment, subject-threshold checks, and parallel looping machinery as `ModelArray.lm` and `ModelArray.gam`.
 
-- You provide a function `FUN` that operates on a single element by receiving a `data` frame (the cohort `phenotypes` with an added response column named by `scalar`).
+- You provide a function `FUN` that operates on a single element by receiving a `dataframe` (the cohort `phenotypes` with an added response column named by `scalar`).
 - `FUN` should return a one-row data.frame/tibble, a named list, or a named vector. The column names from the first successful element define the output schema.
 - The result is a combined data.frame where the first column is `element_id` (zero-based).
 
 This vignette shows how to write a `FUN` that produces outputs equivalent to the defaults of `ModelArray.lm`.
 
-Important: `ModelArray.wrap` does not automatically adjust or otherwise modify p-values. If you want adjusted p-values (e.g., FDR), compute them inside your custom function `FUN` (as shown below for FDR).
+Important: `ModelArray.wrap` does not automatically adjust or otherwise modify p-values.
+Your function `FUN` only sees one element at a time, so it cannot perform p-value corrections.
+
 
 ## Example: Using ModelArray.wrap to reproduce ModelArray.lm
 
@@ -122,7 +124,10 @@ writeResults(h5_path, df.output = res_wrap_lm, analysis_name = "results_wrap_lm"
 
 ## Example: Computing simple group means
 
-You can also use `ModelArray.wrap` to compute very simple statistics, such as group means of the response for each element. The example below computes the mean value of the response (the `scalar` column) within each level of a grouping variable (for example, `sex`), and also reports the difference between the first two levels if present.
+You can also use `ModelArray.wrap` to compute very simple statistics, such as group means of the response for each element.
+The example below computes the mean value of the response 
+(the `scalar` column) within each level of a grouping variable (for example, `sex`),
+and also reports the difference between the first two levels if present.
 
 ```r
 #' One-element group means across levels of a grouping variable
