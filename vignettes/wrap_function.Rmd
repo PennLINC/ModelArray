@@ -1,0 +1,302 @@
+---
+title: "Developing a function for ModelArray.wrap"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Developing a function for ModelArray.wrap}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Introduction
+
+`R` offers a ton of wonderful packages for statistical modeling -
+more than we could ever hope to officially support with functions like `ModelArray.lm` and `ModelArray.gam` in `ModelArray`.
+Fortunately, `ModelArray.wrap` provides a way to run your own function,
+which can be arbitrarily complex,
+while using the efficient looping and parallelization machinery of `ModelArray`.
+
+We'll skip over the making of the .h5 file and phenotypes CSV file,
+and directly download the cortical thickness data from the Healthy Brain Network 
+computed as part of the Reproducible Brain Charts project.
+
+We'll develop a function that computes the mean cortical thickness within each site,
+and then use `ModelArray.wrap` to run it across elements.
+
+
+## Step 1. Prepare your data
+
+We first create a folder called "myProject" on the Desktop. In a terminal console:
+
+``` {.console}
+$ cd ~/Desktop
+$ mkdir myCustomFunction
+$ cd myCustomFunction
+$ pwd       # print the full path of this folder
+```
+
+``` {.console}
+$ wget -cO - https://osf.io/tce9d/download > download.tar.gz
+$ tar -xzf download.tar.gz
+$ rm download.tar.gz
+```
+
+## Step 2. Use ModelArray to perform statistical analysis
+
+The next step is to use this HDF5 file and the CSV file we prepared to perform statistical analysis in R.
+If you installed RStudio (which we recommend), then you can simply launch RStudio.
+All the commands in this Step 2 section will be run in R.
+
+> Hint for voxel-wise data for Step 2: You can follow the same steps here. Note that each "element" is a *voxel* now, instead of a *fixel*. Make sure you replace the scalar name, covariates, file paths etc with yours. In addition, as voxel-wise data may have subject-specific masks, you can also tailor the lower threshold of number of subjects when applying `ModelArray.lm()` and `ModelArray.gam()`. See `vignette("voxel-wise_data")` page for more.
+
+### Step 2.1. Load ModelArray package in R
+
+After you've installed `ModelArray`, here's how we load the library:
+
+```{r load ModelArray}
+library(ModelArray)
+```
+
+### Step 2.2. Create a ModelArray-class object
+
+To create a ModelArray-class object that represents the HDF5 file of fixel-wise data, we need the HDF5 filename and the scalar's name:
+
+```{r create ModelArray object, eval=FALSE}
+h5_path <- "~/Desktop/myCustomFunction/ConCifti/study-HBN_compression-gzip_chunkmb-4_thickness.h5"
+# create a ModelArray-class object:
+modelarray <- ModelArray(h5_path, scalar_types = c("thickness"))
+# let's check what's in it:
+modelarray
+```
+
+You'll see:
+```{.console}
+ModelArray located at ~/Desktop/myProject/demo_FDC_n100.h5
+
+  Source files:     2336
+  Scalars:          thickness
+  Analyses:
+```
+
+This shows that there are 2336 source thickness files in this `modelarray` you created.
+
+You may take a look at what the scalar matrix looks like by using `scalars()`:
+```{r access slots, eval = FALSE}
+# scalar FDC data:
+scalars(modelarray)[["thickness"]]
+```
+You'll see:
+```{.console}
+<327684 x 2336> DelayedMatrix object of type "double":
+          ciftis/sub-NDARAA075AMK_thickness.fsLR_den-164k.dscalar.nii ... ciftis/sub-NDARZZ810LVF_thickness.fsLR_den-164k.dscalar.nii
+     [1,]                                                    2.323956   .                                                    3.401824
+     [2,]                                                    2.927209   .                                                    2.428174
+     [3,]                                                    3.211094   .                                                    2.479505
+     [4,]                                                    2.463409   .                                                    3.760944
+     [5,]                                                    2.460162   .                                                    2.912316
+      ...                                                           .   .                                                           .
+[327680,]                                                    2.832996   .                                                    3.066516
+[327681,]                                                    2.669299   .                                                    2.912496
+[327682,]                                                    2.555752   .                                                    2.510855
+[327683,]                                                    2.336970   .                                                    2.472471
+[327684,]                                                    2.256365   .                                                    2.293425
+```
+Rows are greyordinates `(n = 327684)`, and column names are the source filenames `(n = 2336)`.
+Each value is a specific greyordinate's thickness from a dscalar.nii file.
+
+### Step 2.3. Load cohort phenotypes CSV file
+
+We then load the accompanying CSV file:
+
+```{r load csv file, eval=FALSE}
+csv_path <- "~/Desktop/myCustomFunction/ConCifti/study-HBN_desc-participants_thickness.csv"
+# load the CSV file:
+phenotypes <- read.csv(csv_path)
+nrow(phenotypes)
+names(phenotypes)
+```
+
+This CSV file comes from RBC but is reduced to include only the subjects with thickness data.
+It also includes rich phenotype information.
+
+### Step 2.4. Perform statistical analysis
+With both `modelarray` and data frame `phenotypes` set up, we can now perform the statistical analysis.
+
+We need to write a function that we can use within `ModelArray.wrap` to compute what we want.
+It can be tricky to figure out exactly what you want to compute and how to make sure your function returns the correct output.
+We can use a convenience function from `ModelArray` to see what a dataframe looks like for a single element.
+
+```{r check_one_element_df}
+example_df <- exampleElementData(modelarray, scalar = "thickness", i_element = 12345, phenotypes = phenotypes)
+names(example_df)
+```
+
+This is a rich dataframe!
+It contains the cortical thickness for all subjects in the study at vertex 12345.
+It also contains the subject ID, sex, age, and other covariates.
+
+We can explore this single element like we would any dataframe:
+
+```{r explore_one_element_df}
+library(ggplot2)
+ggplot(example_df, aes(x = age, y = thickness, color=study_site)) +
+  geom_point() +
+  stat_smooth(method = "lm") +
+  theme_minimal()
+```
+
+This looks cool.
+There is apparently a site effect,
+so let's write a function that computes a mean cortical thickness within each site.
+We'll also compute an anova on site and get the statistics/p-values.
+For now we'll get the values we want into a dataframe, then we'll write the function.
+
+```{r means_into_df_example}
+site_means <- example_df %>%
+  group_by(study_site) %>%
+  summarize(mean_thickness = mean(thickness, na.rm = TRUE)) %>%
+  # write them into "thickness_{study_site}" columns
+  pivot_wider(names_from = study_site, values_from = mean_thickness, names_glue = "thickness_{study_site}")
+site_means
+```
+
+This looks good.
+Now let's do the anova and get the statistics/p-values.
+
+```{r anova_into_df_example}
+site_anova <- example_df %>%
+  { lm(thickness ~ study_site, data = .) } %>%
+  anova() %>%
+  broom::tidy() %>%
+  dplyr::mutate(
+    partial_eta_sq = dplyr::if_else(
+      term != "Residuals",
+      sumsq / (sumsq + sumsq[term == "Residuals"]),
+      NA_real_
+    )
+  ) %>%
+  dplyr::filter(term != "Residuals") %>%
+  dplyr::select(term, df, sumsq, meansq, statistic, p.value, partial_eta_sq) %>%
+  tidyr::pivot_wider(
+    names_from = term,
+    values_from = c(df, sumsq, meansq, statistic, p.value, partial_eta_sq),
+    names_glue = "{term}.{.value}"
+  ) %>%
+  tibble::as_tibble()
+
+site_anova
+```
+
+Combining the two we get the full function we want. 
+Absolutely critical here is that your function needs a single argument named `data`:
+
+```{r full_function_example}
+my_mean_thickness_fun <- function(data) {
+  site_means <- data %>%
+    group_by(study_site) %>%
+    summarize(mean_thickness = mean(thickness, na.rm = TRUE)) %>%
+    pivot_wider(names_from = study_site, values_from = mean_thickness, names_glue = "thickness_{study_site}")
+  site_anova <- data %>%
+    { lm(thickness ~ study_site, data = .) } %>%
+    anova() %>%
+    broom::tidy() %>%
+    dplyr::mutate(
+      partial_eta_sq = dplyr::if_else(
+        term != "Residuals",
+        sumsq / (sumsq + sumsq[term == "Residuals"]),
+        NA_real_
+      )
+    ) %>%
+    dplyr::filter(term != "Residuals") %>%
+    dplyr::select(term, df, sumsq, meansq, statistic, p.value, partial_eta_sq) %>%
+    tidyr::pivot_wider(
+      names_from = term,
+      values_from = c(df, sumsq, meansq, statistic, p.value, partial_eta_sq),
+      names_glue = "{term}.{.value}"
+    ) %>%
+    tibble::as_tibble()
+  bind_cols(site_means, site_anova)
+}
+
+my_mean_thickness_fun(example_df)
+```
+
+This looks great!
+We can test that the function will work in the `ModelArray` looping machinery by running it on a single element.
+
+```{r test_one_element}
+analyseOneElement.wrap(
+  12345, 
+  my_mean_thickness_fun, 
+  modelarray, 
+  phenotypes, 
+  "thickness", 
+  num.subj.lthr=10,
+  flag_initiate = TRUE,
+  on_error = "debug"
+)
+```
+This will print the column names that will be retrieved from the function when it's run in the `ModelArray` looping machinery.
+It looks good, so we can run it on all the greyordinates:
+
+```{r run_wrapped_function, eval=FALSE}
+res_wrap <- ModelArray.wrap(
+  FUN = my_mean_thickness_fun,
+  data = modelarray,
+  phenotypes = phenotypes,
+  scalar = "thickness",
+  n_cores = 8
+)
+```
+
+On my laptop this took about 15 minutes.
+
+```{r head_results, eval=FALSE}
+head(res_wrap)
+```
+
+```{.console}
+  element_id thickness_HBNsiteCBIC thickness_HBNsiteCUNY thickness_HBNsiteRU thickness_HBNsiteSI study_site.df study_site.sumsq study_site.meansq study_site.statistic study_site.p.value study_site.partial_eta_sq
+1          0              3.108483              3.009349            3.063119            2.692335             3         45.52142         15.173806             59.35110       5.688104e-37                0.07093606
+2          1              2.618739              2.673533            2.494077            2.324791             3         24.51961          8.173205             28.88297       2.474739e-18                0.03582533
+3          2              3.111822              3.056225            2.983709            2.812225             3         23.59899          7.866330             19.95448       9.059350e-13                0.02502795
+4          3              3.669784              3.621715            3.054638            3.329743             3        186.55051         62.183503             83.32945       3.261715e-51                0.09682010
+5          4              2.790135              2.729325            2.494522            2.444265             3         53.34644         17.782147             55.42033       1.336311e-34                0.06655069
+6          5              2.996483              3.043458            2.785565            2.650955             3         40.25648         13.418828             41.60603       3.458560e-26                0.05080478
+```
+
+
+We now save the results data frame into the original h5 file:
+
+```{r write results, eval=FALSE}
+writeResults(h5_path, df.output = res_wrap, analysis_name = "anova_and_means")
+```
+
+Notice that the the analysis name specified in argument `analysis_name` will be used in `ConCifti` in the next step when converting results back to dscalar.nii file format. 
+It'll also be used as the prefix of the mif files to be saved.
+
+
+## Step 3. Convert back to dscalar.nii file format
+
+
+### Step 3.1. Convert the statistical results into mif file format using ConFixel
+We now use `ConFixel` to convert the results into a list of mif files:
+
+```{.console}
+$ ciftistats_write \
+  --cohort-file ${HOME}/Desktop/myCustomFunction/ConCifti/study-HBN_desc-participants_thickness.csv \
+  --relative-root ${HOME}/Desktop/myCustomFunction \
+  --analysis-name anova_and_means \
+  --input-hdf5 ${HOME}/Desktop/myCustomFunction/ConCifti/study-HBN_compression-gzip_chunkmb-4_thickness.h5 \
+  --output-dir ${HOME}/Desktop/myCustomFunction/anova_and_means \
+  --example-cifti ${HOME}/Desktop/myCustomFunction/ConCifti/example_fsLR_den-164k.dscalar.nii
+
+# remember to use your specific path in --relative-root;
+# we recommend it's a full path too!
+```
+
+After it's done, in the main folder `myCustomFunction`, 
+there will be a new folder called `anova_and_means` and converted result `dscalar.nii`files are in this new folder:
+
+
+
+
