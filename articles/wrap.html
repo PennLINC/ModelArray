@@ -81,7 +81,7 @@ looping machinery as <code>ModelArray.lm</code> and
 <code>ModelArray.gam</code>.</p>
 <ul>
 <li>You provide a function <code>FUN</code> that operates on a single
-element by receiving a <code>data</code> frame (the cohort
+element by receiving a <code>dataframe</code> (the cohort
 <code>phenotypes</code> with an added response column named by
 <code>scalar</code>).</li>
 <li>
@@ -94,9 +94,8 @@ element define the output schema.</li>
 <p>This vignette shows how to write a <code>FUN</code> that produces
 outputs equivalent to the defaults of <code>ModelArray.lm</code>.</p>
 <p>Important: <code>ModelArray.wrap</code> does not automatically adjust
-or otherwise modify p-values. If you want adjusted p-values (e.g., FDR),
-compute them inside your custom function <code>FUN</code> (as shown
-below for FDR).</p>
+or otherwise modify p-values. Your function <code>FUN</code> only sees
+one element at a time, so it cannot perform p-value corrections.</p>
 </div>
 <div class="section level2">
 <h2 id="example-using-modelarray-wrap-to-reproduce-modelarray-lm">Example: Using ModelArray.wrap to reproduce ModelArray.lm<a class="anchor" aria-label="anchor" href="#example-using-modelarray-wrap-to-reproduce-modelarray-lm"></a>
@@ -184,7 +183,7 @@ speed.</p>
 <span><span class="va">formula_lm</span> <span class="op">&lt;-</span> <span class="va">FDC</span> <span class="op">~</span> <span class="va">Age</span> <span class="op">+</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">dti64MeanRelRMS</span></span>
 <span></span>
 <span><span class="co"># Run user-wrapped LM on the first 100 elements</span></span>
-<span><span class="va">res_wrap_lm</span> <span class="op">&lt;-</span> <span class="fu">ModelArray.wrap</span><span class="op">(</span></span>
+<span><span class="va">res_wrap_lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.wrap.html">ModelArray.wrap</a></span><span class="op">(</span></span>
 <span>  FUN <span class="op">=</span> <span class="va">my_lm_fun</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">modelarray</span>,</span>
 <span>  phenotypes <span class="op">=</span> <span class="va">phenotypes</span>,</span>
@@ -264,7 +263,7 @@ results:</p>
 <span><span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FDC"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">phenotypes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">csv_path</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">res_group_means</span> <span class="op">&lt;-</span> <span class="fu">ModelArray.wrap</span><span class="op">(</span></span>
+<span><span class="va">res_group_means</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.wrap.html">ModelArray.wrap</a></span><span class="op">(</span></span>
 <span>  FUN <span class="op">=</span> <span class="va">my_group_means_fun</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">modelarray</span>,</span>
 <span>  phenotypes <span class="op">=</span> <span class="va">phenotypes</span>,</span>
