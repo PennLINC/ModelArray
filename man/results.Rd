@@ -17,3 +17,4 @@ The results slot of the object
 \description{
 Generic function to access the results slot of an object.
 }
+\keyword{internal}

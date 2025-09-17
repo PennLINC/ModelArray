@@ -22,6 +22,7 @@ ModelArray.gam(
   verbose = TRUE,
   pbar = TRUE,
   n_cores = 1,
+  on_error = "stop",
   ...
 )
 }

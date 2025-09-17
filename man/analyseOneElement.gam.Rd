@@ -17,6 +17,7 @@ analyseOneElement.gam(
   num.stat.output = NULL,
   flag_initiate = FALSE,
   flag_sse = FALSE,
+  on_error = "stop",
   ...
 )
 }

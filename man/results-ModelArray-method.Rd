@@ -22,3 +22,4 @@ Statistical results in this ModelArray object
 \description{
 Method for accessing the results slot of a ModelArray object.
 }
+\keyword{internal}

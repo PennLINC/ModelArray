@@ -15,3 +15,4 @@ The sources slot of the object
 \description{
 Generic function to access the sources slot of an object.
 }
+\keyword{internal}

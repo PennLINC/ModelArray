@@ -17,3 +17,4 @@ The scalars slot of the object
 \description{
 Generic function to access the scalars slot of an object.
 }
+\keyword{internal}
