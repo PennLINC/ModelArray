@@ -2,3 +2,6 @@ url: https://pennlinc.github.io/ModelArray/
 template:
   bootstrap: 5
 
+redirects:
+  - ["articles/wrap.html", "articles/wrap_function.html"]
+

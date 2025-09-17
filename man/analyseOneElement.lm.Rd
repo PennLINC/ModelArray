@@ -15,6 +15,7 @@ analyseOneElement.lm(
   num.subj.lthr,
   num.stat.output = NULL,
   flag_initiate = FALSE,
+  on_error = "stop",
   ...
 )
 }

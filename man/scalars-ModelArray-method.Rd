@@ -22,3 +22,4 @@ A matrix of element-wise scalar data: elements (row) by source files (column).
 \description{
 Method for accessing the scalars slot of a ModelArray object.
 }
+\keyword{internal}

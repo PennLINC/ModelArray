@@ -20,3 +20,4 @@ A list of source filenames
 \description{
 Method for accessing the sources slot of a ModelArray object.
 }
+\keyword{internal}
