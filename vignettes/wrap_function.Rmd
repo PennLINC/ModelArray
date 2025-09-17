@@ -35,7 +35,7 @@ $ pwd       # print the full path of this folder
 ```
 
 ``` {.console}
-$ wget -cO - https://osf.io/tce9d/download > download.tar.gz
+$ wget -cO - https://osf.io/uxc65/download > download.tar.gz
 $ tar -xzf download.tar.gz
 $ rm download.tar.gz
 ```
