@@ -125,7 +125,7 @@ We need to write a function that we can use within `ModelArray.wrap` to compute 
 It can be tricky to figure out exactly what you want to compute and how to make sure your function returns the correct output.
 We can use a convenience function from `ModelArray` to see what a dataframe looks like for a single element.
 
-```{r check_one_element_df}
+```{r check_one_element_df, eval=FALSE}
 example_df <- exampleElementData(modelarray, scalar = "thickness", i_element = 12345, phenotypes = phenotypes)
 names(example_df)
 ```
@@ -136,7 +136,7 @@ It also contains the subject ID, sex, age, and other covariates.
 
 We can explore this single element like we would any dataframe:
 
-```{r explore_one_element_df}
+```{r explore_one_element_df, eval=FALSE}
 library(ggplot2)
 ggplot(example_df, aes(x = age, y = thickness, color=study_site)) +
   geom_point() +
@@ -150,7 +150,7 @@ so let's write a function that computes a mean cortical thickness within each si
 We'll also compute an anova on site and get the statistics/p-values.
 For now we'll get the values we want into a dataframe, then we'll write the function.
 
-```{r means_into_df_example}
+```{r means_into_df_example, eval=FALSE}
 site_means <- example_df %>%
   group_by(study_site) %>%
   summarize(mean_thickness = mean(thickness, na.rm = TRUE)) %>%
@@ -162,7 +162,7 @@ site_means
 This looks good.
 Now let's do the anova and get the statistics/p-values.
 
-```{r anova_into_df_example}
+```{r anova_into_df_example, eval=FALSE}
 site_anova <- example_df %>%
   { lm(thickness ~ study_site, data = .) } %>%
   anova() %>%
@@ -189,7 +189,7 @@ site_anova
 Combining the two we get the full function we want. 
 Absolutely critical here is that your function needs a single argument named `data`:
 
-```{r full_function_example}
+```{r full_function_example, eval=FALSE}
 my_mean_thickness_fun <- function(data) {
   site_means <- data %>%
     group_by(study_site) %>%
@@ -223,7 +223,7 @@ my_mean_thickness_fun(example_df)
 This looks great!
 We can test that the function will work in the `ModelArray` looping machinery by running it on a single element.
 
-```{r test_one_element}
+```{r test_one_element, eval=FALSE}
 analyseOneElement.wrap(
   12345, 
   my_mean_thickness_fun, 

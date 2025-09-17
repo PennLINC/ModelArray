@@ -3,6 +3,5 @@ template:
   bootstrap: 5
 
 redirects:
-  - from: articles/wrap.html
-    to: articles/wrap_function.html
+  - ["articles/wrap.html", "articles/wrap_function.html"]
 

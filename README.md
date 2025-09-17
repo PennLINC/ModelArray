@@ -1,3 +1,4 @@
+
 <!-- TODO README.md is generated from README.Rmd. Please edit that file -->
 
 # ModelArray
@@ -44,7 +45,10 @@ paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use
 
 <center>
 
-![Overview](man/figures/overview_structure.png)
+<figure>
+<img src="man/figures/overview_structure.png" alt="Overview" />
+<figcaption aria-hidden="true">Overview</figcaption>
+</figure>
 
 </center>
 
