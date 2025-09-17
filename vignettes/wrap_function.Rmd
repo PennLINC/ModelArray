@@ -138,7 +138,7 @@ We can explore this single element like we would any dataframe:
 
 ```{r explore_one_element_df, eval=FALSE}
 library(ggplot2)
-ggplot(example_df, aes(x = age, y = thickness, color=study_site)) +
+ggplot(example_df, aes(x = age, y = thickness, color = study_site)) +
   geom_point() +
   stat_smooth(method = "lm") +
   theme_minimal()
@@ -164,7 +164,9 @@ Now let's do the anova and get the statistics/p-values.
 
 ```{r anova_into_df_example, eval=FALSE}
 site_anova <- example_df %>%
-  { lm(thickness ~ study_site, data = .) } %>%
+  {
+    lm(thickness ~ study_site, data = .)
+  } %>%
   anova() %>%
   broom::tidy() %>%
   dplyr::mutate(
@@ -196,7 +198,9 @@ my_mean_thickness_fun <- function(data) {
     summarize(mean_thickness = mean(thickness, na.rm = TRUE)) %>%
     pivot_wider(names_from = study_site, values_from = mean_thickness, names_glue = "thickness_{study_site}")
   site_anova <- data %>%
-    { lm(thickness ~ study_site, data = .) } %>%
+    {
+      lm(thickness ~ study_site, data = .)
+    } %>%
     anova() %>%
     broom::tidy() %>%
     dplyr::mutate(
@@ -225,12 +229,12 @@ We can test that the function will work in the `ModelArray` looping machinery by
 
 ```{r test_one_element, eval=FALSE}
 analyseOneElement.wrap(
-  12345, 
-  my_mean_thickness_fun, 
-  modelarray, 
-  phenotypes, 
-  "thickness", 
-  num.subj.lthr=10,
+  12345,
+  my_mean_thickness_fun,
+  modelarray,
+  phenotypes,
+  "thickness",
+  num.subj.lthr = 10,
   flag_initiate = TRUE,
   on_error = "debug"
 )

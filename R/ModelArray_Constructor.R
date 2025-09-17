@@ -240,7 +240,8 @@ ModelArray <- function(filepath,
         # exists
         # /results/<analysis_name>/has_names:
         names_results_matrix <- rhdf5::h5readAttributes(filepath,
-                                                        name = sprintf("results/%s/results_matrix", analysis_name))$colnames # after updating writeResults()
+          name = sprintf("results/%s/results_matrix", analysis_name)
+        )$colnames # after updating writeResults()
 
         # names_results_matrix <- ModelArraySeed(filepath, name = sprintf(
         #   "results/%s/has_names", analysis_name), type = NA) %>%
@@ -420,27 +421,32 @@ analyseOneElement.lm <- function(i_element,
 
     # onemodel <- stats::lm(formula, data = dat, ...)
     # onemodel <- stats::lm(formula, data = dat, weights = myWeights,...)
-    onemodel <- tryCatch({
-      do.call(stats::lm, arguments_lm)
-    }, error = function(e) {
-      msg <- paste0("analyseOneElement.lm error at element ",
-                    i_element,
-                    ": ",
-                    conditionMessage(e))
-      if (on_error == "debug" && interactive()) {
-        message(msg)
-        browser()
-      }
-      if (on_error == "skip" || on_error == "debug") {
-        warning(msg)
-        if (flag_initiate == TRUE) {
-          return(structure(list(.lm_error_initiate = TRUE), class = "lm_error"))
-        } else {
-          return(structure(list(.lm_error_runtime = TRUE), class = "lm_error"))
+    onemodel <- tryCatch(
+      {
+        do.call(stats::lm, arguments_lm)
+      },
+      error = function(e) {
+        msg <- paste0(
+          "analyseOneElement.lm error at element ",
+          i_element,
+          ": ",
+          conditionMessage(e)
+        )
+        if (on_error == "debug" && interactive()) {
+          message(msg)
+          browser()
         }
+        if (on_error == "skip" || on_error == "debug") {
+          warning(msg)
+          if (flag_initiate == TRUE) {
+            return(structure(list(.lm_error_initiate = TRUE), class = "lm_error"))
+          } else {
+            return(structure(list(.lm_error_runtime = TRUE), class = "lm_error"))
+          }
+        }
+        stop(e)
       }
-      stop(e)
-    })
+    )
 
     if (inherits(onemodel, "lm_error")) {
       if (flag_initiate == TRUE) {
@@ -660,27 +666,32 @@ analyseOneElement.gam <- function(i_element,
     arguments$data <- dat
 
     # explicitly passing arguments into command, to avoid error of argument "weights"
-    onemodel <- tryCatch({
-      do.call(mgcv::gam, arguments)
-    }, error = function(e) {
-      msg <- paste0("analyseOneElement.gam error at element ",
-                    i_element,
-                    ": ",
-                    conditionMessage(e))
-      if (on_error == "debug" && interactive()) {
-        message(msg)
-        browser()
-      }
-      if (on_error == "skip" || on_error == "debug") {
-        warning(msg)
-        if (flag_initiate == TRUE) {
-          return(structure(list(.gam_error_initiate = TRUE), class = "gam_error"))
-        } else {
-          return(structure(list(.gam_error_runtime = TRUE), class = "gam_error"))
+    onemodel <- tryCatch(
+      {
+        do.call(mgcv::gam, arguments)
+      },
+      error = function(e) {
+        msg <- paste0(
+          "analyseOneElement.gam error at element ",
+          i_element,
+          ": ",
+          conditionMessage(e)
+        )
+        if (on_error == "debug" && interactive()) {
+          message(msg)
+          browser()
         }
+        if (on_error == "skip" || on_error == "debug") {
+          warning(msg)
+          if (flag_initiate == TRUE) {
+            return(structure(list(.gam_error_initiate = TRUE), class = "gam_error"))
+          } else {
+            return(structure(list(.gam_error_runtime = TRUE), class = "gam_error"))
+          }
+        }
+        stop(e)
       }
-      stop(e)
-    })
+    )
 
     if (inherits(onemodel, "gam_error")) {
       if (flag_initiate == TRUE) {
@@ -753,11 +764,11 @@ analyseOneElement.gam <- function(i_element,
     # remove those columns:
     if (length(var.smoothTerms.remove) != 0) {
       # if length=0, it's list(), nothing to remove
-      onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms,-all_of(var.smoothTerms.remove))
+      onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -all_of(var.smoothTerms.remove))
     }
     if (length(var.parametricTerms.remove) != 0) {
       # if length=0, it's list(), nothing to remove
-      onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms,-all_of(var.parametricTerms.remove))
+      onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -all_of(var.parametricTerms.remove))
     }
     if (length(var.model.remove) != 0) {
       onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
@@ -879,8 +890,10 @@ analyseOneElement.gam <- function(i_element,
 
 
     # combine the tables: check if any of them is empty (tibble())
-    onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.tidy.smoothTerms.onerow,
-                                                   onemodel.tidy.parametricTerms.onerow)
+    onemodel.onerow <- bind_cols_check_emptyTibble(
+      onemodel.tidy.smoothTerms.onerow,
+      onemodel.tidy.parametricTerms.onerow
+    )
     onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.onerow, onemodel.glance.onerow)
 
 
@@ -1006,27 +1019,32 @@ analyseOneElement.wrap <- function(i_element,
     arguments$data <- dat
 
     # Execute user function with error handling
-    result <- tryCatch({
-      do.call(user_fun, arguments)
-    }, error = function(e) {
-      msg <- paste0("analyseOneElement.wrap error at element ",
-                    i_element,
-                    ": ",
-                    conditionMessage(e))
-      if (on_error == "debug" && interactive()) {
-        message(msg)
-        browser()
-      }
-      if (on_error == "skip" || on_error == "debug") {
-        warning(msg)
-        if (flag_initiate == TRUE) {
-          return(structure(list(.wrap_error_initiate = TRUE), class = "wrap_error"))
-        } else {
-          return(structure(list(.wrap_error_runtime = TRUE), class = "wrap_error"))
+    result <- tryCatch(
+      {
+        do.call(user_fun, arguments)
+      },
+      error = function(e) {
+        msg <- paste0(
+          "analyseOneElement.wrap error at element ",
+          i_element,
+          ": ",
+          conditionMessage(e)
+        )
+        if (on_error == "debug" && interactive()) {
+          message(msg)
+          browser()
         }
+        if (on_error == "skip" || on_error == "debug") {
+          warning(msg)
+          if (flag_initiate == TRUE) {
+            return(structure(list(.wrap_error_initiate = TRUE), class = "wrap_error"))
+          } else {
+            return(structure(list(.wrap_error_runtime = TRUE), class = "wrap_error"))
+          }
+        }
+        stop(e)
       }
-      stop(e)
-    })
+    )
 
     # On error in user function, return NaNs according to flag
     if (inherits(result, "wrap_error")) {
@@ -1127,7 +1145,7 @@ writeResults <- function(fn.output,
 
   # check if group "results\<analysis_name>" exists:
   if (results.grp$exists(analysis_name) == TRUE &&
-      overwrite == FALSE) {
+    overwrite == FALSE) {
     warning(paste0(analysis_name, " exists but not to overwrite!"))
     # TODO: add checker for exisiting analysis_name, esp the matrix size
     results.analysis.grp <- results.grp$open(analysis_name)
@@ -1135,7 +1153,7 @@ writeResults <- function(fn.output,
   } else {
     # not exist; or exist && overwrite: to create
     if (results.grp$exists(analysis_name) == TRUE &&
-        overwrite == TRUE) {
+      overwrite == TRUE) {
       # delete existing one first
       results.grp$link_delete(analysis_name)
       # NOTE: the file size will not shrink after your deletion..
@@ -1153,7 +1171,7 @@ writeResults <- function(fn.output,
       col_class <- as.character(sapply(df.output, class)[i_col]) # class of this column
 
       if ((col_class != "numeric") &&
-          (col_class != "integer")) {
+        (col_class != "integer")) {
         # the column class is not numeric or integer
         message(
           paste0(
