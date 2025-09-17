@@ -369,6 +369,9 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #' If TRUE, it will return column names etc to be used for initiating data.frame;
 #' if FALSE, it will return the list of requested statistic values.
 #' @param ... Additional arguments for `stats::lm()`
+#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs while
+#' fitting one element, choose whether to stop, skip returning all-NaN values for that element,
+#' or drop into `browser()` (if interactive) then skip. Default: "stop".
 #'
 #' @return If flag_initiate==TRUE, returns column names, and list of term names of final results;
 #' if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
@@ -623,6 +626,9 @@ analyseOneElement.lm <- function(i_element,
 #' @param flag_sse TRUE or FALSE, Whether to calculate SSE (sum of squared error) for the model (`model.sse`).
 #' SSE is needed for calculating partial R-squared.
 #' @param ... Additional arguments for `mgcv::gam()`
+#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs while
+#' fitting one element, choose whether to stop, skip returning all-NaN values for that element,
+#' or drop into `browser()` (if interactive) then skip. Default: "stop".
 #' @return If flag_initiate==TRUE, returns column names,
 #' list of term names of final results, and attr.name of sp.criterion;
 #' if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
