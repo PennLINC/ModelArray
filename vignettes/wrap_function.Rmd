@@ -46,7 +46,6 @@ The next step is to use this HDF5 file and the CSV file we prepared to perform s
 If you installed RStudio (which we recommend), then you can simply launch RStudio.
 All the commands in this Step 2 section will be run in R.
 
-> Hint for voxel-wise data for Step 2: You can follow the same steps here. Note that each "element" is a *voxel* now, instead of a *fixel*. Make sure you replace the scalar name, covariates, file paths etc with yours. In addition, as voxel-wise data may have subject-specific masks, you can also tailor the lower threshold of number of subjects when applying `ModelArray.lm()` and `ModelArray.gam()`. See `vignette("voxel-wise_data")` page for more.
 
 ### Step 2.1. Load ModelArray package in R
 

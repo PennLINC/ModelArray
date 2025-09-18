@@ -69,6 +69,9 @@
 #' @param verbose TRUE or FALSE, to print verbose message or not
 #' @param pbar TRUE or FALSE, to print progress bar or not
 #' @param n_cores Positive integer, The number of CPU cores to run with
+#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs
+#' while fitting an element, choose whether to stop, skip returning all-NaN values for
+#' that element, or drop into `browser()` (if interactive) then skip. Default: "stop".
 #' @param ... Additional arguments for `stats::lm()`
 #' @return Tibble with the summarized model statistics for all elements requested
 #' @importFrom dplyr %>%
@@ -651,6 +654,9 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @param verbose TRUE or FALSE, to print verbose messages or not
 #' @param pbar TRUE or FALSE, to print progress bar or not
 #' @param n_cores Positive integer, The number of CPU cores to run with
+#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs
+#' while fitting an element, choose whether to stop, skip returning all-NaN values for
+#' that element, or drop into `browser()` (if interactive) then skip. Default: "stop".
 #' @param ... Additional arguments for `mgcv::gam()`
 #' @return Tibble with the summarized model statistics for all elements requested
 #' @importFrom dplyr %>% mutate
@@ -1352,6 +1358,9 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 #' @param verbose TRUE/FALSE to print messages
 #' @param pbar TRUE/FALSE to show progress bar
 #' @param n_cores Positive integer number of CPU cores
+#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs in
+#' the user function for an element, choose whether to stop, skip returning all-NaN values
+#' for that element, or drop into `browser()` (if interactive) then skip. Default: "stop".
 #' @param ... Additional arguments forwarded to `FUN`
 #' @return Tibble/data.frame with one row per element and first column `element_id`
 #' @importFrom dplyr %>%
