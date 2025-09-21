@@ -191,8 +191,37 @@ ModelArray <- function(filepath,
       type = NA
     ) %>% DelayedArray::DelayedArray()
 
-    # load attribute "column_names", i.e. source filenames:
-    sources[[x]] <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))$column_names %>% as.character()
+    # load source filenames (column_names): prefer attribute; fallback to dataset
+    attrs <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))
+    colnames_attr <- attrs$column_names
+    if (is.null(colnames_attr)) {
+      # Fallback: read from dataset scalars/<scalar_type>/column_names
+      dataset_path <- sprintf("scalars/%s/column_names", scalar_types[x])
+      colnames_ds <- tryCatch(
+        {
+          rhdf5::h5read(filepath, dataset_path)
+        },
+        error = function(e) {
+          stop(paste0(
+            "Neither attribute 'column_names' nor dataset '", dataset_path, "' found or readable: ",
+            conditionMessage(e)
+          ))
+        }
+      )
+      # Ensure character vector, not list/matrix; trim potential null terminators and whitespace
+      if (is.list(colnames_ds)) {
+        colnames_ds <- unlist(colnames_ds, use.names = FALSE)
+      }
+      colnames_ds <- as.vector(colnames_ds)
+      colnames_ds <- as.character(colnames_ds)
+      # Trim any trailing NULs (hex 00) and surrounding whitespace for cross-language string compatibility
+      # Use escaped hex in pattern to avoid embedding a NUL in the source code
+      colnames_ds <- gsub("[\\x00]+$", "", colnames_ds, perl = TRUE, useBytes = TRUE)
+      colnames_ds <- trimws(colnames_ds)
+      sources[[x]] <- colnames_ds
+    } else {
+      sources[[x]] <- as.character(colnames_attr)
+    }
 
     # transpose scalar_data[[x]] if needed:
     if (dim(scalar_data[[x]])[2] == length(sources[[x]])) {
