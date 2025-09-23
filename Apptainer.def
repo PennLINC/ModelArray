@@ -18,11 +18,27 @@ From: rocker/r2u:jammy
     set -e
     apt-get update \
         && apt-get install -y --no-install-recommends \
-            r-cran-devtools \
-            r-bioc-rhdf5 \
             r-bioc-delayedarray \
+            r-bioc-hdf5array \
+            r-cran-broom \
+            r-cran-crayon \
+            r-cran-devtools \
+            r-cran-doparallel \
+            r-cran-dplyr \
+            r-cran-glue \
+            r-cran-gratia \
+            r-cran-hdf5r \
+            r-cran-hdf5r.extra \
+            r-cran-magrittr \
+            r-cran-mgcv \
+            r-cran-pbapply \
+            r-cran-pbmcapply \
+            r-bioc-rhdf5 \
+            r-cran-tibble \
+            r-cran-tidyr \
         && apt-get clean \
         && rm -rf /var/lib/apt/lists/*
+        && echo 'options(bspm.sudo = TRUE)' >> /etc/R/Rprofile.site
 
     cd /ModelArray
     R -e 'devtools::install()'
