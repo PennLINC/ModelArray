@@ -60,6 +60,10 @@ if FALSE, it will return the list of requested statistic values.}
 \item{flag_sse}{TRUE or FALSE, Whether to calculate SSE (sum of squared error) for the model (`model.sse`).
 SSE is needed for calculating partial R-squared.}
 
+\item{on_error}{Character: one of "stop", "skip", or "debug". When an error occurs while
+fitting one element, choose whether to stop, skip returning all-NaN values for that element,
+or drop into `browser()` (if interactive) then skip. Default: "stop".}
+
 \item{...}{Additional arguments for `mgcv::gam()`}
 }
 \value{

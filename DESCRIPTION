@@ -22,24 +22,24 @@ LazyData: true
 Depends: R (>= 4.1.2)
 biocViews:
 Imports:
+    DelayedArray,
+    HDF5Array,
+    broom,
+    crayon,
+    doParallel,
+    dplyr,
+    glue,
+    hdf5r,
     magrittr,
     methods,
-    dplyr,
-    tidyr,
-    tibble,
-    glue,
-    parallel,
-    doParallel,
-    HDF5Array,
-    rhdf5,
-    hdf5r,
     mgcv,
-    rlang,
-    DelayedArray,
-    broom,
-    pbmcapply,
+    parallel,
     pbapply,
-    crayon
+    pbmcapply,
+    rhdf5,
+    rlang,
+    tibble,
+    tidyr
 RoxygenNote: 7.3.1
 Suggests:
     rmarkdown,

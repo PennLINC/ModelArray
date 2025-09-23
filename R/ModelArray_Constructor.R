@@ -156,7 +156,8 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #'
 #' @param filepath file
 #' @param scalar_types expected scalars
-#' @param analysis_names the subfolder names for results in .h5 file
+#' @param analysis_names the subfolder names for results in .h5 file. If empty
+#' (default), results are not read.
 #' @return ModelArray object
 #' @export
 #' @import methods

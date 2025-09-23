@@ -114,10 +114,22 @@ setMethod(
 
 ### Example per-element data helper #####
 
-#' @aliases exampleElementData
+#' Example per-element data.frame for user functions
+#'
+#' @title Example per-element data.frame for user functions
+#' @name exampleElementData
+#' @rdname exampleElementData
+#' @description
+#' Generic for constructing a per-element data.frame from a `ModelArray`.
+#' See the `ModelArray` method for details.
+#'
+#' @param x A `ModelArray` object (or compatible type)
+#' @param ... Additional arguments (ignored)
+#' @export
 setGeneric("exampleElementData", function(x, ...) standardGeneric("exampleElementData"))
 
 #' Example per-element data.frame for user functions
+#' @rdname exampleElementData
 #'
 #' @description
 #' Returns a copy of `phenotypes` with an extra column named by `scalar` populated

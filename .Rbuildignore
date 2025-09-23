@@ -13,4 +13,5 @@
 ^LICENSE\.md$
 ^CLONE\.md$
 ^Dockerfile$
+^Apptainer\.def$
 ^README\.Rmd$

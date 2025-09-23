@@ -36,9 +36,10 @@ From: rocker/r2u:jammy
             r-bioc-rhdf5 \
             r-cran-tibble \
             r-cran-tidyr \
+            r-cran-tidyverse \
         && apt-get clean \
+        && echo 'options(bspm.sudo = TRUE)' >> /etc/R/Rprofile.site \
         && rm -rf /var/lib/apt/lists/*
-        && echo 'options(bspm.sudo = TRUE)' >> /etc/R/Rprofile.site
 
     cd /ModelArray
     R -e 'devtools::install()'

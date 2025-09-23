@@ -4,16 +4,17 @@
 \alias{ModelArray}
 \title{An S4 class to represent element-wise scalar data and statistics.}
 \usage{
-ModelArray(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis"))
+ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
 
-ModelArray(filepath, scalar_types = c("FD"), analysis_names = c("myAnalysis"))
+ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
 }
 \arguments{
 \item{filepath}{file}
 
 \item{scalar_types}{expected scalars}
 
-\item{analysis_names}{the subfolder names for results in .h5 file}
+\item{analysis_names}{the subfolder names for results in .h5 file. If empty
+(default), results are not read.}
 }
 \value{
 ModelArray object
