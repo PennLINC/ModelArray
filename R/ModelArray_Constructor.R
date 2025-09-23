@@ -165,7 +165,7 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @importFrom rhdf5 h5readAttributes
 ModelArray <- function(filepath,
                        scalar_types = c("FD"),
-                       analysis_names = c("myAnalysis")) {
+                       analysis_names = character(0)) {
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
   # fn.h5 <- H5File$new(filepath, mode="a")
   # open; "a": creates a new file or opens an existing one for read/write
@@ -195,19 +195,39 @@ ModelArray <- function(filepath,
     attrs <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))
     colnames_attr <- attrs$column_names
     if (is.null(colnames_attr)) {
-      # Fallback: read from dataset scalars/<scalar_type>/column_names
-      dataset_path <- sprintf("scalars/%s/column_names", scalar_types[x])
-      colnames_ds <- tryCatch(
-        {
-          rhdf5::h5read(filepath, dataset_path)
-        },
-        error = function(e) {
-          stop(paste0(
-            "Neither attribute 'column_names' nor dataset '", dataset_path, "' found or readable: ",
-            conditionMessage(e)
-          ))
-        }
+      # Fallback: attempt to read from dataset-based column names
+      # Try multiple plausible locations for compatibility across writers
+      paths_to_try <- c(
+        sprintf("scalars/%s/column_names", scalar_types[x]),
+        sprintf("scalars/%s/values/column_names", scalar_types[x]),
+        sprintf("scalars/scalars/%s/values/column_names", scalar_types[x]),
+        sprintf("scalars/scalars/%s/column_names", scalar_types[x])
       )
+
+      colnames_ds <- NULL
+      last_error <- NULL
+      for (p in paths_to_try) {
+        tmp <- tryCatch(
+          {
+            rhdf5::h5read(filepath, p)
+          },
+          error = function(e) {
+            last_error <<- e
+            NULL
+          }
+        )
+        if (!is.null(tmp)) {
+          colnames_ds <- tmp
+          break
+        }
+      }
+      if (is.null(colnames_ds)) {
+        stop(paste0(
+          "Neither attribute 'column_names' nor a dataset with column names found. Tried: ",
+          paste(paths_to_try, collapse = ", "),
+          if (!is.null(last_error)) paste0(". Last error: ", conditionMessage(last_error)) else ""
+        ))
+      }
       # Ensure character vector, not list/matrix; trim potential null terminators and whitespace
       if (is.list(colnames_ds)) {
         colnames_ds <- unlist(colnames_ds, use.names = FALSE)
@@ -249,12 +269,16 @@ ModelArray <- function(filepath,
 
 
   ## results:
-  # first, we need to check if results group exists in this .h5 file
-  flag_results_exist <- flagResultsGroupExistInh5(filepath)
-  # message(flag_results_exist)
-  if (flag_results_exist == FALSE) {
+  if (length(analysis_names) == 0) {
+    # user did not request any analyses; do not touch /results
     results_data <- list()
   } else {
+    # user requested analyses; check if results group exists in this .h5 file
+    flag_results_exist <- flagResultsGroupExistInh5(filepath)
+    # message(flag_results_exist)
+    if (flag_results_exist == FALSE) {
+      results_data <- list()
+    } else {
     # results group exist --> to load subfolders
     results_data <- vector("list", length(analysis_names))
 
@@ -333,6 +357,7 @@ ModelArray <- function(filepath,
         # if there is no "$lut", we can remove "$results_matrix", so that results(ModelArray)
         # would look like: $<myAnalysis>, instead of $<myAnalysis>$results_matrix
       }
+    }
     }
   }
 
