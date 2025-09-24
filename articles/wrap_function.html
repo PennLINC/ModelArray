@@ -185,7 +185,7 @@ function returns the correct output. We can use a convenience function
 from <code>ModelArray</code> to see what a dataframe looks like for a
 single element.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">example_df</span> <span class="op">&lt;-</span> <span class="fu">exampleElementData</span><span class="op">(</span><span class="va">modelarray</span>, scalar <span class="op">=</span> <span class="st">"thickness"</span>, i_element <span class="op">=</span> <span class="fl">12345</span>, phenotypes <span class="op">=</span> <span class="va">phenotypes</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">example_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/exampleElementData.html">exampleElementData</a></span><span class="op">(</span><span class="va">modelarray</span>, scalar <span class="op">=</span> <span class="st">"thickness"</span>, i_element <span class="op">=</span> <span class="fl">12345</span>, phenotypes <span class="op">=</span> <span class="va">phenotypes</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">example_df</span><span class="op">)</span></span></code></pre></div>
 <p>This is a rich dataframe! It contains the cortical thickness for all
 subjects in the study at vertex 12345. It also contains the subject ID,

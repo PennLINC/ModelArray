@@ -133,6 +133,12 @@ if FALSE, it will return the list of requested statistic values.</p></dd>
 SSE is needed for calculating partial R-squared.</p></dd>
 
 
+<dt id="arg-on-error">on_error<a class="anchor" aria-label="anchor" href="#arg-on-error"></a></dt>
+<dd><p>Character: one of "stop", "skip", or "debug". When an error occurs while
+fitting one element, choose whether to stop, skip returning all-NaN values for that element,
+or drop into `browser()` (if interactive) then skip. Default: "stop".</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments for `mgcv::gam()`</p></dd>
 
