@@ -51,6 +51,10 @@ This is required when flag_initiate = TRUE.}
 If TRUE, it will return column names etc to be used for initiating data.frame;
 if FALSE, it will return the list of requested statistic values.}
 
+\item{on_error}{Character: one of "stop", "skip", or "debug". When an error occurs while
+fitting one element, choose whether to stop, skip returning all-NaN values for that element,
+or drop into `browser()` (if interactive) then skip. Default: "stop".}
+
 \item{...}{Additional arguments for `stats::lm()`}
 }
 \value{

@@ -42,6 +42,10 @@ It must match `sources(data)[[scalar]]` order and contents (reordered if needed)
 
 \item{n_cores}{Positive integer number of CPU cores}
 
+\item{on_error}{Character: one of "stop", "skip", or "debug". When an error occurs in
+the user function for an element, choose whether to stop, skip returning all-NaN values
+for that element, or drop into `browser()` (if interactive) then skip. Default: "stop".}
+
 \item{...}{Additional arguments forwarded to `FUN`}
 }
 \value{

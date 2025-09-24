@@ -1491,11 +1491,19 @@ ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL
 
   if (verbose) message(glue::glue("looping across elements...."))
 
+  # Ensure progress bars show in non-interactive sessions when requested
+  if (pbar) {
+    old_pb_opts <- pbapply::pboptions()
+    pbapply::pboptions(type = "txt")
+    on.exit(pbapply::pboptions(old_pb_opts), add = TRUE)
+  }
+
   if (n_cores > 1) {
     if (pbar) {
       fits <- pbmcapply::pbmclapply(element.subset,
         analyseOneElement.wrap,
         mc.cores = n_cores,
+        ignore.interactive = TRUE,
         user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
         num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
         flag_initiate = FALSE, on_error = on_error,

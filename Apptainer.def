@@ -1,0 +1,59 @@
+Bootstrap: docker
+From: rocker/r2u:jammy
+
+%help
+    ModelArray - an R package for statistical analysis of fixel-wise data and beyond
+
+%labels
+    org.label-schema.name "modelarray_confixel"
+    org.label-schema.description "ModelArray - an R package for statistical analysis of fixel-wise data and beyond"
+    org.label-schema.url "https://pennlinc.github.io/ModelArray/"
+    org.label-schema.vcs-url "https://github.com/PennLINC/ModelArray"
+    org.label-schema.schema-version "1.0"
+
+%environment
+    export DEBIAN_FRONTEND=noninteractive
+
+%post
+    set -e
+    apt-get update \
+        && apt-get install -y --no-install-recommends \
+            r-bioc-delayedarray \
+            r-bioc-hdf5array \
+            r-cran-broom \
+            r-cran-crayon \
+            r-cran-devtools \
+            r-cran-doparallel \
+            r-cran-dplyr \
+            r-cran-glue \
+            r-cran-gratia \
+            r-cran-hdf5r \
+            r-cran-hdf5r.extra \
+            r-cran-magrittr \
+            r-cran-mgcv \
+            r-cran-pbapply \
+            r-cran-pbmcapply \
+            r-bioc-rhdf5 \
+            r-cran-tibble \
+            r-cran-tidyr \
+            r-cran-tidyverse \
+        && apt-get clean \
+        && echo 'options(bspm.sudo = TRUE)' >> /etc/R/Rprofile.site \
+        && rm -rf /var/lib/apt/lists/*
+
+    cd /ModelArray
+    R -e 'devtools::install()'
+
+%files
+    . /ModelArray
+
+%runscript
+    echo "ModelArray container"
+    echo "R version: $(R --version | head -n 1)"
+    if [ $# -gt 0 ]; then
+        exec "$@"
+    else
+        exec R
+    fi
+
+

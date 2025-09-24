@@ -93,6 +93,10 @@ Default is 0.2.}
 
 \item{n_cores}{Positive integer, The number of CPU cores to run with}
 
+\item{on_error}{Character: one of "stop", "skip", or "debug". When an error occurs
+while fitting an element, choose whether to stop, skip returning all-NaN values for
+that element, or drop into `browser()` (if interactive) then skip. Default: "stop".}
+
 \item{...}{Additional arguments for `mgcv::gam()`}
 }
 \value{

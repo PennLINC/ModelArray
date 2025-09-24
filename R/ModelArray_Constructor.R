@@ -156,7 +156,8 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #'
 #' @param filepath file
 #' @param scalar_types expected scalars
-#' @param analysis_names the subfolder names for results in .h5 file
+#' @param analysis_names the subfolder names for results in .h5 file. If empty
+#' (default), results are not read.
 #' @return ModelArray object
 #' @export
 #' @import methods
@@ -165,7 +166,7 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @importFrom rhdf5 h5readAttributes
 ModelArray <- function(filepath,
                        scalar_types = c("FD"),
-                       analysis_names = c("myAnalysis")) {
+                       analysis_names = character(0)) {
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
   # fn.h5 <- H5File$new(filepath, mode="a")
   # open; "a": creates a new file or opens an existing one for read/write
@@ -191,8 +192,57 @@ ModelArray <- function(filepath,
       type = NA
     ) %>% DelayedArray::DelayedArray()
 
-    # load attribute "column_names", i.e. source filenames:
-    sources[[x]] <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))$column_names %>% as.character()
+    # load source filenames (column_names): prefer attribute; fallback to dataset
+    attrs <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))
+    colnames_attr <- attrs$column_names
+    if (is.null(colnames_attr)) {
+      # Fallback: attempt to read from dataset-based column names
+      # Try multiple plausible locations for compatibility across writers
+      paths_to_try <- c(
+        sprintf("scalars/%s/column_names", scalar_types[x]),
+        sprintf("scalars/%s/values/column_names", scalar_types[x]),
+        sprintf("scalars/scalars/%s/values/column_names", scalar_types[x]),
+        sprintf("scalars/scalars/%s/column_names", scalar_types[x])
+      )
+
+      colnames_ds <- NULL
+      last_error <- NULL
+      for (p in paths_to_try) {
+        tmp <- tryCatch(
+          {
+            rhdf5::h5read(filepath, p)
+          },
+          error = function(e) {
+            last_error <<- e
+            NULL
+          }
+        )
+        if (!is.null(tmp)) {
+          colnames_ds <- tmp
+          break
+        }
+      }
+      if (is.null(colnames_ds)) {
+        stop(paste0(
+          "Neither attribute 'column_names' nor a dataset with column names found. Tried: ",
+          paste(paths_to_try, collapse = ", "),
+          if (!is.null(last_error)) paste0(". Last error: ", conditionMessage(last_error)) else ""
+        ))
+      }
+      # Ensure character vector, not list/matrix; trim potential null terminators and whitespace
+      if (is.list(colnames_ds)) {
+        colnames_ds <- unlist(colnames_ds, use.names = FALSE)
+      }
+      colnames_ds <- as.vector(colnames_ds)
+      colnames_ds <- as.character(colnames_ds)
+      # Trim any trailing NULs (hex 00) and surrounding whitespace for cross-language string compatibility
+      # Use escaped hex in pattern to avoid embedding a NUL in the source code
+      colnames_ds <- gsub("[\\x00]+$", "", colnames_ds, perl = TRUE, useBytes = TRUE)
+      colnames_ds <- trimws(colnames_ds)
+      sources[[x]] <- colnames_ds
+    } else {
+      sources[[x]] <- as.character(colnames_attr)
+    }
 
     # transpose scalar_data[[x]] if needed:
     if (dim(scalar_data[[x]])[2] == length(sources[[x]])) {
@@ -220,89 +270,94 @@ ModelArray <- function(filepath,
 
 
   ## results:
-  # first, we need to check if results group exists in this .h5 file
-  flag_results_exist <- flagResultsGroupExistInh5(filepath)
-  # message(flag_results_exist)
-  if (flag_results_exist == FALSE) {
+  if (length(analysis_names) == 0) {
+    # user did not request any analyses; do not touch /results
     results_data <- list()
   } else {
-    # results group exist --> to load subfolders
-    results_data <- vector("list", length(analysis_names))
+    # user requested analyses; check if results group exists in this .h5 file
+    flag_results_exist <- flagResultsGroupExistInh5(filepath)
+    # message(flag_results_exist)
+    if (flag_results_exist == FALSE) {
+      results_data <- list()
+    } else {
+      # results group exist --> to load subfolders
+      results_data <- vector("list", length(analysis_names))
 
-    for (x in seq_along(analysis_names)) {
-      analysis_name <- analysis_names[x]
+      for (x in seq_along(analysis_names)) {
+        analysis_name <- analysis_names[x]
 
-      # we need to check if this subfolder exists in this .h5 file:
-      flag_analysis_exist <- flagAnalysisExistInh5(filepath, analysis_name = analysis_name)
-      if (flag_analysis_exist == FALSE) {
-        stop(paste0("This analysis: ", analysis_name, " does not exist..."))
-      } else {
-        # exists
-        # /results/<analysis_name>/has_names:
-        names_results_matrix <- rhdf5::h5readAttributes(filepath,
-          name = sprintf("results/%s/results_matrix", analysis_name)
-        )$colnames # after updating writeResults()
+        # we need to check if this subfolder exists in this .h5 file:
+        flag_analysis_exist <- flagAnalysisExistInh5(filepath, analysis_name = analysis_name)
+        if (flag_analysis_exist == FALSE) {
+          stop(paste0("This analysis: ", analysis_name, " does not exist..."))
+        } else {
+          # exists
+          # /results/<analysis_name>/has_names:
+          names_results_matrix <- rhdf5::h5readAttributes(filepath,
+            name = sprintf("results/%s/results_matrix", analysis_name)
+          )$colnames # after updating writeResults()
 
-        # names_results_matrix <- ModelArraySeed(filepath, name = sprintf(
-        #   "results/%s/has_names", analysis_name), type = NA) %>%
-        #   DelayedArray::DelayedArray()
-        # if (dim(names_results_matrix)[1]<dim(names_results_matrix[2]){
-        #   names_results_matrix <- t(names_results_matrix)
-        # }
+          # names_results_matrix <- ModelArraySeed(filepath, name = sprintf(
+          #   "results/%s/has_names", analysis_name), type = NA) %>%
+          #   DelayedArray::DelayedArray()
+          # if (dim(names_results_matrix)[1]<dim(names_results_matrix[2]){
+          #   names_results_matrix <- t(names_results_matrix)
+          # }
 
-        # /results/<analysis_name>/results_matrix:
-        results_data[[x]]$results_matrix <- ModelArraySeed(
-          filepath,
-          name = sprintf("results/%s/results_matrix", analysis_name),
-          type = NA
-        ) %>% DelayedArray::DelayedArray()
-
-        if (dim(results_data[[x]]$results_matrix)[2] != length(names_results_matrix)) {
-          # transpose if needed
-          results_data[[x]]$results_matrix <- t(results_data[[x]]$results_matrix)
-        }
-
-        colnames(results_data[[x]]$results_matrix) <- as.character(DelayedArray::realize(names_results_matrix)) # designate the column names
-
-
-        # /results/<analysis_name>/lut_col?:   # LOOP OVER # OF COL OF $RESULTS_MATRIX, AND SEE IF THERE IS LUT_COL
-        for (i_col in seq_along(names_results_matrix)) {
-          object_name <- paste0("lut_forcol", as.character(i_col))
-          flag_lut_exist <- flagObjectExistInh5(
+          # /results/<analysis_name>/results_matrix:
+          results_data[[x]]$results_matrix <- ModelArraySeed(
             filepath,
-            group_name = paste0("/results/", analysis_name),
-            object_name = object_name
-          )
-          if (flag_lut_exist == TRUE) {
-            lut <- ModelArraySeed(
-              filepath,
-              name = paste0("results/", analysis_name, "/", object_name),
-              type = NA
-            ) %>% DelayedArray::DelayedArray()
+            name = sprintf("results/%s/results_matrix", analysis_name),
+            type = NA
+          ) %>% DelayedArray::DelayedArray()
 
-            # results_data[[x]]$lut[[i_col]] <- lut
-
-            # turn values in results_matrix into factors |
-            # HOWEVER, this also makes the entire $results_matrix into type "character"....
-            lut <- lut %>% as.character()
-            for (j_lut in seq_along(lut)) {
-              str_lut <- lut[j_lut]
-              idx_list <- results_data[[x]]$results_matrix[, i_col] %in% c(j_lut)
-              results_data[[x]]$results_matrix[idx_list, i_col] <- lut[j_lut]
-            }
-
-            # } else {  # the lut for this column does not exist
-            #   results_data[[x]]$lut[[i_col]] <- NULL
+          if (dim(results_data[[x]]$results_matrix)[2] != length(names_results_matrix)) {
+            # transpose if needed
+            results_data[[x]]$results_matrix <- t(results_data[[x]]$results_matrix)
           }
+
+          colnames(results_data[[x]]$results_matrix) <- as.character(DelayedArray::realize(names_results_matrix)) # designate the column names
+
+
+          # /results/<analysis_name>/lut_col?:   # LOOP OVER # OF COL OF $RESULTS_MATRIX, AND SEE IF THERE IS LUT_COL
+          for (i_col in seq_along(names_results_matrix)) {
+            object_name <- paste0("lut_forcol", as.character(i_col))
+            flag_lut_exist <- flagObjectExistInh5(
+              filepath,
+              group_name = paste0("/results/", analysis_name),
+              object_name = object_name
+            )
+            if (flag_lut_exist == TRUE) {
+              lut <- ModelArraySeed(
+                filepath,
+                name = paste0("results/", analysis_name, "/", object_name),
+                type = NA
+              ) %>% DelayedArray::DelayedArray()
+
+              # results_data[[x]]$lut[[i_col]] <- lut
+
+              # turn values in results_matrix into factors |
+              # HOWEVER, this also makes the entire $results_matrix into type "character"....
+              lut <- lut %>% as.character()
+              for (j_lut in seq_along(lut)) {
+                str_lut <- lut[j_lut]
+                idx_list <- results_data[[x]]$results_matrix[, i_col] %in% c(j_lut)
+                results_data[[x]]$results_matrix[idx_list, i_col] <- lut[j_lut]
+              }
+
+              # } else {  # the lut for this column does not exist
+              #   results_data[[x]]$lut[[i_col]] <- NULL
+            }
+          }
+
+          # name the analysis:
+          names(results_data)[[x]] <- analysis_name
+
+
+          # NOTES:
+          # if there is no "$lut", we can remove "$results_matrix", so that results(ModelArray)
+          # would look like: $<myAnalysis>, instead of $<myAnalysis>$results_matrix
         }
-
-        # name the analysis:
-        names(results_data)[[x]] <- analysis_name
-
-
-        # NOTES:
-        # if there is no "$lut", we can remove "$results_matrix", so that results(ModelArray)
-        # would look like: $<myAnalysis>, instead of $<myAnalysis>$results_matrix
       }
     }
   }
