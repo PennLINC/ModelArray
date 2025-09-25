@@ -154,10 +154,15 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' Then please check if you give correct "scalar_types" - check via
 #' rhdf5::h5ls(filename_for_h5)
 #'
-#' @param filepath file
+#' @param filepath file path or backend root URI
 #' @param scalar_types expected scalars
 #' @param analysis_names the subfolder names for results in .h5 file. If empty
 #' (default), results are not read.
+#' @param backend character, storage backend to use. One of "hdf5" (default) or
+#'   "tiledb". When "tiledb", `filepath` should point to a TileDB group root
+#'   containing arrays at `scalars/<scalar>/values` (and optionally
+#'   `scalars/<scalar>/column_names`). Results loading currently requires
+#'   `backend = "hdf5"`.
 #' @return ModelArray object
 #' @export
 #' @import methods
@@ -166,7 +171,9 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @importFrom rhdf5 h5readAttributes
 ModelArray <- function(filepath,
                        scalar_types = c("FD"),
-                       analysis_names = character(0)) {
+                       analysis_names = character(0),
+                       backend = c("hdf5", "tiledb")) {
+  backend <- match.arg(backend)
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
   # fn.h5 <- H5File$new(filepath, mode="a")
   # open; "a": creates a new file or opens an existing one for read/write
@@ -185,63 +192,94 @@ ModelArray <- function(filepath,
   for (x in seq_along(scalar_types)) {
     # TODO: IT'S BETTER TO CHECK IF THIS SCALAR_TYPE EXISTS OR NOT..... - Chenying
 
-    # /scalars/<scalar_type>/values:
-    scalar_data[[x]] <- ModelArraySeed(
-      filepath,
-      name = sprintf("scalars/%s/values", scalar_types[x]),
-      type = NA
-    ) %>% DelayedArray::DelayedArray()
+    if (backend == "hdf5") {
+      # /scalars/<scalar_type>/values in HDF5:
+      scalar_data[[x]] <- ModelArraySeed(
+        filepath,
+        name = sprintf("scalars/%s/values", scalar_types[x]),
+        type = NA
+      ) %>% DelayedArray::DelayedArray()
 
-    # load source filenames (column_names): prefer attribute; fallback to dataset
-    attrs <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))
-    colnames_attr <- attrs$column_names
-    if (is.null(colnames_attr)) {
-      # Fallback: attempt to read from dataset-based column names
-      # Try multiple plausible locations for compatibility across writers
-      paths_to_try <- c(
-        sprintf("scalars/%s/column_names", scalar_types[x]),
-        sprintf("scalars/%s/values/column_names", scalar_types[x]),
-        sprintf("scalars/scalars/%s/values/column_names", scalar_types[x]),
-        sprintf("scalars/scalars/%s/column_names", scalar_types[x])
-      )
-
-      colnames_ds <- NULL
-      last_error <- NULL
-      for (p in paths_to_try) {
-        tmp <- tryCatch(
-          {
-            rhdf5::h5read(filepath, p)
-          },
-          error = function(e) {
-            last_error <<- e
-            NULL
-          }
+      # load source filenames (column_names): prefer attribute; fallback to dataset
+      attrs <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))
+      colnames_attr <- attrs$column_names
+      if (is.null(colnames_attr)) {
+        # Fallback: attempt to read from dataset-based column names
+        # Try multiple plausible locations for compatibility across writers
+        paths_to_try <- c(
+          sprintf("scalars/%s/column_names", scalar_types[x]),
+          sprintf("scalars/%s/values/column_names", scalar_types[x]),
+          sprintf("scalars/scalars/%s/values/column_names", scalar_types[x]),
+          sprintf("scalars/scalars/%s/column_names", scalar_types[x])
         )
-        if (!is.null(tmp)) {
-          colnames_ds <- tmp
-          break
+
+        colnames_ds <- NULL
+        last_error <- NULL
+        for (p in paths_to_try) {
+          tmp <- tryCatch(
+            {
+              rhdf5::h5read(filepath, p)
+            },
+            error = function(e) {
+              last_error <<- e
+              NULL
+            }
+          )
+          if (!is.null(tmp)) {
+            colnames_ds <- tmp
+            break
+          }
         }
+        if (is.null(colnames_ds)) {
+          stop(paste0(
+            "Neither attribute 'column_names' nor a dataset with column names found. Tried: ",
+            paste(paths_to_try, collapse = ", "),
+            if (!is.null(last_error)) paste0(". Last error: ", conditionMessage(last_error)) else ""
+          ))
+        }
+        # Ensure character vector, not list/matrix; trim potential null terminators and whitespace
+        if (is.list(colnames_ds)) {
+          colnames_ds <- unlist(colnames_ds, use.names = FALSE)
+        }
+        colnames_ds <- as.vector(colnames_ds)
+        colnames_ds <- as.character(colnames_ds)
+        # Trim any trailing NULs (hex 00) and surrounding whitespace for cross-language string compatibility
+        # Use escaped hex in pattern to avoid embedding a NUL in the source code
+        colnames_ds <- gsub("[\\x00]+$", "", colnames_ds, perl = TRUE, useBytes = TRUE)
+        colnames_ds <- trimws(colnames_ds)
+        sources[[x]] <- colnames_ds
+      } else {
+        sources[[x]] <- as.character(colnames_attr)
       }
-      if (is.null(colnames_ds)) {
+    } else if (backend == "tiledb") {
+      # TileDB: open dense array at scalars/<scalar>/values
+      if (!requireNamespace("TileDBArray", quietly = TRUE)) {
+        stop("backend='tiledb' requires the TileDBArray package. Please install it.")
+      }
+      values_uri <- file.path(filepath, sprintf("scalars/%s/values", scalar_types[x]))
+      scalar_data[[x]] <- TileDBArray::TileDBArray(values_uri)
+
+      # Try to read sources/column names from a sidecar TileDB array if present
+      # at scalars/<scalar>/column_names (1D)
+      cn_uri <- file.path(filepath, sprintf("scalars/%s/column_names", scalar_types[x]))
+      colnames_ds <- NULL
+      suppressWarnings({
+        try({
+          cn_arr <- TileDBArray::TileDBArray(cn_uri)
+          # realize into R vector
+          colnames_ds <- as.vector(DelayedArray::realize(cn_arr))
+        }, silent = TRUE)
+      })
+      if (!is.null(colnames_ds)) {
+        colnames_ds <- as.character(colnames_ds)
+        colnames_ds <- trimws(colnames_ds)
+        sources[[x]] <- colnames_ds
+      } else {
         stop(paste0(
-          "Neither attribute 'column_names' nor a dataset with column names found. Tried: ",
-          paste(paths_to_try, collapse = ", "),
-          if (!is.null(last_error)) paste0(". Last error: ", conditionMessage(last_error)) else ""
+          "TileDB backend requires column names at '", cn_uri, "'. ",
+          "Please write a 1D TileDB array of subject/source names or supply an HDF5 file."
         ))
       }
-      # Ensure character vector, not list/matrix; trim potential null terminators and whitespace
-      if (is.list(colnames_ds)) {
-        colnames_ds <- unlist(colnames_ds, use.names = FALSE)
-      }
-      colnames_ds <- as.vector(colnames_ds)
-      colnames_ds <- as.character(colnames_ds)
-      # Trim any trailing NULs (hex 00) and surrounding whitespace for cross-language string compatibility
-      # Use escaped hex in pattern to avoid embedding a NUL in the source code
-      colnames_ds <- gsub("[\\x00]+$", "", colnames_ds, perl = TRUE, useBytes = TRUE)
-      colnames_ds <- trimws(colnames_ds)
-      sources[[x]] <- colnames_ds
-    } else {
-      sources[[x]] <- as.character(colnames_attr)
     }
 
     # transpose scalar_data[[x]] if needed:
@@ -274,6 +312,9 @@ ModelArray <- function(filepath,
     # user did not request any analyses; do not touch /results
     results_data <- list()
   } else {
+    if (backend != "hdf5") {
+      stop("Loading 'results' is currently supported only for backend='hdf5'.")
+    }
     # user requested analyses; check if results group exists in this .h5 file
     flag_results_exist <- flagResultsGroupExistInh5(filepath)
     # message(flag_results_exist)
