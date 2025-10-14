@@ -7,6 +7,9 @@
 #' @importFrom dplyr filter
 #' @importFrom rlang .data
 flagObjectExistInh5 <- function(fn_h5, group_name = "/results", object_name = "myAnalysis") {
+  if (!requireNamespace("rhdf5", quietly = TRUE)) {
+    stop("rhdf5 is required for HDF5 operations but is not installed.")
+  }
   rhdf5::h5closeAll()
 
   h5 <- rhdf5::h5ls(fn_h5)
@@ -33,6 +36,9 @@ flagObjectExistInh5 <- function(fn_h5, group_name = "/results", object_name = "m
 #' @importFrom dplyr filter
 #' @importFrom rlang .data
 flagResultsGroupExistInh5 <- function(fn_h5) {
+  if (!requireNamespace("rhdf5", quietly = TRUE)) {
+    stop("rhdf5 is required for HDF5 operations but is not installed.")
+  }
   rhdf5::h5closeAll()
   h5 <- rhdf5::h5ls(fn_h5)
 
@@ -57,6 +63,9 @@ flagResultsGroupExistInh5 <- function(fn_h5) {
 #' @importFrom dplyr filter
 #' @importFrom rlang .data
 flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
+  if (!requireNamespace("rhdf5", quietly = TRUE)) {
+    stop("rhdf5 is required for HDF5 operations but is not installed.")
+  }
   rhdf5::h5closeAll()
   h5 <- rhdf5::h5ls(fn_h5)
 

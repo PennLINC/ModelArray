@@ -193,6 +193,13 @@ ModelArray <- function(filepath,
     # TODO: IT'S BETTER TO CHECK IF THIS SCALAR_TYPE EXISTS OR NOT..... - Chenying
 
     if (backend == "hdf5") {
+      # HDF5 dependencies must be available only when using the HDF5 backend
+      if (!requireNamespace("HDF5Array", quietly = TRUE)) {
+        stop("backend='hdf5' requires the HDF5Array package. Please install it.")
+      }
+      if (!requireNamespace("rhdf5", quietly = TRUE)) {
+        stop("backend='hdf5' requires the rhdf5 package. Please install it.")
+      }
       # /scalars/<scalar_type>/values in HDF5:
       scalar_data[[x]] <- ModelArraySeed(
         filepath,

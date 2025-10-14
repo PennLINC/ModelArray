@@ -23,26 +23,25 @@ Depends: R (>= 4.1.2)
 biocViews:
 Imports:
     DelayedArray,
-    HDF5Array,
-    TileDBArray,
     broom,
     crayon,
     doParallel,
     dplyr,
     glue,
-    hdf5r,
     magrittr,
     methods,
     mgcv,
     parallel,
     pbapply,
     pbmcapply,
-    rhdf5,
     rlang,
     tibble,
     tidyr
 RoxygenNote: 7.3.1
 Suggests:
+    HDF5Array,
+    rhdf5,
+    TileDBArray,
     rmarkdown,
     knitr,
     testthat (>= 3.0.0),
