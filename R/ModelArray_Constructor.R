@@ -292,10 +292,51 @@ ModelArray <- function(filepath,
           stop(paste0("This analysis: ", analysis_name, " does not exist..."))
         } else {
           # exists
-          # /results/<analysis_name>/has_names:
-          names_results_matrix <- rhdf5::h5readAttributes(filepath,
+          # Load column names for results: prefer attribute; fallback to dataset
+          attrs <- rhdf5::h5readAttributes(filepath,
             name = sprintf("results/%s/results_matrix", analysis_name)
-          )$colnames # after updating writeResults()
+          )
+          names_results_matrix <- attrs$colnames
+          if (is.null(names_results_matrix)) {
+            # Fallback to dataset-based column names (similar to scalar handling)
+            paths_to_try <- c(
+              sprintf("results/%s/column_names", analysis_name),
+              sprintf("results/%s/results_matrix/column_names", analysis_name)
+            )
+            colnames_ds <- NULL
+            last_error <- NULL
+            for (p in paths_to_try) {
+              tmp <- tryCatch(
+                {
+                  rhdf5::h5read(filepath, p)
+                },
+                error = function(e) {
+                  last_error <<- e
+                  NULL
+                }
+              )
+              if (!is.null(tmp)) {
+                colnames_ds <- tmp
+                break
+              }
+            }
+            if (is.null(colnames_ds)) {
+              stop(paste0(
+                "Neither attribute 'colnames' nor a dataset with column names found for results. Tried: ",
+                paste(paths_to_try, collapse = ", "),
+                if (!is.null(last_error)) paste0(". Last error: ", conditionMessage(last_error)) else ""
+              ))
+            }
+            if (is.list(colnames_ds)) {
+              colnames_ds <- unlist(colnames_ds, use.names = FALSE)
+            }
+            colnames_ds <- as.vector(colnames_ds)
+            colnames_ds <- as.character(colnames_ds)
+            # Trim trailing NULs and whitespace
+            colnames_ds <- gsub("[\\x00]+$", "", colnames_ds, perl = TRUE, useBytes = TRUE)
+            colnames_ds <- trimws(colnames_ds)
+            names_results_matrix <- colnames_ds
+          }
 
           # names_results_matrix <- ModelArraySeed(filepath, name = sprintf(
           #   "results/%s/has_names", analysis_name), type = NA) %>%
@@ -461,7 +502,60 @@ analyseOneElement.lm <- function(i_element,
 
   if (flag_sufficient == TRUE) {
     dat <- phenotypes
+    # detect scalar predictors referenced in formula
+    all_vars <- all.vars(formula)
+    lhs_name <- tryCatch(as.character(formula[[2]]), error = function(e) NULL)
+    rhs_vars <- setdiff(all_vars, lhs_name)
+    scalar_names <- names(scalars(modelarray))
+    scalar_predictors <- intersect(rhs_vars, scalar_names)
+
+    # collision check with phenotypes
+    collisions <- intersect(c(scalar, scalar_predictors), colnames(dat))
+    if (length(collisions) > 0) {
+      stop(paste0(
+        "Column name collision between phenotypes and scalar names: ",
+        paste(collisions, collapse = ", "),
+        ". Please rename or remove these columns from phenotypes before modeling."
+      ))
+    }
+
+    # attach response first
     dat[[scalar]] <- values
+
+    # attach scalar predictors with source alignment and build intersection mask
+    masks <- list(is.finite(values))
+    if (length(scalar_predictors) > 0) {
+      for (pred in scalar_predictors) {
+        pred_sources <- sources(modelarray)[[pred]]
+        phen_sources <- dat[["source_file"]]
+        if (!(all(pred_sources %in% phen_sources) && all(phen_sources %in% pred_sources))) {
+          stop(paste0(
+            "The source files for predictor scalar '", pred, "' do not match phenotypes$source_file."
+          ))
+        }
+        reorder_idx <- match(phen_sources, pred_sources)
+        pred_vals <- scalars(modelarray)[[pred]][i_element, ]
+        pred_vals <- pred_vals[reorder_idx]
+        dat[[pred]] <- pred_vals
+        masks[[length(masks) + 1L]] <- is.finite(pred_vals)
+      }
+    }
+
+    # intersection-based threshold
+    valid_mask <- Reduce("&", masks)
+    num.subj.valid <- sum(valid_mask)
+    if (!(num.subj.valid > num.subj.lthr)) {
+      if (flag_initiate == TRUE) {
+        toreturn <- list(column_names = NaN, list.terms = NaN)
+        return(toreturn)
+      } else {
+        onerow <- c(
+          i_element - 1,
+          rep(NaN, (num.stat.output - 1))
+        )
+        return(onerow)
+      }
+    }
 
     # dots <- list(...)
     # dots_names <- names(dots)
@@ -720,7 +814,65 @@ analyseOneElement.gam <- function(i_element,
 
   if (flag_sufficient == TRUE) {
     dat <- phenotypes
+    # detect scalar predictors referenced in formula
+    all_vars <- all.vars(formula)
+    lhs_name <- tryCatch(as.character(formula[[2]]), error = function(e) NULL)
+    rhs_vars <- setdiff(all_vars, lhs_name)
+    scalar_names <- names(scalars(modelarray))
+    scalar_predictors <- intersect(rhs_vars, scalar_names)
+
+    # collision check with phenotypes
+    collisions <- intersect(c(scalar, scalar_predictors), colnames(dat))
+    if (length(collisions) > 0) {
+      stop(paste0(
+        "Column name collision between phenotypes and scalar names: ",
+        paste(collisions, collapse = ", "),
+        ". Please rename or remove these columns from phenotypes before modeling."
+      ))
+    }
+
+    # attach response first
     dat[[scalar]] <- values
+
+    # attach scalar predictors with source alignment and build intersection mask
+    masks <- list(is.finite(values))
+    if (length(scalar_predictors) > 0) {
+      for (pred in scalar_predictors) {
+        pred_sources <- sources(modelarray)[[pred]]
+        phen_sources <- dat[["source_file"]]
+        if (!(all(pred_sources %in% phen_sources) && all(phen_sources %in% pred_sources))) {
+          stop(paste0(
+            "The source files for predictor scalar '", pred, "' do not match phenotypes$source_file."
+          ))
+        }
+        reorder_idx <- match(phen_sources, pred_sources)
+        pred_vals <- scalars(modelarray)[[pred]][i_element, ]
+        pred_vals <- pred_vals[reorder_idx]
+        dat[[pred]] <- pred_vals
+        masks[[length(masks) + 1L]] <- is.finite(pred_vals)
+      }
+    }
+
+    # intersection-based threshold
+    valid_mask <- Reduce("&", masks)
+    num.subj.valid <- sum(valid_mask)
+    if (!(num.subj.valid > num.subj.lthr)) {
+      if (flag_initiate == TRUE) {
+        toreturn <- list(
+          column_names = NaN,
+          list.smoothTerms = NaN,
+          list.parametricTerms = NaN,
+          sp.criterion.attr.name = NaN
+        )
+        return(toreturn)
+      } else {
+        onerow <- c(
+          i_element - 1,
+          rep(NaN, (num.stat.output - 1))
+        )
+        return(onerow)
+      }
+    }
 
     arguments <- list(...)
     arguments$formula <- formula
@@ -1074,7 +1226,45 @@ analyseOneElement.wrap <- function(i_element,
 
   if (flag_sufficient == TRUE) {
     dat <- phenotypes
-    dat[[scalar]] <- values
+    # attach all scalars with alignment and collision checks
+    scalar_names <- names(scalars(modelarray))
+    collisions <- intersect(scalar_names, colnames(dat))
+    if (length(collisions) > 0) {
+      stop(paste0(
+        "Column name collision between phenotypes and scalar names: ",
+        paste(collisions, collapse = ", "),
+        ". Please rename or remove these columns from phenotypes before wrapping."
+      ))
+    }
+
+    masks <- list()
+    phen_sources <- dat[["source_file"]]
+    for (sname in scalar_names) {
+      s_sources <- sources(modelarray)[[sname]]
+      if (!(all(s_sources %in% phen_sources) && all(phen_sources %in% s_sources))) {
+        stop(paste0(
+          "The source files for scalar '", sname, "' do not match phenotypes$source_file."
+        ))
+      }
+      reorder_idx <- match(phen_sources, s_sources)
+      s_vals <- scalars(modelarray)[[sname]][i_element, ]
+      s_vals <- s_vals[reorder_idx]
+      dat[[sname]] <- s_vals
+      masks[[length(masks) + 1L]] <- is.finite(s_vals)
+    }
+
+    # intersection-based threshold across all scalars
+    valid_mask <- Reduce("&", masks)
+    num.subj.valid <- sum(valid_mask)
+    if (!(num.subj.valid > num.subj.lthr)) {
+      if (flag_initiate == TRUE) {
+        toreturn <- list(column_names = NaN)
+        return(toreturn)
+      } else {
+        onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+        return(onerow)
+      }
+    }
 
     arguments <- list(...)
     arguments$data <- dat
@@ -1262,9 +1452,9 @@ writeResults <- function(fn.output,
     results.analysis.grp[["results_matrix"]] <- as.matrix(df.output)
     # results_matrix_ds <- results.analysis.grp[["results_matrix"]]   # name it
 
-    # attach column names:
-    hdf5r::h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)
-    # NOTES: update ConFixel correspondingly
+    # write column names as a dataset to avoid attribute size limits
+    results.analysis.grp[["column_names"]] <- as.character(colnames(df.output))
+    # NOTES: keep dataset-based names similar to scalar input handling
   }
 
   # # return:   # will not work if fn.output.h5$close_all()
