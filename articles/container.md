@@ -1,0 +1,105 @@
+# Getting started with containers
+
+## Preface
+
+Target audience: Any user who wants to use a container to run
+`ModelArray` and/or `ConFixel`
+
+What is covered on this page? How to use the container image of
+`ModelArray + ConFixel`.
+
+What is not covered on this page? Step by step details on how to run
+`ModelArray` and `ConFixel`. For a full walkthrough on how to use our
+software, please refer to
+[`vignette("walkthrough")`](https://pennlinc.github.io/ModelArray/articles/walkthrough.md).
+We highly suggest reviewing that page if you’re new to `ModelArray`.
+
+## Introduction
+
+Besides running `ModelArray` and `ConFixel` on a local computer, users
+also have an option to run them on High Performance Computing (HPC)
+clusters. When using HPC clusters, users may not have full privilege to
+install all the dependent packages. Therefore, we provide the option to
+download our software as a container image that includes
+`ModelArray + ConFixel`.
+
+Our container image is publicly available at [Docker
+Hub](https://hub.docker.com/r/pennlinc/modelarray_confixel). Although
+HPC clusters do not usually support `docker` commands, this container
+image can be run with `singularity` commands, which are usually
+available on HPC clusters (see below for details).
+
+## Using singularity to run on HPC clusters
+
+Prerequisite: Singularity is installed on your cluster. If not, please
+contact your cluster’s administrator.
+
+### Pull the container from Docker Hub
+
+We first pull the container from Docker Hub using the `singularity pull`
+command as follows:
+
+``` console
+singularity pull docker://pennlinc/modelarray_confixel:<tagName>
+```
+
+You will replace `<tagName>` with the actual tag, e.g., `0.1.2`, or
+`latest`. You should see a singularity image (`.sif`) in current
+directory: `modelarray_confixel_<tagName>.sif`
+
+After pulling, let’s make sure you can `singularity run` the image:
+
+``` console
+singularity run --cleanenv \
+    modelarray_confixel_<tagName>.sif \
+    R
+```
+
+You should now be inside an R environment with the capability to load
+the `ModelArray` R package as you would in RStudio:
+[`library(ModelArray)`](https://pennlinc.github.io/ModelArray).
+
+This is also the way to interactively use this container image to run R,
+but please make sure you mount necessary directories with `-B` - see
+below for explanations.
+
+### How to run the container?
+
+``` console
+singularity run --cleanenv -B /directory/of/your/data \
+  /path/to/singularity/image/modelarray_confixel_<tagName>.sif \
+  <command you want to run>
+```
+
+Here:
+
+`-B /directory/of/your/data` allows you to mount the data directory so
+that `singularity` can read and write data inside it. If your data
+exists inside your current working directory, you might do `-B $PWD`;
+
+`/path/to/singularity/image/modelarray_confixel_<tagName>.sif` is the
+full path to the singularity image (`.sif`) you pulled;
+
+`ModelArray` and `ConFixel` are both included in this container. To run
+`ConFixel`, simply replace `<command you want to run>` with `ConFixel`
+commands (e.g., `confixel`).
+
+To run `ModelArray`, you may first save the R commands into an R script,
+then replace `<command you want to run>` with
+`Rscript /path/to/your/Rscript`. Make sure this Rscript has been mounted
+(`-B`), too, e.g., If it’s not in the directory
+`/directory/of/your/data`, please do:
+`-B /directory/of/your/data,/directory/of/Rscript`. See
+[here](https://singularity-userdoc.readthedocs.io/en/latest/bind_paths_and_mounts.html)
+for more on how to mount multiple directories.
+
+You might submit this command `singularity run` as a job running on the
+cluster compute node.
+
+## More information?
+
+We have provided a detailed example walkthrough of `ModelArray` and
+`ConFixel` at:
+[`vignette("walkthrough")`](https://pennlinc.github.io/ModelArray/articles/walkthrough.md).
+Please refer to this page for a tutorial on how to use `ModelArray` and
+`ConFixel`.
