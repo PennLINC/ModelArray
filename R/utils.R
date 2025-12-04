@@ -489,3 +489,97 @@ bind_cols_check_emptyTibble <- function(a, b) {
 
   c
 }
+
+
+# Internal helpers for multi-scalar validation/alignment
+# These are intentionally lightweight and operate on vectors/indices to avoid data copies.
+# @noRd
+.validate_formula_response <- function(formula, scalar) {
+  lhs_name <- tryCatch(as.character(formula[[2]]), error = function(e) NULL)
+  if (is.null(lhs_name) || lhs_name != scalar) {
+    stop(paste0(
+      "The formula's response variable ('",
+      if (is.null(lhs_name)) "<unknown>" else lhs_name,
+      "') must match the 'scalar' argument ('", scalar, "')."
+    ))
+  }
+  invisible(TRUE)
+}
+
+# @noRd
+.validate_element_subset <- function(data, scalar, element.subset) {
+  if (min(element.subset) < 1) {
+    stop("Minimal value in element.subset should >= 1")
+  }
+  if (max(element.subset) > nrow(scalars(data)[[scalar]])) {
+    stop(paste0(
+      "Maximal value in element.subset should <= number of elements = ",
+      as.character(nrow(scalars(data)[[scalar]]))
+    ))
+  }
+  if (class(element.subset) != "integer") {
+    stop("Please enter integers for element.subset!")
+  }
+  invisible(TRUE)
+}
+
+# context: one of "modeling" or "wrapping" to preserve exact wording
+# used_scalars: character vector of scalar names referenced (response and/or predictors)
+# @noRd
+.check_name_collisions <- function(phenotypes, scalar_names, used_scalars, context = "modeling") {
+  collisions <- intersect(used_scalars, colnames(phenotypes))
+  if (length(collisions) > 0) {
+    tail_msg <- if (identical(context, "wrapping")) "before wrapping." else "before modeling."
+    stop(paste0(
+      "Column name collision between phenotypes and scalar names: ",
+      paste(collisions, collapse = ", "),
+      ". Please rename or remove these columns from phenotypes ", tail_msg
+    ))
+  }
+  invisible(TRUE)
+}
+
+# Returns reordered phenotypes (may be identical) or errors with existing messages
+# @noRd
+.align_phenotypes_to_sources_or_error <- function(model_sources, phenotypes, scalar) {
+  sources.phenotypes <- phenotypes[["source_file"]]
+  if (is.null(sources.phenotypes)) {
+    stop(paste0("Did not find column 'source_file' in argument 'phenotypes'. Please check!"))
+  }
+  if (length(model_sources) != length(sources.phenotypes)) {
+    stop(paste0(
+      "The length of source file list from phenotypes's column 'source_file' ",
+      "is not the same as that in ModelArray 'data'! Please check out! ",
+      "The latter one can be accessed by: sources(data)[[scalar]]"
+    ))
+  }
+  if (length(model_sources) != length(unique(model_sources))) {
+    stop(paste0(
+      "The source files in ModelArray 'data' are not unique! Please check out! ",
+      "It can be accessed by: sources(data)[[scalar]]"
+    ))
+  }
+  if (length(sources.phenotypes) != length(unique(sources.phenotypes))) {
+    stop(paste0(
+      "The source files from phenotypes's column 'source_file' ",
+      "are not unique! Please check out and remove the duplicated one!"
+    ))
+  }
+  if (identical(model_sources, sources.phenotypes)) {
+    return(phenotypes)
+  }
+  if ((all(model_sources %in% sources.phenotypes)) && (all(sources.phenotypes %in% model_sources))) {
+    reorder_idx <- match(model_sources, sources.phenotypes)
+    phenotypes <- phenotypes[reorder_idx, ]
+    row.names(phenotypes) <- NULL
+    if (!identical(phenotypes[["source_file"]], model_sources)) {
+      stop("matching source file names were not successful...")
+    }
+    return(phenotypes)
+  }
+  stop(paste0(
+    "phenotypes's column 'source_file' have different element(s) from source file list",
+    " in ModelArray 'data'! Please check out! ",
+    "The latter one can be accessed by: sources(data)[[scalar]]"
+  ))
+}

@@ -348,6 +348,57 @@ test_that("test that ModelArray.gam() works as expected", {
   # if there is any NA in the output data.frame, the result is FALSE
   expect_true((!mygam_onlyParametricTermsStat %>% is.na()) %>% all())
   expect_true((!mygam_onlySmoothTermsStat %>% is.na()) %>% all())
+  # Multi-scalar: scalar predictors referenced in formula
+  set.seed(42)
+  num_elements <- 2L
+  num_subj <- nrow(phenotypes)
+  subj <- phenotypes$source_file
+  MD <- matrix(rnorm(num_elements * num_subj), nrow = num_elements, ncol = num_subj)
+  FA <- matrix(NA_real_, nrow = num_elements, ncol = num_subj)
+  for (i in seq_len(num_elements)) {
+    FA[i, ] <- 0.5 * MD[i, ] + 0.02 * phenotypes$age + rnorm(num_subj, sd = 0.02)
+  }
+  ma_ms <- methods::new(
+    "ModelArray",
+    scalars = list(FA = FA, MD = MD),
+    sources = list(FA = subj, MD = subj),
+    results = list(),
+    path = ""
+  )
+  res_ms <- ModelArray.gam(
+    FA ~ s(MD) + s(age),
+    data = ma_ms,
+    phenotypes = phenotypes,
+    scalar = "FA",
+    element.subset = as.integer(1:num_elements),
+    num.subj.lthr.abs = 2L, num.subj.lthr.rel = 0,
+    verbose = FALSE, pbar = FALSE
+  )
+  expect_true(is.data.frame(res_ms))
+  expect_true(any(grepl("s_MD", colnames(res_ms), fixed = TRUE)))
+
+  # Predictor scalar sources mismatch against phenotypes$source_file
+  subj_bad <- subj
+  subj_bad[1] <- paste0(subj_bad[1], "_bad")
+  ma_ms_bad <- methods::new(
+    "ModelArray",
+    scalars = list(FA = FA, MD = MD),
+    sources = list(FA = subj, MD = subj_bad),
+    results = list(),
+    path = ""
+  )
+  expect_error(
+    ModelArray.gam(
+      FA ~ s(MD) + s(age),
+      data = ma_ms_bad,
+      phenotypes = phenotypes,
+      scalar = "FA",
+      element.subset = as.integer(1:num_elements),
+      num.subj.lthr.abs = 2L, num.subj.lthr.rel = 0,
+      verbose = FALSE, pbar = FALSE
+    ),
+    regexp = "The source files for predictor scalar 'MD' do not match phenotypes\\$source_file\\."
+  )
 
   # no any model stat:
   expect_error(ModelArray.gam(FD ~ s(age) + sex,
@@ -356,6 +407,21 @@ test_that("test that ModelArray.gam() works as expected", {
     n_cores = 2,
     pbar = FALSE
   ))
+
+  # Collision: add MD column to phenotypes
+  phen_bad <- phenotypes
+  phen_bad$MD <- 1
+  expect_error(
+    ModelArray.gam(
+      FA ~ s(MD) + s(age),
+      data = ma_ms,
+      phenotypes = phen_bad,
+      scalar = "FA",
+      element.subset = as.integer(1),
+      verbose = FALSE, pbar = FALSE
+    ),
+    regexp = "Column name collision between phenotypes and scalar names:"
+  )
 
 
   ## multiple smooth terms: s(age) + s(factorA)   # cannot use s(sex) as sex are

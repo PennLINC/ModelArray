@@ -421,6 +421,70 @@ test_that("ModelArray.lm() works as expected", {
     !(c("model.p.value.fdr") %in% colnames(mylm_corr_pvalues_4)) %>% all()
   )
 
+  # Multi-scalar: support scalar predictors and collisions
+  # Build a tiny in-memory ModelArray with two scalars (FA, MD) using existing phenotypes
+  set.seed(123)
+  num_elements <- 3L
+  num_subj <- nrow(phenotypes)
+  subj <- phenotypes$source_file
+  MD <- matrix(rnorm(num_elements * num_subj), nrow = num_elements, ncol = num_subj)
+  FA <- matrix(NA_real_, nrow = num_elements, ncol = num_subj)
+  for (i in seq_len(num_elements)) {
+    FA[i, ] <- 0.6 * MD[i, ] + 0.05 * phenotypes$age + 0.2 * phenotypes$sex + rnorm(num_subj, sd = 0.05)
+  }
+
+  ma2 <- methods::new(
+    "ModelArray",
+    scalars = list(FA = FA, MD = MD),
+    sources = list(FA = subj, MD = subj),
+    results = list(),
+    path = ""
+  )
+
+  res_ms <- ModelArray.lm(
+    FA ~ MD + age + sex,
+    data = ma2,
+    phenotypes = phenotypes,
+    scalar = "FA",
+    element.subset = as.integer(1:2),
+    num.subj.lthr.abs = 2L, num.subj.lthr.rel = 0,
+    verbose = FALSE, pbar = FALSE
+  )
+  expect_true(is.data.frame(res_ms))
+  expect_true(any(grepl("MD\\.", colnames(res_ms))))
+
+  # Collision: add MD column to phenotypes
+  phen_bad <- phenotypes
+  phen_bad$MD <- 1
+  expect_error(
+    ModelArray.lm(FA ~ MD + age, data = ma2, phenotypes = phen_bad, scalar = "FA",
+                  element.subset = as.integer(1), verbose = FALSE, pbar = FALSE),
+    regexp = "Column name collision"
+  )
+
+  # Predictor scalar sources mismatch against phenotypes$source_file
+  subj_bad <- subj
+  subj_bad[1] <- paste0(subj_bad[1], "_bad")
+  ma2_bad <- methods::new(
+    "ModelArray",
+    scalars = list(FA = FA, MD = MD),
+    sources = list(FA = subj, MD = subj_bad),
+    results = list(),
+    path = ""
+  )
+  expect_error(
+    ModelArray.lm(
+      FA ~ MD + age,
+      data = ma2_bad,
+      phenotypes = phenotypes,
+      scalar = "FA",
+      element.subset = as.integer(1:2),
+      verbose = FALSE,
+      pbar = FALSE
+    ),
+    regexp = "The source files for predictor scalar 'MD' do not match phenotypes\\$source_file\\."
+  )
+
   # Test warning when p.value not provided in var.terms
   expect_warning(
     temp <- ModelArray.lm(

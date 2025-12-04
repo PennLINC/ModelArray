@@ -22,6 +22,10 @@ computed as part of the Reproducible Brain Charts project.
 We'll develop a function that computes the mean cortical thickness within each site,
 and then use `ModelArray.wrap` to run it across elements.
 
+If you are looking for examples that attach and use multiple scalars (e.g., referencing one scalar as a predictor for another, or exposing all scalars in a wrapped function), also see the companion vignette:
+
+- Using Multiple Scalars in ModelArray (multi_scalars.Rmd)
+
 
 ## Step 1. Prepare your data
 

@@ -94,99 +94,26 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
     stop("data's class is not ModelArray!")
   }
 
+  # Validate that the formula's response matches the requested scalar
+  .validate_formula_response(formula, scalar)
+
+  # Early collision check: referenced scalar predictors vs phenotypes columns
+  all_vars <- all.vars(formula)
+  lhs_name <- tryCatch(as.character(formula[[2]]), error = function(e) NULL)
+  rhs_vars <- setdiff(all_vars, lhs_name)
+  scalar_names <- names(scalars(data))
+  scalar_predictors <- intersect(rhs_vars, scalar_names)
+  .check_name_collisions(phenotypes, scalar_names, c(scalar, scalar_predictors), context = "modeling")
+
   ## element.subset:
   if (is.null(element.subset)) { # request all elements
     num.element.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
     element.subset <- 1:num.element.total
   }
-  # checker for min and max of element.subset; and whether elements are integer
-  if (min(element.subset) < 1) {
-    stop("Minimal value in element.subset should >= 1")
-  }
-  if (max(element.subset) > nrow(scalars(data)[[scalar]])) {
-    stop(
-      paste0(
-        "Maximal value in element.subset should <= number of elements = ",
-        as.character(nrow(scalars(data)[[scalar]]))
-      )
-    )
-  }
-  if (class(element.subset) != "integer") {
-    stop("Please enter integers for element.subset!")
-  }
+  .validate_element_subset(data, scalar, element.subset)
 
-  ### sanity check: whether they match: modelarray's source file list and phenotypes' source file list:
-  sources.modelarray <- sources(data)[[scalar]]
-  sources.phenotypes <- phenotypes[["source_file"]]
-  if (is.null(sources.phenotypes)) {
-    stop(paste0("Did not find column 'source_file' in argument 'phenotypes'. Please check!"))
-  }
-
-  ## length should be the same:
-  if (length(sources.modelarray) != length(sources.phenotypes)) {
-    stop(
-      paste0(
-        "The length of source file list from phenotypes's column 'source_file' ",
-        "is not the same as that in ModelArray 'data'! Please check out! ",
-        "The latter one can be accessed by: sources(data)[[scalar]]"
-      )
-    )
-  }
-
-  ## check if the list is unique:
-  if (length(sources.modelarray) != length(unique(sources.modelarray))) {
-    stop(
-      paste0(
-        "The source files in ModelArray 'data' are not unique! Please check out! ",
-        "It can be accessed by: sources(data)[[scalar]]"
-      )
-    )
-  }
-  if (length(sources.phenotypes) != length(unique(sources.phenotypes))) {
-    stop(
-      paste0(
-        "The source files from phenotypes's column 'source_file' ",
-        "are not unique! Please check out and remove the duplicated one!"
-      )
-    )
-  }
-
-  if (identical(sources.modelarray, sources.phenotypes)) {
-    # identical, pass
-  } else { # not identical (but length is the same):
-    # check if two lists can be matched (i.e. no unmatched source filename)
-    if ((all(sources.modelarray %in% sources.phenotypes)) && ((all(sources.phenotypes %in% sources.modelarray)))) {
-      # can be matched, just the order is different. Use match() function:
-      reorder_idx <- match(
-        sources.modelarray, # vector of values in the order we want
-        sources.phenotypes
-      ) # vector to be reordered
-      # apply to phenotypes:
-      phenotypes <- phenotypes[reorder_idx, ]
-      # reset the row name, just to be safe for later adding scalar values...
-      # see ModelArray_paper/notebooks/test_match_sourceFiles.Rmd
-      row.names(phenotypes) <- NULL
-      if (!identical(phenotypes[["source_file"]], sources.modelarray)) {
-        stop("matching source file names were not successful...")
-      }
-    } else {
-      stop(
-        paste0(
-          "phenotypes's column 'source_file' have different element(s) from source file list",
-          " in ModelArray 'data'! Please check out! ",
-          "The latter one can be accessed by: sources(data)[[scalar]]"
-        )
-      )
-    }
-
-    # stop(
-    #   paste0(
-    #     "The source file list from phenotypes's column 'source_file' is not identical to that in ModelArray 'data'! ",
-    #     "Please check out! ",
-    #     "The latter one can be accessed by: sources(data)[[scalar]] "
-    #   )
-    # )
-  }
+  ### sanity check and alignment of phenotypes to sources
+  phenotypes <- .align_phenotypes_to_sources_or_error(sources(data)[[scalar]], phenotypes, scalar)
 
 
 
@@ -683,26 +610,23 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     stop("data's class is not ModelArray!")
   }
 
+  # Validate that the formula's response matches the requested scalar
+  .validate_formula_response(formula, scalar)
+
+  # Early collision check: referenced scalar predictors vs phenotypes columns
+  all_vars <- all.vars(formula)
+  lhs_name <- tryCatch(as.character(formula[[2]]), error = function(e) NULL)
+  rhs_vars <- setdiff(all_vars, lhs_name)
+  scalar_names <- names(scalars(data))
+  scalar_predictors <- intersect(rhs_vars, scalar_names)
+  .check_name_collisions(phenotypes, scalar_names, c(scalar, scalar_predictors), context = "modeling")
+
   ## element.subset:
   if (is.null(element.subset)) { # request all elements
     num.element.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
     element.subset <- 1:num.element.total
   }
-  # checker for min and max of element.subset; and whether elements are integer
-  if (min(element.subset) < 1) {
-    stop("Minimal value in element.subset should >= 1")
-  }
-  if (max(element.subset) > nrow(scalars(data)[[scalar]])) {
-    stop(
-      paste0(
-        "Maximal value in element.subset should <= number of elements = ",
-        as.character(nrow(scalars(data)[[scalar]]))
-      )
-    )
-  }
-  if (class(element.subset) != "integer") {
-    stop("Please enter integers for element.subset!")
-  }
+  .validate_element_subset(data, scalar, element.subset)
 
   # check if the formula is valid in terms of mgcv::gam()
   tryCatch(
@@ -729,78 +653,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   checker_gam_formula(formula, gam.formula.breakdown)
 
 
-  ### sanity check: whether they match: modelarray's source file list and phenotypes' source file list:
-  sources.modelarray <- sources(data)[[scalar]]
-  sources.phenotypes <- phenotypes[["source_file"]]
-  if (is.null(sources.phenotypes)) {
-    stop(paste0("Did not find column 'source_file' in argument 'phenotypes'. Please check!"))
-  }
-
-  ## length should be the same:
-  if (length(sources.modelarray) != length(sources.phenotypes)) {
-    stop(
-      paste0(
-        "The length of source file list from phenotypes's column 'source_file'",
-        " is not the same as that in ModelArray 'data'! Please check out! ",
-        "The latter one can be accessed by: sources(data)[[scalar]]"
-      )
-    )
-  }
-
-  ## check if the list is unique:
-  if (length(sources.modelarray) != length(unique(sources.modelarray))) {
-    stop(
-      paste0(
-        "The source files in ModelArray 'data' are not unique! Please check out!",
-        " It can be accessed by: sources(data)[[scalar]]"
-      )
-    )
-  }
-  if (length(sources.phenotypes) != length(unique(sources.phenotypes))) {
-    stop(
-      paste0(
-        "The source files from phenotypes's column 'source_file' are not unique! ",
-        "Please check out and remove the duplicated one!"
-      )
-    )
-  }
-
-  if (identical(sources.modelarray, sources.phenotypes)) {
-    # identical, pass
-  } else { # not identical (but length is the same):
-    # check if two lists can be matched (i.e. no unmatched source filename)
-    if ((all(sources.modelarray %in% sources.phenotypes)) && ((all(sources.phenotypes %in% sources.modelarray)))) {
-      # can be matched, just the order is different. Use match() function:
-      reorder_idx <- match(
-        sources.modelarray, # vector of values in the order we want
-        sources.phenotypes
-      ) # vector to be reordered
-      # apply to phenotypes:
-      phenotypes <- phenotypes[reorder_idx, ]
-      row.names(phenotypes) <- NULL
-      # reset the row name, just to be safe for later adding scalar values...
-      # see ModelArray_paper/notebooks/test_match_sourceFiles.Rmd
-      if (!identical(phenotypes[["source_file"]], sources.modelarray)) {
-        stop("matching source file names were not successful...")
-      }
-    } else {
-      stop(
-        paste0(
-          "phenotypes's column 'source_file' have different element(s) from source file ",
-          "list in ModelArray 'data'! Please check out! The latter one can be accessed by: ",
-          "sources(data)[[scalar]]"
-        )
-      )
-    }
-
-    # stop(
-    #   paste0(
-    #     "The source file list from phenotypes's column 'source_file' is not identical ",
-    #     "to that in ModelArray 'data'! Please check out! The latter one can be accessed by: ",
-    #     "sources(data)[[scalar]] "
-    #   )
-    # )
-  }
+  ### sanity check and alignment of phenotypes to sources
+  phenotypes <- .align_phenotypes_to_sources_or_error(sources(data)[[scalar]], phenotypes, scalar)
 
 
 
