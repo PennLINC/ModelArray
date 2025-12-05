@@ -1317,6 +1317,11 @@ writeResults <- function(fn.output,
 
   if (backend == "hdf5") {
   fn.output.h5 <- hdf5r::H5File$new(fn.output, mode = "a")
+    on.exit({
+      if (!is.null(fn.output.h5)) {
+        try(fn.output.h5$close_all(), silent = TRUE)
+      }
+    }, add = TRUE)
   # open; "a": creates a new file or opens an existing one for read/write
 
   # check if group "results" already exists!
@@ -1359,8 +1364,6 @@ writeResults <- function(fn.output,
       # attach column names:
       hdf5r::h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)
     }
-
-    fn.output.h5$close_all()
   } else if (backend == "tiledb") {
     if (!requireNamespace("tiledb", quietly = TRUE)) {
       stop("backend='tiledb' requires the tiledb package. Please install it.")
