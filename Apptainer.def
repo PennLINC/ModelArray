@@ -40,6 +40,7 @@ From: rocker/r2u:jammy
             r-cran-tibble \
             r-cran-tidyr \
             r-cran-tidyverse \
+            r-cran-tiledb \
         && apt-get clean \
         && echo 'options(bspm.sudo = TRUE)' >> /etc/R/Rprofile.site \
         && rm -rf /var/lib/apt/lists/* \
