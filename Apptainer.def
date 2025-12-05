@@ -50,6 +50,9 @@ From: rocker/r2u:jammy
     mkdir -p /root
     echo 'options(bspm.sudo = TRUE)' >> /root/.Rprofile
 
+    # Install TileDBArray from Bioconductor (not available as r-bioc- package)
+    R -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager"); BiocManager::install("TileDBArray", update = FALSE, ask = FALSE)'
+
     cd /ModelArray
     R -e 'devtools::install()'
 
