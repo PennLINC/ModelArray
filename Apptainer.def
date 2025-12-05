@@ -18,6 +18,9 @@ From: rocker/r2u:jammy
     set -e
     apt-get update \
         && apt-get install -y --no-install-recommends \
+            less \
+            python3 \
+            python3-pip \
             r-bioc-delayedarray \
             r-bioc-hdf5array \
             r-cran-broom \
@@ -37,9 +40,18 @@ From: rocker/r2u:jammy
             r-cran-tibble \
             r-cran-tidyr \
             r-cran-tidyverse \
+            r-cran-tiledb \
         && apt-get clean \
         && echo 'options(bspm.sudo = TRUE)' >> /etc/R/Rprofile.site \
-        && rm -rf /var/lib/apt/lists/*
+        && rm -rf /var/lib/apt/lists/* \
+        && pip3 install radian
+
+    # Create .Rprofile in root home to silence bspm warning
+    mkdir -p /root
+    echo 'options(bspm.sudo = TRUE)' >> /root/.Rprofile
+
+    # Install TileDBArray from Bioconductor (not available as r-bioc- package)
+    R -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager"); BiocManager::install("TileDBArray", update = FALSE, ask = FALSE)'
 
     cd /ModelArray
     R -e 'devtools::install()'
@@ -53,7 +65,7 @@ From: rocker/r2u:jammy
     if [ $# -gt 0 ]; then
         exec "$@"
     else
-        exec R
+        exec radian
     fi
 
 
