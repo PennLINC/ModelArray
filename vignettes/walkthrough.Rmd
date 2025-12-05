@@ -464,3 +464,27 @@ You may change the view by clicking "View" in the upper panel. Below is an examp
 ![An example view](mrview_results_lm_demo_FDC_n100.PNG)
 
 </center>
+
+## Optional: store phenotypes inside TileDB
+
+If you are using the TileDB backend, you can package the cohort phenotypes alongside the scalar/results arrays. This keeps everything self-contained and avoids shipping a separate CSV. We provide two helpers:
+
+```r
+# write phenotypes into <tiledb_root>/phenotypes (dense array, one attr per column)
+writePhenotypesTileDB(
+  uri_root = "/path/to/tiledb_root",
+  phenotypes = phen_df,         # data.frame; rows must align to scalars' column_names order
+  overwrite = FALSE
+)
+
+# read them back later
+phen_from_tdb <- readPhenotypesTileDB(
+  uri_root = "/path/to/tiledb_root"
+)
+```
+
+Notes:
+
+- The row order must match the subject order used in `ModelArray()` (i.e., the same order as `scalars/<scalar>/column_names`). If your CSV differs, reorder it first.
+- Mixed datatypes are supported (numeric, integer, logical, character, factor, Date, POSIXct). Factors are stored as strings with their original levels preserved; Dates are stored as days since epoch; POSIXct as seconds (time zone preserved when available).
+- Data are written under `phenotypes/` with sidecar arrays for column classes/levels/time zones. Overwrite only when you intend to replace existing phenotypes.

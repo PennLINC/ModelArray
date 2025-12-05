@@ -83,6 +83,61 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
 }
 
 
+#' check if TileDB results group exists at the root URI
+#' @param uri_root TileDB group root URI
+#' @noRd
+flagResultsGroupExistInTileDB <- function(uri_root) {
+  if (!requireNamespace("tiledb", quietly = TRUE)) {
+    stop("tiledb is required for TileDB operations but is not installed.")
+  }
+
+  type <- tryCatch(
+    tiledb::tiledb_object_type(file.path(uri_root, "results")),
+    error = function(e) NA_character_
+  )
+
+  identical(type, "GROUP")
+}
+
+
+#' check if a TileDB analysis group exists under results
+#' @param uri_root TileDB group root URI
+#' @param analysis_name Name of the analysis group
+#' @noRd
+flagAnalysisExistInTileDB <- function(uri_root, analysis_name) {
+  if (!requireNamespace("tiledb", quietly = TRUE)) {
+    stop("tiledb is required for TileDB operations but is not installed.")
+  }
+
+  type <- tryCatch(
+    tiledb::tiledb_object_type(file.path(uri_root, "results", analysis_name)),
+    error = function(e) NA_character_
+  )
+
+  identical(type, "GROUP")
+}
+
+
+#' check if a TileDB array/object exists under a group
+#' @param uri_root TileDB group root URI
+#' @param group_path Relative path from root to the group containing the object
+#' @param object_name Object (array) name
+#' @noRd
+flagObjectExistInTileDB <- function(uri_root, group_path, object_name) {
+  if (!requireNamespace("tiledb", quietly = TRUE)) {
+    stop("tiledb is required for TileDB operations but is not installed.")
+  }
+
+  uri <- file.path(uri_root, group_path, object_name)
+  type <- tryCatch(
+    tiledb::tiledb_object_type(uri),
+    error = function(e) NA_character_
+  )
+
+  identical(type, "ARRAY")
+}
+
+
 #' print the additional arguments settings
 #' @param FUN The function, e.g. mgcv::gam, without "()"
 #' @param argu_name The argument name of the function

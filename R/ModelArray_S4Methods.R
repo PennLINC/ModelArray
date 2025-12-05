@@ -137,10 +137,10 @@ setGeneric("exampleElementData", function(x, ...) standardGeneric("exampleElemen
 #' per-element data that `ModelArray.wrap` passes to user functions (`data = dat`).
 #'
 #' @param x An ModelArray object
-#' @param scalar A character. The name of the element-wise scalar to append
+#' @param scalar A character vector. One or more element-wise scalar names to append
 #' @param i_element An integer, the i_th element (1-based)
 #' @param phenotypes A data.frame of the cohort with independent variables/covariates
-#' @return A data.frame with the additional response column named by `scalar`
+#' @return A data.frame with additional response column(s) named by `scalar`
 #' @examples
 #' \dontrun{
 #' h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
@@ -157,16 +157,58 @@ setMethod(
     if (!is.data.frame(phenotypes)) {
       stop("phenotypes must be a data.frame")
     }
-    if (!(scalar %in% names(scalars(x)))) {
-      stop("scalar not found in modelarray; use one of names(scalars(x))")
+    if (length(scalar) < 1L) {
+      stop("scalar must contain at least one scalar name")
     }
-    num_elements <- nrow(scalars(x)[[scalar]])
+    missing_scalars <- setdiff(scalar, names(scalars(x)))
+    if (length(missing_scalars) > 0) {
+      stop(paste0(
+        "scalar not found in modelarray: ",
+        paste(missing_scalars, collapse = ", "),
+        "; use one of names(scalars(x))"
+      ))
+    }
+
+    num_elements <- nrow(scalars(x)[[scalar[[1]]]])
     if (length(i_element) != 1L || is.na(i_element) || i_element < 1L || i_element > num_elements) {
       stop("i_element is out of range")
     }
 
-    dat <- phenotypes
-    dat[[scalar]] <- scalars(x)[[scalar]][i_element, ]
+    # If phenotypes is in long format (one row per scalar), subset to a single scalar
+    if ("scalar_name" %in% colnames(phenotypes) && length(unique(phenotypes$scalar_name)) > 1) {
+      dat <- subset(phenotypes, scalar_name == scalar[[1]])
+    } else {
+      dat <- phenotypes
+    }
+
+    # Align / validate source ordering against the ModelArray sources
+    src_modelarray <- sources(x)[[scalar[[1]]]]
+    src_pheno <- dat[["source_file"]]
+    if (is.null(src_pheno)) {
+      stop("phenotypes must contain a 'source_file' column for alignment")
+    }
+    if (length(src_modelarray) != length(src_pheno)) {
+      stop("Length of phenotypes$source_file does not match ModelArray sources")
+    }
+    if (length(src_modelarray) != length(unique(src_modelarray))) {
+      stop("ModelArray sources are not unique; cannot align phenotypes")
+    }
+    if (length(src_pheno) != length(unique(src_pheno))) {
+      stop("phenotypes$source_file entries are not unique; cannot align")
+    }
+    if (!identical(src_modelarray, src_pheno)) {
+      if ((all(src_modelarray %in% src_pheno)) && (all(src_pheno %in% src_modelarray))) {
+        reorder_idx <- match(src_modelarray, src_pheno)
+        dat <- dat[reorder_idx, , drop = FALSE]
+        row.names(dat) <- NULL
+      } else {
+        stop("phenotypes$source_file entries differ from ModelArray sources; cannot align")
+      }
+    }
+
+    for (s in scalar) {
+      dat[[s]] <- scalars(x)[[s]][i_element, ]
+    }
     dat
   }
 )

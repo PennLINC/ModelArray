@@ -162,7 +162,8 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #'   "tiledb". When "tiledb", `filepath` should point to a TileDB group root
 #'   containing arrays at `scalars/<scalar>/values` (and optionally
 #'   `scalars/<scalar>/column_names`). Results loading currently requires
-#'   `backend = "hdf5"`.
+#'   matching TileDB arrays at `results/<analysis>/results_matrix` and
+#'   `results/<analysis>/column_names`.
 #' @return ModelArray object
 #' @export
 #' @import methods
@@ -264,7 +265,21 @@ ModelArray <- function(filepath,
         stop("backend='tiledb' requires the TileDBArray package. Please install it.")
       }
       values_uri <- file.path(filepath, sprintf("scalars/%s/values", scalar_types[x]))
-      scalar_data[[x]] <- TileDBArray::TileDBArray(values_uri)
+      # TileDBArray::TileDBArray() returns a DelayedArray directly
+      scalar_data[[x]] <- tryCatch(
+        {
+          TileDBArray::TileDBArray(values_uri)
+        },
+        error = function(e) {
+          stop(paste0(
+            "Error loading TileDB array at '", values_uri, "': ",
+            conditionMessage(e),
+            "\nThis may indicate a type mismatch in the TileDB array schema. ",
+            "The array should have float32 or float64 attribute values with int64 dimensions. ",
+            "Check the array schema using: tiledb::tiledb_array_schema_load(values_uri)"
+          ))
+        }
+      )
 
       # Try to read sources/column names from a sidecar TileDB array if present
       # at scalars/<scalar>/column_names (1D)
@@ -319,12 +334,9 @@ ModelArray <- function(filepath,
     # user did not request any analyses; do not touch /results
     results_data <- list()
   } else {
-    if (backend != "hdf5") {
-      stop("Loading 'results' is currently supported only for backend='hdf5'.")
-    }
+    if (backend == "hdf5") {
     # user requested analyses; check if results group exists in this .h5 file
     flag_results_exist <- flagResultsGroupExistInh5(filepath)
-    # message(flag_results_exist)
     if (flag_results_exist == FALSE) {
       results_data <- list()
     } else {
@@ -339,20 +351,10 @@ ModelArray <- function(filepath,
         if (flag_analysis_exist == FALSE) {
           stop(paste0("This analysis: ", analysis_name, " does not exist..."))
         } else {
-          # exists
-          # /results/<analysis_name>/has_names:
           names_results_matrix <- rhdf5::h5readAttributes(filepath,
             name = sprintf("results/%s/results_matrix", analysis_name)
           )$colnames # after updating writeResults()
 
-          # names_results_matrix <- ModelArraySeed(filepath, name = sprintf(
-          #   "results/%s/has_names", analysis_name), type = NA) %>%
-          #   DelayedArray::DelayedArray()
-          # if (dim(names_results_matrix)[1]<dim(names_results_matrix[2]){
-          #   names_results_matrix <- t(names_results_matrix)
-          # }
-
-          # /results/<analysis_name>/results_matrix:
           results_data[[x]]$results_matrix <- ModelArraySeed(
             filepath,
             name = sprintf("results/%s/results_matrix", analysis_name),
@@ -366,8 +368,6 @@ ModelArray <- function(filepath,
 
           colnames(results_data[[x]]$results_matrix) <- as.character(DelayedArray::realize(names_results_matrix)) # designate the column names
 
-
-          # /results/<analysis_name>/lut_col?:   # LOOP OVER # OF COL OF $RESULTS_MATRIX, AND SEE IF THERE IS LUT_COL
           for (i_col in seq_along(names_results_matrix)) {
             object_name <- paste0("lut_forcol", as.character(i_col))
             flag_lut_exist <- flagObjectExistInh5(
@@ -382,29 +382,78 @@ ModelArray <- function(filepath,
                 type = NA
               ) %>% DelayedArray::DelayedArray()
 
-              # results_data[[x]]$lut[[i_col]] <- lut
-
-              # turn values in results_matrix into factors |
-              # HOWEVER, this also makes the entire $results_matrix into type "character"....
               lut <- lut %>% as.character()
               for (j_lut in seq_along(lut)) {
                 str_lut <- lut[j_lut]
                 idx_list <- results_data[[x]]$results_matrix[, i_col] %in% c(j_lut)
                 results_data[[x]]$results_matrix[idx_list, i_col] <- lut[j_lut]
               }
-
-              # } else {  # the lut for this column does not exist
-              #   results_data[[x]]$lut[[i_col]] <- NULL
             }
           }
 
           # name the analysis:
           names(results_data)[[x]] <- analysis_name
+          }
+        }
+      }
+    } else if (backend == "tiledb") {
+      if (!requireNamespace("TileDBArray", quietly = TRUE)) {
+        stop("backend='tiledb' requires the TileDBArray package. Please install it.")
+      }
+      if (!requireNamespace("tiledb", quietly = TRUE)) {
+        stop("backend='tiledb' requires the tiledb package. Please install it.")
+      }
 
+      flag_results_exist <- flagResultsGroupExistInTileDB(filepath)
+      if (flag_results_exist == FALSE) {
+        results_data <- list()
+      } else {
+        results_data <- vector("list", length(analysis_names))
 
-          # NOTES:
-          # if there is no "$lut", we can remove "$results_matrix", so that results(ModelArray)
-          # would look like: $<myAnalysis>, instead of $<myAnalysis>$results_matrix
+        for (x in seq_along(analysis_names)) {
+          analysis_name <- analysis_names[x]
+          flag_analysis_exist <- flagAnalysisExistInTileDB(filepath, analysis_name = analysis_name)
+          if (flag_analysis_exist == FALSE) {
+            stop(paste0("This analysis: ", analysis_name, " does not exist..."))
+          }
+
+          names_results_matrix <- TileDBArray::TileDBArray(
+            file.path(filepath, sprintf("results/%s/column_names", analysis_name))
+          ) %>%
+            DelayedArray::realize() %>%
+            as.character()
+
+          results_matrix_uri <- file.path(filepath, sprintf("results/%s/results_matrix", analysis_name))
+          results_data[[x]]$results_matrix <- TileDBArray::TileDBArray(results_matrix_uri)
+
+          if (dim(results_data[[x]]$results_matrix)[2] != length(names_results_matrix)) {
+            results_data[[x]]$results_matrix <- t(results_data[[x]]$results_matrix)
+          }
+
+          colnames(results_data[[x]]$results_matrix) <- names_results_matrix
+
+          for (i_col in seq_along(names_results_matrix)) {
+            object_name <- paste0("lut_forcol", as.character(i_col))
+            flag_lut_exist <- flagObjectExistInTileDB(
+              filepath,
+              group_path = file.path("results", analysis_name),
+              object_name = object_name
+            )
+            if (flag_lut_exist == TRUE) {
+              lut_uri <- file.path(filepath, "results", analysis_name, object_name)
+              lut <- TileDBArray::TileDBArray(lut_uri) %>%
+                DelayedArray::realize() %>%
+                as.character()
+
+              for (j_lut in seq_along(lut)) {
+                str_lut <- lut[j_lut]
+                idx_list <- results_data[[x]]$results_matrix[, i_col] %in% c(j_lut)
+                results_data[[x]]$results_matrix[idx_list, i_col] <- lut[j_lut]
+              }
+            }
+          }
+
+          names(results_data)[[x]] <- analysis_name
         }
       }
     }
@@ -1228,12 +1277,15 @@ analyseOneElement.wrap <- function(i_element,
 #' @param analysis_name A character, the name of the results
 #' @param overwrite If a group with the same analysis_name exists in HDF5 file,
 #' whether overwrite it (TRUE) or not (FALSE)
+#' @param backend Storage backend to use ("hdf5" or "tiledb"). Default: "hdf5".
 #' @import hdf5r
 #' @export
 writeResults <- function(fn.output,
                          df.output,
                          analysis_name = "myAnalysis",
-                         overwrite = TRUE) {
+                         overwrite = TRUE,
+                         backend = c("hdf5", "tiledb")) {
+  backend <- match.arg(backend)
   # This is enhanced version with: 1) change to hdf5r; 2) write results with only one row for one element
 
   # check "df.output"
@@ -1241,6 +1293,29 @@ writeResults <- function(fn.output,
     stop("Results dataset is not correct; must be data of type `data.frame`")
   }
 
+  # normalize column types: cast non-numeric columns to numeric and capture LUTs
+  lut_values <- vector("list", ncol(df.output))
+  for (i_col in seq_len(ncol(df.output))) {
+    col_class <- as.character(sapply(df.output, class)[i_col])
+    if (!col_class %in% c("numeric", "integer")) {
+      message(
+        paste0(
+          "the column #",
+          as.character(i_col),
+          " of df.output to save: ",
+          "data class is not numeric or integer...fixing it"
+        )
+      )
+      factors <- df.output %>%
+        pull(., var = i_col) %>%
+        factor()
+      df.output[, i_col] <- factors %>%
+        as.numeric()
+      lut_values[[i_col]] <- levels(factors)
+    }
+  }
+
+  if (backend == "hdf5") {
   fn.output.h5 <- hdf5r::H5File$new(fn.output, mode = "a")
   # open; "a": creates a new file or opens an existing one for read/write
 
@@ -1256,7 +1331,6 @@ writeResults <- function(fn.output,
   if (results.grp$exists(analysis_name) == TRUE &&
     overwrite == FALSE) {
     warning(paste0(analysis_name, " exists but not to overwrite!"))
-    # TODO: add checker for exisiting analysis_name, esp the matrix size
     results.analysis.grp <- results.grp$open(analysis_name)
     results_matrix_ds <- results.analysis.grp[["results_matrix"]]
   } else {
@@ -1265,64 +1339,277 @@ writeResults <- function(fn.output,
       overwrite == TRUE) {
       # delete existing one first
       results.grp$link_delete(analysis_name)
-      # NOTE: the file size will not shrink after your deletion..
-      # this is because of HDF5, regardless of package of hdf5r or rhdf5
-      # TODO: add a garbage collector after saving the results
     }
 
     # create:
     results.analysis.grp <- results.grp$create_group(analysis_name)
     # create a subgroup called analysis_name under results.grp
 
-    # check "df.output": make sure all columns are floats (i.e. numeric)
-    for (i_col in seq(1, ncol(df.output), by = 1)) {
-      # for each column of df.output
-      col_class <- as.character(sapply(df.output, class)[i_col]) # class of this column
-
-      if ((col_class != "numeric") &&
-        (col_class != "integer")) {
-        # the column class is not numeric or integer
-        message(
-          paste0(
-            "the column #",
-            as.character(i_col),
-            " of df.output to save: ",
-            "data class is not numeric or integer...fixing it"
-          )
-        )
-
-        # turn into numeric && write the notes in .h5 file...:
-        factors <- df.output %>%
-          pull(., var = i_col) %>%
-          factor()
-        df.output[, i_col] <- df.output %>%
-          pull(., var = i_col) %>%
-          factor() %>%
-          as.numeric(.) # change into numeric of 1,2,3....
-
-        # write a LUT for this column:
-        results.analysis.grp[[paste0("lut_forcol", as.character(i_col))]] <- levels(factors)
-        # save lut to .h5/results/<myAnalysis>/lut_col<?>
+      # write LUTs for non-numeric columns
+      for (i_col in seq_len(ncol(df.output))) {
+        lut <- lut_values[[i_col]]
+        if (!is.null(lut)) {
+          results.analysis.grp[[paste0("lut_forcol", as.character(i_col))]] <- lut
+        }
       }
+
+      # save:
+      results.analysis.grp[["results_matrix"]] <- as.matrix(df.output)
+
+      # attach column names:
+      hdf5r::h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)
     }
 
-    # save:
-    results.analysis.grp[["results_matrix"]] <- as.matrix(df.output)
-    # results_matrix_ds <- results.analysis.grp[["results_matrix"]]   # name it
+    fn.output.h5$close_all()
+  } else if (backend == "tiledb") {
+    if (!requireNamespace("tiledb", quietly = TRUE)) {
+      stop("backend='tiledb' requires the tiledb package. Please install it.")
+    }
 
-    # attach column names:
-    hdf5r::h5attr(results.analysis.grp[["results_matrix"]], "colnames") <- colnames(df.output)
-    # NOTES: update ConFixel correspondingly
+    results_uri <- file.path(fn.output, "results")
+    analysis_uri <- file.path(results_uri, analysis_name)
+
+    results_type <- tryCatch(tiledb::tiledb_object_type(results_uri), error = function(e) "NOT_TILEDB")
+    if (results_type == "NOT_TILEDB") {
+      tiledb::tiledb_group_create(results_uri)
+    }
+
+    analysis_type <- tryCatch(tiledb::tiledb_object_type(analysis_uri), error = function(e) "NOT_TILEDB")
+    if (analysis_type != "NOT_TILEDB") {
+      if (overwrite == FALSE) {
+        warning(paste0(analysis_name, " exists but not to overwrite!"))
+        return(invisible(NULL))
+      } else {
+        tiledb::tiledb_object_remove(analysis_uri)
+      }
+    }
+    tiledb::tiledb_group_create(analysis_uri)
+
+    # results matrix array
+    nr <- nrow(df.output)
+    nc <- ncol(df.output)
+    dom <- tiledb::tiledb_domain(list(
+      tiledb::tiledb_dim("row", domain = c(0L, as.integer(nr - 1)), tile = max(1L, min(nr, 1024L)), type = "INT64"),
+      tiledb::tiledb_dim("col", domain = c(0L, as.integer(nc - 1)), tile = max(1L, min(nc, 1024L)), type = "INT64")
+    ))
+    attr <- tiledb::tiledb_attr("values", type = "FLOAT64")
+    schema <- tiledb::tiledb_array_schema(dom, attrs = list(attr), sparse = FALSE)
+    results_matrix_uri <- file.path(analysis_uri, "results_matrix")
+    tiledb::tiledb_array_create(results_matrix_uri, schema)
+    arr <- tiledb::tiledb_array(results_matrix_uri, query_type = "WRITE")
+    arr[] <- as.matrix(df.output)
+
+    # column names array
+    dom_cn <- tiledb::tiledb_domain(list(
+      tiledb::tiledb_dim("idx", domain = c(0L, as.integer(nc - 1)), tile = max(1L, min(nc, 1024L)), type = "INT64")
+    ))
+    attr_cn <- tiledb::tiledb_attr("names", type = "UTF8")
+    schema_cn <- tiledb::tiledb_array_schema(dom_cn, attrs = list(attr_cn), sparse = FALSE)
+    cn_uri <- file.path(analysis_uri, "column_names")
+    tiledb::tiledb_array_create(cn_uri, schema_cn)
+    cn_arr <- tiledb::tiledb_array(cn_uri, query_type = "WRITE")
+    cn_arr[] <- colnames(df.output)
+
+    # LUT arrays for non-numeric columns
+    for (i_col in seq_len(ncol(df.output))) {
+      lut <- lut_values[[i_col]]
+      if (is.null(lut)) next
+      lut_uri <- file.path(analysis_uri, paste0("lut_forcol", as.character(i_col)))
+      dom_lut <- tiledb::tiledb_domain(list(
+        tiledb::tiledb_dim("idx", domain = c(1L, as.integer(length(lut))), tile = max(1L, min(length(lut), 1024L)), type = "INT64")
+      ))
+      attr_lut <- tiledb::tiledb_attr("values", type = "UTF8")
+      schema_lut <- tiledb::tiledb_array_schema(dom_lut, attrs = list(attr_lut), sparse = FALSE)
+      tiledb::tiledb_array_create(lut_uri, schema_lut)
+      lut_arr <- tiledb::tiledb_array(lut_uri, query_type = "WRITE")
+      lut_arr[] <- lut
+    }
+  }
+}
+
+
+#' Write phenotypes data.frame to a TileDB group
+#'
+#' @description
+#' Store a mixed-type phenotypes data.frame inside a TileDB group so it can be
+#' colocated with scalar/result arrays. The data are written as a dense array at
+#' `<uri_root>/<group_name>/data` with one attribute per column, plus sidecar
+#' arrays for column classes, factor levels, and POSIXct time zones.
+#'
+#' @param uri_root TileDB group root to write into (same root as ModelArray scalars/results).
+#' @param phenotypes data.frame to persist; rows should be ordered to match scalar column order.
+#' @param group_name Subgroup name under `uri_root` (default: "phenotypes").
+#' @param overwrite Whether to remove any existing phenotypes group before writing.
+#' @export
+writePhenotypesTileDB <- function(uri_root,
+                                  phenotypes,
+                                  group_name = "phenotypes",
+                                  overwrite = FALSE) {
+  if (!requireNamespace("tiledb", quietly = TRUE)) {
+    stop("backend='tiledb' requires the tiledb package. Please install it.")
+  }
+  if (!is.data.frame(phenotypes)) {
+    stop("phenotypes must be a data.frame")
   }
 
-  # # return:   # will not work if fn.output.h5$close_all()
-  # output_list <- list(results.grp = results.grp,
-  #                     results.analysis.grp = results.analysis.grp,
-  #                     results_matrix_ds = results_matrix_ds)
-  # return(output_list)
+  phen_uri <- file.path(uri_root, group_name)
+  existing_type <- tryCatch(
+    tiledb::tiledb_object_type(phen_uri),
+    error = function(e) "NOT_TILEDB"
+  )
+  if (existing_type != "NOT_TILEDB") {
+    if (!overwrite) {
+      stop(paste0("Phenotypes group already exists at ", phen_uri, "; set overwrite=TRUE to replace it."))
+    }
+    tiledb::tiledb_object_remove(phen_uri)
+  }
+  tiledb::tiledb_group_create(phen_uri)
 
-  fn.output.h5$close_all()
+  n_rows <- nrow(phenotypes)
+  n_cols <- ncol(phenotypes)
+  tile_rows <- max(1L, min(n_rows, 1024L))
+  dom <- tiledb::tiledb_domain(list(
+    tiledb::tiledb_dim("row",
+      domain = c(0L, as.integer(max(n_rows - 1, 0))),
+      tile = tile_rows,
+      type = "INT64"
+    )
+  ))
+
+  attrs <- vector("list", n_cols)
+  data_to_write <- list()
+  col_classes <- character(n_cols)
+  col_levels <- character(n_cols)
+  col_tz <- character(n_cols)
+
+  for (i in seq_len(n_cols)) {
+    colname <- colnames(phenotypes)[i]
+    col <- phenotypes[[i]]
+    col_classes[i] <- paste(class(col), collapse = "|")
+    col_levels[i] <- ""
+    col_tz[i] <- ""
+
+    if (inherits(col, "Date")) {
+      attrs[[i]] <- tiledb::tiledb_attr(colname, type = "INT64")
+      data_to_write[[colname]] <- as.integer(col)
+    } else if (inherits(col, "POSIXct")) {
+      attrs[[i]] <- tiledb::tiledb_attr(colname, type = "FLOAT64")
+      data_to_write[[colname]] <- as.numeric(col)
+      tz_val <- attr(col, "tzone")
+      if (!is.null(tz_val)) {
+        col_tz[i] <- paste(tz_val, collapse = "|")
+      }
+    } else if (is.factor(col)) {
+      attrs[[i]] <- tiledb::tiledb_attr(colname, type = "UTF8")
+      data_to_write[[colname]] <- as.character(col)
+      col_levels[i] <- paste(levels(col), collapse = "||")
+    } else if (is.logical(col)) {
+      attrs[[i]] <- tiledb::tiledb_attr(colname, type = "INT8")
+      data_to_write[[colname]] <- as.integer(col)
+    } else if (is.integer(col)) {
+      attrs[[i]] <- tiledb::tiledb_attr(colname, type = "INT64")
+      data_to_write[[colname]] <- as.integer(col)
+    } else if (is.numeric(col)) {
+      attrs[[i]] <- tiledb::tiledb_attr(colname, type = "FLOAT64")
+      data_to_write[[colname]] <- as.numeric(col)
+    } else if (is.character(col)) {
+      attrs[[i]] <- tiledb::tiledb_attr(colname, type = "UTF8")
+      data_to_write[[colname]] <- as.character(col)
+    } else {
+      stop(paste0("Column ", colname, " has unsupported class: ", paste(class(col), collapse = ", ")))
+    }
+  }
+
+  schema <- tiledb::tiledb_array_schema(dom, attrs = attrs, sparse = FALSE)
+  data_uri <- file.path(phen_uri, "data")
+  tiledb::tiledb_array_create(data_uri, schema)
+  arr <- tiledb::tiledb_array(data_uri, query_type = "WRITE")
+  arr[] <- as.data.frame(data_to_write, optional = TRUE)
+
+  write_string_vector_array <- function(vec, uri) {
+    dom_vec <- tiledb::tiledb_domain(list(
+      tiledb::tiledb_dim("idx",
+        domain = c(0L, as.integer(max(length(vec) - 1, 0))),
+        tile = max(1L, min(length(vec), 1024L)),
+        type = "INT64"
+      )
+    ))
+    attr_vec <- tiledb::tiledb_attr("values", type = "UTF8")
+    schema_vec <- tiledb::tiledb_array_schema(dom_vec, attrs = list(attr_vec), sparse = FALSE)
+    tiledb::tiledb_array_create(uri, schema_vec)
+    arr_vec <- tiledb::tiledb_array(uri, query_type = "WRITE")
+    arr_vec[] <- vec
+  }
+
+  write_string_vector_array(colnames(phenotypes), file.path(phen_uri, "column_names"))
+  write_string_vector_array(col_classes, file.path(phen_uri, "column_classes"))
+  write_string_vector_array(col_levels, file.path(phen_uri, "column_levels"))
+  write_string_vector_array(col_tz, file.path(phen_uri, "column_tz"))
+
+  invisible(NULL)
+}
 
 
-  # message("Results file written!")
+#' Read phenotypes previously stored in TileDB
+#'
+#' @param uri_root TileDB group root containing phenotypes.
+#' @param group_name Subgroup name where phenotypes were written (default: "phenotypes").
+#' @export
+readPhenotypesTileDB <- function(uri_root, group_name = "phenotypes") {
+  if (!requireNamespace("tiledb", quietly = TRUE)) {
+    stop("backend='tiledb' requires the tiledb package. Please install it.")
+  }
+
+  phen_uri <- file.path(uri_root, group_name)
+  data_uri <- file.path(phen_uri, "data")
+
+  arr <- tiledb::tiledb_array(data_uri, query_type = "READ", return_as = "data.frame")
+  df <- arr[]
+  if ("row" %in% colnames(df)) {
+    df[["row"]] <- NULL
+  }
+
+  read_string_vector_array <- function(uri) {
+    arr_vec <- tiledb::tiledb_array(uri, query_type = "READ", return_as = "data.frame")
+    vals <- arr_vec[]$values
+    vals
+  }
+
+  col_classes <- read_string_vector_array(file.path(phen_uri, "column_classes"))
+  col_levels <- read_string_vector_array(file.path(phen_uri, "column_levels"))
+  col_tz <- read_string_vector_array(file.path(phen_uri, "column_tz"))
+
+  for (i in seq_along(df)) {
+    colname <- colnames(df)[i]
+    classes_str <- col_classes[i]
+    classes <- if (!is.na(classes_str) && nzchar(classes_str)) strsplit(classes_str, "\\|")[[1]] else character(0)
+
+    if ("factor" %in% classes) {
+      levs_str <- col_levels[i]
+      levs <- if (!is.na(levs_str) && nzchar(levs_str)) strsplit(levs_str, "\\|\\|")[[1]] else unique(df[[i]])
+      df[[i]] <- factor(df[[i]], levels = levs)
+    } else if ("logical" %in% classes) {
+      df[[i]] <- as.logical(df[[i]])
+    } else if ("integer" %in% classes) {
+      df[[i]] <- as.integer(df[[i]])
+    } else if ("Date" %in% classes) {
+      df[[i]] <- structure(as.integer(df[[i]]), class = "Date")
+    } else if ("POSIXct" %in% classes) {
+      tz <- col_tz[i]
+      tz <- if (!is.na(tz) && nzchar(tz)) strsplit(tz, "\\|")[[1]][1] else "UTC"
+      df[[i]] <- as.POSIXct(df[[i]], origin = "1970-01-01", tz = tz)
+    } else if ("character" %in% classes) {
+      df[[i]] <- as.character(df[[i]])
+    } else {
+      # default: keep as-is (numeric)
+      df[[i]] <- as.numeric(df[[i]])
+    }
+
+    # Restore ordered factor if present in class string
+    if ("ordered" %in% classes && inherits(df[[i]], "factor")) {
+      df[[i]] <- factor(df[[i]], levels = levels(df[[i]]), ordered = TRUE)
+    }
+  }
+
+  df
 }
