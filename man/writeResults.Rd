@@ -8,7 +8,12 @@ writeResults(
   fn.output,
   df.output,
   analysis_name = "myAnalysis",
-  overwrite = TRUE
+  overwrite = TRUE,
+  reentry = FALSE,
+  reentry_scalar_name = NULL,
+  reentry_col = NULL,
+  reentry_ref_scalar = NULL,
+  reentry_overwrite = TRUE
 )
 }
 \arguments{
@@ -20,6 +25,25 @@ writeResults(
 
 \item{overwrite}{If a group with the same analysis_name exists in HDF5 file,
 whether overwrite it (TRUE) or not (FALSE)}
+
+\item{reentry}{Logical. If TRUE, also write a scalar-style dataset under
+`/scalars/<reentry_scalar_name>` so outputs can be loaded back via `ModelArray()`.
+Default: FALSE.}
+
+\item{reentry_scalar_name}{Character scalar name to use for reentry output under
+`/scalars`. If NULL and `reentry=TRUE`, defaults to `paste0(analysis_name, "_reentry")`.}
+
+\item{reentry_col}{Character. Optional single result column in `df.output` to write
+as the reentry scalar values. If NULL, reentry auto-selects:
+1) all non-`element_id` columns when they match source count, or
+2) the single non-`element_id` column when only one exists.}
+
+\item{reentry_ref_scalar}{Character. Optional existing scalar name under `/scalars`
+to use as the reentry reference for output dimensions and source ordering. If NULL,
+the first scalar group is used.}
+
+\item{reentry_overwrite}{Logical. If TRUE and reentry scalar group exists, overwrite it.
+If FALSE, error when the target reentry scalar already exists.}
 }
 \description{
 Create a group named `analysis_name` in HDF5 file,
@@ -28,4 +52,12 @@ then write the statistical results data.frame (i.e. for one analysis) in it.
 \details{
 debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)",
 check if there is message 'No such file or directory'. Try absolute .h5 filename.
+
+Reentry mode expects `df.output` to contain an `element_id` column (0-based), which is
+mapped back to scalar row indices (`element_id + 1` in R indexing). Rows not present in
+`df.output` are filled with `NaN` in the reentry scalar matrix.
+
+Column names metadata are written in both canonical and legacy forms for compatibility:
+- dataset: `/scalars/<reentry_scalar_name>/column_names`
+- attributes on `/scalars/<reentry_scalar_name>/values`: `column_names` and `colnames`
 }
