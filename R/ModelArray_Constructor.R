@@ -196,6 +196,10 @@ ModelArray <- function(filepath,
     attrs <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))
     colnames_attr <- attrs$column_names
     if (is.null(colnames_attr)) {
+      # Backward-compatibility fallback for older writers
+      colnames_attr <- attrs$colnames
+    }
+    if (is.null(colnames_attr)) {
       # Fallback: attempt to read from dataset-based column names
       # Try multiple plausible locations for compatibility across writers
       paths_to_try <- c(
@@ -296,7 +300,11 @@ ModelArray <- function(filepath,
           attrs <- rhdf5::h5readAttributes(filepath,
             name = sprintf("results/%s/results_matrix", analysis_name)
           )
-          names_results_matrix <- attrs$colnames
+          names_results_matrix <- attrs$column_names
+          if (is.null(names_results_matrix)) {
+            # Backward-compatibility fallback for older writers
+            names_results_matrix <- attrs$colnames
+          }
           if (is.null(names_results_matrix)) {
             # Fallback to dataset-based column names (similar to scalar handling)
             paths_to_try <- c(
@@ -357,7 +365,14 @@ ModelArray <- function(filepath,
             results_data[[x]]$results_matrix <- t(results_data[[x]]$results_matrix)
           }
 
-          colnames(results_data[[x]]$results_matrix) <- as.character(DelayedArray::realize(names_results_matrix)) # designate the column names
+          if (inherits(names_results_matrix, "DelayedArray")) {
+            names_results_matrix <- DelayedArray::realize(names_results_matrix)
+          }
+          names_results_matrix <- as.vector(names_results_matrix)
+          names_results_matrix <- as.character(names_results_matrix)
+          names_results_matrix <- gsub("[\\x00]+$", "", names_results_matrix, perl = TRUE, useBytes = TRUE)
+          names_results_matrix <- trimws(names_results_matrix)
+          colnames(results_data[[x]]$results_matrix) <- names_results_matrix # designate the column names
 
 
           # /results/<analysis_name>/lut_col?:   # LOOP OVER # OF COL OF $RESULTS_MATRIX, AND SEE IF THERE IS LUT_COL
@@ -1370,12 +1385,40 @@ analyseOneElement.wrap <- function(i_element,
 #' @param analysis_name A character, the name of the results
 #' @param overwrite If a group with the same analysis_name exists in HDF5 file,
 #' whether overwrite it (TRUE) or not (FALSE)
+#' @param reentry Logical. If TRUE, also write a scalar-style dataset under
+#' `/scalars/<reentry_scalar_name>` so outputs can be loaded back via `ModelArray()`.
+#' Default: FALSE.
+#' @param reentry_scalar_name Character scalar name to use for reentry output under
+#' `/scalars`. If NULL and `reentry=TRUE`, defaults to `paste0(analysis_name, "_reentry")`.
+#' @param reentry_col Character. Optional single result column in `df.output` to write
+#' as the reentry scalar values. If NULL, reentry auto-selects:
+#' 1) all non-`element_id` columns when they match source count, or
+#' 2) the single non-`element_id` column when only one exists.
+#' @param reentry_ref_scalar Character. Optional existing scalar name under `/scalars`
+#' to use as the reentry reference for output dimensions and source ordering. If NULL,
+#' the first scalar group is used.
+#' @param reentry_overwrite Logical. If TRUE and reentry scalar group exists, overwrite it.
+#' If FALSE, error when the target reentry scalar already exists.
+#'
+#' @details
+#' Reentry mode expects `df.output` to contain an `element_id` column (0-based), which is
+#' mapped back to scalar row indices (`element_id + 1` in R indexing). Rows not present in
+#' `df.output` are filled with `NaN` in the reentry scalar matrix.
+#'
+#' Column names metadata are written in both canonical and legacy forms for compatibility:
+#' - dataset: `/scalars/<reentry_scalar_name>/column_names`
+#' - attributes on `/scalars/<reentry_scalar_name>/values`: `column_names` and `colnames`
 #' @import hdf5r
 #' @export
 writeResults <- function(fn.output,
                          df.output,
                          analysis_name = "myAnalysis",
-                         overwrite = TRUE) {
+                         overwrite = TRUE,
+                         reentry = FALSE,
+                         reentry_scalar_name = NULL,
+                         reentry_col = NULL,
+                         reentry_ref_scalar = NULL,
+                         reentry_overwrite = TRUE) {
   # This is enhanced version with: 1) change to hdf5r; 2) write results with only one row for one element
 
   # check "df.output"
@@ -1462,6 +1505,151 @@ writeResults <- function(fn.output,
   #                     results.analysis.grp = results.analysis.grp,
   #                     results_matrix_ds = results_matrix_ds)
   # return(output_list)
+
+  if (isTRUE(reentry)) {
+    if (is.null(reentry_scalar_name)) {
+      reentry_scalar_name <- paste0(analysis_name, "_reentry")
+    }
+    if (!("element_id" %in% colnames(df.output))) {
+      stop("reentry=TRUE requires df.output to include column 'element_id'")
+    }
+
+    # guard against ambiguous mappings caused by duplicate result column names
+    if (anyDuplicated(colnames(df.output)) > 0) {
+      dup_cols <- unique(colnames(df.output)[duplicated(colnames(df.output))])
+      stop(paste0(
+        "reentry=TRUE does not allow duplicate column names in df.output: ",
+        paste(dup_cols, collapse = ", ")
+      ))
+    }
+
+    # infer the dimensions of a scalar matrix from an existing scalar dataset
+    if (!fn.output.h5$exists("scalars")) {
+      stop("reentry=TRUE requires group '/scalars' to exist in fn.output")
+    }
+    scalars.grp <- fn.output.h5$open("scalars")
+    scalar_group_names <- names(scalars.grp)
+    if (length(scalar_group_names) == 0) {
+      stop("reentry=TRUE requires at least one existing scalar under '/scalars'")
+    }
+    if (!is.null(reentry_ref_scalar)) {
+      if (!(reentry_ref_scalar %in% scalar_group_names)) {
+        stop(paste0(
+          "reentry_ref_scalar not found under /scalars: ",
+          reentry_ref_scalar,
+          ". Available: ",
+          paste(scalar_group_names, collapse = ", ")
+        ))
+      }
+      ref_scalar_name <- reentry_ref_scalar
+    } else {
+      ref_scalar_name <- scalar_group_names[[1]]
+    }
+    ref_values <- fn.output.h5[[sprintf("scalars/%s/values", ref_scalar_name)]]
+    ref_dims <- ref_values$dims
+    n_elements <- ref_dims[1]
+    n_sources_ref <- ref_dims[2]
+
+    # get source names from the same reference scalar
+    ref_attrs <- tryCatch(
+      {
+        hdf5r::h5attr(ref_values)
+      },
+      error = function(e) list()
+    )
+    source_names <- ref_attrs$column_names
+    if (is.null(source_names)) {
+      source_names <- ref_attrs$colnames
+    }
+    if (is.null(source_names)) {
+      source_names <- tryCatch(
+        {
+          as.character(fn.output.h5[[sprintf("scalars/%s/column_names", ref_scalar_name)]][])
+        },
+        error = function(e) NULL
+      )
+    }
+    if (!is.null(source_names)) {
+      source_names <- as.character(source_names)
+    }
+
+    # element ids in ModelArray outputs are 0-based
+    element_id_vec <- suppressWarnings(as.integer(df.output$element_id))
+    if (any(is.na(element_id_vec))) {
+      stop("reentry=TRUE requires integer-convertible values in df.output$element_id")
+    }
+    if (anyDuplicated(element_id_vec) > 0) {
+      dup_ids <- unique(element_id_vec[duplicated(element_id_vec)])
+      stop(paste0(
+        "reentry=TRUE does not allow duplicate element_id values: ",
+        paste(dup_ids, collapse = ", ")
+      ))
+    }
+    row_idx <- element_id_vec + 1L
+    if (any(row_idx < 1L | row_idx > n_elements)) {
+      stop("reentry=TRUE found element_id outside valid range for output scalar matrix")
+    }
+
+    result_colnames <- setdiff(colnames(df.output), "element_id")
+    if (length(result_colnames) == 0) {
+      stop("reentry=TRUE requires at least one non-element_id column in df.output")
+    }
+
+    # Select columns for reentry:
+    # 1) explicit reentry_col; 2) all columns if they match source count; 3) single column fallback
+    if (!is.null(reentry_col)) {
+      if (!(reentry_col %in% result_colnames)) {
+        stop(paste0("reentry_col not found in df.output: ", reentry_col))
+      }
+      selected_colnames <- reentry_col
+    } else if (length(result_colnames) == n_sources_ref) {
+      selected_colnames <- result_colnames
+    } else if (length(result_colnames) == 1) {
+      selected_colnames <- result_colnames
+    } else {
+      stop(paste0(
+        "Ambiguous reentry columns in df.output (", length(result_colnames), " columns). ",
+        "Provide reentry_col, or provide exactly 1 column, or exactly ", n_sources_ref, " columns."
+      ))
+    }
+
+    # Build the output scalar matrix (all elements x selected columns), default NaN
+    n_selected <- length(selected_colnames)
+    out_mat <- matrix(NaN, nrow = n_elements, ncol = n_selected)
+    selected_df <- df.output[, selected_colnames, drop = FALSE]
+    for (i_col in seq_len(ncol(selected_df))) {
+      col_class <- as.character(class(selected_df[[i_col]])[1])
+      if (!(col_class %in% c("numeric", "integer"))) {
+        selected_df[[i_col]] <- as.numeric(factor(selected_df[[i_col]]))
+      } else {
+        selected_df[[i_col]] <- as.numeric(selected_df[[i_col]])
+      }
+    }
+    out_mat[row_idx, ] <- as.matrix(selected_df)
+
+    # If selected columns are source names, align to source_names order for robust downstream matching
+    out_colnames <- selected_colnames
+    if (!is.null(source_names) && length(source_names) == n_selected &&
+      all(source_names %in% selected_colnames) && all(selected_colnames %in% source_names)) {
+      reorder_idx <- match(source_names, selected_colnames)
+      out_mat <- out_mat[, reorder_idx, drop = FALSE]
+      out_colnames <- source_names
+    }
+
+    # create/overwrite /scalars/<reentry_scalar_name>
+    if (scalars.grp$exists(reentry_scalar_name) && !isTRUE(reentry_overwrite)) {
+      stop(paste0("reentry scalar already exists and reentry_overwrite=FALSE: ", reentry_scalar_name))
+    }
+    if (scalars.grp$exists(reentry_scalar_name) && isTRUE(reentry_overwrite)) {
+      scalars.grp$link_delete(reentry_scalar_name)
+    }
+    reentry.grp <- scalars.grp$create_group(reentry_scalar_name)
+    reentry.grp[["values"]] <- out_mat
+    reentry.grp[["column_names"]] <- as.character(out_colnames)
+    hdf5r::h5attr(reentry.grp[["values"]], "column_names") <- as.character(out_colnames)
+    # Backward-compatibility alias for older readers
+    hdf5r::h5attr(reentry.grp[["values"]], "colnames") <- as.character(out_colnames)
+  }
 
   fn.output.h5$close_all()
 
