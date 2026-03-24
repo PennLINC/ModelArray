@@ -427,10 +427,10 @@ We now save the results data frame into the original h5 file:
 writeResults(h5_path, df.output = mylm, analysis_name = "results_lm")
 ```
 
-Notice that the the analysis name specified in argument `analysis_name`
-will be used by `fixelstats_write` in the next step when converting
-results back to fixel mif file format. It’ll also be used as the prefix
-of the mif files to be saved.
+Notice that the analysis name specified in argument `analysis_name` will
+be used by `fixelstats_write` in the next step when converting results
+back to fixel mif file format. It’ll also be used as the prefix of the
+mif files to be saved.
 
 We can even check out the saved results in the h5 file (this is
 optional):
