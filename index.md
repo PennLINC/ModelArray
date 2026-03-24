@@ -51,8 +51,9 @@ superseded by ModelArrayIO.
 Please refer to webpage
 [Installation](https://pennlinc.github.io/ModelArray/articles/installations.html)
 for a full guidance of installation of `ModelArray` and its companion
-Python package [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO).
-The most important steps for installing `ModelArray` are:
+Python package
+[`ModelArrayIO`](https://github.com/PennLINC/ModelArrayIO). The most
+important steps for installing `ModelArray` are:
 
 - Make sure you have necessary libraries for HDF5 - see [this
   section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system)
@@ -61,10 +62,10 @@ The most important steps for installing `ModelArray` are:
 
 Additionally, we also provide a [container
 image](https://hub.docker.com/r/pennlinc/modelarray_confixel) that
-includes `ModelArray` and **ModelArrayIO** (image name remains
+includes `ModelArray` and `ModelArrayIO` (image name remains
 `modelarray_confixel` for backward compatibility). With this container
 image, there is no need for the user to install `ModelArray`,
-ModelArrayIO, and dependent R and Python packages manually. Please see
+`ModelArrayIO`, and dependent R and Python packages manually. Please see
 [this
 webpage](https://pennlinc.github.io/ModelArray/articles/container.html)
 for how to use this container image.
