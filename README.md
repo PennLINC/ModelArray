@@ -52,25 +52,28 @@ paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use
 
 </center>
 
-ModelArray is packaged with the companion software
-[ConFixel](https://github.com/PennLINC/ConFixel) for converting
-fixel-wise data, voxel-wise data or greyordinate-wise data to the
-expected file format that ModelArray uses. Specifically,
-[ConFixel](https://github.com/PennLINC/ConFixel) is Python-based
-command-line interface software, and it converts between the original
-image format (`.mif` for fixel-wise data, NIfTI for voxel-wise data,
-CIFTI-2 for greyordinate-wise data) and the HDF5 file format (`.h5`)
-used for ModelArray.
+ModelArray is packaged with the companion Python software
+[**ModelArrayIO**](https://github.com/PennLINC/ModelArrayIO) for
+converting fixel-wise data, voxel-wise data or greyordinate-wise data
+to the expected file format that ModelArray uses. ModelArrayIO provides
+command-line tools (e.g. `confixel`, `convoxel`, `concifti`, and
+matching `*_write` commands) that convert between the original image
+format (`.mif` for fixel-wise data, NIfTI for voxel-wise data, CIFTI-2
+for greyordinate-wise data) and the HDF5 file format (`.h5`) used for
+ModelArray. The legacy
+[**ConFixel**](https://github.com/PennLINC/ConFixel) repository is
+superseded by ModelArrayIO.
 
-<!-- if there is any changes in this overview section, please also update ConFixel's frontpage! -->
+<!-- if there is any changes in this overview section, please also update ModelArrayIO's README! -->
 
 ## Installation
 
 Please refer to webpage
 [Installation](https://pennlinc.github.io/ModelArray/articles/installations.html)
 for a full guidance of installation of `ModelArray` and its companion
-python package [ConFixel](https://github.com/PennLINC/ConFixel). The
-most important steps for installing `ModelArray` are:
+Python package
+[ModelArrayIO](https://github.com/PennLINC/ModelArrayIO). The most
+important steps for installing `ModelArray` are:
 
 - Make sure you have necessary libraries for HDF5 - see [this
   section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system)
@@ -79,9 +82,11 @@ most important steps for installing `ModelArray` are:
 
 Additionally, we also provide a [container
 image](https://hub.docker.com/r/pennlinc/modelarray_confixel) that
-includes `ModelArray` and `ConFixel`. With this container image, there
-is no need for the user to install `ModelArray`, `ConFixel`, and
-dependent R and Python packages. Please see [this
+includes `ModelArray` and **ModelArrayIO** (image name remains
+`modelarray_confixel` for backward compatibility). With this container
+image, there is no need for the user to install `ModelArray`,
+ModelArrayIO, and dependent R and Python packages manually. Please see
+[this
 webpage](https://pennlinc.github.io/ModelArray/articles/container.html)
 for how to use this container image.
 
