@@ -4,9 +4,11 @@
 
 In this example walkthrough, we will use some example **fixel**-wise
 data to demonstrate the steps of using `ModelArray` and its companion
-python package, `ConFixel`. Analysis for **voxel**-wise data follows
-similar steps, but there are several differences when execution; for
-more details regarding application to voxel-wise data, please refer to
+Python package, **ModelArrayIO** (use the `confixel` and
+`fixelstats_write` commands for fixel data). Analysis for **voxel**-wise
+data follows similar steps, but there are several differences when
+execution; for more details regarding application to voxel-wise data,
+please refer to
 [`vignette("voxel-wise_data")`](https://pennlinc.github.io/ModelArray/articles/voxel-wise_data.md)
 page. We also provide hints for voxel-wise data throughout current
 walkthrough.
@@ -14,9 +16,9 @@ walkthrough.
 By following the
 [`vignette("installations")`](https://pennlinc.github.io/ModelArray/articles/installations.md)
 page, to perform statistical analysis for fixel-wise data, you should
-have successfully installed `ModelArray`, `ConFixel`, and `MRtrix`. We
-expect that `ConFixel` has been installed in a conda environment called
-`modelarray`.
+have successfully installed `ModelArray`, **ModelArrayIO**, and
+`MRtrix`. We expect that ModelArrayIO has been installed in a conda
+environment called `modelarray`.
 
 We will first prepare the data and convert it into the format that
 `ModelArray` requires (Step 1), then we’ll use `ModelArray` to perform
@@ -55,7 +57,7 @@ $ rm download.tar.gz
 
 > Hint for voxel-wise data for Step 1: Data preparation and conversion
 > steps are different for voxel-wise data. Please refer to
-> [here](https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md)
+> [here](https://github.com/PennLINC/ModelArrayIO/blob/main/notebooks/walkthrough_voxel-wise_data.md)
 > for how to do so.
 
 ### Step 1.1. Overview of the data organization
@@ -85,8 +87,9 @@ fixel locations - you can learn about their definitions
 ### Step 1.2. Prepare a CSV file of cohort phenotypes
 
 In addition to fixel-wise data, we also need a CSV file of cohort
-phenotypes. This file will be used by both `ConFixel` and `ModelArray`.
-Here’s an example: `cohort_FDC_n100.csv`:
+phenotypes. This file will be used by both ModelArrayIO (`confixel` /
+`fixelstats_write`) and `ModelArray`. Here’s an example:
+`cohort_FDC_n100.csv`:
 
 | subject_id  | Age  | sex | dti64MeanRelRMS | ***scalar_name*** |  ***source_file***  |
 |:-----------:|:----:|:---:|:---------------:|:-----------------:|:-------------------:|
@@ -104,13 +107,14 @@ The table in this CSV file includes these columns:
   model. Here `dti64MeanRelRMS` is a measure of in-scanner motion, which
   we want to control for.
 
-### Step 1.3. Convert data into an HDF5 file using ConFixel
+### Step 1.3. Convert data into an HDF5 file using ModelArrayIO
 
 One of the reasons why `ModelArray` is memory efficient is it takes
 advantages of Hierarchical Data Format 5 (HDF5) file format. The
 extension of this file format is `.h5`. In short, an HDF5 file stores
-large datasets hierarchically. Let’s use `ConFixel` to convert the list
-of mif files into an HDF5 file. In the terminal console:
+large datasets hierarchically. Let’s use the `confixel` command (from
+ModelArrayIO) to convert the list of mif files into an HDF5 file. In the
+terminal console:
 
 ``` console
 $ conda activate modelarray
@@ -424,9 +428,9 @@ writeResults(h5_path, df.output = mylm, analysis_name = "results_lm")
 ```
 
 Notice that the the analysis name specified in argument `analysis_name`
-will be used in `ConFixel` in the next step when converting results back
-to fixel mif file format. It’ll also be used as the prefix of the mif
-files to be saved.
+will be used by `fixelstats_write` in the next step when converting
+results back to fixel mif file format. It’ll also be used as the prefix
+of the mif files to be saved.
 
 We can even check out the saved results in the h5 file (this is
 optional):
@@ -456,12 +460,13 @@ The `results_lm` is shown up here.
 
 > Hint for voxel-wise data for Step 3: Data conversion and result
 > viewing are different for voxel-wise data. Please refer to
-> [here](https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md)
+> [here](https://github.com/PennLINC/ModelArrayIO/blob/main/notebooks/walkthrough_voxel-wise_data.md)
 > for how to do so.
 
-### Step 3.1. Convert the statistical results into mif file format using ConFixel
+### Step 3.1. Convert the statistical results into mif file format using `fixelstats_write`
 
-We now use `ConFixel` to convert the results into a list of mif files:
+We now use `fixelstats_write` (from ModelArrayIO) to convert the results
+into a list of mif files:
 
 ``` console
 $ conda activate modelarray   # activate the conda environment we created

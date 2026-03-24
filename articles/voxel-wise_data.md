@@ -12,10 +12,10 @@ differences when execution described as below.
 ## Conversion of voxel-wise data format
 
 When converting voxel-wise data between NIfTI and HDF5 file format that
-`ModelArray` requires, you will still use `ConFixel` software, but a
-different converter tailored for voxel-wise data, `ConVoxel`. We have
-provided a walkthrough of how to use it
-[here](https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md).
+`ModelArray` requires, use **ModelArrayIO** with the `convoxel` and
+`volumestats_write` commands (voxel-wise workflow). We have provided a
+walkthrough
+[here](https://github.com/PennLINC/ModelArrayIO/blob/main/notebooks/walkthrough_voxel-wise_data.md).
 
 ## Applying `ModelArray` to voxel-wise data
 
@@ -33,7 +33,7 @@ which do not have data from sufficient number of subjects, their
 statistic results might not be reliable. It’s better to exclude those
 voxels from the analysis.
 
-In `ConVoxel`, for voxels not within a subject-specific mask (but within
+In `convoxel`, for voxels not within a subject-specific mask (but within
 a larger, group-level mask), their values will be set to `NaN`. Thus
 `ModelArray` can know the number of subjects that have valid values in
 each voxel within the group mask.
@@ -71,7 +71,7 @@ specifying `nobs` in `var.model` in
 [`ModelArray.lm()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md)
 and
 [`ModelArray.gam()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md)),
-after conversion using `ConVoxel`, you’ll see an image called
+after conversion using `volumestats_write`, you’ll see an image called
 `*_model.nobs*`. If the subject-specific masks you provided are
 different across subjects, in this image you’ll probably see the
 heterogeneity of number of observations used in the brain, with fewer

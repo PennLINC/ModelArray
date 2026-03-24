@@ -82,10 +82,9 @@ differences when execution described as below.</p>
 <h2 id="conversion-of-voxel-wise-data-format">Conversion of voxel-wise data format<a class="anchor" aria-label="anchor" href="#conversion-of-voxel-wise-data-format"></a>
 </h2>
 <p>When converting voxel-wise data between NIfTI and HDF5 file format
-that <code>ModelArray</code> requires, you will still use
-<code>ConFixel</code> software, but a different converter tailored for
-voxel-wise data, <code>ConVoxel</code>. We have provided a walkthrough
-of how to use it <a href="https://github.com/PennLINC/ConFixel/blob/main/notebooks/walkthrough_voxel-wise_data.md" class="external-link">here</a>.</p>
+that <code>ModelArray</code> requires, use <strong>ModelArrayIO</strong>
+with the <code>convoxel</code> and <code>volumestats_write</code>
+commands (voxel-wise workflow). We have provided a walkthrough <a href="https://github.com/PennLINC/ModelArrayIO/blob/main/notebooks/walkthrough_voxel-wise_data.md" class="external-link">here</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="applying-modelarray-to-voxel-wise-data">Applying <code>ModelArray</code> to voxel-wise data<a class="anchor" aria-label="anchor" href="#applying-modelarray-to-voxel-wise-data"></a>
@@ -102,7 +101,7 @@ different brain coverage even in template space. Therefore, for voxels
 (e.g., at the edge of the brain) which do not have data from sufficient
 number of subjects, their statistic results might not be reliable. It’s
 better to exclude those voxels from the analysis.</p>
-<p>In <code>ConVoxel</code>, for voxels not within a subject-specific
+<p>In <code>convoxel</code>, for voxels not within a subject-specific
 mask (but within a larger, group-level mask), their values will be set
 to <code>NaN</code>. Thus <code>ModelArray</code> can know the number of
 subjects that have valid values in each voxel within the group mask.</p>
@@ -137,11 +136,11 @@ reference pages of <code><a href="../reference/ModelArray.lm.html">ModelArray.lm
 <p>Finally, if you choose to save number of observations used (i.e., if
 specifying <code>nobs</code> in <code>var.model</code> in
 <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>), after
-conversion using <code>ConVoxel</code>, you’ll see an image called
-<code>*_model.nobs*</code>. If the subject-specific masks you provided
-are different across subjects, in this image you’ll probably see the
-heterogeneity of number of observations used in the brain, with fewer
-observations used at the edge of the brain.</p>
+conversion using <code>volumestats_write</code>, you’ll see an image
+called <code>*_model.nobs*</code>. If the subject-specific masks you
+provided are different across subjects, in this image you’ll probably
+see the heterogeneity of number of observations used in the brain, with
+fewer observations used at the edge of the brain.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

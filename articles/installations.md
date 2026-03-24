@@ -3,8 +3,9 @@
 This page walks through the installation of `ModelArray` package and
 necessary dependent packages/libraries. If you have difficulty
 installing necessary packages (e.g., on HPC clusters), you also have an
-option to use the container image of `ModelArray + ConFixel`. Please
-refer to
+option to use the container image of `ModelArray` and **ModelArrayIO**
+(the Docker image is still named `pennlinc/modelarray_confixel` for
+historical reasons). Please refer to
 [`vignette("container")`](https://pennlinc.github.io/ModelArray/articles/container.md)
 for more.
 
@@ -25,21 +26,24 @@ packages and libraries, and finally install `ModelArray`.
 ### Set up a conda environment
 
 We first create a conda environment `modelarray` for installing the
-companion software `ConFixel` etc. We’ll install python version 3.9:
+companion Python package **ModelArrayIO** (command-line tools include
+`confixel`, `convoxel`, etc.). We install Python 3.11 or newer (as
+required by ModelArrayIO):
 
 ``` console
-foo@bar:~$ conda create --name modelarray python=3.9
+foo@bar:~$ conda create --name modelarray python=3.11
 foo@bar:~$ conda activate modelarray
 ```
 
 ### Install MRtrix (Only required for fixel-wise data)
 
-When converting fixel-wise data’s format (`.mif`), `ConFixel` uses
-function `mrconvert` from MRtrix, so please make sure MRtrix has been
-installed. It can either be installed via `conda` in this conda
-environment we just created, or be compiled from source. See [MRtrix’s
-webpage](https://www.mrtrix.org/download/) for more. Type `mrview` in
-the terminal to check whether MRtrix installation is successful.
+When converting fixel-wise data’s format (`.mif`), the `confixel` tool
+(from ModelArrayIO) uses function `mrconvert` from MRtrix, so please
+make sure MRtrix has been installed. It can either be installed via
+`conda` in this conda environment we just created, or be compiled from
+source. See [MRtrix’s webpage](https://www.mrtrix.org/download/) for
+more. Type `mrview` in the terminal to check whether MRtrix installation
+is successful.
 
 If your input data is voxel-wise data, you can skip this step.
 
@@ -77,25 +81,27 @@ foo@bar:~$ brew install hdf5
 For details you may refer to the webpage
 [here](https://formulae.brew.sh/formula/hdf5)
 
-### Install ConFixel python package from GitHub
+### Install ModelArrayIO python package from GitHub
 
-[ConFixel](https://github.com/PennLINC/ConFixel) provides file format
-conversion for both fixel-wise data (`.mif`) and voxel-wise data
-(NIfTI). Follow the commands below to install it from GitHub:
+[ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) provides file
+format conversion for fixel-wise data (`.mif`), voxel-wise data (NIfTI),
+and CIFTI-2 data. The older **ConFixel** repository is superseded by
+ModelArrayIO and will be archived; use ModelArrayIO for all new
+installs. Follow the commands below:
 
 ``` console
 # We first activate the conda environment we just created:
 foo@bar:~$ conda activate modelarray  
 
-# Then install ConFixel:
+# Then install ModelArrayIO:
 foo@bar:~$ cd ~/myProject
-foo@bar:myProject$ git clone https://github.com/PennLINC/ConFixel.git
-foo@bar:myProject$ cd ConFixel
+foo@bar:myProject$ git clone https://github.com/PennLINC/ModelArrayIO.git
+foo@bar:myProject$ cd ModelArrayIO
 foo@bar:myProject$ pip install .
 
 # You may remove the original source code if you are an end user instead of a developer:
 foo@bar:myProject$ cd ..
-foo@bar:myProject$ rm -r ConFixel
+foo@bar:myProject$ rm -r ModelArrayIO
 ```
 
 ### Install R
