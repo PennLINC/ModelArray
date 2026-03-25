@@ -98,6 +98,103 @@ test_that("ModelArray.wrap reproduces ModelArray.lm with a custom FUN", {
 
   rhdf5::h5closeAll()
 })
+
+test_that("ModelArray.wrap exposes all scalars and uses intersection threshold", {
+  set.seed(7)
+  num_elements <- 2L
+  num_subj <- 6L
+  subj <- paste0("sub-", seq_len(num_subj))
+  phen <- data.frame(source_file = subj, z = rnorm(num_subj))
+
+  A <- matrix(rnorm(num_elements * num_subj), nrow = num_elements)
+  B <- matrix(rnorm(num_elements * num_subj), nrow = num_elements)
+  # introduce NAs in different subjects for element 2
+  A[2, 1] <- NA_real_
+  B[2, 2] <- NA_real_
+
+  ma <- methods::new(
+    "ModelArray",
+    scalars = list(A = A, B = B),
+    sources = list(A = subj, B = subj),
+    results = list(),
+    path = ""
+  )
+
+  # FUN that checks presence of both scalars in data
+  my_fun <- function(data) {
+    stopifnot(all(c("A", "B") %in% names(data)))
+    c(meanA = mean(data$A, na.rm = TRUE), meanB = mean(data$B, na.rm = TRUE))
+  }
+
+  out <- ModelArray.wrap(
+    FUN = my_fun,
+    data = ma,
+    phenotypes = phen,
+    scalar = "A",
+    element.subset = as.integer(1:2),
+    num.subj.lthr.abs = 6L,
+    num.subj.lthr.rel = 0,
+    verbose = FALSE, pbar = FALSE
+  )
+  # element 2 (element_id == 1) should be all NaN due to intersection mask
+  row2 <- out[out$element_id == 1, , drop = FALSE]
+  expect_true(all(is.nan(as.numeric(row2[,-1]))))
+})
+test_that("ModelArray.wrap errors on collisions and source mismatches for multi-scalars", {
+  set.seed(11)
+  num_elements <- 2L
+  num_subj <- 5L
+  subj <- paste0("sub-", seq_len(num_subj))
+  phen <- data.frame(source_file = subj, z = rnorm(num_subj))
+
+  A <- matrix(rnorm(num_elements * num_subj), nrow = num_elements)
+  B <- matrix(rnorm(num_elements * num_subj), nrow = num_elements)
+
+  ma <- methods::new(
+    "ModelArray",
+    scalars = list(A = A, B = B),
+    sources = list(A = subj, B = subj),
+    results = list(),
+    path = ""
+  )
+
+  # Collision: add a scalar-name column to phenotypes
+  phen_bad <- phen
+  phen_bad$A <- 1
+  expect_error(
+    ModelArray.wrap(
+      FUN = function(data) tibble::tibble(x = 1),
+      data = ma,
+      phenotypes = phen_bad,
+      scalar = "A",
+      element.subset = as.integer(1),
+      verbose = FALSE, pbar = FALSE
+    ),
+    regexp = "Column name collision between phenotypes and scalar names: .* before wrapping\\."
+  )
+
+  # Source mismatch for a non-response scalar
+  subj_bad <- subj
+  subj_bad[1] <- paste0(subj_bad[1], "_bad")
+  ma_bad <- methods::new(
+    "ModelArray",
+    scalars = list(A = A, B = B),
+    sources = list(A = subj, B = subj_bad),
+    results = list(),
+    path = ""
+  )
+  expect_error(
+    ModelArray.wrap(
+      FUN = function(data) tibble::tibble(x = 1),
+      data = ma_bad,
+      phenotypes = phen,
+      scalar = "A",
+      element.subset = as.integer(1),
+      verbose = FALSE, pbar = FALSE
+    ),
+    regexp = "The source files for scalar 'B' do not match phenotypes\\$source_file\\."
+  )
+})
 test_that("ModelArray.wrap runs simple group means function and writes outputs", {
   h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
   csv_path <- system.file("extdata", "n50_cohort.csv", package = "ModelArray")
