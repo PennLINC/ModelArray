@@ -226,6 +226,31 @@ devtools::load_all()
 Then click “Run Test” button in RStudio to run the test file. Check if
 there is anything failed.
 
+### Running code styling with `styler`
+
+Use `styler` to format all package code before committing changes.
+
+Install `styler` if needed:
+
+``` r
+if (!requireNamespace("styler", quietly = TRUE)) {
+  install.packages("styler")
+}
+```
+
+Apply code styling to the package:
+
+``` r
+styler::style_pkg()
+```
+
+Optionally, run a dry check to confirm no files would be reformatted:
+
+``` r
+result <- styler::style_pkg(dry = "on")
+all(result[["changed"]] == FALSE)
+```
+
 For more details on how to write unit tests + test out, please check out
 `Testing` chapters in the book [“R Packages” written by Hadley Wickham,
 Jennifer Bryan](https://r-pkgs.org/index.html)
