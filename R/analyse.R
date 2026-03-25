@@ -189,7 +189,6 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   }
 
 
-
   ### display additional arguments:
   dots <- list(...)
   dots_names <- names(dots)
@@ -301,13 +300,11 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   )
 
 
-
   ### start the process:
   if (verbose) {
     message(glue::glue("Fitting element-wise linear models for {scalar}"))
     message(glue::glue("initiating...."))
   }
-
 
 
   # initiate: get the example of one element and get the column names
@@ -457,7 +454,6 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   }
 
 
-
   df_out <- do.call(rbind, fits)
   df_out <- as.data.frame(df_out) # turn into data.frame
   colnames(df_out) <- column_names # add column names
@@ -509,9 +505,6 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
       }
     }
   }
-
-
-
 
 
   df_out # return
@@ -801,7 +794,6 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     #   )
     # )
   }
-
 
 
   ### display additional arguments: [only important one]
@@ -1112,7 +1104,6 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   colnames(df_out) <- column_names # add column names
 
 
-
   ### get the changed.rsq for smooth terms:
   if (!is.null(changed.rsq.term.index)) { # if changed.rsq is requested
     message("Getting changed R-squared: running the reduced model...")
@@ -1266,7 +1257,6 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     } # end of for loop across term of interest for changed.rsq
 
 
-
     # if adjusted r sq is not requested (see var.model.orig), remove it:
     if (!("adj.r.squared" %in% var.model.orig)) {
       df_out <- df_out %>% subset(select = -c(model.adj.r.squared))
@@ -1275,9 +1265,6 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     # remove full model's sse (model.sse):
     df_out <- df_out %>% subset(select = -c(model.sse))
   } # end of if: requesting changed.rsq
-
-
-
 
 
   ### correct p values
@@ -1321,7 +1308,6 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       }
     }
   }
-
 
 
   ### return

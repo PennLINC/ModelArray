@@ -675,7 +675,6 @@ analyseOneElement.lm <- function(i_element,
     }
 
 
-
     # flatten .tidy results into one row:
     if (all(dim(onemodel.tidy))) {
       # not empty | if any dim is 0, all=FALSE
@@ -936,7 +935,6 @@ analyseOneElement.gam <- function(i_element,
     num.smoothTerms <- onemodel.summary$m # The number of smooth terms in the model.
 
 
-
     # delete columns you don't want:
     var.smoothTerms.full <- names(onemodel.tidy.smoothTerms)
     var.parametricTerms.full <- names(onemodel.tidy.parametricTerms)
@@ -1166,8 +1164,6 @@ analyseOneElement.gam <- function(i_element,
     }
   }
 }
-
-
 
 
 #' Run a user-supplied function for one element
