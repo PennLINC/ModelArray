@@ -113,8 +113,8 @@ scalars are loaded, and which analyses have been saved.</p>
 </h2>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">src</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sources.html">sources</a></span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span><span class="op">[[</span><span class="st">"FDC"</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">src</span><span class="op">)</span>     <span class="co"># number of sources</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">src</span><span class="op">)</span>       <span class="co"># first few filenames</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">src</span><span class="op">)</span> <span class="co"># number of sources</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">src</span><span class="op">)</span> <span class="co"># first few filenames</span></span></code></pre></div>
 <pre class="console"><code>[1] 100
 [1] "FDC/sub-6fee490.mif" "FDC/sub-647f86c.mif" "FDC/sub-4b3ffe0.mif"
 [4] "FDC/sub-be9982d.mif" "FDC/sub-9e089e3.mif" "FDC/sub-d26c6c1.mif"</code></pre>
@@ -251,7 +251,7 @@ most significant elements:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">age_pvals</span> <span class="op">&lt;</span> <span class="fl">0.05</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Top 10 most significant element IDs</span></span>
-<span><span class="va">top_elements</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">age_pvals</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span> <span class="op">-</span> <span class="fl">1</span>  <span class="co"># convert to 0-based element IDs</span></span>
+<span><span class="va">top_elements</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">age_pvals</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span> <span class="op">-</span> <span class="fl">1</span> <span class="co"># convert to 0-based element IDs</span></span>
 <span><span class="va">top_elements</span></span></code></pre></div>
 </div>
 </div>

@@ -38,8 +38,8 @@ scalars are loaded, and which analyses have been saved.
 
 ``` r
 src <- sources(modelarray)[["FDC"]]
-length(src)     # number of sources
-head(src)       # first few filenames
+length(src) # number of sources
+head(src) # first few filenames
 ```
 
 ``` console
@@ -194,6 +194,6 @@ age_pvals <- as.numeric(lm_results[, col_idx])
 sum(age_pvals < 0.05, na.rm = TRUE)
 
 # Top 10 most significant element IDs
-top_elements <- order(age_pvals)[1:10] - 1  # convert to 0-based element IDs
+top_elements <- order(age_pvals)[1:10] - 1 # convert to 0-based element IDs
 top_elements
 ```
