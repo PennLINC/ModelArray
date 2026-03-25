@@ -31,29 +31,22 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="articles/installations.html">Get Started</a></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-introduction" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Introduction</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-introduction">
-<li><a class="dropdown-item" href="articles/elements.html">Elements: The Unit of Analysis</a></li>
-    <li><a class="dropdown-item" href="articles/element-splitting.html">Splitting Element IDs</a></li>
-    <li><a class="dropdown-item" href="articles/hdf5-format.html">Understanding the HDF5 File</a></li>
-    <li><a class="dropdown-item" href="articles/hdf5-large-analyses.html">HDF5 for Large-Scale Analyses</a></li>
-  </ul>
-</li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-case-studies" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Case Studies</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-case-studies">
-<li><a class="dropdown-item" href="articles/walkthrough.html">End-to-End Walkthrough</a></li>
-    <li><a class="dropdown-item" href="articles/modelling.html">Modelling in Depth</a></li>
-    <li><a class="dropdown-item" href="articles/exploring-h5.html">Exploring Data with Convenience Functions</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Resources</h6></li>
-    <li><a class="dropdown-item" href="articles/container.html">Containers</a></li>
-    <li><a class="dropdown-item" href="articles/doc_for_developer.html">Developer Documentation</a></li>
-  </ul>
-</li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/basic_r_intro.html">An intro to R</a></li>
+    <li><a class="dropdown-item" href="articles/container.html">Getting started with containers</a></li>
+    <li><a class="dropdown-item" href="articles/debugging.html">Debugging</a></li>
+    <li><a class="dropdown-item" href="articles/doc_for_developer.html">Developer documentation</a></li>
+    <li><a class="dropdown-item" href="articles/faq.html">FAQ</a></li>
+    <li><a class="dropdown-item" href="articles/installations.html">Installation</a></li>
+    <li><a class="dropdown-item" href="articles/multi_scalars.html">Using Multiple Scalars in ModelArray</a></li>
+    <li><a class="dropdown-item" href="articles/voxel-wise_data.html">Application to voxel-wise data</a></li>
+    <li><a class="dropdown-item" href="articles/walkthrough.html">Example walkthrough</a></li>
+    <li><a class="dropdown-item" href="articles/wrap_function.html">Developing a function for ModelArray.wrap</a></li>
+  </ul>
+</li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -94,20 +87,20 @@
 Overview
 </figcaption></figure>
 </center>
-<p>ModelArray is packaged with the companion software <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a> for converting fixel-wise data, voxel-wise data or greyordinate-wise data to the expected file format that ModelArray uses. Specifically, <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a> is Python-based command-line software that provides commands such as <code>confixel</code>, <code>convoxel</code>, and <code>concifti</code> to convert between original image formats (<code>.mif</code> for fixel-wise data, NIfTI for voxel-wise data, CIFTI-2 for greyordinate-wise data) and the HDF5 file format (<code>.h5</code>) used by ModelArray.</p>
-<!-- if there is any changes in this overview section, please also update ModelArrayIO's frontpage! -->
+<p>ModelArray is packaged with the companion software <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> for converting fixel-wise data, voxel-wise data or greyordinate-wise data to the expected file format that ModelArray uses. Specifically, <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> is Python-based command-line interface software, and it converts between the original image format (<code>.mif</code> for fixel-wise data, NIfTI for voxel-wise data, CIFTI-2 for greyordinate-wise data) and the HDF5 file format (<code>.h5</code>) used for ModelArray.</p>
+<!-- if there is any changes in this overview section, please also update ConFixel's frontpage! -->
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>Please refer to webpage <a href="https://pennlinc.github.io/ModelArray/articles/installations.html">Installation</a> for a full guidance of installation of <code>ModelArray</code> and its companion python package <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a>. The most important steps for installing <code>ModelArray</code> are:</p>
+<p>Please refer to webpage <a href="https://pennlinc.github.io/ModelArray/articles/installations.html">Installation</a> for a full guidance of installation of <code>ModelArray</code> and its companion python package <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a>. The most important steps for installing <code>ModelArray</code> are:</p>
 <ul>
 <li>Make sure you have necessary libraries for HDF5 - see <a href="https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system">this section</a>
 </li>
 <li>Install <code>ModelArray</code> from GitHub - see <a href="https://pennlinc.github.io/ModelArray/articles/installations.html#install-modelarray-r-package-from-github">this section</a>
 </li>
 </ul>
-<p>Additionally, we also provide a <a href="https://hub.docker.com/r/pennlinc/modelarray_confixel" class="external-link">container image</a> that includes <code>ModelArray</code> and <code>ModelArrayIO</code>. With this container image, there is no need for the user to install <code>ModelArray</code>, <code>ModelArrayIO</code>, and dependent R and Python packages. Please see <a href="https://pennlinc.github.io/ModelArray/articles/container.html">this webpage</a> for how to use this container image.</p>
+<p>Additionally, we also provide a <a href="https://hub.docker.com/r/pennlinc/modelarray_confixel" class="external-link">container image</a> that includes <code>ModelArray</code> and <code>ConFixel</code>. With this container image, there is no need for the user to install <code>ModelArray</code>, <code>ConFixel</code>, and dependent R and Python packages. Please see <a href="https://pennlinc.github.io/ModelArray/articles/container.html">this webpage</a> for how to use this container image.</p>
 <!-- check above links work, esp those with section titles!!! -->
 </div>
 <div class="section level2">

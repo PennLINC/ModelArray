@@ -230,7 +230,7 @@ For more details on how to write unit tests + test out, please check out
 `Testing` chapters in the book [“R Packages” written by Hadley Wickham,
 Jennifer Bryan](https://r-pkgs.org/index.html)
 
-## Building the Docker image for ModelArray + ModelArrayIO
+## Building the Docker image for ModelArray + ConFixel
 
 The `Dockerfile` for the Docker image can be found in the root folder of
 the GitHub repository of `ModelArray`.
