@@ -143,7 +143,7 @@ Then click "Run Test" button in RStudio to run the test file. Check if there is 
 
 For more details on how to write unit tests + test out, please check out `Testing` chapters in the book ["R Packages" written by Hadley Wickham, Jennifer Bryan](https://r-pkgs.org/index.html)
 
-## Building the Docker image for ModelArray + ConFixel
+## Building the Docker image for ModelArray + ModelArrayIO
 The `Dockerfile` for the Docker image can be found in the root folder of the GitHub repository of `ModelArray`.
 
 CircleCI will automatically build the Docker image and push to Docker Hub when there is a GitHub commit or a merge to main branch, or when a version is tagged. See the `.circleci/config.yml` file for more details on these setups.
