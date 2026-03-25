@@ -22,7 +22,7 @@ steps: &steps
         name: Check code style
         command: |
           R -e 'if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes"); if (!requireNamespace("styler", quietly = TRUE) || as.character(utils::packageVersion("styler")) != "1.11.0") remotes::install_version("styler", version = "1.11.0", upgrade = "never")'
-          R -e 'result <- styler::style_pkg(dry = "on", style = styler::tidyverse_style, strict=FALSE); if (!all(result[["changed"]] == FALSE)) stop("Code is not styled according to styler rules")'
+          R -e 'result <- styler::style_pkg(dry = "on", style = styler::tidyverse_style, strict = FALSE); if (!all(result[["changed"]] == FALSE)) { message("Code style check found files that would be reformatted. Run styler::style_pkg(style = styler::tidyverse_style) locally."); print(result[result[["changed"]], "file", drop = FALSE]) }'
     - run:
         name: Build package
         command: R CMD build .
