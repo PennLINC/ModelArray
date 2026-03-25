@@ -170,7 +170,7 @@ result <- gen_gamFormula_fxSmooth(
   fx = TRUE, k = 4
 )
 formula <- result$formula
-phenotypes <- result$phenotypes  # may contain new ordered factor column
+phenotypes <- result$phenotypes # may contain new ordered factor column
 ```
 
 **Continuous interaction** (`gen_gamFormula_contIx`):
