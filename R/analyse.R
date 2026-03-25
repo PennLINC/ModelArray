@@ -304,8 +304,8 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 
   ### start the process:
   if (verbose) {
-    message(glue::glue("Fitting element-wise linear models for {scalar}", ))
-    message(glue::glue("initiating....", ))
+    message(glue::glue("Fitting element-wise linear models for {scalar}"))
+    message(glue::glue("initiating...."))
   }
 
 
@@ -404,7 +404,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 
   # loop (by condition of pbar and n_cores)
   if (verbose) {
-    message(glue::glue("looping across elements....", ))
+    message(glue::glue("looping across elements...."))
   }
 
   # is it a multicore process?
@@ -942,8 +942,8 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   ### run
   # start the process:
   if (verbose) {
-    message(glue::glue("Fitting element-wise GAMs for {scalar}", ))
-    message(glue::glue("initiating....", ))
+    message(glue::glue("Fitting element-wise GAMs for {scalar}"))
+    message(glue::glue("initiating...."))
   }
 
   # initiate: get the example of one element and get the column names
@@ -1054,7 +1054,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
   # loop (by condition of pbar and n_cores)
   if (verbose) {
-    message(glue::glue("looping across elements....", ))
+    message(glue::glue("looping across elements...."))
   }
 
   # is it a multicore process?
