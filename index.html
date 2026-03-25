@@ -31,22 +31,29 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item"><a class="nav-link" href="articles/installations.html">Get Started</a></li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/basic_r_intro.html">An intro to R</a></li>
-    <li><a class="dropdown-item" href="articles/container.html">Getting started with containers</a></li>
-    <li><a class="dropdown-item" href="articles/debugging.html">Debugging</a></li>
-    <li><a class="dropdown-item" href="articles/doc_for_developer.html">Developer documentation</a></li>
-    <li><a class="dropdown-item" href="articles/faq.html">FAQ</a></li>
-    <li><a class="dropdown-item" href="articles/installations.html">Installation</a></li>
-    <li><a class="dropdown-item" href="articles/multi_scalars.html">Using Multiple Scalars in ModelArray</a></li>
-    <li><a class="dropdown-item" href="articles/voxel-wise_data.html">Application to voxel-wise data</a></li>
-    <li><a class="dropdown-item" href="articles/walkthrough.html">Example walkthrough</a></li>
-    <li><a class="dropdown-item" href="articles/wrap_function.html">Developing a function for ModelArray.wrap</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-introduction" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Introduction</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-introduction">
+<li><a class="dropdown-item" href="articles/elements.html">Elements: The Unit of Analysis</a></li>
+    <li><a class="dropdown-item" href="articles/element-splitting.html">Splitting Element IDs</a></li>
+    <li><a class="dropdown-item" href="articles/hdf5-format.html">Understanding the HDF5 File</a></li>
+    <li><a class="dropdown-item" href="articles/hdf5-large-analyses.html">HDF5 for Large-Scale Analyses</a></li>
   </ul>
 </li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-case-studies" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Case Studies</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-case-studies">
+<li><a class="dropdown-item" href="articles/walkthrough.html">End-to-End Walkthrough</a></li>
+    <li><a class="dropdown-item" href="articles/modelling.html">Modelling in Depth</a></li>
+    <li><a class="dropdown-item" href="articles/exploring-h5.html">Exploring Data with Convenience Functions</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Resources</h6></li>
+    <li><a class="dropdown-item" href="articles/container.html">Containers</a></li>
+    <li><a class="dropdown-item" href="articles/doc_for_developer.html">Developer Documentation</a></li>
+  </ul>
+</li>
+<li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -64,21 +71,33 @@
 </h1></div>
 <!-- badges: start -->
 
-<p><code>ModelArray</code> is an R package for statistical analysis of fixel-wise data and beyond. Its features include:</p>
+<p><strong>Mass-univariate statistical modeling for large neuroimaging datasets without a supercomputer</strong></p>
+<p>Brain images contain hundreds of thousands of spatial locations. Fitting a statistical model at every single one - a fixel, a voxel, a cortical vertex - is conceptually straightforward but practically painful: the data is too large to load into memory, and the code needed to loop efficiently across elements is tedious to write.</p>
+<p>ModelArray handles all of this. You write one model formula and ModelArray fits it across every element in your dataset, in parallel, reading only what it needs from disk at any moment. The result is a tidy data frame of statistics - one row per element - ready for thresholding and visualization.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pennlinc.github.io/ModelArray">ModelArray</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="st">"data.h5"</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FDC"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">phenotypes</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"cohort.csv"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">FDC</span> <span class="op">~</span> <span class="va">Age</span> <span class="op">+</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">motion</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FDC"</span>,</span>
+<span>  n_cores <span class="op">=</span> <span class="fl">4</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>That’s it. <code>results</code> is a data frame with estimates, <em>t</em>-statistics, <em>p</em>-values, and FDR-corrected <em>p</em>-values for every fixel.</p>
+<div class="section level2">
+<h2 id="why-modelarray">Why ModelArray?<a class="anchor" aria-label="anchor" href="#why-modelarray"></a>
+</h2>
+<p><strong>It scales.</strong> ModelArray uses <a href="https://www.hdfgroup.org/solutions/hdf5/" class="external-link">HDF5</a> for on-disk storage and <a href="https://bioconductor.org/packages/DelayedArray/" class="external-link">DelayedArray</a> for lazy access. An ABCC dMRI dataset has ~350,000 voxels × ~26,000-sessions - about 291 GB if loaded in its entirety - never enters RAM. ModelArray reads one element at a time, so memory usage stays flat regardless of dataset size.</p>
+<p><strong>It’s flexible.</strong> Beyond linear models, ModelArray supports:</p>
 <ul>
-<li>Easy to use: set up your statistical analysis with just several lines of code;</li>
-<li>Supporting linear and nonlinear modeling, and extensible to more models:
-<ul>
-<li>At present, <code>ModelArray</code> supports linear models as well as generalized additive models (GAMs) with and without penalized splines, which are particularly useful for studying nonlinear effects in lifespan data. <code>ModelArray</code> is also extensible to diverse models available in R;</li>
+<li>
+<strong>GAMs</strong> (<code><a href="reference/ModelArray.gam.html">ModelArray.gam()</a></code>) with penalized splines for capturing nonlinear effects, such as lifespan trajectories that accelerate or decelerate across development</li>
+<li>
+<strong>Any R modeling function</strong> (<code><a href="reference/ModelArray.wrap.html">ModelArray.wrap()</a></code>) — if you can write a function that takes a data frame and returns a row of statistics, ModelArray will run it across your entire dataset</li>
 </ul>
-</li>
-<li>Scalable for large-scale datasets;</li>
-<li>Compatible with fixel-wise data, voxel-wise data, and greyordinate-wise data.</li>
-</ul>
-<p>Please cite our <a href="https://doi.org/10.1016/j.neuroimage.2023.120037" class="external-link">NeuroImage paper</a> if you use <code>ModelArray</code>:</p>
-<blockquote>
-<p>Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S., Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha, K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M., Shinohara, R. T., Cieslak, M. &amp; Satterthwaite, T. D. (2023). ModelArray: an R package for statistical analysis of fixel-wise data. <em>NeuroImage</em>, <em>271</em>, 120037. <a href="https://doi.org/10.1016/j.neuroimage.2023.120037" class="external-link uri">https://doi.org/10.1016/j.neuroimage.2023.120037</a></p>
-</blockquote>
+<p><strong>It works with what you have.</strong> ModelArray is modality-agnostic — the same code works for fixel-wise data, voxel-wise data, and surface-based greyordinate data. The companion tool <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a> handles conversion from <code>.mif</code>, NIfTI, and CIFTI formats into the HDF5 file that ModelArray expects.</p>
+<p><strong>It’s been peer-reviewed.</strong> ModelArray was published in <em>NeuroImage</em> in 2023 and has been used in studies of lifespan brain development.</p>
+</div>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
@@ -87,37 +106,43 @@
 Overview
 </figcaption></figure>
 </center>
-<p>ModelArray is packaged with the companion software <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> for converting fixel-wise data, voxel-wise data or greyordinate-wise data to the expected file format that ModelArray uses. Specifically, <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> is Python-based command-line interface software, and it converts between the original image format (<code>.mif</code> for fixel-wise data, NIfTI for voxel-wise data, CIFTI-2 for greyordinate-wise data) and the HDF5 file format (<code>.h5</code>) used for ModelArray.</p>
-<!-- if there is any changes in this overview section, please also update ConFixel's frontpage! -->
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>Please refer to webpage <a href="https://pennlinc.github.io/ModelArray/articles/installations.html">Installation</a> for a full guidance of installation of <code>ModelArray</code> and its companion python package <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a>. The most important steps for installing <code>ModelArray</code> are:</p>
-<ul>
-<li>Make sure you have necessary libraries for HDF5 - see <a href="https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system">this section</a>
-</li>
-<li>Install <code>ModelArray</code> from GitHub - see <a href="https://pennlinc.github.io/ModelArray/articles/installations.html#install-modelarray-r-package-from-github">this section</a>
-</li>
-</ul>
-<p>Additionally, we also provide a <a href="https://hub.docker.com/r/pennlinc/modelarray_confixel" class="external-link">container image</a> that includes <code>ModelArray</code> and <code>ConFixel</code>. With this container image, there is no need for the user to install <code>ModelArray</code>, <code>ConFixel</code>, and dependent R and Python packages. Please see <a href="https://pennlinc.github.io/ModelArray/articles/container.html">this webpage</a> for how to use this container image.</p>
-<!-- check above links work, esp those with section titles!!! -->
+<p>See the <a href="https://pennlinc.github.io/ModelArray/articles/installations.html">Get Started</a> page for full installation instructions.</p>
+<p>The short version:</p>
+<ol style="list-style-type: decimal">
+<li>Install system HDF5 libraries (<code>libhdf5-dev</code> on Linux, <code>brew install hdf5</code> on macOS)</li>
+<li>Install <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a> (Python, for data conversion)</li>
+<li>Install ModelArray from GitHub:</li>
+</ol>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"PennLINC/ModelArray"</span><span class="op">)</span></span></code></pre></div>
+<p>Prefer a container? A <a href="https://hub.docker.com/r/pennlinc/modelarray_confixel" class="external-link">Docker/Singularity image</a> with ModelArray and ModelArrayIO pre-installed is available — useful for HPC clusters where you can’t install system libraries.</p>
 </div>
 <div class="section level2">
-<h2 id="how-to-use">How to use<a class="anchor" aria-label="anchor" href="#how-to-use"></a>
+<h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
-<p>Load the <code>ModelArray</code> package into R via:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pennlinc.github.io/ModelArray">ModelArray</a></span><span class="op">)</span></span></code></pre></div>
-<p>We provide a walkthrough <a href="https://pennlinc.github.io/ModelArray/articles/walkthrough.html">here</a> with example fixel-wise data. For additional notes on application to voxel-wise data, please refer to <a href="https://pennlinc.github.io/ModelArray/articles/voxel-wise_data.html">here</a>.</p>
-<p>For documentation of <code>ModelArray</code> functions, you can:</p>
+<p>Full documentation is at <a href="https://pennlinc.github.io/ModelArray/">pennlinc.github.io/ModelArray</a>:</p>
 <ul>
-<li>Either go to <a href="https://pennlinc.github.io/ModelArray/reference/index.html">this webpage</a>;</li>
-<li>Or in R console, type: <code>help(&lt;function_name&gt;)</code>. For example: <code><a href="reference/ModelArray.lm.html">help(ModelArray.lm)</a></code>
-</li>
+<li>
+<strong><a href="https://pennlinc.github.io/ModelArray/articles/installations.html">Get Started</a></strong> — installation</li>
+<li>
+<strong><a href="https://pennlinc.github.io/ModelArray/articles/walkthrough.html">End-to-End Walkthrough</a></strong> — from raw data to visualized results</li>
+<li>
+<strong><a href="https://pennlinc.github.io/ModelArray/articles/elements.html">Introductions</a></strong> — what elements are, how HDF5 storage works, how to scale to large datasets</li>
+<li>
+<strong><a href="https://pennlinc.github.io/ModelArray/articles/modelling.html">Case Studies</a></strong> — detailed modelling examples and data exploration recipes</li>
 </ul>
-<p>Full documentation of <code>ModelArray</code> can be found <a href="https://pennlinc.github.io/ModelArray/">here</a>.</p>
-<p>Source code of <code>ModelArray</code> can be found <a href="https://github.com/PennLINC/ModelArray" class="external-link">here</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
+</h2>
+<p>If you use ModelArray, please cite:</p>
+<blockquote>
+<p>Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S., Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha, K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M., Shinohara, R. T., Cieslak, M. &amp; Satterthwaite, T. D. (2023). ModelArray: an R package for statistical analysis of fixel-wise data. <em>NeuroImage</em>, <em>271</em>, 120037. <a href="https://doi.org/10.1016/j.neuroimage.2023.120037" class="external-link uri">https://doi.org/10.1016/j.neuroimage.2023.120037</a></p>
+</blockquote>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="license">

@@ -29,22 +29,29 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="active nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/basic_r_intro.html">An intro to R</a></li>
-    <li><a class="dropdown-item" href="../articles/container.html">Getting started with containers</a></li>
-    <li><a class="dropdown-item" href="../articles/debugging.html">Debugging</a></li>
-    <li><a class="dropdown-item" href="../articles/doc_for_developer.html">Developer documentation</a></li>
-    <li><a class="dropdown-item" href="../articles/faq.html">FAQ</a></li>
-    <li><a class="dropdown-item" href="../articles/installations.html">Installation</a></li>
-    <li><a class="dropdown-item" href="../articles/multi_scalars.html">Using Multiple Scalars in ModelArray</a></li>
-    <li><a class="dropdown-item" href="../articles/voxel-wise_data.html">Application to voxel-wise data</a></li>
-    <li><a class="dropdown-item" href="../articles/walkthrough.html">Example walkthrough</a></li>
-    <li><a class="dropdown-item" href="../articles/wrap_function.html">Developing a function for ModelArray.wrap</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/installations.html">Get Started</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-introduction" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Introduction</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-introduction">
+<li><a class="dropdown-item" href="../articles/elements.html">Elements: The Unit of Analysis</a></li>
+    <li><a class="dropdown-item" href="../articles/element-splitting.html">Splitting Element IDs</a></li>
+    <li><a class="dropdown-item" href="../articles/hdf5-format.html">Understanding the HDF5 File</a></li>
+    <li><a class="dropdown-item" href="../articles/hdf5-large-analyses.html">HDF5 for Large-Scale Analyses</a></li>
   </ul>
 </li>
+<li class="active nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-case-studies" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Case Studies</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-case-studies">
+<li><a class="dropdown-item" href="../articles/walkthrough.html">End-to-End Walkthrough</a></li>
+    <li><a class="dropdown-item" href="../articles/modelling.html">Modelling in Depth</a></li>
+    <li><a class="dropdown-item" href="../articles/exploring-h5.html">Exploring Data with Convenience Functions</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Resources</h6></li>
+    <li><a class="dropdown-item" href="../articles/container.html">Containers</a></li>
+    <li><a class="dropdown-item" href="../articles/doc_for_developer.html">Developer Documentation</a></li>
+  </ul>
+</li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -76,24 +83,24 @@
 <h2 id="preface">Preface<a class="anchor" aria-label="anchor" href="#preface"></a>
 </h2>
 <p>Target audience: Any user who wants to use a container to run
-<code>ModelArray</code> and/or <code>ConFixel</code></p>
+<code>ModelArray</code> and/or <code>ModelArrayIO</code> commands</p>
 <p>What is covered on this page? How to use the container image of
-<code>ModelArray + ConFixel</code>.</p>
+<code>ModelArray + ModelArrayIO</code>.</p>
 <p>What is not covered on this page? Step by step details on how to run
-<code>ModelArray</code> and <code>ConFixel</code>. For a full
-walkthrough on how to use our software, please refer to
+<code>ModelArray</code> and <code>ModelArrayIO</code> commands. For a
+full walkthrough on how to use our software, please refer to
 <code><a href="../articles/walkthrough.html">vignette("walkthrough")</a></code>. We highly suggest reviewing that
 page if you’re new to <code>ModelArray</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>Besides running <code>ModelArray</code> and <code>ConFixel</code> on
-a local computer, users also have an option to run them on High
-Performance Computing (HPC) clusters. When using HPC clusters, users may
-not have full privilege to install all the dependent packages.
+<p>Besides running <code>ModelArray</code> and <code>ModelArrayIO</code>
+commands on a local computer, users also have an option to run them on
+High Performance Computing (HPC) clusters. When using HPC clusters,
+users may not have full privilege to install all the dependent packages.
 Therefore, we provide the option to download our software as a container
-image that includes <code>ModelArray + ConFixel</code>.</p>
+image that includes <code>ModelArray + ModelArrayIO</code>.</p>
 <p>Our container image is publicly available at <a href="https://hub.docker.com/r/pennlinc/modelarray_confixel" class="external-link">Docker
 Hub</a>. Although HPC clusters do not usually support
 <code>docker</code> commands, this container image can be run with
@@ -141,10 +148,10 @@ you might do <code>-B $PWD</code>;</p>
 <p><code>/path/to/singularity/image/modelarray_confixel_&lt;tagName&gt;.sif</code>
 is the full path to the singularity image (<code>.sif</code>) you
 pulled;</p>
-<p><code>ModelArray</code> and <code>ConFixel</code> are both included
-in this container. To run <code>ConFixel</code>, simply replace
-<code>&lt;command you want to run&gt;</code> with <code>ConFixel</code>
-commands (e.g., <code>confixel</code>).</p>
+<p><code>ModelArray</code> and <code>ModelArrayIO</code> are both
+included in this container. To run conversion tools, simply replace
+<code>&lt;command you want to run&gt;</code> with a
+<code>ModelArrayIO</code> command (e.g., <code>confixel</code>).</p>
 <p>To run <code>ModelArray</code>, you may first save the R commands
 into an R script, then replace
 <code>&lt;command you want to run&gt;</code> with
@@ -161,10 +168,9 @@ running on the cluster compute node.</p>
 <h2 id="more-information">More information?<a class="anchor" aria-label="anchor" href="#more-information"></a>
 </h2>
 <p>We have provided a detailed example walkthrough of
-<code>ModelArray</code> and <code>ConFixel</code> at:
+<code>ModelArray</code> and <code>ModelArrayIO</code> commands at:
 <code><a href="../articles/walkthrough.html">vignette("walkthrough")</a></code>. Please refer to this page for a
-tutorial on how to use <code>ModelArray</code> and
-<code>ConFixel</code>.</p>
+tutorial on how to use both.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
