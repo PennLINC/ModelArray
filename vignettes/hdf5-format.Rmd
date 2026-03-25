@@ -32,7 +32,7 @@ The layout follows this pattern:
 /
 ├── scalars/
 │   └── <scalar_name>/          # e.g., "FDC", "FA", "thickness"
-│       └── values              # Dataset: elements × subjects matrix
+│       └── values              # Dataset: elements × source files matrix
 │       └── column_names        # Dataset (text): source filenames
 └── results/                    # Created by writeResults()
     └── <analysis_name>/        # e.g., "results_lm", "results_gam"
@@ -45,7 +45,7 @@ The layout follows this pattern:
 `/scalars/<scalar_name>/values` is the main data matrix:
 
 - **Rows** = elements (fixels, voxels, or greyordinates)
-- **Columns** = subjects
+- **Columns** = source files
 
 `/scalars/<scalar_name>/column_names` stores the source filenames that correspond to each column,
 so you can trace every column back to its subject.
@@ -125,10 +125,10 @@ rhdf5::h5read("data.h5", "scalars/FDC/values", index = list(1:5, 1:3))
 
 ModelArray does not create HDF5 files from raw imaging data — that's the job of the companion conversion tools:
 
-| Data type | Tool | Command |
-|:----------|:-----|:--------|
-| Fixel (`.mif`) | [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) | `confixel` |
-| Voxel (`.nii.gz`) | [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) | `convoxel` |
-| Surface (`.dscalar.nii`) | [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) | `concifti` |
+| Data type | Command |
+|:----------|:--------|
+| Fixel (`.mif`) | `confixel` |
+| Voxel (`.nii.gz`) | `convoxel` |
+| Surface (`.dscalar.nii`) | `concifti` |
 
 Each command reads the source imaging files listed in a cohort CSV and writes them into the HDF5 layout described above. See the [ModelArrayIO documentation](https://github.com/PennLINC/ModelArrayIO) for detailed usage instructions.
