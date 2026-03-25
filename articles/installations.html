@@ -75,10 +75,8 @@
 package and necessary dependent packages/libraries. If you have
 difficulty installing necessary packages (e.g., on HPC clusters), you
 also have an option to use the container image of
-<code>ModelArray</code> and <strong>ModelArrayIO</strong> (the Docker
-image is still named <code>pennlinc/modelarray_confixel</code> for
-historical reasons). Please refer to <code><a href="../articles/container.html">vignette("container")</a></code>
-for more.</p>
+<code>ModelArray + ConFixel</code>. Please refer to
+<code><a href="../articles/container.html">vignette("container")</a></code> for more.</p>
 <p>We’ll directly install <code>ModelArray</code> from <a href="https://github.com/PennLINC/ModelArray" class="external-link">GitHub</a>. Please notice
 that, this is only fully tested and supported on Linux Ubuntu system and
 macOS system. If you are a Windows user, you will face errors when
@@ -95,21 +93,19 @@ dependent packages and libraries, and finally install
 <h3 id="set-up-a-conda-environment">Set up a conda environment<a class="anchor" aria-label="anchor" href="#set-up-a-conda-environment"></a>
 </h3>
 <p>We first create a conda environment <code>modelarray</code> for
-installing the companion Python package <strong>ModelArrayIO</strong>
-(command-line tools include <code>confixel</code>,
-<code>convoxel</code>, etc.). We install Python 3.11 or newer (as
-required by ModelArrayIO):</p>
-<pre class="console"><code>foo@bar:~$ conda create --name modelarray python=3.11
+installing the companion software <code>ConFixel</code> etc. We’ll
+install python version 3.9:</p>
+<pre class="console"><code>foo@bar:~$ conda create --name modelarray python=3.9
 foo@bar:~$ conda activate modelarray</code></pre>
 </div>
 <div class="section level3">
 <h3 id="install-mrtrix-only-required-for-fixel-wise-data">Install MRtrix (Only required for fixel-wise data)<a class="anchor" aria-label="anchor" href="#install-mrtrix-only-required-for-fixel-wise-data"></a>
 </h3>
-<p>When converting fixel-wise data’s format (<code>.mif</code>), the
-<code>confixel</code> tool (from ModelArrayIO) uses function
-<code>mrconvert</code> from MRtrix, so please make sure MRtrix has been
-installed. It can either be installed via <code>conda</code> in this
-conda environment we just created, or be compiled from source. See <a href="https://www.mrtrix.org/download/" class="external-link">MRtrix’s webpage</a> for more.
+<p>When converting fixel-wise data’s format (<code>.mif</code>),
+<code>ConFixel</code> uses function <code>mrconvert</code> from MRtrix,
+so please make sure MRtrix has been installed. It can either be
+installed via <code>conda</code> in this conda environment we just
+created, or be compiled from source. See <a href="https://www.mrtrix.org/download/" class="external-link">MRtrix’s webpage</a> for more.
 Type <code>mrview</code> in the terminal to check whether MRtrix
 installation is successful.</p>
 <p>If your input data is voxel-wise data, you can skip this step.</p>
@@ -141,26 +137,24 @@ foo@bar:~$ sudo apt-get install -y libhdf5-dev</code></pre>
 </div>
 </div>
 <div class="section level3">
-<h3 id="install-modelarrayio-python-package-from-github">Install ModelArrayIO python package from GitHub<a class="anchor" aria-label="anchor" href="#install-modelarrayio-python-package-from-github"></a>
+<h3 id="install-confixel-python-package-from-github">Install ConFixel python package from GitHub<a class="anchor" aria-label="anchor" href="#install-confixel-python-package-from-github"></a>
 </h3>
-<p><a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a>
-provides file format conversion for fixel-wise data (<code>.mif</code>),
-voxel-wise data (NIfTI), and CIFTI-2 data. The older
-<strong>ConFixel</strong> repository is superseded by ModelArrayIO and
-will be archived; use ModelArrayIO for all new installs. Follow the
-commands below:</p>
+<p><a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> provides
+file format conversion for both fixel-wise data (<code>.mif</code>) and
+voxel-wise data (NIfTI). Follow the commands below to install it from
+GitHub:</p>
 <pre class="console"><code># We first activate the conda environment we just created:
 foo@bar:~$ conda activate modelarray  
 
-# Then install ModelArrayIO:
+# Then install ConFixel:
 foo@bar:~$ cd ~/myProject
-foo@bar:myProject$ git clone https://github.com/PennLINC/ModelArrayIO.git
-foo@bar:myProject$ cd ModelArrayIO
+foo@bar:myProject$ git clone https://github.com/PennLINC/ConFixel.git
+foo@bar:myProject$ cd ConFixel
 foo@bar:myProject$ pip install .
 
 # You may remove the original source code if you are an end user instead of a developer:
 foo@bar:myProject$ cd ..
-foo@bar:myProject$ rm -r ModelArrayIO</code></pre>
+foo@bar:myProject$ rm -r ConFixel</code></pre>
 </div>
 <div class="section level3">
 <h3 id="install-r">Install R<a class="anchor" aria-label="anchor" href="#install-r"></a>

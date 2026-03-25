@@ -86,20 +86,20 @@
 Overview
 </figcaption></figure>
 </center>
-<p>ModelArray is packaged with the companion Python software <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link"><strong>ModelArrayIO</strong></a> for converting fixel-wise data, voxel-wise data or greyordinate-wise data to the expected file format that ModelArray uses. ModelArrayIO provides command-line tools (e.g. <code>confixel</code>, <code>convoxel</code>, <code>concifti</code>, and matching <code>*_write</code> commands) that convert between the original image format (<code>.mif</code> for fixel-wise data, NIfTI for voxel-wise data, CIFTI-2 for greyordinate-wise data) and the HDF5 file format (<code>.h5</code>) used for ModelArray. The legacy <a href="https://github.com/PennLINC/ConFixel" class="external-link"><strong>ConFixel</strong></a> repository is superseded by ModelArrayIO.</p>
-<!-- if there is any changes in this overview section, please also update ModelArrayIO's README! -->
+<p>ModelArray is packaged with the companion software <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> for converting fixel-wise data, voxel-wise data or greyordinate-wise data to the expected file format that ModelArray uses. Specifically, <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a> is Python-based command-line interface software, and it converts between the original image format (<code>.mif</code> for fixel-wise data, NIfTI for voxel-wise data, CIFTI-2 for greyordinate-wise data) and the HDF5 file format (<code>.h5</code>) used for ModelArray.</p>
+<!-- if there is any changes in this overview section, please also update ConFixel's frontpage! -->
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>Please refer to webpage <a href="https://pennlinc.github.io/ModelArray/articles/installations.html">Installation</a> for a full guidance of installation of <code>ModelArray</code> and its companion Python package <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link"><code>ModelArrayIO</code></a>. The most important steps for installing <code>ModelArray</code> are:</p>
+<p>Please refer to webpage <a href="https://pennlinc.github.io/ModelArray/articles/installations.html">Installation</a> for a full guidance of installation of <code>ModelArray</code> and its companion python package <a href="https://github.com/PennLINC/ConFixel" class="external-link">ConFixel</a>. The most important steps for installing <code>ModelArray</code> are:</p>
 <ul>
 <li>Make sure you have necessary libraries for HDF5 - see <a href="https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system">this section</a>
 </li>
 <li>Install <code>ModelArray</code> from GitHub - see <a href="https://pennlinc.github.io/ModelArray/articles/installations.html#install-modelarray-r-package-from-github">this section</a>
 </li>
 </ul>
-<p>Additionally, we also provide a <a href="https://hub.docker.com/r/pennlinc/modelarray_confixel" class="external-link">container image</a> that includes <code>ModelArray</code> and <code>ModelArrayIO</code> (image name remains <code>modelarray_confixel</code> for backward compatibility). With this container image, there is no need for the user to install <code>ModelArray</code>, <code>ModelArrayIO</code>, and dependent R and Python packages manually. Please see <a href="https://pennlinc.github.io/ModelArray/articles/container.html">this webpage</a> for how to use this container image.</p>
+<p>Additionally, we also provide a <a href="https://hub.docker.com/r/pennlinc/modelarray_confixel" class="external-link">container image</a> that includes <code>ModelArray</code> and <code>ConFixel</code>. With this container image, there is no need for the user to install <code>ModelArray</code>, <code>ConFixel</code>, and dependent R and Python packages. Please see <a href="https://pennlinc.github.io/ModelArray/articles/container.html">this webpage</a> for how to use this container image.</p>
 <!-- check above links work, esp those with section titles!!! -->
 </div>
 <div class="section level2">

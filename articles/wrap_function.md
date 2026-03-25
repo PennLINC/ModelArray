@@ -282,17 +282,16 @@ We now save the results data frame into the original h5 file:
 writeResults(h5_path, df.output = res_wrap, analysis_name = "anova_and_means")
 ```
 
-Notice that the analysis name specified in argument `analysis_name` will
-be used by `ciftistats_write` in the next step when converting results
-back to dscalar.nii file format. It’ll also be used as the prefix of the
-output CIFTI files to be saved.
+Notice that the the analysis name specified in argument `analysis_name`
+will be used in `ConCifti` in the next step when converting results back
+to dscalar.nii file format. It’ll also be used as the prefix of the mif
+files to be saved.
 
 ## Step 3. Convert back to dscalar.nii file format
 
-### Step 3.1. Convert the statistical results into CIFTI format using `ciftistats_write`
+### Step 3.1. Convert the statistical results into mif file format using ConFixel
 
-We now use `ciftistats_write` (from ModelArrayIO) to convert the results
-into dscalar.nii files:
+We now use `ConFixel` to convert the results into a list of mif files:
 
 ``` console
 $ ciftistats_write \

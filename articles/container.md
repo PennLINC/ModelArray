@@ -3,26 +3,25 @@
 ## Preface
 
 Target audience: Any user who wants to use a container to run
-`ModelArray` and/or **ModelArrayIO** (Python conversion tools).
+`ModelArray` and/or `ConFixel`
 
-What is covered on this page? How to use the Docker/Singularity image
-`pennlinc/modelarray_confixel`, which bundles `ModelArray` and
-ModelArrayIO (the image name is historical).
+What is covered on this page? How to use the container image of
+`ModelArray + ConFixel`.
 
 What is not covered on this page? Step by step details on how to run
-`ModelArray` and ModelArrayIO. For a full walkthrough on how to use our
+`ModelArray` and `ConFixel`. For a full walkthrough on how to use our
 software, please refer to
 [`vignette("walkthrough")`](https://pennlinc.github.io/ModelArray/articles/walkthrough.md).
 We highly suggest reviewing that page if you’re new to `ModelArray`.
 
 ## Introduction
 
-Besides running `ModelArray` and ModelArrayIO on a local computer, users
+Besides running `ModelArray` and `ConFixel` on a local computer, users
 also have an option to run them on High Performance Computing (HPC)
 clusters. When using HPC clusters, users may not have full privilege to
 install all the dependent packages. Therefore, we provide the option to
-download our software as a container image that includes `ModelArray`
-and ModelArrayIO.
+download our software as a container image that includes
+`ModelArray + ConFixel`.
 
 Our container image is publicly available at [Docker
 Hub](https://hub.docker.com/r/pennlinc/modelarray_confixel). Although
@@ -81,10 +80,9 @@ exists inside your current working directory, you might do `-B $PWD`;
 `/path/to/singularity/image/modelarray_confixel_<tagName>.sif` is the
 full path to the singularity image (`.sif`) you pulled;
 
-`ModelArray` and ModelArrayIO (Python CLIs such as `confixel`,
-`convoxel`, `fixelstats_write`) are both included in this container.
-Replace `<command you want to run>` with the CLI you need (e.g.,
-`confixel --help`).
+`ModelArray` and `ConFixel` are both included in this container. To run
+`ConFixel`, simply replace `<command you want to run>` with `ConFixel`
+commands (e.g., `confixel`).
 
 To run `ModelArray`, you may first save the R commands into an R script,
 then replace `<command you want to run>` with
@@ -101,7 +99,7 @@ cluster compute node.
 ## More information?
 
 We have provided a detailed example walkthrough of `ModelArray` and
-ModelArrayIO at:
+`ConFixel` at:
 [`vignette("walkthrough")`](https://pennlinc.github.io/ModelArray/articles/walkthrough.md).
 Please refer to this page for a tutorial on how to use `ModelArray` and
-the conversion tools.
+`ConFixel`.
