@@ -2,6 +2,45 @@ url: https://pennlinc.github.io/ModelArray/
 template:
   bootstrap: 5
 
-redirects:
-  - ["articles/wrap.html", "articles/wrap_function.html"]
+navbar:
+  structure:
+    left: [intro, introductions, case-studies, reference, news]
+    right: [search, github]
+  components:
+    intro:
+      text: Get Started
+      href: articles/installations.html
+    introductions:
+      text: Introduction
+      menu:
+        - text: "Elements: The Unit of Analysis"
+          href: articles/elements.html
+        - text: "Splitting Element IDs"
+          href: articles/element-splitting.html
+        - text: "Understanding the HDF5 File"
+          href: articles/hdf5-format.html
+        - text: "HDF5 for Large-Scale Analyses"
+          href: articles/hdf5-large-analyses.html
+    case-studies:
+      text: Case Studies
+      menu:
+        - text: "End-to-End Walkthrough"
+          href: articles/walkthrough.html
+        - text: "Modelling in Depth"
+          href: articles/modelling.html
+        - text: "Exploring Data with Convenience Functions"
+          href: articles/exploring-h5.html
+        - text: "-------"
+        - text: Resources
+        - text: "Containers"
+          href: articles/container.html
+        - text: "Developer Documentation"
+          href: articles/doc_for_developer.html
 
+redirects:
+  - ["articles/wrap.html", "articles/modelling.html"]
+  - ["articles/wrap_function.html", "articles/modelling.html"]
+  - ["articles/voxel-wise_data.html", "articles/modelling.html"]
+  - ["articles/basic_r_intro.html", "articles/installations.html"]
+  - ["articles/faq.html", "articles/exploring-h5.html"]
+  - ["articles/debugging.html", "articles/exploring-h5.html"]
