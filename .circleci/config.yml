@@ -29,6 +29,14 @@ steps: &steps
     - run:
         name: Check package
         command: R CMD check *tar.gz
+    - run:
+        name: Calculate and upload code coverage
+        command: |
+          R -e 'if (!requireNamespace("covr", quietly = TRUE)) install.packages("covr")'
+          R -e 'cov <- covr::package_coverage(type = "tests"); covr::to_cobertura(cov, filename = "coverage.xml"); print(cov); cat(sprintf("Total coverage: %.2f%%\n", covr::percent_coverage(cov)))'
+          curl -Os https://uploader.codecov.io/latest/linux/codecov || echo "Codecov uploader download failed; continuing."
+          chmod +x codecov || echo "Codecov uploader chmod failed; continuing."
+          ./codecov -f coverage.xml -n "circleci-r-tests" || echo "Codecov upload failed; continuing."
 
 
 jobs:
