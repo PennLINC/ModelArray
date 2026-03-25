@@ -333,13 +333,17 @@ changes.</p>
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"styler"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"styler"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p>Apply code styling to the package:</p>
+<p>Apply code styling to the package using the tidyverse style
+guide:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">styler</span><span class="fu">::</span><span class="fu"><a href="https://styler.r-lib.org/reference/style_pkg.html" class="external-link">style_pkg</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">styler</span><span class="fu">::</span><span class="fu"><a href="https://styler.r-lib.org/reference/style_pkg.html" class="external-link">style_pkg</a></span><span class="op">(</span>style <span class="op">=</span> <span class="fu">styler</span><span class="fu">::</span><span class="va"><a href="https://styler.r-lib.org/reference/tidyverse_style.html" class="external-link">tidyverse_style</a></span><span class="op">)</span></span></code></pre></div>
 <p>Optionally, run a dry check to confirm no files would be
 reformatted:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">styler</span><span class="fu">::</span><span class="fu"><a href="https://styler.r-lib.org/reference/style_pkg.html" class="external-link">style_pkg</a></span><span class="op">(</span>dry <span class="op">=</span> <span class="st">"on"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">styler</span><span class="fu">::</span><span class="fu"><a href="https://styler.r-lib.org/reference/style_pkg.html" class="external-link">style_pkg</a></span><span class="op">(</span></span>
+<span>  dry <span class="op">=</span> <span class="st">"on"</span>,</span>
+<span>  style <span class="op">=</span> <span class="fu">styler</span><span class="fu">::</span><span class="va"><a href="https://styler.r-lib.org/reference/tidyverse_style.html" class="external-link">tidyverse_style</a></span></span>
+<span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">result</span><span class="op">[[</span><span class="st">"changed"</span><span class="op">]</span><span class="op">]</span> <span class="op">==</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <p>For more details on how to write unit tests + test out, please check
 out <code>Testing</code> chapters in the book <a href="https://r-pkgs.org/index.html" class="external-link">“R Packages” written by Hadley

@@ -238,16 +238,19 @@ if (!requireNamespace("styler", quietly = TRUE)) {
 }
 ```
 
-Apply code styling to the package:
+Apply code styling to the package using the tidyverse style guide:
 
 ``` r
-styler::style_pkg()
+styler::style_pkg(style = styler::tidyverse_style)
 ```
 
 Optionally, run a dry check to confirm no files would be reformatted:
 
 ``` r
-result <- styler::style_pkg(dry = "on")
+result <- styler::style_pkg(
+  dry = "on",
+  style = styler::tidyverse_style
+)
 all(result[["changed"]] == FALSE)
 ```
 
