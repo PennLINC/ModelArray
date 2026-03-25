@@ -357,7 +357,10 @@ ModelArray <- function(filepath,
             results_data[[x]]$results_matrix <- t(results_data[[x]]$results_matrix)
           }
 
-          colnames(results_data[[x]]$results_matrix) <- as.character(DelayedArray::realize(names_results_matrix)) # designate the column names
+          # designate the column names
+          colnames(results_data[[x]]$results_matrix) <- as.character(
+            names_results_matrix
+          )
 
 
           # /results/<analysis_name>/lut_col?:   # LOOP OVER # OF COL OF $RESULTS_MATRIX, AND SEE IF THERE IS LUT_COL
@@ -704,7 +707,11 @@ analyseOneElement.lm <- function(i_element,
 
     # add a column of element ids:
     colnames.temp <- colnames(onemodel.onerow)
-    onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element - 1, .before = colnames.temp[1]) # add as the first column
+    onemodel.onerow <- onemodel.onerow %>%
+      tibble::add_column(
+        element_id = i_element - 1,
+        .before = colnames.temp[1]
+      ) # add as the first column
 
     # now you can get the headers, # of columns, etc of the output results
 
@@ -1011,7 +1018,11 @@ analyseOneElement.gam <- function(i_element,
 
         if (length(str_list) > 2) {
           # there is string after variable name
-          str_valid <- paste0(str_valid, "_", paste(str_list[3:length(str_list)], collapse = "")) # combine rest of strings
+          str_valid <- paste0(
+            str_valid,
+            "_",
+            paste(str_list[3:length(str_list)], collapse = "")
+          ) # combine rest of strings
         }
 
         # detect ":", and change to "BY"   # there is "_" replacing for ")" in "s()" already
@@ -1392,7 +1403,7 @@ writeResults <- function(fn.output,
 
   # check if group "results\<analysis_name>" exists:
   if (results.grp$exists(analysis_name) == TRUE &&
-    overwrite == FALSE) {
+        overwrite == FALSE) {
     warning(paste0(analysis_name, " exists but not to overwrite!"))
     # TODO: add checker for exisiting analysis_name, esp the matrix size
     results.analysis.grp <- results.grp$open(analysis_name)
@@ -1400,7 +1411,7 @@ writeResults <- function(fn.output,
   } else {
     # not exist; or exist && overwrite: to create
     if (results.grp$exists(analysis_name) == TRUE &&
-      overwrite == TRUE) {
+          overwrite == TRUE) {
       # delete existing one first
       results.grp$link_delete(analysis_name)
       # NOTE: the file size will not shrink after your deletion..
@@ -1418,7 +1429,7 @@ writeResults <- function(fn.output,
       col_class <- as.character(sapply(df.output, class)[i_col]) # class of this column
 
       if ((col_class != "numeric") &&
-        (col_class != "integer")) {
+            (col_class != "integer")) {
         # the column class is not numeric or integer
         message(
           paste0(
