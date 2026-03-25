@@ -1,5 +1,5 @@
 
-<!-- TODO README.md is generated from README.Rmd. Please edit that file -->
+<!-- README.md is generated from README.Rmd. Please edit that file -->
 
 # ModelArray
 
@@ -13,33 +13,63 @@ Clones](https://img.shields.io/badge/dynamic/json?color=success&label=Clone&quer
 pulls](https://img.shields.io/docker/pulls/pennlinc/modelarray_confixel.svg)](https://hub.docker.com/r/pennlinc/modelarray_confixel)
 <!-- badges: end -->
 
-`ModelArray` is an R package for statistical analysis of fixel-wise data
-and beyond. Its features include:
+**Mass-univariate statistical modeling for large neuroimaging datasets
+without a supercomputer**
 
-- Easy to use: set up your statistical analysis with just several lines
-  of code;
-- Supporting linear and nonlinear modeling, and extensible to more
-  models:
-  - At present, `ModelArray` supports linear models as well as
-    generalized additive models (GAMs) with and without penalized
-    splines, which are particularly useful for studying nonlinear
-    effects in lifespan data. `ModelArray` is also extensible to diverse
-    models available in R;
-- Scalable for large-scale datasets;
-- Compatible with fixel-wise data, voxel-wise data, and
-  greyordinate-wise data.
+Brain images contain hundreds of thousands of spatial locations. Fitting
+a statistical model at every single one - a fixel, a voxel, a cortical
+vertex - is conceptually straightforward but practically painful: the
+data is too large to load into memory, and the code needed to loop
+efficiently across elements is tedious to write.
 
-Please cite our [NeuroImage
-paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use
-`ModelArray`:
+ModelArray handles all of this. You write one model formula and
+ModelArray fits it across every element in your dataset, in parallel,
+reading only what it needs from disk at any moment. The result is a tidy
+data frame of statistics - one row per element - ready for thresholding
+and visualization.
 
-> Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S.,
-> Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha,
-> K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M.,
-> Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2023).
-> ModelArray: an R package for statistical analysis of fixel-wise data.
-> *NeuroImage*, *271*, 120037.
-> <https://doi.org/10.1016/j.neuroimage.2023.120037>
+``` r
+library(ModelArray)
+
+modelarray <- ModelArray("data.h5", scalar_types = c("FDC"))
+phenotypes  <- read.csv("cohort.csv")
+
+results <- ModelArray.lm(FDC ~ Age + sex + motion, modelarray, phenotypes, "FDC",
+  n_cores = 4
+)
+```
+
+That’s it. `results` is a data frame with estimates, *t*-statistics,
+*p*-values, and FDR-corrected *p*-values for every fixel.
+
+## Why ModelArray?
+
+**It scales.** ModelArray uses
+[HDF5](https://www.hdfgroup.org/solutions/hdf5/) for on-disk storage and
+[DelayedArray](https://bioconductor.org/packages/DelayedArray/) for lazy
+access. An ABCC dMRI dataset has ~350,000 voxels × ~26,000-sessions -
+about 291 GB if loaded in its entirety - never enters RAM. ModelArray
+reads one element at a time, so memory usage stays flat regardless of
+dataset size.
+
+**It’s flexible.** Beyond linear models, ModelArray supports:
+
+- **GAMs** (`ModelArray.gam()`) with penalized splines for capturing
+  nonlinear effects, such as lifespan trajectories that accelerate or
+  decelerate across development
+- **Any R modeling function** (`ModelArray.wrap()`) — if you can write a
+  function that takes a data frame and returns a row of statistics,
+  ModelArray will run it across your entire dataset
+
+**It works with what you have.** ModelArray is modality-agnostic — the
+same code works for fixel-wise data, voxel-wise data, and surface-based
+greyordinate data. The companion tool
+[ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) handles
+conversion from `.mif`, NIfTI, and CIFTI formats into the HDF5 file that
+ModelArray expects.
+
+**It’s been peer-reviewed.** ModelArray was published in *NeuroImage* in
+2023 and has been used in studies of lifespan brain development.
 
 ## Overview
 
@@ -52,65 +82,55 @@ paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use
 
 </center>
 
-ModelArray is packaged with the companion software
-[ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) for converting
-fixel-wise data, voxel-wise data or greyordinate-wise data to the
-expected file format that ModelArray uses. Specifically,
-[ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) is Python-based
-command-line software that provides commands such as `confixel`,
-`convoxel`, and `concifti` to convert between original image formats
-(`.mif` for fixel-wise data, NIfTI for voxel-wise data, CIFTI-2 for
-greyordinate-wise data) and the HDF5 file format (`.h5`) used by
-ModelArray.
-
-<!-- if there is any changes in this overview section, please also update ModelArrayIO's frontpage! -->
-
 ## Installation
 
-Please refer to webpage
-[Installation](https://pennlinc.github.io/ModelArray/articles/installations.html)
-for a full guidance of installation of `ModelArray` and its companion
-python package [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO). The
-most important steps for installing `ModelArray` are:
+See the [Get
+Started](https://pennlinc.github.io/ModelArray/articles/installations.html)
+page for full installation instructions.
 
-- Make sure you have necessary libraries for HDF5 - see [this
-  section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system)
-- Install `ModelArray` from GitHub - see [this
-  section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-modelarray-r-package-from-github)
+The short version:
 
-Additionally, we also provide a [container
-image](https://hub.docker.com/r/pennlinc/modelarray_confixel) that
-includes `ModelArray` and `ModelArrayIO`. With this container image, there
-is no need for the user to install `ModelArray`, `ModelArrayIO`, and
-dependent R and Python packages. Please see [this
-webpage](https://pennlinc.github.io/ModelArray/articles/container.html)
-for how to use this container image.
-
-<!-- check above links work, esp those with section titles!!! -->
-
-## How to use
-
-Load the `ModelArray` package into R via:
+1.  Install system HDF5 libraries (`libhdf5-dev` on Linux,
+    `brew install hdf5` on macOS)
+2.  Install [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO)
+    (Python, for data conversion)
+3.  Install ModelArray from GitHub:
 
 ``` r
-library(ModelArray)
+devtools::install_github("PennLINC/ModelArray")
 ```
 
-We provide a walkthrough
-[here](https://pennlinc.github.io/ModelArray/articles/walkthrough.html)
-with example fixel-wise data. For additional notes on application to
-voxel-wise data, please refer to
-[here](https://pennlinc.github.io/ModelArray/articles/voxel-wise_data.html).
+Prefer a container? A [Docker/Singularity
+image](https://hub.docker.com/r/pennlinc/modelarray_confixel) with
+ModelArray and ModelArrayIO pre-installed is available — useful for HPC
+clusters where you can’t install system libraries.
 
-For documentation of `ModelArray` functions, you can:
+## Documentation
 
-- Either go to [this
-  webpage](https://pennlinc.github.io/ModelArray/reference/index.html);
-- Or in R console, type: `help(<function_name>)`. For example:
-  `help(ModelArray.lm)`
+Full documentation is at
+[pennlinc.github.io/ModelArray](https://pennlinc.github.io/ModelArray/):
 
-Full documentation of `ModelArray` can be found
-[here](https://pennlinc.github.io/ModelArray/).
+- **[Get
+  Started](https://pennlinc.github.io/ModelArray/articles/installations.html)**
+  — installation
+- **[End-to-End
+  Walkthrough](https://pennlinc.github.io/ModelArray/articles/walkthrough.html)**
+  — from raw data to visualized results
+- **[Introductions](https://pennlinc.github.io/ModelArray/articles/elements.html)**
+  — what elements are, how HDF5 storage works, how to scale to large
+  datasets
+- **[Case
+  Studies](https://pennlinc.github.io/ModelArray/articles/modelling.html)**
+  — detailed modelling examples and data exploration recipes
 
-Source code of `ModelArray` can be found
-[here](https://github.com/PennLINC/ModelArray).
+## Citation
+
+If you use ModelArray, please cite:
+
+> Zhao, C., Tapera, T. M., Bagautdinova, J., Bourque, J., Covitz, S.,
+> Gur, R. E., Gur, R. C., Larsen, B., Mehta, K., Meisler, S. L., Murtha,
+> K., Muschelli, J., Roalf, D. R., Sydnor, V. J., Valcarcel, A. M.,
+> Shinohara, R. T., Cieslak, M. & Satterthwaite, T. D. (2023).
+> ModelArray: an R package for statistical analysis of fixel-wise data.
+> *NeuroImage*, *271*, 120037.
+> <https://doi.org/10.1016/j.neuroimage.2023.120037>
