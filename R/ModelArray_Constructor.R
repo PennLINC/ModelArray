@@ -544,8 +544,20 @@ analyseOneElement.lm <- function(i_element,
                                  num.stat.output = NULL,
                                  flag_initiate = FALSE,
                                  on_error = "stop",
+                                 common_sources = NULL,
+                                 reorder_map = NULL,
                                  ...) {
-  values <- scalars(modelarray)[[scalar]][i_element, ]
+  if (length(scalar) < 1L) {
+    stop("scalar must contain at least one scalar name")
+  }
+  scalar_ref <- scalar[[1]]
+  values <- scalars(modelarray)[[scalar_ref]][i_element, ]
+  if (!is.null(reorder_map) && !is.null(reorder_map[[scalar_ref]])) {
+    values <- values[reorder_map[[scalar_ref]]]
+  }
+  if (!is.null(reorder_map) && !is.null(reorder_map[[scalar_ref]])) {
+    values <- values[reorder_map[[scalar_ref]]]
+  }
 
   ## check number of subjects with (in)valid values:
   flag_sufficient <- NULL # whether number of subjects with valid values are sufficient
@@ -558,7 +570,19 @@ analyseOneElement.lm <- function(i_element,
 
   if (flag_sufficient == TRUE) {
     dat <- phenotypes
-    dat[[scalar]] <- values
+    src_ref <- if (!is.null(common_sources)) common_sources else sources(modelarray)[[scalar_ref]]
+    for (s in scalar) {
+      src_s <- sources(modelarray)[[s]]
+      reorder_idx <- if (!is.null(reorder_map) && !is.null(reorder_map[[s]])) {
+        reorder_map[[s]]
+      } else {
+        match(src_ref, src_s)
+      }
+      if (any(is.na(reorder_idx))) {
+        stop(paste0("sources for scalar ", s, " are not a permutation of reference scalar ", scalar_ref))
+      }
+      dat[[s]] <- scalars(modelarray)[[s]][i_element, reorder_idx]
+    }
 
     # dots <- list(...)
     # dots_names <- names(dots)
@@ -803,8 +827,14 @@ analyseOneElement.gam <- function(i_element,
                                   flag_initiate = FALSE,
                                   flag_sse = FALSE,
                                   on_error = "stop",
+                                  common_sources = NULL,
+                                  reorder_map = NULL,
                                   ...) {
-  values <- scalars(modelarray)[[scalar]][i_element, ]
+  if (length(scalar) < 1L) {
+    stop("scalar must contain at least one scalar name")
+  }
+  scalar_ref <- scalar[[1]]
+  values <- scalars(modelarray)[[scalar_ref]][i_element, ]
 
   ## check number of subjects with (in)valid values:
   flag_sufficient <- NULL # whether number of subjects with valid values are sufficient
@@ -817,7 +847,19 @@ analyseOneElement.gam <- function(i_element,
 
   if (flag_sufficient == TRUE) {
     dat <- phenotypes
-    dat[[scalar]] <- values
+    src_ref <- if (!is.null(common_sources)) common_sources else sources(modelarray)[[scalar_ref]]
+    for (s in scalar) {
+      src_s <- sources(modelarray)[[s]]
+      reorder_idx <- if (!is.null(reorder_map) && !is.null(reorder_map[[s]])) {
+        reorder_map[[s]]
+      } else {
+        match(src_ref, src_s)
+      }
+      if (any(is.na(reorder_idx))) {
+        stop(paste0("sources for scalar ", s, " are not a permutation of reference scalar ", scalar_ref))
+      }
+      dat[[s]] <- scalars(modelarray)[[s]][i_element, reorder_idx]
+    }
 
     arguments <- list(...)
     arguments$formula <- formula
@@ -1157,12 +1199,19 @@ analyseOneElement.wrap <- function(i_element,
                                    num.stat.output = NULL,
                                    flag_initiate = FALSE,
                                    on_error = "stop",
+                                   common_sources = NULL,
+                                   reorder_map = NULL,
                                    ...) {
-  values <- scalars(modelarray)[[scalar]][i_element, ]
+  if (length(scalar) < 1L) {
+    stop("scalar must contain at least one scalar name")
+  }
+  scalar_ref <- scalar[[1]]
+
+  values_first <- scalars(modelarray)[[scalar_ref]][i_element, ]
 
   ## check number of subjects with (in)valid values:
   flag_sufficient <- NULL
-  num.subj.valid <- length(values[is.finite(values)])
+  num.subj.valid <- length(values_first[is.finite(values_first)])
   if (num.subj.valid > num.subj.lthr) {
     flag_sufficient <- TRUE
   } else {
@@ -1171,7 +1220,19 @@ analyseOneElement.wrap <- function(i_element,
 
   if (flag_sufficient == TRUE) {
     dat <- phenotypes
-    dat[[scalar]] <- values
+    src_ref <- if (!is.null(common_sources)) common_sources else sources(modelarray)[[scalar_ref]]
+    for (s in scalar) {
+      src_s <- sources(modelarray)[[s]]
+      reorder_idx <- if (!is.null(reorder_map) && !is.null(reorder_map[[s]])) {
+        reorder_map[[s]]
+      } else {
+        match(src_ref, src_s)
+      }
+      if (any(is.na(reorder_idx))) {
+        stop(paste0("sources for scalar ", s, " are not a permutation of reference scalar ", scalar_ref))
+      }
+      dat[[s]] <- scalars(modelarray)[[s]][i_element, reorder_idx]
+    }
 
     arguments <- list(...)
     arguments$data <- dat

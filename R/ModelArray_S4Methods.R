@@ -206,12 +206,142 @@ setMethod(
       }
     }
 
+    src_ref <- sources(x)[[scalar[[1]]]]
     for (s in scalar) {
-      dat[[s]] <- scalars(x)[[s]][i_element, ]
+      src_s <- sources(x)[[s]]
+      reorder_idx <- match(src_ref, src_s)
+      if (any(is.na(reorder_idx))) {
+        stop(paste0("sources for scalar ", s, " are not a permutation of reference scalar ", scalar[[1]]))
+      }
+      dat[[s]] <- scalars(x)[[s]][i_element, reorder_idx]
     }
     dat
   }
 )
+
+#' Multi-scalar example per-element data.frame for user functions
+#'
+#' @description
+#' `exampleElementDataMultiScalar` is a helper for constructing per-element data.frames
+#' when working with multiple scalars and long-format phenotypes (one row per scalar).
+#' It mirrors the ID-based alignment used internally by `ModelArray.lm`, but returns the
+#' per-element data.frame directly for inspection or use in custom functions.
+#'
+#' @param x A `ModelArray` object
+#' @param scalar A character vector of one or more scalar names
+#' @param i_element An integer, the i_th element (1-based)
+#' @param phenotypes A data.frame of the cohort with independent variables/covariates
+#' @param id_cols Optional character vector of identifier columns used to align subjects
+#'   across scalars when `phenotypes` is in long format. If `NULL`, defaults to
+#'   `participant_id`, `subject_id`, or `source_file` (first present).
+#' @return A data.frame with additional response column(s) named by `scalar`
+#' @rdname exampleElementData
+#' @export
+exampleElementDataMultiScalar <- function(x, scalar, i_element = 1L, phenotypes, id_cols = NULL) {
+  if (!is.data.frame(phenotypes)) {
+    stop("phenotypes must be a data.frame")
+  }
+  if (length(scalar) < 1L) {
+    stop("scalar must contain at least one scalar name")
+  }
+  missing_scalars <- setdiff(scalar, names(scalars(x)))
+  if (length(missing_scalars) > 0) {
+    stop(paste0(
+      "scalar not found in modelarray: ",
+      paste(missing_scalars, collapse = ", "),
+      "; use one of names(scalars(x))"
+    ))
+  }
+
+  num_elements <- nrow(scalars(x)[[scalar[[1]]]])
+  if (length(i_element) != 1L || is.na(i_element) || i_element < 1L || i_element > num_elements) {
+    stop("i_element is out of range")
+  }
+
+  scalar_ref <- scalar[[1]]
+
+  # Resolve id_cols
+  if (!is.null(id_cols)) {
+    if (!is.character(id_cols) || length(id_cols) < 1L) {
+      stop("id_cols must be a non-empty character vector when provided")
+    }
+    missing_ids <- setdiff(id_cols, colnames(phenotypes))
+    if (length(missing_ids) > 0) {
+      stop(paste0("id_cols not found in phenotypes: ", paste(missing_ids, collapse = ", ")))
+    }
+    id_cols_resolved <- id_cols
+  } else {
+    id_cols_resolved <- if ("participant_id" %in% colnames(phenotypes)) {
+      "participant_id"
+    } else if ("subject_id" %in% colnames(phenotypes)) {
+      "subject_id"
+    } else {
+      "source_file"
+    }
+  }
+
+  make_id_vector <- function(df) {
+    vals <- df[, id_cols_resolved, drop = FALSE]
+    vals[] <- lapply(vals, as.character)
+    if (length(id_cols_resolved) == 1) {
+      vals[[1]]
+    } else {
+      do.call(paste, c(vals, sep = "__"))
+    }
+  }
+
+  # Long-format multi-scalar phenotypes
+  if ("scalar_name" %in% colnames(phenotypes) && length(unique(phenotypes$scalar_name)) > 1L && length(scalar) > 1L) {
+    ph_list <- lapply(scalar, function(s) subset(phenotypes, scalar_name == s))
+    names(ph_list) <- scalar
+
+    # uniqueness checks per scalar on IDs
+    for (s in scalar) {
+      ids_s <- make_id_vector(ph_list[[s]])
+      if (anyDuplicated(ids_s)) {
+        stop(paste0(
+          "phenotypes has duplicate identifier entries for scalar ",
+          s,
+          " using id_cols: ",
+          paste(id_cols_resolved, collapse = ", ")
+        ))
+      }
+    }
+
+    ids_by_scalar <- lapply(ph_list, make_id_vector)
+    common_ids <- Reduce(intersect, ids_by_scalar)
+    if (length(common_ids) == 0) {
+      stop("No common ids across requested scalars; cannot align.")
+    }
+
+    # Base data from reference scalar
+    ph_ref <- ph_list[[scalar_ref]]
+    ids_ref <- make_id_vector(ph_ref)
+    ph_idx_ref <- match(common_ids, ids_ref)
+    dat <- ph_ref[ph_idx_ref, , drop = FALSE]
+    row.names(dat) <- NULL
+
+    # Attach scalar values for each requested scalar
+    for (s in scalar) {
+      ph_s <- ph_list[[s]]
+      ids_s <- make_id_vector(ph_s)
+      ph_idx_s <- match(common_ids, ids_s)
+      sf_vec <- ph_s[["source_file"]][ph_idx_s]
+
+      src_s <- sources(x)[[s]]
+      col_idx <- match(sf_vec, src_s)
+      if (any(is.na(col_idx))) {
+        stop(paste0("Some ids for scalar ", s, " are missing in ModelArray sources"))
+      }
+
+      dat[[s]] <- scalars(x)[[s]][i_element, col_idx]
+    }
+    return(dat)
+  }
+
+  # Otherwise (wide phenotypes or single scalar): fall back to exampleElementData
+  exampleElementData(x, scalar = scalar, i_element = i_element, phenotypes = phenotypes)
+}
 
 # # NOTE: ref: https://stackoverflow.com/questions/56560280/
 # can-i-define-s4-methods-that-dispatch-on-more-than-one-argument-from-an-s3-gener
@@ -220,3 +350,4 @@ setMethod(
 #            )
 # setMethod("lm",
 #           signature = c("formula", "ModelArray", "data.frame", "character", "integer"))
+
