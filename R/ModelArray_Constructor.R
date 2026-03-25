@@ -1403,7 +1403,7 @@ writeResults <- function(fn.output,
 
   # check if group "results\<analysis_name>" exists:
   if (results.grp$exists(analysis_name) == TRUE &&
-        overwrite == FALSE) {
+    overwrite == FALSE) {
     warning(paste0(analysis_name, " exists but not to overwrite!"))
     # TODO: add checker for exisiting analysis_name, esp the matrix size
     results.analysis.grp <- results.grp$open(analysis_name)
@@ -1411,7 +1411,7 @@ writeResults <- function(fn.output,
   } else {
     # not exist; or exist && overwrite: to create
     if (results.grp$exists(analysis_name) == TRUE &&
-          overwrite == TRUE) {
+      overwrite == TRUE) {
       # delete existing one first
       results.grp$link_delete(analysis_name)
       # NOTE: the file size will not shrink after your deletion..
@@ -1429,7 +1429,7 @@ writeResults <- function(fn.output,
       col_class <- as.character(sapply(df.output, class)[i_col]) # class of this column
 
       if ((col_class != "numeric") &&
-            (col_class != "integer")) {
+        (col_class != "integer")) {
         # the column class is not numeric or integer
         message(
           paste0(
