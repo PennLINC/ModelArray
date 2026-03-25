@@ -1,0 +1,147 @@
+# Understanding the HDF5 File
+
+## What is HDF5?
+
+HDF5 (Hierarchical Data Format version 5) is a file format designed for
+storing large, structured datasets. Think of it as a filesystem within a
+file:
+
+- **Groups** act like directories, organizing data hierarchically
+- **Datasets** act like files, holding arrays of data
+- **Attributes** act like metadata, attached to groups or datasets
+
+HDF5 files use the `.h5` extension and are widely used in scientific
+computing because they support on-disk access (reading data without
+loading the entire file into memory), compression, and efficient chunked
+storage.
+
+## The ModelArray HDF5 layout
+
+ModelArray expects a specific structure inside the HDF5 file. This
+structure is created by companion tools —
+[ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) for fixel data,
+voxel data, and CIFTI data.
+
+The layout follows this pattern:
+
+    /
+    ├── scalars/
+    │   └── <scalar_name>/          # e.g., "FDC", "FA", "thickness"
+    │       └── values              # Dataset: elements × subjects matrix
+    │       └── column_names        # Dataset (text): source filenames
+    └── results/                    # Created by writeResults()
+        └── <analysis_name>/        # e.g., "results_lm", "results_gam"
+            ├── results_matrix      # Dataset: elements × statistics matrix
+            └── column_names        # Dataset (text): statistic column names
+
+### The scalars group
+
+`/scalars/<scalar_name>/values` is the main data matrix:
+
+- **Rows** = elements (fixels, voxels, or greyordinates)
+- **Columns** = subjects
+
+`/scalars/<scalar_name>/column_names` stores the source filenames that
+correspond to each column, so you can trace every column back to its
+subject.
+
+In modern `ModelArrayIO`, column names are written to a dedicated text
+dataset because long name vectors can exceed practical HDF5 attribute
+limits.
+
+### The results group
+
+`/results/<analysis_name>/results_matrix` is created when you call
+[`writeResults()`](https://pennlinc.github.io/ModelArray/reference/writeResults.md)
+to save statistical outputs. Each analysis gets its own subgroup, so you
+can store multiple analyses (e.g., `results_lm` and `results_gam`) in
+the same file.
+
+The corresponding statistic names are stored in
+`/results/<analysis_name>/column_names` as a text dataset.
+
+### Modern vs legacy column-name storage
+
+- **Preferred (current)**: text dataset `column_names`
+- **Legacy (older files)**: attributes on `values`/`results_matrix` (for
+  example `column_names` or `colnames`)
+
+If both are present, prefer the `column_names` dataset as the canonical
+source and treat attributes as backward-compatibility metadata.
+
+## How ModelArray reads HDF5
+
+When you create a ModelArray object, the scalar data is **not** loaded
+into memory. Instead, ModelArray uses the
+[DelayedArray](https://bioconductor.org/packages/DelayedArray/)
+framework to create a lazy reference to the on-disk data:
+
+``` r
+library(ModelArray)
+
+modelarray <- ModelArray("data.h5", scalar_types = c("FDC"))
+scalars(modelarray)[["FDC"]]
+```
+
+``` console
+<602229 x 100> matrix of class DelayedMatrix and type "double":
+```
+
+The `DelayedMatrix` holds a pointer to the HDF5 file. Data is only read
+from disk when you actually access specific rows or columns. This is why
+ModelArray can handle datasets with hundreds of thousands of elements
+and thousands of subjects without running out of memory.
+
+During model fitting, ModelArray reads **one element (row) at a time** —
+pulling a single row of ~N subject values, fitting the model, and moving
+on. At no point is the full matrix loaded into RAM.
+
+## Inspecting an HDF5 file
+
+You can explore the structure of any HDF5 file using
+[`rhdf5::h5ls()`](https://rdrr.io/pkg/rhdf5/man/h5ls.html):
+
+``` r
+rhdf5::h5ls("data.h5")
+```
+
+``` console
+              group             name       otype  dclass         dim
+0                / analysis_configs   H5I_GROUP
+1 /analysis_configs       results_lm   H5I_GROUP
+2                /          results   H5I_GROUP
+3         /results       results_lm   H5I_GROUP
+4  /results/results_lm results_matrix H5I_DATASET   FLOAT 602229 x 17
+5                /          scalars   H5I_GROUP
+6         /scalars              FDC   H5I_GROUP
+7      /scalars/FDC           values H5I_DATASET   FLOAT 602229 x 100
+```
+
+You can also read specific pieces of data directly:
+
+``` r
+# Preferred: read names from the text dataset
+rhdf5::h5read("data.h5", "scalars/FDC/column_names")
+
+# Legacy fallback for older files
+rhdf5::h5readAttributes("data.h5", "scalars/FDC/values")$column_names
+
+# Read a small slice of the data matrix
+rhdf5::h5read("data.h5", "scalars/FDC/values", index = list(1:5, 1:3))
+```
+
+## Creating HDF5 files
+
+ModelArray does not create HDF5 files from raw imaging data — that’s the
+job of the companion conversion tools:
+
+| Data type                | Tool                                                     | Command    |
+|:-------------------------|:---------------------------------------------------------|:-----------|
+| Fixel (`.mif`)           | [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) | `confixel` |
+| Voxel (`.nii.gz`)        | [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) | `convoxel` |
+| Surface (`.dscalar.nii`) | [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) | `concifti` |
+
+Each command reads the source imaging files listed in a cohort CSV and
+writes them into the HDF5 layout described above. See the [ModelArrayIO
+documentation](https://github.com/PennLINC/ModelArrayIO) for detailed
+usage instructions.

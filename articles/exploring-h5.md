@@ -1,0 +1,199 @@
+# Exploring HDF5 Data with Convenience Functions
+
+ModelArray provides several accessor functions for inspecting your data
+without writing analysis code. This vignette walks through each one.
+
+``` r
+library(ModelArray)
+
+h5_path <- "~/Desktop/myProject/demo_FDC_n100.h5"
+modelarray <- ModelArray(h5_path,
+  scalar_types = c("FDC"),
+  analysis_names = c("results_lm")
+)
+phenotypes <- read.csv("~/Desktop/myProject/cohort_FDC_n100.csv")
+```
+
+## `show()` — Object summary
+
+Simply typing the object name (or calling
+[`show()`](https://rdrr.io/r/methods/show.html)) prints a summary:
+
+``` r
+modelarray
+```
+
+``` console
+ModelArray located at ~/Desktop/myProject/demo_FDC_n100.h5
+
+  Source files:     100
+  Scalars:          FDC
+  Analyses:         results_lm
+```
+
+This tells you at a glance: the file path, how many sources, which
+scalars are loaded, and which analyses have been saved.
+
+## `sources()` — Source files
+
+``` r
+src <- sources(modelarray)[["FDC"]]
+length(src)     # number of sources
+head(src)       # first few filenames
+```
+
+``` console
+[1] 100
+[1] "FDC/sub-6fee490.mif" "FDC/sub-647f86c.mif" "FDC/sub-4b3ffe0.mif"
+[4] "FDC/sub-be9982d.mif" "FDC/sub-9e089e3.mif" "FDC/sub-d26c6c1.mif"
+```
+
+This is useful for checking that the expected subjects are present and
+that the ordering matches your phenotypes CSV.
+
+## `scalars()` — The data matrix
+
+Access the full scalar matrix or a specific scalar:
+
+``` r
+# All scalars (returns a named list)
+scalars(modelarray)
+
+# A specific scalar (returns a DelayedMatrix)
+fdc_matrix <- scalars(modelarray)[["FDC"]]
+dim(fdc_matrix)
+```
+
+``` console
+[1] 602229    100
+```
+
+### Extracting a single element’s data across all subjects
+
+``` r
+# Values at element 12345 (row 12345) for all 100 subjects
+element_values <- as.numeric(fdc_matrix[12345, ])
+summary(element_values)
+```
+
+### Extracting a single subject’s data across all elements
+
+``` r
+# All element values for the first subject
+subject_values <- as.numeric(fdc_matrix[, 1])
+length(subject_values)
+```
+
+Note: because the data is stored on disk as a `DelayedMatrix`, accessing
+a row or column triggers an HDF5 read. Avoid looping over many rows
+manually: that’s what
+[`ModelArray.lm()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md)
+and friends are optimized for.
+
+## `results()` — Saved analysis results
+
+If you loaded analysis names when creating the object, you can access
+them:
+
+``` r
+# All analyses (returns a named list)
+results(modelarray)
+
+# A specific analysis
+lm_results <- results(modelarray)[["results_lm"]]
+dim(lm_results)
+colnames(lm_results)
+```
+
+If you see an error about a missing analysis, make sure you specified it
+in the `analysis_names` argument when calling
+[`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.md):
+
+``` r
+# This loads results; without analysis_names, the results slot is empty
+modelarray <- ModelArray(h5_path,
+  scalar_types = "FDC",
+  analysis_names = c("results_lm")
+)
+```
+
+## `numElementsTotal()` — Element count
+
+``` r
+numElementsTotal(modelarray, "FDC")
+```
+
+``` console
+[1] 602229
+```
+
+## `exampleElementData()` — Per-element data frame
+
+This is especially useful when developing custom functions for
+[`ModelArray.wrap()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md).
+It returns a copy of your phenotypes data frame with the scalar values
+for a single element added as a new column:
+
+``` r
+df <- exampleElementData(modelarray,
+  scalar = "FDC", i_element = 12345, phenotypes = phenotypes
+)
+names(df)
+```
+
+The data frame now has all the phenotype columns plus a `FDC` column
+containing each subject’s value at element 12345. You can explore it
+with standard R tools:
+
+``` r
+library(ggplot2)
+
+# Distribution of FDC at this element
+ggplot(df, aes(x = FDC)) +
+  geom_histogram(bins = 20) +
+  labs(title = "FDC distribution at element 12345") +
+  theme_minimal()
+
+# Relationship with age
+ggplot(df, aes(x = Age, y = FDC)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  theme_minimal()
+
+# Quick model at one element
+summary(lm(FDC ~ Age + sex + dti64MeanRelRMS, data = df))
+```
+
+## Recipes
+
+### How many subjects have valid data at a given element?
+
+For voxel-wise data with subject-specific masks, some elements may have
+`NaN` values for certain subjects:
+
+``` r
+element_values <- as.numeric(scalars(modelarray)[["FDC"]][12345, ])
+sum(!is.na(element_values))
+```
+
+### Which elements have the strongest effect?
+
+After running a model, you can query the saved results to find the most
+significant elements:
+
+``` r
+lm_results <- results(modelarray)[["results_lm"]]
+
+# Find the column index for Age p-value (FDR-corrected)
+col_idx <- which(colnames(lm_results) == "Age.p.value.fdr")
+
+# Read all p-values (this reads the full column from disk)
+age_pvals <- as.numeric(lm_results[, col_idx])
+
+# How many elements survive FDR correction at q < 0.05?
+sum(age_pvals < 0.05, na.rm = TRUE)
+
+# Top 10 most significant element IDs
+top_elements <- order(age_pvals)[1:10] - 1  # convert to 0-based element IDs
+top_elements
+```

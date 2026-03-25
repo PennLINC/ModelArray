@@ -35,22 +35,23 @@ paper](https://doi.org/10.1016/j.neuroimage.2023.120037) if you use
 Overview
 
 ModelArray is packaged with the companion software
-[ConFixel](https://github.com/PennLINC/ConFixel) for converting
+[ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) for converting
 fixel-wise data, voxel-wise data or greyordinate-wise data to the
 expected file format that ModelArray uses. Specifically,
-[ConFixel](https://github.com/PennLINC/ConFixel) is Python-based
-command-line interface software, and it converts between the original
-image format (`.mif` for fixel-wise data, NIfTI for voxel-wise data,
-CIFTI-2 for greyordinate-wise data) and the HDF5 file format (`.h5`)
-used for ModelArray.
+[ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) is Python-based
+command-line software that provides commands such as `confixel`,
+`convoxel`, and `concifti` to convert between original image formats
+(`.mif` for fixel-wise data, NIfTI for voxel-wise data, CIFTI-2 for
+greyordinate-wise data) and the HDF5 file format (`.h5`) used by
+ModelArray.
 
 ## Installation
 
 Please refer to webpage
 [Installation](https://pennlinc.github.io/ModelArray/articles/installations.html)
 for a full guidance of installation of `ModelArray` and its companion
-python package [ConFixel](https://github.com/PennLINC/ConFixel). The
-most important steps for installing `ModelArray` are:
+python package [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO).
+The most important steps for installing `ModelArray` are:
 
 - Make sure you have necessary libraries for HDF5 - see [this
   section](https://pennlinc.github.io/ModelArray/articles/installations.html#install-hdf5-libraries-in-the-system)
@@ -59,9 +60,9 @@ most important steps for installing `ModelArray` are:
 
 Additionally, we also provide a [container
 image](https://hub.docker.com/r/pennlinc/modelarray_confixel) that
-includes `ModelArray` and `ConFixel`. With this container image, there
-is no need for the user to install `ModelArray`, `ConFixel`, and
-dependent R and Python packages. Please see [this
+includes `ModelArray` and `ModelArrayIO`. With this container image,
+there is no need for the user to install `ModelArray`, `ModelArrayIO`,
+and dependent R and Python packages. Please see [this
 webpage](https://pennlinc.github.io/ModelArray/articles/container.html)
 for how to use this container image.
 
