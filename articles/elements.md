@@ -3,9 +3,9 @@
 ## What is an element?
 
 ModelArray performs mass-univariate statistical analysis - fitting the
-same model independently at every spatial location in the brain. We call
-each spatial location an **element**. Depending on the imaging modality,
-an element is one of:
+same model independently at every spatial location within the brain
+mask. We call each spatial location an **element**. Depending on the
+imaging modality, an element is one of:
 
 | Modality               | Element type                     | Typical count    | File format            |
 |:-----------------------|:---------------------------------|:-----------------|:-----------------------|
@@ -14,11 +14,13 @@ an element is one of:
 | Surface-based analysis | Greyordinate (cortical vertex)   | ~330,000         | CIFTI (`.dscalar.nii`) |
 
 Despite the differences in what they represent, ModelArray treats all of
-these uniformly. The same functions,
+these uniformly. The same analysis functions -
 [`ModelArray.lm()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md),
 [`ModelArray.gam()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md),
-[`ModelArray.wrap()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md),
-work regardless of whether your elements are fixels, voxels, or
+and
+[`ModelArray.wrap()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md)
+-  
+work regardless of whether elements are fixels, voxels, or
 greyordinates.
 
 ## The scalar matrix
@@ -26,7 +28,7 @@ greyordinates.
 At the core of every ModelArray object is a **scalar matrix** stored in
 an HDF5 file. This matrix has:
 
-- **Rows** = elements (one per spatial location)
+- **Rows** = Elements (one per spatial location)
 - **Columns** = Sources (one per input file)
 
 Each cell contains the scalar value (e.g., FDC, cortical thickness, FA)
@@ -64,7 +66,8 @@ ID corresponds directly to the row index in the scalar matrix (row 1 =
 element ID 0, row 2 = element ID 1, and so on).
 
 When you run a model with ModelArray, the output data frame includes an
-`element_id` column that maps results back to their spatial location:
+`element_id` column to maps results the spatial location of each
+element:
 
 ``` r
 result <- ModelArray.lm(FDC ~ Age + sex, modelarray, phenotypes, "FDC",
@@ -90,8 +93,8 @@ The `element.subset` parameter, available in
 [`ModelArray.gam()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md),
 and
 [`ModelArray.wrap()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md),
-lets you run on a subset of elements rather than all of them. This is
-useful for:
+lets you run models on a subset of elements rather than all of them.
+This is useful for:
 
 - **Testing**: run on the first 100 elements to verify your model works
   before committing to a full run
@@ -115,9 +118,10 @@ result_full <- ModelArray.lm(FDC ~ Age + sex, modelarray, phenotypes, "FDC")
 
 ## Element-specific considerations
 
-For voxel-wise or vertexwise data, different subjects may have different
-brain coverage (subject-specific masks). This means some elements near
-the edge of the brain may not have valid data from all subjects.
+For voxel-wise or vertexwise data, subjects may have different brain
+coverage (subject-specific masks). This means some elements,
+particularly near the edge of the analysis mask, may not have valid data
+from all subjects.
 
 ModelArray handles this with two threshold parameters in
 [`ModelArray.lm()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md)

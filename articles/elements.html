@@ -83,9 +83,9 @@
 <h2 id="what-is-an-element">What is an element?<a class="anchor" aria-label="anchor" href="#what-is-an-element"></a>
 </h2>
 <p>ModelArray performs mass-univariate statistical analysis - fitting
-the same model independently at every spatial location in the brain. We
-call each spatial location an <strong>element</strong>. Depending on the
-imaging modality, an element is one of:</p>
+the same model independently at every spatial location within the brain
+mask. We call each spatial location an <strong>element</strong>.
+Depending on the imaging modality, an element is one of:</p>
 <table class="table">
 <colgroup>
 <col width="19%">
@@ -121,9 +121,10 @@ imaging modality, an element is one of:</p>
 </tbody>
 </table>
 <p>Despite the differences in what they represent, ModelArray treats all
-of these uniformly. The same functions, <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>,
-<code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>, <code><a href="../reference/ModelArray.wrap.html">ModelArray.wrap()</a></code>, work
-regardless of whether your elements are fixels, voxels, or
+of these uniformly. The same analysis functions -
+<code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>, <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>, and
+<code><a href="../reference/ModelArray.wrap.html">ModelArray.wrap()</a></code> -<br>
+work regardless of whether elements are fixels, voxels, or
 greyordinates.</p>
 </div>
 <div class="section level2">
@@ -133,7 +134,7 @@ greyordinates.</p>
 matrix</strong> stored in an HDF5 file. This matrix has:</p>
 <ul>
 <li>
-<strong>Rows</strong> = elements (one per spatial location)</li>
+<strong>Rows</strong> = Elements (one per spatial location)</li>
 <li>
 <strong>Columns</strong> = Sources (one per input file)</li>
 </ul>
@@ -165,8 +166,8 @@ what makes ModelArray memory-efficient — see
 0. The element ID corresponds directly to the row index in the scalar
 matrix (row 1 = element ID 0, row 2 = element ID 1, and so on).</p>
 <p>When you run a model with ModelArray, the output data frame includes
-an <code>element_id</code> column that maps results back to their
-spatial location:</p>
+an <code>element_id</code> column to maps results the spatial location
+of each element:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">FDC</span> <span class="op">~</span> <span class="va">Age</span> <span class="op">+</span> <span class="va">sex</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FDC"</span>,</span>
 <span>  element.subset <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span></span>
@@ -182,8 +183,8 @@ spatial location:</p>
 </h2>
 <p>The <code>element.subset</code> parameter, available in
 <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code>, <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>, and
-<code><a href="../reference/ModelArray.wrap.html">ModelArray.wrap()</a></code>, lets you run on a subset of elements
-rather than all of them. This is useful for:</p>
+<code><a href="../reference/ModelArray.wrap.html">ModelArray.wrap()</a></code>, lets you run models on a subset of
+elements rather than all of them. This is useful for:</p>
 <ul>
 <li>
 <strong>Testing</strong>: run on the first 100 elements to verify
@@ -208,10 +209,10 @@ matrix).</p>
 <div class="section level2">
 <h2 id="element-specific-considerations">Element-specific considerations<a class="anchor" aria-label="anchor" href="#element-specific-considerations"></a>
 </h2>
-<p>For voxel-wise or vertexwise data, different subjects may have
-different brain coverage (subject-specific masks). This means some
-elements near the edge of the brain may not have valid data from all
-subjects.</p>
+<p>For voxel-wise or vertexwise data, subjects may have different brain
+coverage (subject-specific masks). This means some elements,
+particularly near the edge of the analysis mask, may not have valid data
+from all subjects.</p>
 <p>ModelArray handles this with two threshold parameters in
 <code><a href="../reference/ModelArray.lm.html">ModelArray.lm()</a></code> and <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code>:</p>
 <ul>
