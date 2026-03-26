@@ -422,6 +422,80 @@ works in ModelArray’s machinery:</p>
 </div>
 </div>
 <div class="section level2">
+<h2 id="modelling-across-multiple-h5-files-with-mergemodelarrays">Modelling across multiple h5 files with
+<code>mergeModelArrays()</code><a class="anchor" aria-label="anchor" href="#modelling-across-multiple-h5-files-with-mergemodelarrays"></a>
+</h2>
+<p>When scalars live in separate h5 files — for example, cortical
+thickness in one file and curvature in another — you can combine them
+for cross-scalar modelling without rewriting or merging h5 files on
+disk.</p>
+<div class="section level3">
+<h3 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
+</h3>
+<p>Each h5 file gets its own ModelArray and phenotypes data frame. The
+phenotypes must share a common identifier column (e.g.,
+<code>subject_id</code>):</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ma_thick</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="st">"thickness.h5"</span>, scalar_types <span class="op">=</span> <span class="st">"thickness"</span><span class="op">)</span></span>
+<span><span class="va">ma_curv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="st">"curv.h5"</span>, scalar_types <span class="op">=</span> <span class="st">"curv"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">phen_thick</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"phenotypes_thickness.csv"</span><span class="op">)</span></span>
+<span><span class="co"># Must contain: subject_id, source_file, (other covariates)</span></span>
+<span></span>
+<span><span class="va">phen_curv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"phenotypes_curv.csv"</span><span class="op">)</span></span>
+<span><span class="co"># Must contain: subject_id, source_file</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="merging">Merging<a class="anchor" aria-label="anchor" href="#merging"></a>
+</h3>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">merged</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mergeModelArrays.html">mergeModelArrays</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">ma_thick</span>, <span class="va">ma_curv</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">phen_thick</span>, <span class="va">phen_curv</span><span class="op">)</span>,</span>
+<span>  merge_on <span class="op">=</span> <span class="st">"subject_id"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>This performs an inner join on <code>subject_id</code>, keeping only
+subjects present in both files. The result is a list with:</p>
+<ul>
+<li>
+<code>merged$data</code> — a combined ModelArray with both
+<code>thickness</code> and <code>curv</code> scalars</li>
+<li>
+<code>merged$phenotypes</code> — the joined phenotypes, with
+<code>source_file.thickness</code> and <code>source_file.curv</code>
+columns preserving the original filenames, plus a unified
+<code>source_file</code> column used internally</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="cross-scalar-modelling">Cross-scalar modelling<a class="anchor" aria-label="anchor" href="#cross-scalar-modelling"></a>
+</h3>
+<p>Now you can use one scalar as a predictor for another:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span></span>
+<span>  <span class="va">thickness</span> <span class="op">~</span> <span class="va">curv</span> <span class="op">+</span> <span class="va">Age</span> <span class="op">+</span> <span class="va">sex</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">merged</span><span class="op">$</span><span class="va">data</span>,</span>
+<span>  phenotypes <span class="op">=</span> <span class="va">merged</span><span class="op">$</span><span class="va">phenotypes</span>,</span>
+<span>  scalar <span class="op">=</span> <span class="st">"thickness"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>This works with <code><a href="../reference/ModelArray.gam.html">ModelArray.gam()</a></code> and
+<code><a href="../reference/ModelArray.wrap.html">ModelArray.wrap()</a></code> too.</p>
+</div>
+<div class="section level3">
+<h3 id="n-way-merges">N-way merges<a class="anchor" aria-label="anchor" href="#n-way-merges"></a>
+</h3>
+<p><code><a href="../reference/mergeModelArrays.html">mergeModelArrays()</a></code> accepts any number of
+ModelArrays:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">merged</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mergeModelArrays.html">mergeModelArrays</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">ma_thick</span>, <span class="va">ma_curv</span>, <span class="va">ma_sulc</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">phen_thick</span>, <span class="va">phen_curv</span>, <span class="va">phen_sulc</span><span class="op">)</span>,</span>
+<span>  merge_on <span class="op">=</span> <span class="st">"subject_id"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>All scalar names must be unique across the inputs.</p>
+</div>
+</div>
+<div class="section level2">
 <h2 id="converting-results-back-to-image-format">Converting results back to image format<a class="anchor" aria-label="anchor" href="#converting-results-back-to-image-format"></a>
 </h2>
 <p>After <code><a href="../reference/writeResults.html">writeResults()</a></code>, use the appropriate ModelArrayIO

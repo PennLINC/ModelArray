@@ -117,7 +117,68 @@ modelarray <- ModelArray(h5_path,
 )
 ```
 
-## `numElementsTotal()` — Element count
+## Quick inspection with `h5summary()`
+
+Before constructing a full ModelArray, you can inspect an h5 file’s
+structure:
+
+``` r
+h5summary(h5_path)
+```
+
+``` console
+ModelArray HDF5 summary: ~/Desktop/myProject/demo_FDC_n100.h5
+
+  Scalars:
+       name nElements nInputFiles
+    1:  FDC    602229         100
+
+  Analyses: results_lm
+```
+
+This is lightweight — it reads the h5 metadata without loading any data
+into memory.
+
+## Dimension accessors
+
+``` r
+# Number of elements (rows) in the scalar matrix
+nElements(modelarray)       # 602229
+nElements(modelarray, "FDC") # same, explicit scalar
+
+# Number of input files (columns)
+nInputFiles(modelarray)       # 100
+nInputFiles(modelarray, "FDC") # same, explicit scalar
+
+# List loaded scalar names
+scalarNames(modelarray) # "FDC"
+
+# List saved analysis names
+analysisNames(modelarray) # "results_lm"
+```
+
+The older
+[`numElementsTotal()`](https://pennlinc.github.io/ModelArray/reference/numElementsTotal.md)
+function still works but
+[`nElements()`](https://pennlinc.github.io/ModelArray/reference/nElements.md)
+and
+[`nInputFiles()`](https://pennlinc.github.io/ModelArray/reference/nInputFiles.md)
+are more concise.
+
+## `elementMetadata()` — Spatial metadata
+
+Some h5 files contain per-element metadata (e.g., greyordinate labels
+for cifti data, fixel directions, or voxel coordinates). Access it with:
+
+``` r
+em <- elementMetadata(modelarray)
+dim(em)   # e.g. 602229 x 3
+head(em)
+```
+
+Returns `NULL` if the h5 file does not contain element metadata.
+
+## `numElementsTotal()` — Element count (legacy)
 
 ``` r
 numElementsTotal(modelarray, "FDC")

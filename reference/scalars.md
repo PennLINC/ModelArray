@@ -1,10 +1,13 @@
-# Access the scalars slot of an object
+# Element-wise scalar data of a ModelArray object
 
-Generic function to access the scalars slot of an object.
+Element-wise scalar data of a ModelArray object
 
 ## Usage
 
 ``` r
+scalars(x, ...)
+
+# S4 method for class 'ModelArray'
 scalars(x, ...)
 ```
 
@@ -12,12 +15,13 @@ scalars(x, ...)
 
 - x:
 
-  An object
+  A ModelArray object
 
 - ...:
 
-  Additional arguments passed to methods
+  Additional arguments. Currently accepts a scalar name (character).
 
 ## Value
 
-The scalars slot of the object
+A matrix of element-wise scalar data: elements (row) by source files
+(column).

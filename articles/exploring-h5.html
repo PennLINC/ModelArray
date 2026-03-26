@@ -180,10 +180,62 @@ it in the <code>analysis_names</code> argument when calling
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="numelementstotal-element-count">
-<code>numElementsTotal()</code> — Element count<a class="anchor" aria-label="anchor" href="#numelementstotal-element-count"></a>
+<h2 id="quick-inspection-with-h5summary">Quick inspection with <code>h5summary()</code><a class="anchor" aria-label="anchor" href="#quick-inspection-with-h5summary"></a>
 </h2>
+<p>Before constructing a full ModelArray, you can inspect an h5 file’s
+structure:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5summary.html">h5summary</a></span><span class="op">(</span><span class="va">h5_path</span><span class="op">)</span></span></code></pre></div>
+<pre class="console"><code>ModelArray HDF5 summary: ~/Desktop/myProject/demo_FDC_n100.h5
+
+  Scalars:
+       name nElements nInputFiles
+    1:  FDC    602229         100
+
+  Analyses: results_lm</code></pre>
+<p>This is lightweight — it reads the h5 metadata without loading any
+data into memory.</p>
+</div>
+<div class="section level2">
+<h2 id="dimension-accessors">Dimension accessors<a class="anchor" aria-label="anchor" href="#dimension-accessors"></a>
+</h2>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Number of elements (rows) in the scalar matrix</span></span>
+<span><span class="fu"><a href="../reference/nElements.html">nElements</a></span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span>       <span class="co"># 602229</span></span>
+<span><span class="fu"><a href="../reference/nElements.html">nElements</a></span><span class="op">(</span><span class="va">modelarray</span>, <span class="st">"FDC"</span><span class="op">)</span> <span class="co"># same, explicit scalar</span></span>
+<span></span>
+<span><span class="co"># Number of input files (columns)</span></span>
+<span><span class="fu"><a href="../reference/nInputFiles.html">nInputFiles</a></span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span>       <span class="co"># 100</span></span>
+<span><span class="fu"><a href="../reference/nInputFiles.html">nInputFiles</a></span><span class="op">(</span><span class="va">modelarray</span>, <span class="st">"FDC"</span><span class="op">)</span> <span class="co"># same, explicit scalar</span></span>
+<span></span>
+<span><span class="co"># List loaded scalar names</span></span>
+<span><span class="fu"><a href="../reference/scalarNames.html">scalarNames</a></span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span> <span class="co"># "FDC"</span></span>
+<span></span>
+<span><span class="co"># List saved analysis names</span></span>
+<span><span class="fu"><a href="../reference/analysisNames.html">analysisNames</a></span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span> <span class="co"># "results_lm"</span></span></code></pre></div>
+<p>The older <code><a href="../reference/numElementsTotal.html">numElementsTotal()</a></code> function still works but
+<code><a href="../reference/nElements.html">nElements()</a></code> and <code><a href="../reference/nInputFiles.html">nInputFiles()</a></code> are more
+concise.</p>
+</div>
+<div class="section level2">
+<h2 id="elementmetadata-spatial-metadata">
+<code>elementMetadata()</code> — Spatial metadata<a class="anchor" aria-label="anchor" href="#elementmetadata-spatial-metadata"></a>
+</h2>
+<p>Some h5 files contain per-element metadata (e.g., greyordinate labels
+for cifti data, fixel directions, or voxel coordinates). Access it
+with:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">em</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/elementMetadata.html">elementMetadata</a></span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">em</span><span class="op">)</span>   <span class="co"># e.g. 602229 x 3</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">em</span><span class="op">)</span></span></code></pre></div>
+<p>Returns <code>NULL</code> if the h5 file does not contain element
+metadata.</p>
+</div>
+<div class="section level2">
+<h2 id="numelementstotal-element-count-legacy">
+<code>numElementsTotal()</code> — Element count (legacy)<a class="anchor" aria-label="anchor" href="#numelementstotal-element-count-legacy"></a>
+</h2>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/numElementsTotal.html">numElementsTotal</a></span><span class="op">(</span><span class="va">modelarray</span>, <span class="st">"FDC"</span><span class="op">)</span></span></code></pre></div>
 <pre class="console"><code>[1] 602229</code></pre>
 </div>
@@ -195,7 +247,7 @@ it in the <code>analysis_names</code> argument when calling
 <code><a href="../reference/ModelArray.wrap.html">ModelArray.wrap()</a></code>. It returns a copy of your phenotypes
 data frame with the scalar values for a single element added as a new
 column:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/exampleElementData.html">exampleElementData</a></span><span class="op">(</span><span class="va">modelarray</span>,</span>
 <span>  scalar <span class="op">=</span> <span class="st">"FDC"</span>, i_element <span class="op">=</span> <span class="fl">12345</span>, phenotypes <span class="op">=</span> <span class="va">phenotypes</span></span>
 <span><span class="op">)</span></span>
@@ -203,7 +255,7 @@ column:</p>
 <p>The data frame now has all the phenotype columns plus a
 <code>FDC</code> column containing each subject’s value at element
 12345. You can explore it with standard R tools:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Distribution of FDC at this element</span></span>
@@ -229,7 +281,7 @@ column:</p>
 </h3>
 <p>For voxel-wise data with subject-specific masks, some elements may
 have <code>NaN</code> values for certain subjects:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">element_values</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="../reference/scalars.html">scalars</a></span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span><span class="op">[[</span><span class="st">"FDC"</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="fl">12345</span>, <span class="op">]</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">element_values</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -238,7 +290,7 @@ have <code>NaN</code> values for certain subjects:</p>
 </h3>
 <p>After running a model, you can query the saved results to find the
 most significant elements:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">lm_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">modelarray</span><span class="op">)</span><span class="op">[[</span><span class="st">"results_lm"</span><span class="op">]</span><span class="op">]</span></span>
 <span></span>
 <span><span class="co"># Find the column index for Age p-value (FDR-corrected)</span></span>

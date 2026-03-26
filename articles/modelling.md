@@ -288,6 +288,82 @@ head(result)
 writeResults(h5_path, df.output = result, analysis_name = "site_analysis")
 ```
 
+## Modelling across multiple h5 files with `mergeModelArrays()`
+
+When scalars live in separate h5 files — for example, cortical thickness
+in one file and curvature in another — you can combine them for
+cross-scalar modelling without rewriting or merging h5 files on disk.
+
+### Setup
+
+Each h5 file gets its own ModelArray and phenotypes data frame. The
+phenotypes must share a common identifier column (e.g., `subject_id`):
+
+``` r
+ma_thick <- ModelArray("thickness.h5", scalar_types = "thickness")
+ma_curv <- ModelArray("curv.h5", scalar_types = "curv")
+
+phen_thick <- read.csv("phenotypes_thickness.csv")
+# Must contain: subject_id, source_file, (other covariates)
+
+phen_curv <- read.csv("phenotypes_curv.csv")
+# Must contain: subject_id, source_file
+```
+
+### Merging
+
+``` r
+merged <- mergeModelArrays(
+  list(ma_thick, ma_curv),
+  list(phen_thick, phen_curv),
+  merge_on = "subject_id"
+)
+```
+
+This performs an inner join on `subject_id`, keeping only subjects
+present in both files. The result is a list with:
+
+- `merged$data` — a combined ModelArray with both `thickness` and `curv`
+  scalars
+- `merged$phenotypes` — the joined phenotypes, with
+  `source_file.thickness` and `source_file.curv` columns preserving the
+  original filenames, plus a unified `source_file` column used
+  internally
+
+### Cross-scalar modelling
+
+Now you can use one scalar as a predictor for another:
+
+``` r
+result <- ModelArray.lm(
+  thickness ~ curv + Age + sex,
+  data = merged$data,
+  phenotypes = merged$phenotypes,
+  scalar = "thickness"
+)
+```
+
+This works with
+[`ModelArray.gam()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md)
+and
+[`ModelArray.wrap()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md)
+too.
+
+### N-way merges
+
+[`mergeModelArrays()`](https://pennlinc.github.io/ModelArray/reference/mergeModelArrays.md)
+accepts any number of ModelArrays:
+
+``` r
+merged <- mergeModelArrays(
+  list(ma_thick, ma_curv, ma_sulc),
+  list(phen_thick, phen_curv, phen_sulc),
+  merge_on = "subject_id"
+)
+```
+
+All scalar names must be unique across the inputs.
+
 ## Converting results back to image format
 
 After

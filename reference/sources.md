@@ -1,10 +1,13 @@
-# Access the sources slot of an object
+# Source filenames of a ModelArray object
 
-Generic function to access the sources slot of an object.
+Source filenames of a ModelArray object
 
 ## Usage
 
 ``` r
+sources(x)
+
+# S4 method for class 'ModelArray'
 sources(x)
 ```
 
@@ -12,8 +15,8 @@ sources(x)
 
 - x:
 
-  An object
+  A ModelArray object
 
 ## Value
 
-The sources slot of the object
+A list of source filenames

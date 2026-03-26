@@ -1,10 +1,13 @@
-# Access the results slot of an object
+# Statistical results of a ModelArray object
 
-Generic function to access the results slot of an object.
+Statistical results of a ModelArray object
 
 ## Usage
 
 ``` r
+results(x, ...)
+
+# S4 method for class 'ModelArray'
 results(x, ...)
 ```
 
@@ -12,12 +15,12 @@ results(x, ...)
 
 - x:
 
-  An object
+  A ModelArray object
 
 - ...:
 
-  Additional arguments passed to methods
+  Additional arguments. Currently accepts an analysis name (character).
 
 ## Value
 
-The results slot of the object
+Statistical results in this ModelArray object
