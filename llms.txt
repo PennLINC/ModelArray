@@ -62,7 +62,7 @@ ModelArray expects.
 
 ## Overview
 
-![Overview](reference/figures/overview_structure.png)
+![Overview](reference/figures/overview_structure.svg)
 
 Overview
 
