@@ -2,46 +2,21 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{ModelArray}
 \alias{ModelArray}
-\title{An S4 class to represent element-wise scalar data and statistics.}
+\title{Construct a ModelArray object}
 \usage{
-ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
-
 ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
 }
 \arguments{
-\item{filepath}{file}
+\item{filepath}{Path to an .h5 file}
 
-\item{scalar_types}{expected scalars}
+\item{scalar_types}{Expected scalars}
 
-\item{analysis_names}{the subfolder names for results in .h5 file. If empty
-(default), results are not read.}
+\item{analysis_names}{The subfolder names for results in the .h5 file.
+If empty (default), results are not read.}
 }
 \value{
-ModelArray object
+A `ModelArray` object
 }
 \description{
-An S4 class to represent element-wise scalar data and statistics.
-
-Load element-wise data from .h5 file as an ModelArray object
+Load element-wise data from an .h5 file as a `ModelArray` object.
 }
-\details{
-:
-Tips for debugging:
-if you run into this error: "Error in h(simpleError(msg, call)) :
-error in evaluating the argument 'seed' in selecting a method for
-function 'DelayedArray': HDF5. Symbol table. Can't open object."
-Then please check if you give correct "scalar_types" - check via
-rhdf5::h5ls(filename_for_h5)
-}
-\section{Slots}{
-
-\describe{
-\item{\code{sources}}{A list of source filenames}
-
-\item{\code{scalars}}{A list of element-wise scalar matrix}
-
-\item{\code{results}}{A list of statistical result matrix}
-
-\item{\code{path}}{Path to the h5 file on disk}
-}}
-
