@@ -41,6 +41,7 @@ Imports:
     tibble,
     tidyr
 RoxygenNote: 7.3.3
+Roxygen: list(markdown = TRUE)
 Suggests:
     rmarkdown,
     knitr,
