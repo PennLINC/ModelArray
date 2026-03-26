@@ -53,9 +53,9 @@
   if (length(sources.modelarray) != length(sources.phenotypes)) {
     stop(
       paste0(
-        "The length of source file list from phenotypes's column 'source_file' ",
-        "is not the same as that in ModelArray 'data'! Please check out! ",
-        "The latter one can be accessed by: sources(data)[[scalar]]"
+        "The length of the source file list in phenotypes's column 'source_file' ",
+        "is not the same as the length of the source file list in ModelArray 'data'! Please check out! ",
+        "The latter can be accessed by: sources(data)[[scalar]]"
       )
     )
   }
@@ -63,7 +63,7 @@
   if (length(sources.modelarray) != length(unique(sources.modelarray))) {
     stop(
       paste0(
-        "The source files in ModelArray 'data' are not unique! Please check out! ",
+        "The source files in ModelArray 'data' are not unique! Please investigate! ",
         "It can be accessed by: sources(data)[[scalar]]"
       )
     )
@@ -72,7 +72,7 @@
     stop(
       paste0(
         "The source files from phenotypes's column 'source_file' ",
-        "are not unique! Please check out and remove the duplicated one!"
+        "are not unique! Please investigate and remove the duplicated one!"
       )
     )
   }
@@ -90,9 +90,9 @@
     } else {
       stop(
         paste0(
-          "phenotypes's column 'source_file' have different element(s) from source file list",
-          " in ModelArray 'data'! Please check out! ",
-          "The latter one can be accessed by: sources(data)[[scalar]]"
+          "phenotypes's column 'source_file' has different element(s) than the source file list",
+          " in ModelArray 'data'! Please investigate! ",
+          "The latter can be accessed by: sources(data)[[scalar]]"
         )
       )
     }
@@ -140,14 +140,14 @@
   # Try forward from middle to end
   if (verbose) {
     message(
-      "There is no sufficient valid subjects for initiating using the middle element; ",
-      "trying other elements; may take a while in this initiating process...."
+      "There are insufficient valid subjects for initiating with the middle element; ",
+      "trying other elements; this may take a while...."
     )
   }
   for (i_element_temp in (i_element_try + 1):num.elements.total) {
     if (i_element_temp %% 100 == 0) {
       message(
-        "trying element #", toString(i_element_temp),
+        "Trying element #", toString(i_element_temp),
         " and the following elements for initiating...."
       )
     }
@@ -159,10 +159,10 @@
 
   # Try backward from start to middle
   message(
-    "until the end of the elements, there are still no elements with sufficient valid ",
+    "there no elements with sufficient valid ",
     "subjects for initiating the process... ",
-    "start to try element #1 and the following elements for initiating; ",
-    "may take a while in this initiating process...."
+    "trying element #1 and the following elements for initiating; ",
+    "this may take a while...."
   )
   for (i_element_temp in 1:(i_element_try - 1)) {
     if (i_element_temp %% 100 == 0) {
@@ -178,10 +178,10 @@
   }
 
   stop(
-    "Have tried all elements, but there is no element with sufficient subjects with valid, ",
+    "Have tried all elements, but there are no elements with sufficient valid, ",
     "finite h5 scalar values (i.e. not NaN or NA, not infinite). ",
     "Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, ",
-    "or there were problems in the group mask or individual masks!"
+    "or there are problems in the group mask or individual masks!"
   )
 }
 

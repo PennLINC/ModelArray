@@ -507,7 +507,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     if (length(labels(terms.full.formula)) == 0) {
       stop(
         paste0(
-          "To analyze changed.rsq but there is no variable (except intercept 1) ",
+          "Trying to analyze changed.rsq but there is no variable (except intercept 1) ",
           "on right hand side of formula! Please provide at least one valid variable."
         )
       )
@@ -587,7 +587,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
   ### get the changed.rsq for smooth terms:
   if (!is.null(changed.rsq.term.index)) { # if changed.rsq is requested
-    message("Getting changed R-squared: running the reduced model...")
+    message("Getting delta R-squared: running the reduced model...")
 
     # list of term of interest for changed.rsq:
     changed.rsq.term.fullFormat.list <- labels(terms.full.formula)[changed.rsq.term.index]
