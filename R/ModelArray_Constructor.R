@@ -1384,3 +1384,142 @@ writeResults <- function(fn.output,
 
   # message("Results file written!")
 }
+
+
+#' Write transformed element-by-subject data to the HDF5 scalars group.
+#'
+#' @description
+#' Create (or overwrite) `scalars/<scalar_name>/values` in an HDF5 file and
+#' write data in row blocks to limit peak memory use for large matrices.
+#'
+#' @details
+#' `scalar_matrix` is expected to be shaped as **elements x subjects**.
+#' `column_names` must correspond to subjects/sources and is saved both as:
+#' 1) attribute `column_names` on `scalars/<scalar_name>/values`, and
+#' 2) dataset `scalars/<scalar_name>/column_names`
+#' for compatibility with existing ModelArray readers.
+#'
+#' @param fn.output A character path to the output HDF5 (.h5) file.
+#' @param scalar_matrix Numeric/integer matrix (or data.frame coercible to matrix),
+#' shaped as elements x subjects.
+#' @param scalar_name A character scalar name used under `scalars/<scalar_name>`.
+#' @param column_names Character vector of subject/source names. If NULL, uses
+#' colnames(scalar_matrix).
+#' @param overwrite If TRUE, overwrite existing `scalars/<scalar_name>` group.
+#' If FALSE and it exists, emit warning and do nothing.
+#' @param flush_every Positive integer number of rows (elements) written per block.
+#' @param storage_mode Storage mode used by `rhdf5::h5createDataset`.
+#' Typical values include `"double"` and `"integer"`.
+#' @param compression_level Gzip compression level passed to
+#' `rhdf5::h5createDataset` (0-9).
+#' @import hdf5r
+#' @export
+writeScalars <- function(fn.output,
+                         scalar_matrix,
+                         scalar_name,
+                         column_names = NULL,
+                         overwrite = TRUE,
+                         flush_every = 1000L,
+                         storage_mode = "double",
+                         compression_level = 4L) {
+  if (!is.character(fn.output) || length(fn.output) != 1L) {
+    stop("fn.output must be a single character path to an .h5 file")
+  }
+  if (!is.character(scalar_name) || length(scalar_name) != 1L || scalar_name == "") {
+    stop("scalar_name must be a non-empty character string")
+  }
+  if (!is.numeric(flush_every) || length(flush_every) != 1L || flush_every <= 0) {
+    stop("flush_every must be a positive integer")
+  }
+  flush_every <- as.integer(flush_every)
+
+  if ("data.frame" %in% class(scalar_matrix)) {
+    scalar_matrix <- as.matrix(scalar_matrix)
+  }
+  if (!is.matrix(scalar_matrix)) {
+    stop("scalar_matrix must be a matrix or data.frame")
+  }
+  if (!(is.numeric(scalar_matrix) || is.integer(scalar_matrix))) {
+    stop("scalar_matrix must contain numeric/integer values")
+  }
+  if (nrow(scalar_matrix) < 1L || ncol(scalar_matrix) < 1L) {
+    stop("scalar_matrix must have at least one row and one column")
+  }
+
+  if (is.null(column_names)) {
+    column_names <- colnames(scalar_matrix)
+  }
+  if (is.null(column_names)) {
+    stop("column_names must be provided when scalar_matrix has no colnames")
+  }
+  column_names <- as.character(column_names)
+  if (length(column_names) != ncol(scalar_matrix)) {
+    stop("length(column_names) must equal ncol(scalar_matrix)")
+  }
+
+  fn.output.h5 <- hdf5r::H5File$new(fn.output, mode = "a")
+
+  if (fn.output.h5$exists("scalars") == TRUE) {
+    scalars.grp <- fn.output.h5$open("scalars")
+  } else {
+    scalars.grp <- fn.output.h5$create_group("scalars")
+  }
+
+  exists_no_overwrite <- scalars.grp$exists(scalar_name) == TRUE &&
+    overwrite == FALSE
+  if (exists_no_overwrite) {
+    warning(paste0(scalar_name, " exists but not to overwrite!"))
+    fn.output.h5$close_all()
+    return(invisible(FALSE))
+  }
+
+  exists_and_overwrite <- scalars.grp$exists(scalar_name) == TRUE &&
+    overwrite == TRUE
+  if (exists_and_overwrite) {
+    scalars.grp$link_delete(scalar_name)
+  }
+
+  # Ensure group exists before creating datasets with rhdf5 paths.
+  scalars.grp$create_group(scalar_name)
+  fn.output.h5$close_all()
+
+  dataset_path <- paste0("scalars/", scalar_name, "/values")
+  colnames_path <- paste0("scalars/", scalar_name, "/column_names")
+  chunk_rows <- min(flush_every, nrow(scalar_matrix))
+
+  rhdf5::h5createDataset(
+    file = fn.output,
+    dataset = dataset_path,
+    dims = dim(scalar_matrix),
+    storage.mode = storage_mode,
+    chunk = c(chunk_rows, ncol(scalar_matrix)),
+    level = as.integer(compression_level)
+  )
+
+  all_cols <- seq_len(ncol(scalar_matrix))
+  for (start_row in seq(1L, nrow(scalar_matrix), by = chunk_rows)) {
+    end_row <- min(start_row + chunk_rows - 1L, nrow(scalar_matrix))
+    block <- scalar_matrix[start_row:end_row, , drop = FALSE]
+    rhdf5::h5write(
+      obj = block,
+      file = fn.output,
+      name = dataset_path,
+      index = list(start_row:end_row, all_cols)
+    )
+  }
+
+  rhdf5::h5writeAttribute(
+    attr = column_names,
+    h5obj = fn.output,
+    name = "column_names",
+    h5loc = dataset_path
+  )
+  rhdf5::h5write(
+    obj = column_names,
+    file = fn.output,
+    name = colnames_path
+  )
+
+  rhdf5::h5closeAll()
+  invisible(TRUE)
+}
