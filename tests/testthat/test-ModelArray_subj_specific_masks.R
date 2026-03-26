@@ -40,7 +40,6 @@ test_that("ModelArray handles subject-specific masks as expected", {
   }
 
 
-
   df.config <- data.frame(
     nsubj = c(60, 40, 30),
     specials = c("", "", "allInvalidValues")

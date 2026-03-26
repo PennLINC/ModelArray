@@ -372,7 +372,6 @@ test_that("test that ModelArray.gam() works as expected", {
   # note: the column name will be s-age instead of s-age-sex
 
 
-
   ### Test whether the validity of list of var is checked: #####
   expect_error(ModelArray.gam(FD ~ s(age) + sex,
     data = modelarray, phenotypes = phenotypes, scalar = scalar_name, element.subset = element.subset,
@@ -386,7 +385,6 @@ test_that("test that ModelArray.gam() works as expected", {
     n_cores = 2, pbar = FALSE
   )
   expect_equal(temp, mygam_default)
-
 
 
   ### different arguments in GAM #####
@@ -1285,8 +1283,6 @@ test_that("test that ModelArray.gam() works as expected", {
       pbar = FALSE
     )
   )
-
-
 
 
   ### debugging:

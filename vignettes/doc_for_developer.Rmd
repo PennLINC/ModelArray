@@ -141,6 +141,33 @@ devtools::load_all()
 
 Then click "Run Test" button in RStudio to run the test file. Check if there is anything failed.
 
+### Running code styling with `styler`
+Use `styler` to format all package code before committing changes.
+
+Install `styler` if needed:
+
+```{r, eval=FALSE}
+if (!requireNamespace("styler", quietly = TRUE)) {
+  install.packages("styler")
+}
+```
+
+Apply code styling to the package using the tidyverse style guide:
+
+```{r, eval=FALSE}
+styler::style_pkg(style = styler::tidyverse_style)
+```
+
+Optionally, run a dry check to confirm no files would be reformatted:
+
+```{r, eval=FALSE}
+result <- styler::style_pkg(
+  dry = "on",
+  style = styler::tidyverse_style
+)
+all(result[["changed"]] == FALSE)
+```
+
 For more details on how to write unit tests + test out, please check out `Testing` chapters in the book ["R Packages" written by Hadley Wickham, Jennifer Bryan](https://r-pkgs.org/index.html)
 
 ## Building the Docker image for ModelArray + ModelArrayIO

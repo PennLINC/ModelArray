@@ -357,7 +357,10 @@ ModelArray <- function(filepath,
             results_data[[x]]$results_matrix <- t(results_data[[x]]$results_matrix)
           }
 
-          colnames(results_data[[x]]$results_matrix) <- as.character(DelayedArray::realize(names_results_matrix)) # designate the column names
+          # designate the column names
+          colnames(results_data[[x]]$results_matrix) <- as.character(
+            names_results_matrix
+          )
 
 
           # /results/<analysis_name>/lut_col?:   # LOOP OVER # OF COL OF $RESULTS_MATRIX, AND SEE IF THERE IS LUT_COL
@@ -675,7 +678,6 @@ analyseOneElement.lm <- function(i_element,
     }
 
 
-
     # flatten .tidy results into one row:
     if (all(dim(onemodel.tidy))) {
       # not empty | if any dim is 0, all=FALSE
@@ -705,7 +707,11 @@ analyseOneElement.lm <- function(i_element,
 
     # add a column of element ids:
     colnames.temp <- colnames(onemodel.onerow)
-    onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element - 1, .before = colnames.temp[1]) # add as the first column
+    onemodel.onerow <- onemodel.onerow %>%
+      tibble::add_column(
+        element_id = i_element - 1,
+        .before = colnames.temp[1]
+      ) # add as the first column
 
     # now you can get the headers, # of columns, etc of the output results
 
@@ -936,7 +942,6 @@ analyseOneElement.gam <- function(i_element,
     num.smoothTerms <- onemodel.summary$m # The number of smooth terms in the model.
 
 
-
     # delete columns you don't want:
     var.smoothTerms.full <- names(onemodel.tidy.smoothTerms)
     var.parametricTerms.full <- names(onemodel.tidy.parametricTerms)
@@ -1013,7 +1018,11 @@ analyseOneElement.gam <- function(i_element,
 
         if (length(str_list) > 2) {
           # there is string after variable name
-          str_valid <- paste0(str_valid, "_", paste(str_list[3:length(str_list)], collapse = "")) # combine rest of strings
+          str_valid <- paste0(
+            str_valid,
+            "_",
+            paste(str_list[3:length(str_list)], collapse = "")
+          ) # combine rest of strings
         }
 
         # detect ":", and change to "BY"   # there is "_" replacing for ")" in "s()" already
@@ -1166,8 +1175,6 @@ analyseOneElement.gam <- function(i_element,
     }
   }
 }
-
-
 
 
 #' Run a user-supplied function for one element
@@ -1435,10 +1442,10 @@ writeResults <- function(fn.output,
 
         # turn into numeric && write the notes in .h5 file...:
         factors <- df.output %>%
-          pull(., var = i_col) %>%
+          dplyr::pull(., var = i_col) %>%
           factor()
         df.output[, i_col] <- df.output %>%
-          pull(., var = i_col) %>%
+          dplyr::pull(., var = i_col) %>%
           factor() %>%
           as.numeric(.) # change into numeric of 1,2,3....
 
