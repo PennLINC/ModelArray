@@ -1442,10 +1442,10 @@ writeResults <- function(fn.output,
 
         # turn into numeric && write the notes in .h5 file...:
         factors <- df.output %>%
-          pull(., var = i_col) %>%
+          dplyr::pull(., var = i_col) %>%
           factor()
         df.output[, i_col] <- df.output %>%
-          pull(., var = i_col) %>%
+          dplyr::pull(., var = i_col) %>%
           factor() %>%
           as.numeric(.) # change into numeric of 1,2,3....
 
