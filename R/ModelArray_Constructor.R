@@ -1,16 +1,22 @@
 # Exported Functions
 
-### setClass of "ModelArray" #####
+#' ModelArray class
+#'
 #' An S4 class to represent element-wise scalar data and statistics.
 #'
 #' @slot sources A list of source filenames
-#' @slot scalars A list of element-wise scalar matrix
-#' @slot results A list of statistical result matrix
+#' @slot scalars A list of element-wise scalar matrices
+#' @slot results A list of statistical result matrices
 #' @slot path Path to the h5 file on disk
+#'
+#' @name ModelArray-class
+#' @rdname ModelArray-class
+#' @keywords internal
 #' @importClassesFrom DelayedArray DelayedArray
-ModelArray <- setClass(
+NULL
+
+setClass(
   "ModelArray",
-  # contains="DelayedArray",
   slots = c(
     results = "list",
     sources = "list",
@@ -43,21 +49,16 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 
 
 
-#' Load element-wise data from .h5 file as an ModelArray object
+#' Construct a ModelArray object
 #'
-#' @details:
-#' Tips for debugging:
-#' if you run into this error: "Error in h(simpleError(msg, call)) :
-#' error in evaluating the argument 'seed' in selecting a method for
-#' function 'DelayedArray': HDF5. Symbol table. Can't open object."
-#' Then please check if you give correct "scalar_types" - check via
-#' rhdf5::h5ls(filename_for_h5)
+#' Load element-wise data from an .h5 file as a `ModelArray` object.
 #'
-#' @param filepath file
-#' @param scalar_types expected scalars
-#' @param analysis_names the subfolder names for results in .h5 file. If empty
-#' (default), results are not read.
-#' @return ModelArray object
+#' @param filepath Path to an .h5 file
+#' @param scalar_types Expected scalars
+#' @param analysis_names The subfolder names for results in the .h5 file.
+#'   If empty (default), results are not read.
+#'
+#' @return A `ModelArray` object
 #' @export
 #' @import methods
 #' @importFrom dplyr %>%
