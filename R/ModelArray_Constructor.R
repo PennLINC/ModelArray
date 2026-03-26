@@ -19,107 +19,6 @@ ModelArray <- setClass(
   )
 )
 
-#' Access the results slot of an object
-#'
-#' @description
-#' Generic function to access the results slot of an object.
-#'
-#' @usage
-#' results(x, ...)
-#'
-#' @param x An object
-#' @param ... Additional arguments passed to methods
-#' @return The results slot of the object
-#' @aliases results
-#' @keywords internal
-setGeneric("results", function(x, ...) {
-  standardGeneric("results")
-})
-
-#' Access the scalars slot of an object
-#'
-#' @description
-#' Generic function to access the scalars slot of an object.
-#'
-#' @usage
-#' scalars(x, ...)
-#'
-#' @param x An object
-#' @param ... Additional arguments passed to methods
-#' @return The scalars slot of the object
-#' @aliases scalars
-#' @keywords internal
-setGeneric("scalars", function(x, ...) {
-  standardGeneric("scalars")
-})
-
-#' Access the sources slot of an object
-#'
-#' @description
-#' Generic function to access the sources slot of an object.
-#'
-#' @usage
-#' sources(x)
-#'
-#' @param x An object
-#' @return The sources slot of the object
-#' @aliases sources
-#' @keywords internal
-setGeneric("sources", function(x) {
-  standardGeneric("sources")
-})
-
-
-#' Access the results slot of a ModelArray object
-#'
-#' @description
-#' Method for accessing the results slot of a ModelArray object.
-#'
-#' @usage
-#' \S4method{results}{ModelArray}(x, ...)
-#'
-#' @param x A ModelArray object
-#' @param ... Additional arguments (not used)
-#' @return The results slot of the ModelArray object
-#' @keywords internal
-#' @export
-setMethod("results", "ModelArray", function(x, ...) {
-  x@results
-})
-
-#' Access the scalars slot of a ModelArray object
-#'
-#' @description
-#' Method for accessing the scalars slot of a ModelArray object.
-#'
-#' @usage
-#' \S4method{scalars}{ModelArray}(x, ...)
-#'
-#' @param x A ModelArray object
-#' @param ... Additional arguments (not used)
-#' @return The scalars slot of the ModelArray object
-#' @keywords internal
-#' @export
-setMethod("scalars", "ModelArray", function(x, ...) {
-  x@scalars
-})
-
-#' Access the sources slot of a ModelArray object
-#'
-#' @description
-#' Method for accessing the sources slot of a ModelArray object.
-#'
-#' @usage
-#' \S4method{sources}{ModelArray}(x)
-#'
-#' @param x A ModelArray object
-#' @return The sources slot of the ModelArray object
-#' @keywords internal
-#' @export
-setMethod("sources", "ModelArray", function(x) {
-  x@sources
-})
-
 
 
 #' ModelArraySeed
@@ -219,6 +118,13 @@ ModelArray <- function(filepath,
         )
         if (!is.null(tmp)) {
           colnames_ds <- tmp
+          if (grepl("^scalars/scalars/", p)) {
+            warning(
+              "Column names found at nested path '", p, "'. ",
+              "This is a known quirk from some converters (e.g., concifti).",
+              call. = FALSE
+            )
+          }
           break
         }
       }
@@ -1402,16 +1308,18 @@ writeResults <- function(fn.output,
   }
 
   # check if group "results\<analysis_name>" exists:
-  if (results.grp$exists(analysis_name) == TRUE &&
-    overwrite == FALSE) {
+  exists_no_overwrite <- results.grp$exists(analysis_name) == TRUE &&
+    overwrite == FALSE
+  if (exists_no_overwrite) {
     warning(paste0(analysis_name, " exists but not to overwrite!"))
     # TODO: add checker for exisiting analysis_name, esp the matrix size
     results.analysis.grp <- results.grp$open(analysis_name)
     results_matrix_ds <- results.analysis.grp[["results_matrix"]]
   } else {
     # not exist; or exist && overwrite: to create
-    if (results.grp$exists(analysis_name) == TRUE &&
-      overwrite == TRUE) {
+    exists_and_overwrite <- results.grp$exists(analysis_name) == TRUE &&
+      overwrite == TRUE
+    if (exists_and_overwrite) {
       # delete existing one first
       results.grp$link_delete(analysis_name)
       # NOTE: the file size will not shrink after your deletion..
@@ -1428,8 +1336,9 @@ writeResults <- function(fn.output,
       # for each column of df.output
       col_class <- as.character(sapply(df.output, class)[i_col]) # class of this column
 
-      if ((col_class != "numeric") &&
-        (col_class != "integer")) {
+      not_numeric_or_int <- (col_class != "numeric") &&
+        (col_class != "integer")
+      if (not_numeric_or_int) {
         # the column class is not numeric or integer
         message(
           paste0(

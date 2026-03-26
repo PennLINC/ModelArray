@@ -489,3 +489,86 @@ bind_cols_check_emptyTibble <- function(a, b) {
 
   c
 }
+
+
+#' Summarize an h5 file without loading the full ModelArray
+#'
+#' @description
+#' Reads the h5 file structure and returns a summary of available scalars,
+#' their dimensions, and any saved analyses. Useful for inspecting large files
+#' without constructing a full ModelArray object.
+#'
+#' @param filepath Path to an h5 file
+#' @return A list with components:
+#'   \item{scalars}{A data.frame with columns: name, nElements, nInputFiles}
+#'   \item{analyses}{Character vector of analysis names}
+#'   \item{filepath}{The input filepath}
+#' @importFrom rhdf5 h5ls h5closeAll
+#' @export
+h5summary <- function(filepath) {
+  if (!file.exists(filepath)) {
+    stop("File not found: ", filepath)
+  }
+  listing <- rhdf5::h5ls(filepath)
+  rhdf5::h5closeAll()
+
+  # Find scalar datasets: /scalars/<name>/values
+  scalar_rows <- listing[
+    listing$group != "/scalars" &
+      grepl("^/scalars/", listing$group) &
+      !grepl("^/scalars/scalars", listing$group) &
+      listing$name == "values",
+  ]
+  scalar_info <- data.frame(
+    name = sub("^/scalars/", "", scalar_rows$group),
+    dim = scalar_rows$dim,
+    stringsAsFactors = FALSE
+  )
+
+  # Parse dimensions
+  if (nrow(scalar_info) > 0) {
+    dims <- strsplit(scalar_info$dim, " x ")
+    scalar_info$nElements <- as.integer(sapply(dims, `[`, 1))
+    scalar_info$nInputFiles <- as.integer(sapply(dims, `[`, 2))
+    scalar_info$dim <- NULL
+  }
+
+  # Find analyses: /results/<name>
+  result_groups <- listing[
+    listing$group == "/results" & listing$otype == "H5I_GROUP",
+  ]
+  analyses <- result_groups$name
+
+  structure(
+    list(
+      scalars = scalar_info,
+      analyses = analyses,
+      filepath = filepath
+    ),
+    class = "h5summary"
+  )
+}
+
+#' @method print h5summary
+#' @export
+print.h5summary <- function(x, ...) {
+  cat("H5 file:", x$filepath, "\n\n")
+  if (nrow(x$scalars) > 0) {
+    cat("Scalars:\n")
+    for (i in seq_len(nrow(x$scalars))) {
+      cat("  ", x$scalars$name[i], ": ",
+        x$scalars$nElements[i], " elements x ",
+        x$scalars$nInputFiles[i], " input files\n",
+        sep = ""
+      )
+    }
+  } else {
+    cat("  (no scalars found)\n")
+  }
+  cat("\nAnalyses:", if (length(x$analyses) > 0) {
+    paste(x$analyses, collapse = ", ")
+  } else {
+    "(none)"
+  }, "\n")
+  invisible(x)
+}
