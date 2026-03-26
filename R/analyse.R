@@ -89,104 +89,9 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                           num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,
                           verbose = TRUE, pbar = TRUE, n_cores = 1,
                           on_error = "stop", ...) {
-  # data type assertions
-  if (class(data) != "ModelArray") {
-    stop("data's class is not ModelArray!")
-  }
-
-  ## element.subset:
-  if (is.null(element.subset)) { # request all elements
-    num.element.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
-    element.subset <- 1:num.element.total
-  }
-  # checker for min and max of element.subset; and whether elements are integer
-  if (min(element.subset) < 1) {
-    stop("Minimal value in element.subset should >= 1")
-  }
-  if (max(element.subset) > nrow(scalars(data)[[scalar]])) {
-    stop(
-      paste0(
-        "Maximal value in element.subset should <= number of elements = ",
-        as.character(nrow(scalars(data)[[scalar]]))
-      )
-    )
-  }
-  if (class(element.subset) != "integer") {
-    stop("Please enter integers for element.subset!")
-  }
-
-  ### sanity check: whether they match: modelarray's source file list and phenotypes' source file list:
-  sources.modelarray <- sources(data)[[scalar]]
-  sources.phenotypes <- phenotypes[["source_file"]]
-  if (is.null(sources.phenotypes)) {
-    stop(paste0("Did not find column 'source_file' in argument 'phenotypes'. Please check!"))
-  }
-
-  ## length should be the same:
-  if (length(sources.modelarray) != length(sources.phenotypes)) {
-    stop(
-      paste0(
-        "The length of source file list from phenotypes's column 'source_file' ",
-        "is not the same as that in ModelArray 'data'! Please check out! ",
-        "The latter one can be accessed by: sources(data)[[scalar]]"
-      )
-    )
-  }
-
-  ## check if the list is unique:
-  if (length(sources.modelarray) != length(unique(sources.modelarray))) {
-    stop(
-      paste0(
-        "The source files in ModelArray 'data' are not unique! Please check out! ",
-        "It can be accessed by: sources(data)[[scalar]]"
-      )
-    )
-  }
-  if (length(sources.phenotypes) != length(unique(sources.phenotypes))) {
-    stop(
-      paste0(
-        "The source files from phenotypes's column 'source_file' ",
-        "are not unique! Please check out and remove the duplicated one!"
-      )
-    )
-  }
-
-  if (identical(sources.modelarray, sources.phenotypes)) {
-    # identical, pass
-  } else { # not identical (but length is the same):
-    # check if two lists can be matched (i.e. no unmatched source filename)
-    if ((all(sources.modelarray %in% sources.phenotypes)) && ((all(sources.phenotypes %in% sources.modelarray)))) {
-      # can be matched, just the order is different. Use match() function:
-      reorder_idx <- match(
-        sources.modelarray, # vector of values in the order we want
-        sources.phenotypes
-      ) # vector to be reordered
-      # apply to phenotypes:
-      phenotypes <- phenotypes[reorder_idx, ]
-      # reset the row name, just to be safe for later adding scalar values...
-      # see ModelArray_paper/notebooks/test_match_sourceFiles.Rmd
-      row.names(phenotypes) <- NULL
-      if (!identical(phenotypes[["source_file"]], sources.modelarray)) {
-        stop("matching source file names were not successful...")
-      }
-    } else {
-      stop(
-        paste0(
-          "phenotypes's column 'source_file' have different element(s) from source file list",
-          " in ModelArray 'data'! Please check out! ",
-          "The latter one can be accessed by: sources(data)[[scalar]]"
-        )
-      )
-    }
-
-    # stop(
-    #   paste0(
-    #     "The source file list from phenotypes's column 'source_file' is not identical to that in ModelArray 'data'! ",
-    #     "Please check out! ",
-    #     "The latter one can be accessed by: sources(data)[[scalar]] "
-    #   )
-    # )
-  }
+  .validate_modelarray_input(data)
+  element.subset <- .validate_element_subset(element.subset, data, scalar)
+  phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
 
   ### display additional arguments:
@@ -247,13 +152,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   printAdditionalArgu(FUN, "offset", dots, m1)
 
 
-  ### threshold of number of subjects:
-  num.subj.total <- nrow(phenotypes)
-  num.subj.lthr <- max(
-    num.subj.total * num.subj.lthr.rel,
-    num.subj.lthr.abs
-  ) # choose the higher value as lower threshold
-
+  num.subj.lthr <- .compute_subject_threshold(phenotypes, num.subj.lthr.abs, num.subj.lthr.rel)
 
   ### other setups:
   var.terms.full <- c("estimate", "std.error", "statistic", "p.value")
@@ -306,152 +205,30 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
     message(glue::glue("initiating...."))
   }
 
-
-  # initiate: get the example of one element and get the column names
   num.elements.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
-  # find the middle element of all elements, higher possibility to have sufficient subjects
-  i_element_try <- floor(num.elements.total / 2)
-  outputs_initiator <- analyseOneElement.lm(
-    i_element = i_element_try,
-    formula, data, phenotypes, scalar,
-    var.terms, var.model,
-    num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
-    flag_initiate = TRUE, on_error = on_error,
-    ...
+  init_args <- list(
+    formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+    var.terms = var.terms, var.model = var.model,
+    num.subj.lthr = num.subj.lthr, on_error = on_error, ...
   )
-  if (is.nan(outputs_initiator$column_names)[1]) { # not sufficient subjects
-    message(
-      paste0(
-        "There is no sufficient valid subjects for initiating using the middle element; ",
-        "trying other elements; may take a while in this initiating process...."
-      )
-    )
-    for (i_element_temp in (i_element_try + 1):num.elements.total) { # try each element following i_element_try
-      if (i_element_temp %% 100 == 0) {
-        message(paste0("trying element #", toString(i_element_temp), " and the following elements for initiating...."))
-      }
-      outputs_initiator <- analyseOneElement.lm(
-        i_element = i_element_temp,
-        formula, data, phenotypes, scalar,
-        var.terms, var.model,
-        num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
-        flag_initiate = TRUE, on_error = on_error,
-        ...
-      )
-      if (!(is.nan(outputs_initiator$column_names)[1])) {
-        # if valid column names, the first element in column names is not nan
-        break
-      }
-    } # end of trying middle element to end
+  initiator <- .find_initiator_element(
+    analyseOneElement.lm, num.elements.total, init_args, verbose
+  )
+  column_names <- initiator$outputs$column_names
+  list.terms <- initiator$outputs$list.terms
+  num.stat.output <- length(column_names)
 
-    if ((i_element_temp == num.elements.total) && (is.nan(outputs_initiator$column_names)[1])) {
-      # i.e. reached the end of the elements but still haven't initiated...
-      message(
-        paste0(
-          "until the end of the elements, there are still no elements with sufficient valid ",
-          "subjects for initiating the process...",
-          "start to try element #1 and the following elements for initiating; ",
-          "may take a while in this initiating process...."
-        )
-      )
-      for (i_element_temp in 1:(i_element_try - 1)) { # try each element before i_element_try
-        if (i_element_temp %% 100 == 0) {
-          message(
-            paste0(
-              "trying element #",
-              toString(i_element_temp),
-              " and the following elements for initiating...."
-            )
-          )
-        }
-        outputs_initiator <- analyseOneElement.lm(
-          i_element = i_element_temp,
-          formula, data, phenotypes, scalar,
-          var.terms, var.model,
-          num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
-          flag_initiate = TRUE, on_error = on_error,
-          ...
-        )
-        if (!(is.nan(outputs_initiator$column_names)[1])) {
-          # if valid column names, the first element in column names is not nan
-          break
-        }
-      } # end of trying each element before middle element
-
-      if ((i_element_temp == (i_element_try - 1)) && (is.nan(outputs_initiator$column_names)[1])) {
-        # i.e. reached the i_element_try-1 (i.e. tried all subjects) but still haven't initiated...
-        stop(
-          paste0(
-            "Have tried all elements, but there is no element with sufficient subjects with valid, ",
-            "finite h5 scalar values (i.e. not NaN or NA, not infinite). ",
-            "Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, ",
-            "or there were problems in the group mask or individual masks!"
-          )
-        )
-      }
-    } # end of if reached the end of the elements but still haven't initiated...
-  } # end of if unsuccessful initiation with middle element
-
-
-  # otherwise, it was successful:
-  column_names <- outputs_initiator$column_names
-  list.terms <- outputs_initiator$list.terms
-  num.stat.output <- length(column_names) # including element_id
-
-
-  # loop (by condition of pbar and n_cores)
   if (verbose) {
     message(glue::glue("looping across elements...."))
   }
 
-  # is it a multicore process?
-  flag_initiate <- FALSE
-  if (n_cores > 1) {
-    if (pbar) {
-      fits <- pbmcapply::pbmclapply(element.subset, # a list of i_element
-        analyseOneElement.lm, # the function
-        mc.cores = n_cores,
-        formula, data, phenotypes, scalar,
-        var.terms, var.model,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, on_error = on_error,
-        ...
-      )
-    } else {
-      # foreach::foreach
-
-      fits <- parallel::mclapply(element.subset, # a list of i_element
-        analyseOneElement.lm, # the function
-        mc.cores = n_cores,
-        formula, data, phenotypes, scalar,
-        var.terms, var.model,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, on_error = on_error,
-        ...
-      )
-    }
-  } else { # n_cores ==1, not multi-core
-
-    if (pbar) {
-      fits <- pbapply::pblapply(element.subset, # a list of i_element
-        analyseOneElement.lm, # the function
-        formula, data, phenotypes, scalar,
-        var.terms, var.model,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, on_error = on_error,
-        ...
-      )
-    } else {
-      fits <- lapply(element.subset, # a list of i_element
-        analyseOneElement.lm, # the function
-        formula, data, phenotypes, scalar,
-        var.terms, var.model,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, on_error = on_error,
-        ...
-      )
-    }
-  }
+  fits <- .parallel_dispatch(element.subset, analyseOneElement.lm, n_cores, pbar,
+    formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+    var.terms = var.terms, var.model = var.model,
+    num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
+    flag_initiate = FALSE, on_error = on_error,
+    ...
+  )
 
 
   df_out <- do.call(rbind, fits)
@@ -459,53 +236,9 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   colnames(df_out) <- column_names # add column names
 
 
-  # Add corrections of p.values:
-
-  # loop over elements in correct.p.value.model
-  # if == "none": do nothing
-  # else, %in% default methods in p.adjust --> all TRUE?
-  # if not, error: not support | checker at beginning of this function
-  # else, "p.value" %in% var.model == FALSE: warning: nothing to correct |
-  # checker at beginning of this function
-  # else, iterate
-
-  # add correction of p.values: for terms
-  if (all(correct.p.value.terms == "none")) {
-    # all() is to accormodate for multiple elements in correct.p.value.terms:
-    # if one of is not "none", FALSE do nothing
-  } else {
-    if ("p.value" %in% var.terms == TRUE) {
-      # check whether there is "p.value" in var.terms' |
-      # if FALSE: print warning (see beginning of this function)
-
-      for (methodstr in correct.p.value.terms) {
-        for (tempstr in list.terms) {
-          tempstr.raw <- paste0(tempstr, ".p.value")
-          tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
-          temp.corrected <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
-          df_out <- df_out %>% tibble::add_column("{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
-        }
-      }
-    }
-  }
-
-  # add correction of p.values: for the model
-  if (all(correct.p.value.model == "none")) {
-    # do nothing
-  } else {
-    if ("p.value" %in% var.model == TRUE) {
-      # check whether there is "p.value" in var.model' |
-      # if FALSE: print warning (see beginning of this function)
-
-      for (methodstr in correct.p.value.model) {
-        tempstr.raw <- "model.p.value"
-        tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
-        temp.corrected <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
-        df_out <- df_out %>% tibble::add_column("{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
-      }
-    }
-  }
-
+  # Add corrections of p.values
+  df_out <- .correct_pvalues(df_out, list.terms, correct.p.value.terms, var.terms)
+  df_out <- .correct_pvalues(df_out, "model", correct.p.value.model, var.model)
 
   df_out # return
 }
@@ -671,130 +404,22 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                            num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,
                            verbose = TRUE, pbar = TRUE, n_cores = 1,
                            on_error = "stop", ...) {
-  # data type assertions
-  if (class(data) != "ModelArray") {
-    stop("data's class is not ModelArray!")
-  }
-
-  ## element.subset:
-  if (is.null(element.subset)) { # request all elements
-    num.element.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
-    element.subset <- 1:num.element.total
-  }
-  # checker for min and max of element.subset; and whether elements are integer
-  if (min(element.subset) < 1) {
-    stop("Minimal value in element.subset should >= 1")
-  }
-  if (max(element.subset) > nrow(scalars(data)[[scalar]])) {
-    stop(
-      paste0(
-        "Maximal value in element.subset should <= number of elements = ",
-        as.character(nrow(scalars(data)[[scalar]]))
-      )
-    )
-  }
-  if (class(element.subset) != "integer") {
-    stop("Please enter integers for element.subset!")
-  }
+  .validate_modelarray_input(data)
+  element.subset <- .validate_element_subset(element.subset, data, scalar)
 
   # check if the formula is valid in terms of mgcv::gam()
   tryCatch(
     {
-      # try
       gam.formula.breakdown <- mgcv::interpret.gam(formula)
-      # if error, it means the formula is not valid in terms of mgcv::gam()
     },
     error = function(cond) {
       stop(paste0("The formula is not valid for mgcv::gam()! Please check and revise."))
     }
   )
 
-  # print out the additional arguments in smooth terms:
-
-  # # to check formula, we need to fit one element:
-  # values <- scalars(data)[[scalar]][1,]
-  # dat <- phenotypes
-  # dat[[scalar]] <- values
-  # onemodel <- mgcv::gam(formula = formula, data = dat)
-
-  # checker_gam_formula(formula, gam.formula.breakdown, onemodel)
-
   checker_gam_formula(formula, gam.formula.breakdown)
 
-
-  ### sanity check: whether they match: modelarray's source file list and phenotypes' source file list:
-  sources.modelarray <- sources(data)[[scalar]]
-  sources.phenotypes <- phenotypes[["source_file"]]
-  if (is.null(sources.phenotypes)) {
-    stop(paste0("Did not find column 'source_file' in argument 'phenotypes'. Please check!"))
-  }
-
-  ## length should be the same:
-  if (length(sources.modelarray) != length(sources.phenotypes)) {
-    stop(
-      paste0(
-        "The length of source file list from phenotypes's column 'source_file'",
-        " is not the same as that in ModelArray 'data'! Please check out! ",
-        "The latter one can be accessed by: sources(data)[[scalar]]"
-      )
-    )
-  }
-
-  ## check if the list is unique:
-  if (length(sources.modelarray) != length(unique(sources.modelarray))) {
-    stop(
-      paste0(
-        "The source files in ModelArray 'data' are not unique! Please check out!",
-        " It can be accessed by: sources(data)[[scalar]]"
-      )
-    )
-  }
-  if (length(sources.phenotypes) != length(unique(sources.phenotypes))) {
-    stop(
-      paste0(
-        "The source files from phenotypes's column 'source_file' are not unique! ",
-        "Please check out and remove the duplicated one!"
-      )
-    )
-  }
-
-  if (identical(sources.modelarray, sources.phenotypes)) {
-    # identical, pass
-  } else { # not identical (but length is the same):
-    # check if two lists can be matched (i.e. no unmatched source filename)
-    if ((all(sources.modelarray %in% sources.phenotypes)) && ((all(sources.phenotypes %in% sources.modelarray)))) {
-      # can be matched, just the order is different. Use match() function:
-      reorder_idx <- match(
-        sources.modelarray, # vector of values in the order we want
-        sources.phenotypes
-      ) # vector to be reordered
-      # apply to phenotypes:
-      phenotypes <- phenotypes[reorder_idx, ]
-      row.names(phenotypes) <- NULL
-      # reset the row name, just to be safe for later adding scalar values...
-      # see ModelArray_paper/notebooks/test_match_sourceFiles.Rmd
-      if (!identical(phenotypes[["source_file"]], sources.modelarray)) {
-        stop("matching source file names were not successful...")
-      }
-    } else {
-      stop(
-        paste0(
-          "phenotypes's column 'source_file' have different element(s) from source file ",
-          "list in ModelArray 'data'! Please check out! The latter one can be accessed by: ",
-          "sources(data)[[scalar]]"
-        )
-      )
-    }
-
-    # stop(
-    #   paste0(
-    #     "The source file list from phenotypes's column 'source_file' is not identical ",
-    #     "to that in ModelArray 'data'! Please check out! The latter one can be accessed by: ",
-    #     "sources(data)[[scalar]] "
-    #   )
-    # )
-  }
-
+  phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
   ### display additional arguments: [only important one]
   dots <- list(...)
@@ -802,25 +427,13 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
   FUN <- mgcv::gam
 
-  # # family:  # it works; but family may not be important
-  # m <- invisible(eval(formals(FUN)$family))
-  # should not use message(), but print() --> but will print out or invisible()
-  # m1 <- paste0("Family: ", m$family, "; Link function: ", m$link)
-  # printAdditionalArgu(FUN, "family", dots, m1)
-
   # method: (default: "GCV.Cp")
   printAdditionalArgu(FUN, "method", dots) # default: "GCV.Cp"
 
   # TODO: optional: check if fx=FALSE; if so, add edf to the list of var + warning: fx=TRUE is recommended
 
 
-  ### threshold of number of subjects:
-  num.subj.total <- nrow(phenotypes)
-  num.subj.lthr <- max(
-    num.subj.total * num.subj.lthr.rel,
-    num.subj.lthr.abs
-  ) # choose the higher value as lower threshold
-
+  num.subj.lthr <- .compute_subject_threshold(phenotypes, num.subj.lthr.abs, num.subj.lthr.rel)
 
   ### when full.outputs = TRUE:
   var.smoothTerms.full <- c("edf", "ref.df", "statistic", "p.value")
@@ -932,171 +545,39 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
 
   ### run
-  # start the process:
   if (verbose) {
     message(glue::glue("Fitting element-wise GAMs for {scalar}"))
     message(glue::glue("initiating...."))
   }
 
-  # initiate: get the example of one element and get the column names
   num.elements.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
-  i_element_try <- floor(num.elements.total / 2)
-  # find the middle element of all elements, higher possibility to have sufficient subjects
-  outputs_initiator <- analyseOneElement.gam(
-    i_element = i_element_try,
-    formula, data, phenotypes, scalar,
-    var.smoothTerms, var.parametricTerms, var.model,
-    num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
-    flag_initiate = TRUE, flag_sse = flag_sse, on_error = on_error,
-    ...
+  init_args <- list(
+    formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+    var.smoothTerms = var.smoothTerms, var.parametricTerms = var.parametricTerms,
+    var.model = var.model,
+    num.subj.lthr = num.subj.lthr, flag_sse = flag_sse, on_error = on_error, ...
   )
-  if (is.nan(outputs_initiator$column_names)[1]) { # not sufficient subjects
-    message(
-      paste0(
-        "There is no sufficient valid subjects for initiating using the middle element; ",
-        "trying other elements; may take a while in this initiating process...."
-      )
-    )
-    for (i_element_temp in (i_element_try + 1):num.elements.total) {
-      # try each element following i_element_try
-      if (i_element_temp %% 100 == 0) {
-        message(
-          paste0(
-            "trying element #",
-            toString(i_element_temp),
-            " and the following elements for initiating...."
-          )
-        )
-      }
-      outputs_initiator <- analyseOneElement.gam(
-        i_element = i_element_temp,
-        formula, data, phenotypes, scalar,
-        var.smoothTerms, var.parametricTerms, var.model,
-        num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
-        flag_initiate = TRUE, flag_sse = flag_sse, on_error = on_error,
-        ...
-      )
-      if (!(is.nan(outputs_initiator$column_names)[1])) {
-        # if valid column names, the first element in column names is not nan
-        break
-      }
-    } # end of trying middle element to end
+  initiator <- .find_initiator_element(
+    analyseOneElement.gam, num.elements.total, init_args, verbose
+  )
+  i_element_success_initiate <- initiator$i_element
+  column_names <- initiator$outputs$column_names
+  list.smoothTerms <- initiator$outputs$list.smoothTerms
+  list.parametricTerms <- initiator$outputs$list.parametricTerms
+  num.stat.output <- length(column_names)
 
-    if ((i_element_temp == num.elements.total) && (is.nan(outputs_initiator$column_names)[1])) {
-      # i.e. reached the end of the elements but still haven't initiated...
-      message(
-        paste0(
-          "until the end of the elements, there are still no elements with sufficient valid ",
-          "subjects for initiating the process... ",
-          "start to try element #1 and the following elements for initiating; ",
-          "may take a while in this initiating process...."
-        )
-      )
-      for (i_element_temp in 1:(i_element_try - 1)) { # try each element before i_element_try
-        if (i_element_temp %% 100 == 0) {
-          message(
-            paste0(
-              "trying element #",
-              toString(i_element_temp),
-              " and the following elements for initiating...."
-            )
-          )
-        }
-        outputs_initiator <- analyseOneElement.gam(
-          i_element = i_element_temp,
-          formula, data, phenotypes, scalar,
-          var.smoothTerms, var.parametricTerms, var.model,
-          num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
-          flag_initiate = TRUE, flag_sse = flag_sse, on_error = on_error,
-          ...
-        )
-        if (!(is.nan(outputs_initiator$column_names)[1])) {
-          # if valid column names, the first element in column names is not nan
-          break
-        }
-      } # end of trying each element before middle element
-
-      if ((i_element_temp == (i_element_try - 1)) && (is.nan(outputs_initiator$column_names)[1])) {
-        # i.e. reached the i_element_try-1 (i.e. tried all subjects) but still haven't initiated...
-        stop(
-          paste0(
-            "Have tried all elements, but there is no element with sufficient subjects with valid, ",
-            "finite h5 scalar values (i.e. not NaN or NA, not infinite). ",
-            "Please check if thresholds 'num.subj.lthr.abs' and 'num.subj.lthr.rel' were set too high, ",
-            "or there were problems in the group mask or individual masks!"
-          )
-        )
-      } else { # it has been initiated
-        i_element_success_initiate <- i_element_temp
-      }
-    } else { # it has been initiated
-      i_element_success_initiate <- i_element_temp
-    } # end of if reached the end of the elements but still haven't initiated or not...
-  } else { # if successful just with i_element_try
-    i_element_success_initiate <- i_element_try
-  } # end of if unsuccessful initiation with middle element or not
-
-
-  # otherwise, it was successful:
-  column_names <- outputs_initiator$column_names
-  list.smoothTerms <- outputs_initiator$list.smoothTerms
-  list.parametricTerms <- outputs_initiator$list.parametricTerms
-  num.stat.output <- length(column_names) # including element_id
-
-
-  # loop (by condition of pbar and n_cores)
   if (verbose) {
     message(glue::glue("looping across elements...."))
   }
 
-  # is it a multicore process?
-  flag_initiate <- FALSE
-  if (n_cores > 1) {
-    if (pbar) {
-      fits <- pbmcapply::pbmclapply(element.subset, # a list of i_element
-        analyseOneElement.gam, # the function
-        mc.cores = n_cores,
-        formula, data, phenotypes, scalar,
-        var.smoothTerms, var.parametricTerms, var.model,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, flag_sse = flag_sse, on_error = on_error,
-        ...
-      )
-    } else {
-      # foreach::foreach
-
-      fits <- parallel::mclapply(element.subset, # a list of i_element
-        analyseOneElement.gam, # the function
-        mc.cores = n_cores,
-        formula, data, phenotypes, scalar,
-        var.smoothTerms, var.parametricTerms, var.model,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, flag_sse = flag_sse, on_error = on_error,
-        ...
-      )
-    }
-  } else { # n_cores ==1, not multi-core
-
-    if (pbar) {
-      fits <- pbapply::pblapply(element.subset, # a list of i_element
-        analyseOneElement.gam, # the function
-        formula, data, phenotypes, scalar,
-        var.smoothTerms, var.parametricTerms, var.model,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, flag_sse = flag_sse, on_error = on_error,
-        ...
-      )
-    } else {
-      fits <- lapply(element.subset, # a list of i_element
-        analyseOneElement.gam, # the function
-        formula, data, phenotypes, scalar,
-        var.smoothTerms, var.parametricTerms, var.model,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, flag_sse = flag_sse, on_error = on_error,
-        ...
-      )
-    }
-  }
+  fits <- .parallel_dispatch(element.subset, analyseOneElement.gam, n_cores, pbar,
+    formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+    var.smoothTerms = var.smoothTerms, var.parametricTerms = var.parametricTerms,
+    var.model = var.model,
+    num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
+    flag_initiate = FALSE, flag_sse = flag_sse, on_error = on_error,
+    ...
+  )
 
 
   df_out <- do.call(rbind, fits)
@@ -1180,53 +661,18 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       )
       reduced.model.column_names <- reduced.model.outputs_initiator$column_names
       reduced.model.num.stat.output <- length(reduced.model.column_names)
-      # run on reduced model, get the adj r sq of reduced model
-      if (n_cores > 1) {
-        if (pbar) {
-          reduced.model.fits <- pbmcapply::pbmclapply(element.subset, # a list of i_element
-            analyseOneElement.gam, # the function
-            mc.cores = n_cores,
-            reduced.formula, data, phenotypes, scalar,
-            var.smoothTerms = c(), var.parametricTerms = c(), var.model = c("adj.r.squared"),
-            num.subj.lthr = num.subj.lthr, num.stat.output = reduced.model.num.stat.output,
-            flag_initiate = FALSE, flag_sse = TRUE, # also to get model.sse
-            ...
-          )
-        } else {
-          # foreach::foreach
 
-          reduced.model.fits <- parallel::mclapply(element.subset, # a list of i_element
-            analyseOneElement.gam, # the function
-            mc.cores = n_cores,
-            reduced.formula, data, phenotypes, scalar,
-            var.smoothTerms = c(), var.parametricTerms = c(), var.model = c("adj.r.squared"),
-            num.subj.lthr = num.subj.lthr, num.stat.output = reduced.model.num.stat.output,
-            flag_initiate = FALSE, flag_sse = TRUE, # also to get model.sse
-            ...
-          )
-        }
-      } else { # n_cores ==1, not multi-core
-
-        if (pbar) {
-          reduced.model.fits <- pbapply::pblapply(element.subset, # a list of i_element
-            analyseOneElement.gam, # the function
-            reduced.formula, data, phenotypes, scalar,
-            var.smoothTerms = c(), var.parametricTerms = c(), var.model = c("adj.r.squared"),
-            num.subj.lthr = num.subj.lthr, num.stat.output = reduced.model.num.stat.output,
-            flag_initiate = FALSE, flag_sse = TRUE, # also to get model.sse
-            ...
-          )
-        } else {
-          reduced.model.fits <- lapply(element.subset, # a list of i_element
-            analyseOneElement.gam, # the function
-            reduced.formula, data, phenotypes, scalar,
-            var.smoothTerms = c(), var.parametricTerms = c(), var.model = c("adj.r.squared"),
-            num.subj.lthr = num.subj.lthr, num.stat.output = reduced.model.num.stat.output,
-            flag_initiate = FALSE, flag_sse = TRUE, # also to get model.sse
-            ...
-          )
-        }
-      } # end of loop for calculating reduced model across elements
+      reduced.model.fits <- .parallel_dispatch(
+        element.subset, analyseOneElement.gam, n_cores, pbar,
+        formula = reduced.formula, modelarray = data, phenotypes = phenotypes,
+        scalar = scalar,
+        var.smoothTerms = c(), var.parametricTerms = c(),
+        var.model = c("adj.r.squared"),
+        num.subj.lthr = num.subj.lthr,
+        num.stat.output = reduced.model.num.stat.output,
+        flag_initiate = FALSE, flag_sse = TRUE,
+        ...
+      )
 
       reduced.model.df_out <- do.call(rbind, reduced.model.fits)
       reduced.model.df_out <- as.data.frame(reduced.model.df_out)
@@ -1268,47 +714,10 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
 
   ### correct p values
-  # add correction of p.values: for smoothTerms
-  if (all(correct.p.value.smoothTerms == "none")) {
-    # all() is to accormodate for multiple elements in correct.p.value.smoothTerms:
-    # if one of is not "none", FALSE do nothing
-  } else {
-    if ("p.value" %in% var.smoothTerms == TRUE) {
-      # check whether there is "p.value" in var.smoothTerms' |
-      # if FALSE: print warning (see beginning of this function)
-
-      for (methodstr in correct.p.value.smoothTerms) {
-        for (tempstr in list.smoothTerms) {
-          tempstr.raw <- paste0(tempstr, ".p.value")
-          tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
-          temp.corrected <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
-          df_out <- df_out %>% tibble::add_column("{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
-        }
-      }
-    }
-  }
-
-  # add correction of p.values for parametricTerms
-  if (all(correct.p.value.parametricTerms == "none")) {
-    # all() is to accormodate for multiple elements in correct.p.value.parametricTerms:
-    # if one of is not "none", FALSE
-    # do nothing
-  } else {
-    if ("p.value" %in% var.parametricTerms == TRUE) {
-      # check whether there is "p.value" in var.parametricTerms' |
-      # if FALSE: print warning (see beginning of this function)
-
-      for (methodstr in correct.p.value.parametricTerms) {
-        for (tempstr in list.parametricTerms) {
-          tempstr.raw <- paste0(tempstr, ".p.value")
-          tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
-          temp.corrected <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
-          df_out <- df_out %>% tibble::add_column("{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
-        }
-      }
-    }
-  }
-
+  df_out <- .correct_pvalues(df_out, list.smoothTerms, correct.p.value.smoothTerms, var.smoothTerms)
+  df_out <- .correct_pvalues(
+    df_out, list.parametricTerms, correct.p.value.parametricTerms, var.parametricTerms
+  )
 
   ### return
   df_out
@@ -1358,172 +767,36 @@ ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL
                             num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,
                             verbose = TRUE, pbar = TRUE, n_cores = 1,
                             on_error = "stop", ...) {
-  # data type assertions
-  if (class(data) != "ModelArray") {
-    stop("data's class is not ModelArray!")
-  }
-
-  ## element.subset default and checks
-  if (is.null(element.subset)) {
-    num.element.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
-    element.subset <- 1:num.element.total
-  }
-  if (min(element.subset) < 1) stop("Minimal value in element.subset should >= 1")
-  if (max(element.subset) > nrow(scalars(data)[[scalar]])) {
-    stop(paste0(
-      "Maximal value in element.subset should <= number of elements = ",
-      as.character(nrow(scalars(data)[[scalar]]))
-    ))
-  }
-  if (class(element.subset) != "integer") stop("Please enter integers for element.subset!")
-
-  ### Align phenotypes to sources
-  sources.modelarray <- sources(data)[[scalar]]
-  sources.phenotypes <- phenotypes[["source_file"]]
-  if (is.null(sources.phenotypes)) stop("Did not find column 'source_file' in argument 'phenotypes'. Please check!")
-  if (length(sources.modelarray) != length(sources.phenotypes)) {
-    stop(paste0(
-      "The length of source file list from phenotypes's column 'source_file' ",
-      "is not the same as that in ModelArray 'data'! Please check out! ",
-      "The latter one can be accessed by: sources(data)[[scalar]]"
-    ))
-  }
-  if (length(sources.modelarray) != length(unique(sources.modelarray))) {
-    stop(
-      paste0(
-        "The source files in ModelArray 'data' are not unique! Please check out! ",
-        "It can be accessed by: sources(data)[[scalar]]"
-      )
-    )
-  }
-  if (length(sources.phenotypes) != length(unique(sources.phenotypes))) {
-    stop(
-      paste0(
-        "The source files from phenotypes's column 'source_file' are not unique! ",
-        "Please check out and remove the duplicated one!"
-      )
-    )
-  }
-  if (!identical(sources.modelarray, sources.phenotypes)) {
-    if ((all(sources.modelarray %in% sources.phenotypes)) && (all(sources.phenotypes %in% sources.modelarray))) {
-      reorder_idx <- match(sources.modelarray, sources.phenotypes)
-      phenotypes <- phenotypes[reorder_idx, ]
-      row.names(phenotypes) <- NULL
-      if (!identical(phenotypes[["source_file"]], sources.modelarray)) {
-        stop("matching source file names were not successful...")
-      }
-    } else {
-      stop(paste0(
-        "phenotypes's column 'source_file' have different element(s) from source file list",
-        " in ModelArray 'data'! Please check out! ",
-        "The latter one can be accessed by: sources(data)[[scalar]]"
-      ))
-    }
-  }
-  ### thresholds
-  num.subj.total <- nrow(phenotypes)
-  num.subj.lthr <- max(num.subj.total * num.subj.lthr.rel, num.subj.lthr.abs)
+  .validate_modelarray_input(data)
+  element.subset <- .validate_element_subset(element.subset, data, scalar)
+  phenotypes <- .align_phenotypes(data, phenotypes, scalar)
+  num.subj.lthr <- .compute_subject_threshold(phenotypes, num.subj.lthr.abs, num.subj.lthr.rel)
 
   ### initiate to get column names
   if (verbose) {
     message(glue::glue("Running element-wise user function for {scalar}"))
     message(glue::glue("initiating...."))
   }
-  num.elements.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
-  i_element_try <- floor(num.elements.total / 2)
-  outputs_initiator <- analyseOneElement.wrap(
-    i_element = i_element_try,
-    user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-    num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
-    flag_initiate = TRUE, on_error = on_error,
-    ...
-  )
-  if (is.nan(outputs_initiator$column_names)[1]) {
-    message("No sufficient subjects at middle element; trying others for initiation....")
-    for (i_element_temp in (i_element_try + 1):num.elements.total) {
-      outputs_initiator <- analyseOneElement.wrap(
-        i_element = i_element_temp,
-        user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-        num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
-        flag_initiate = TRUE, on_error = on_error,
-        ...
-      )
-      if (!(is.nan(outputs_initiator$column_names)[1])) break
-    }
-    if ((i_element_temp == num.elements.total) && (is.nan(outputs_initiator$column_names)[1])) {
-      message("Trying from the beginning for initiation....")
-      for (i_element_temp in 1:(i_element_try - 1)) {
-        outputs_initiator <- analyseOneElement.wrap(
-          i_element = i_element_temp,
-          user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-          num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
-          flag_initiate = TRUE, on_error = on_error,
-          ...
-        )
-        if (!(is.nan(outputs_initiator$column_names)[1])) break
-      }
-      if ((i_element_temp == (i_element_try - 1)) && (is.nan(outputs_initiator$column_names)[1])) {
-        stop(paste0(
-          "Have tried all elements, but there is no element with sufficient subjects with valid, ",
-          "finite h5 scalar values (i.e. not NaN or NA, not infinite). ",
-          "Please check thresholds or masks!"
-        ))
-      }
-    }
-  }
 
-  column_names <- outputs_initiator$column_names
+  num.elements.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
+  init_args <- list(
+    user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+    num.subj.lthr = num.subj.lthr, on_error = on_error, ...
+  )
+  initiator <- .find_initiator_element(
+    analyseOneElement.wrap, num.elements.total, init_args, verbose
+  )
+  column_names <- initiator$outputs$column_names
   num.stat.output <- length(column_names)
 
   if (verbose) message(glue::glue("looping across elements...."))
 
-  # Ensure progress bars show in non-interactive sessions when requested
-  if (pbar) {
-    old_pb_opts <- pbapply::pboptions()
-    pbapply::pboptions(type = "txt")
-    on.exit(pbapply::pboptions(old_pb_opts), add = TRUE)
-  }
-
-  if (n_cores > 1) {
-    if (pbar) {
-      fits <- pbmcapply::pbmclapply(element.subset,
-        analyseOneElement.wrap,
-        mc.cores = n_cores,
-        ignore.interactive = TRUE,
-        user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, on_error = on_error,
-        ...
-      )
-    } else {
-      fits <- parallel::mclapply(element.subset,
-        analyseOneElement.wrap,
-        mc.cores = n_cores,
-        user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, on_error = on_error,
-        ...
-      )
-    }
-  } else {
-    if (pbar) {
-      fits <- pbapply::pblapply(element.subset,
-        analyseOneElement.wrap,
-        user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, on_error = on_error,
-        ...
-      )
-    } else {
-      fits <- lapply(element.subset,
-        analyseOneElement.wrap,
-        user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-        num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-        flag_initiate = FALSE, on_error = on_error,
-        ...
-      )
-    }
-  }
+  fits <- .parallel_dispatch(element.subset, analyseOneElement.wrap, n_cores, pbar,
+    user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+    num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
+    flag_initiate = FALSE, on_error = on_error,
+    ...
+  )
 
   df_out <- do.call(rbind, fits)
   df_out <- as.data.frame(df_out)

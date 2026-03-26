@@ -20,8 +20,8 @@ test_that("S4 accessors and helpers cover low-hanging branches", {
 
   # show() formatting branch
   shown <- paste(capture.output(show(modelarray)), collapse = "\n")
-  expect_match(shown, "Source files:")
-  expect_match(shown, "Scalars:")
+  expect_match(shown, "elements x")
+  expect_match(shown, "input files")
   expect_match(shown, "Analyses:")
 
   # helper success + error branches
@@ -440,11 +440,19 @@ test_that("ModelArray.wrap validation branches are exercised", {
     "Please enter integers for element.subset"
   )
   expect_error(
-    ModelArray.wrap(simple_fun, data = modelarray, phenotypes = subset(phen, select = -source_file), scalar = "FD", element.subset = as.integer(1)),
+    ModelArray.wrap(
+      simple_fun, data = modelarray,
+      phenotypes = subset(phen, select = -source_file),
+      scalar = "FD", element.subset = as.integer(1)
+    ),
     "Did not find column 'source_file'"
   )
   expect_error(
-    ModelArray.wrap(simple_fun, data = modelarray, phenotypes = rbind(phen, phen[1, ]), scalar = "FD", element.subset = as.integer(1)),
+    ModelArray.wrap(
+      simple_fun, data = modelarray,
+      phenotypes = rbind(phen, phen[1, ]),
+      scalar = "FD", element.subset = as.integer(1)
+    ),
     "not the same as that in ModelArray 'data'"
   )
 

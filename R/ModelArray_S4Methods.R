@@ -19,38 +19,58 @@ setMethod("show", "ModelArray", function(object) { # , group_name_results="resul
   #   str_results <- paste0("There is no ", group_name_results, " in this ModelArray")
   # }
 
-  cat(is(object)[[1]], " located at ", object@path, "\n\n",
-    # TODO: print for every scalar_name (instead of [[1]]); add "counts = "
-    format("  Source files:", justify = "left", width = 20), length(sources(object)[[1]]), "\n",
-    format("  Scalars:", justify = "left", width = 20), paste0(names(scalars(object)), collapse = ", "), "\n",
-    # format("  Results:", justify = "left", width = 20), str_results, "\n",
-    format("  Analyses:", justify = "left", width = 20), paste0(names(results(object)), collapse = ", "), "\n",
-    sep = ""
-  )
+  paths <- object@path
+  if (length(paths) == 1) {
+    path_str <- paths
+  } else {
+    path_str <- paste0("\n    ", paste(names(paths), paths, sep = " -> ", collapse = "\n    "))
+  }
+  cat(is(object)[[1]], " located at ", path_str, "\n\n", sep = "")
+
+  scalar_names <- names(scalars(object))
+  for (sn in scalar_names) {
+    nr <- nrow(scalars(object)[[sn]])
+    nc <- ncol(scalars(object)[[sn]])
+    cat(format(paste0("  ", sn, ":"), justify = "left", width = 20),
+      nr, " elements x ", nc, " input files\n",
+      sep = ""
+    )
+  }
+  analysis_names <- names(results(object))
+  if (length(analysis_names) > 0) {
+    cat(format("  Analyses:", justify = "left", width = 20),
+      paste0(analysis_names, collapse = ", "), "\n",
+      sep = ""
+    )
+  }
 })
 
 ### Accessors for ModelArray #####
 
 
-#' @aliases sources
+#' Source filenames of a ModelArray object
+#'
+#' @param x A ModelArray object
+#' @return A list of source filenames
+#' @name sources
+#' @export
 setGeneric("sources", function(x) standardGeneric("sources"))
 
-#' Source filenames of an ModelArray object
-#'
-#' @param x An ModelArray object
-#' @return A list of source filenames
+#' @rdname sources
 #' @export
 setMethod("sources", "ModelArray", function(x) x@sources)
 
 
-#' @aliases scalars
+#' Element-wise scalar data of a ModelArray object
+#'
+#' @param x A ModelArray object
+#' @param ... Additional arguments. Currently accepts a scalar name (character).
+#' @return A matrix of element-wise scalar data: elements (row) by source files (column).
+#' @name scalars
+#' @export
 setGeneric("scalars", function(x, ...) standardGeneric("scalars"))
 
-#' Element-wise scalar data of an ModelArray object
-#'
-#' @param x An ModelArray object
-#' @param ... Additional arguments. Currently accept scalar name (a character)
-#' @return A matrix of element-wise scalar data: elements (row) by source files (column).
+#' @rdname scalars
 #' @export
 setMethod(
   "scalars",
@@ -67,14 +87,16 @@ setMethod(
   }
 )
 
-#' @aliases results
+#' Statistical results of a ModelArray object
+#'
+#' @param x A ModelArray object
+#' @param ... Additional arguments. Currently accepts an analysis name (character).
+#' @return Statistical results in this ModelArray object
+#' @name results
+#' @export
 setGeneric("results", function(x, ...) standardGeneric("results"))
 
-#' Statistical results of an ModelArray object
-#'
-#' @param x An ModelArray object
-#' @param ... Additional arguments. Currently accept analysis name (a character)
-#' @return Statistical results in this ModelArray object
+#' @rdname results
 #' @export
 setMethod(
   "results", "ModelArray", function(x, ...) {
@@ -171,10 +193,91 @@ setMethod(
   }
 )
 
-# # NOTE: ref: https://stackoverflow.com/questions/56560280/
-# can-i-define-s4-methods-that-dispatch-on-more-than-one-argument-from-an-s3-gener
-# setGeneric("lm", function(formula, fixelarray, phenotypes, scalar, idx, ...) standardGeneric("lm"),
-#            signature = c(formula, fixelarray, phenotypes, scalar, idx)
-#            )
+### Convenience accessors #####
+
+#' Number of elements in a ModelArray
+#'
+#' @param x A ModelArray object
+#' @param scalar Optional scalar name. Defaults to the first scalar.
+#' @return Integer, number of elements (rows)
+#' @export
+setGeneric("nElements", function(x, scalar = NULL) standardGeneric("nElements"))
+
+#' @rdname nElements
+#' @export
+setMethod("nElements", "ModelArray", function(x, scalar = NULL) {
+  if (is.null(scalar)) scalar <- names(x@scalars)[1]
+  nrow(x@scalars[[scalar]])
+})
+
+#' Number of input files in a ModelArray
+#'
+#' @param x A ModelArray object
+#' @param scalar Optional scalar name. Defaults to the first scalar.
+#' @return Integer, number of input files (columns)
+#' @export
+setGeneric("nInputFiles", function(x, scalar = NULL) standardGeneric("nInputFiles"))
+
+#' @rdname nInputFiles
+#' @export
+setMethod("nInputFiles", "ModelArray", function(x, scalar = NULL) {
+  if (is.null(scalar)) scalar <- names(x@scalars)[1]
+  ncol(x@scalars[[scalar]])
+})
+
+#' Names of scalars in a ModelArray
+#'
+#' @param x A ModelArray object
+#' @return Character vector of scalar names
+#' @export
+setGeneric("scalarNames", function(x) standardGeneric("scalarNames"))
+
+#' @rdname scalarNames
+#' @export
+setMethod("scalarNames", "ModelArray", function(x) {
+  names(x@scalars)
+})
+
+#' Names of analyses in a ModelArray
+#'
+#' @param x A ModelArray object
+#' @return Character vector of analysis names
+#' @export
+setGeneric("analysisNames", function(x) standardGeneric("analysisNames"))
+
+#' @rdname analysisNames
+#' @export
+setMethod("analysisNames", "ModelArray", function(x) {
+  names(x@results)
+})
+
+#' Element metadata from a ModelArray
+#'
+#' @description
+#' Reads element metadata (e.g., greyordinates for cifti data) from the h5 file
+#' if present. Returns NULL if no element metadata is found.
+#'
+#' @param x A ModelArray object
+#' @return A matrix or data.frame of element metadata, or NULL
+#' @export
+setGeneric("elementMetadata", function(x) standardGeneric("elementMetadata"))
+
+#' @rdname elementMetadata
+#' @export
+setMethod("elementMetadata", "ModelArray", function(x) {
+  filepath <- x@path
+  if (length(filepath) > 1) filepath <- filepath[1]
+
+  # Try known metadata dataset names
+  metadata_paths <- c("greyordinates", "fixels", "voxels")
+  for (p in metadata_paths) {
+    result <- tryCatch(
+      rhdf5::h5read(filepath, p),
+      error = function(e) NULL
+    )
+    if (!is.null(result)) return(result)
+  }
+  NULL
+})
 # setMethod("lm",
 #           signature = c("formula", "ModelArray", "data.frame", "character", "integer"))
