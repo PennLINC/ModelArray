@@ -1,186 +1,43 @@
-version: 2
-
-setup_steps: &setup_steps
-  - checkout
-  - run:
-      name: Install libraries
-      command: |
-        apt update \
-        && apt install -y --no-install-recommends \
-          curl \
-          r-cran-devtools \
-          r-bioc-rhdf5 \
-          r-bioc-delayedarray \
-          pandoc \
-          texlive-latex-recommended \
-          texlive-fonts-recommended \
-          texlive-fonts-extra
-  - run:
-      name: Install package dependencies
-      command: R -e "devtools::install_deps(dep = TRUE, dependencies = TRUE)"
-  - run:
-      name: Check code style
-      command: |
-        R -e 'if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes"); if (!requireNamespace("styler", quietly = TRUE) || as.character(utils::packageVersion("styler")) != "1.11.0") remotes::install_version("styler", version = "1.11.0", upgrade = "never")'
-        R -e 'result <- styler::style_pkg(dry = "on", style = styler::tidyverse_style, strict = FALSE); if (!all(result[["changed"]] == FALSE)) { message("Code style check found files that would be reformatted. Run styler::style_pkg(style = styler::tidyverse_style) locally."); print(result[result[["changed"]], "file", drop = FALSE]) }'
-  - run:
-      name: Build package
-      command: R CMD build .
-  - persist_to_workspace:
-      root: .
-      paths:
-        - "*.tar.gz"
+version: 2.1
 
 jobs:
-  setup_and_build:
-    docker:
-      - image: rocker/r2u:jammy
-    steps: *setup_steps
-
-  check_package:
+  test_and_coverage:
     docker:
       - image: rocker/r2u:jammy
     steps:
       - checkout
       - run:
-          name: Install libraries
+          name: Install system libraries
           command: |
-            apt update \
-            && apt install -y --no-install-recommends \
+            apt update && apt install -y --no-install-recommends \
               curl \
               r-cran-devtools \
               r-bioc-rhdf5 \
               r-bioc-delayedarray \
-              pandoc \
-              texlive-latex-recommended \
-              texlive-fonts-recommended \
-              texlive-fonts-extra
+              pandoc
       - run:
           name: Install package dependencies
           command: R -e "devtools::install_deps(dep = TRUE, dependencies = TRUE)"
-      - attach_workspace:
-          at: .
       - run:
           name: Check package
-          command: R CMD check *tar.gz
-
-  calculate_coverage:
-    docker:
-      - image: rocker/r2u:jammy
-    steps:
-      - checkout
+          command: R CMD build . && R CMD check --no-manual *tar.gz
       - run:
-          name: Install libraries
-          command: |
-            apt update \
-            && apt install -y --no-install-recommends \
-              curl \
-              r-cran-devtools \
-              r-bioc-rhdf5 \
-              r-bioc-delayedarray \
-              pandoc \
-              texlive-latex-recommended \
-              texlive-fonts-recommended \
-              texlive-fonts-extra
-      - run:
-          name: Install package dependencies
-          command: R -e "devtools::install_deps(dep = TRUE, dependencies = TRUE)"
-      - run:
-          name: Calculate and upload code coverage
+          name: Calculate and upload coverage
           command: |
             R -e 'if (!requireNamespace("covr", quietly = TRUE)) install.packages("covr")'
-            R -e 'cov <- covr::package_coverage(type = "tests"); covr::to_cobertura(cov, filename = "coverage.xml"); print(cov); cat(sprintf("Total coverage: %.2f%%\\n", covr::percent_coverage(cov)))'
-            if command -v curl >/dev/null 2>&1; then
-              curl -Os https://uploader.codecov.io/latest/linux/codecov || echo "Codecov uploader download failed; continuing."
-            else
-              echo "curl not found; skipping Codecov upload."
-            fi
+            R -e 'cov <- covr::package_coverage(type = "tests"); covr::to_cobertura(cov, filename = "coverage.xml"); print(cov); cat(sprintf("Total coverage: %.2f%%\n", covr::percent_coverage(cov)))'
+            curl -Os https://uploader.codecov.io/latest/linux/codecov || echo "Codecov uploader download failed; continuing."
             if [ -f codecov ]; then
               chmod +x codecov
               ./codecov -f coverage.xml -n "circleci-r-tests" || echo "Codecov upload failed; continuing."
-            else
-              echo "Codecov uploader not available; skipping upload."
             fi
-
-  build_and_deploy:
-    environment:
-      TZ: "/usr/share/zoneinfo/America/New_York"
-    docker:
-      - image: cimg/base:2020.09
-    steps:
-      - checkout
-      - setup_remote_docker:
-          version: docker24
-          docker_layer_caching: true
-      - run:
-          name: Build Docker image
-          no_output_timeout: 2h
-          command: |
-            # Build docker image
-            docker build \
-              --cache-from=pennlinc/modelarray_confixel \
-              --rm=false \
-              -t pennlinc/modelarray_confixel:latest \
-              --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
-              --build-arg VCS_REF=`git rev-parse HEAD` .
-      - run:
-          name: Deploy to Docker Hub
-          no_output_timeout: 40m
-          command: |
-            if [[ -n "$DOCKER_PASS" ]]; then
-                docker login -u $DOCKER_USER -p $DOCKER_PASS
-                docker tag pennlinc/modelarray_confixel pennlinc/modelarray_confixel:unstable
-                docker push pennlinc/modelarray_confixel:unstable
-                if [[ -n "$CIRCLE_TAG" ]]; then    # if exists
-                  docker push pennlinc/modelarray_confixel:latest    # push to latest
-                  docker tag pennlinc/modelarray_confixel pennlinc/modelarray_confixel:$CIRCLE_TAG    # tag with version from `git tag`
-                  docker push pennlinc/modelarray_confixel:$CIRCLE_TAG   # push to tag
-                fi
-            fi
-
 
 workflows:
-  version: 2
-  build_test_deploy:
+  test:
     jobs:
-      - setup_and_build:
+      - test_and_coverage:
           filters:
             branches:
-              ignore:
-                - gh-pages
-                - /^gh-pages.*/
-            tags:
-              only: /.*/
-
-      - check_package:
-          requires:
-            - setup_and_build
-          filters:
-            branches:
-              ignore:
-                - gh-pages
-                - /^gh-pages.*/
-            tags:
-              only: /.*/
-
-      - calculate_coverage:
-          requires:
-            - setup_and_build
-          filters:
-            branches:
-              ignore:
-                - gh-pages
-                - /^gh-pages.*/
-            tags:
-              only: /.*/
-
-      - build_and_deploy:
-          requires:
-            - check_package
-            - calculate_coverage
-          filters:
-            branches:
-              only: main
               ignore:
                 - gh-pages
                 - /^gh-pages.*/
