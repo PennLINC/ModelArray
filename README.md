@@ -7,10 +7,7 @@
 
 [![CircleCI build
 status](https://circleci.com/gh/PennLINC/ModelArray.svg?style=svg)](https://circleci.com/gh/PennLINC/ModelArray)
-[![GitHub
-Clones](https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url=https://gist.githubusercontent.com/zhao-cy/374b45552335a37d6bd613359eb9bf67/raw/clone.json&logo=github)](https://github.com/MShawon/github-clone-count-badge)
-[![Docker
-pulls](https://img.shields.io/docker/pulls/pennlinc/modelarray_confixel.svg)](https://hub.docker.com/r/pennlinc/modelarray_confixel)
+[![codecov](https://codecov.io/gh/PennLINC/ModelArray/graph/badge.svg?token=7AIR0E86L2)](https://codecov.io/gh/PennLINC/ModelArray)
 <!-- badges: end -->
 
 **Mass-univariate statistical modeling for large neuroimaging datasets
@@ -76,7 +73,7 @@ ModelArray expects.
 <center>
 
 <figure>
-<img src="man/figures/overview_structure.png" alt="Overview" />
+<img src="man/figures/overview_structure.svg" alt="Overview" />
 <figcaption aria-hidden="true">Overview</figcaption>
 </figure>
 
