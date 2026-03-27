@@ -362,6 +362,25 @@ scalars), use `write_results_name` and `write_results_file` in
 or
 [`ModelArray.wrap()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md).
 
+#### Quick QA: export one harmonized image to inspect
+
+After writing `thickness_covfam` into `/scalars`, you can export one row
+back to an image and open it in your usual viewer as a spot-check. Use
+`--column-index` to select which row from
+`scalars/thickness_covfam/values` to export.
+
+``` bash
+modelarrayio h5-export-nifti-file \
+  --input-hdf5 thickness_harmonized.h5 \
+  --scalar-name thickness_covfam \
+  --column-index 0 \
+  --group-mask-file group_mask_thickness.nii.gz \
+  --output-file qa_thickness_covfam_col000.nii.gz
+```
+
+If your workflow uses CIFTI or MIF instead of NIfTI, use the matching
+export command: `h5-export-cifti-file` or `h5-export-mif-file`.
+
 ## Modelling across multiple h5 files with `mergeModelArrays()`
 
 When scalars live in separate h5 files — for example, cortical thickness
