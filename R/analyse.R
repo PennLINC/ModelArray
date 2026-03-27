@@ -72,6 +72,14 @@
 #' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs
 #' while fitting an element, choose whether to stop, skip returning all-NaN values for
 #' that element, or drop into `browser()` (if interactive) then skip. Default: "stop".
+#' @param write_results_name Optional analysis name for incremental writes to
+#' `results/<write_results_name>/results_matrix`.
+#' @param write_results_file Optional HDF5 file path used when `write_results_name` is provided.
+#' @param write_results_flush_every Positive integer number of elements per write block.
+#' @param write_results_storage_mode Storage mode for results writes (e.g., `"double"`).
+#' @param write_results_compression_level Gzip compression level (0-9) for results writes.
+#' @param return_output If TRUE (default), return the combined data.frame. If FALSE,
+#' returns `invisible(NULL)`; useful for streaming large runs to HDF5.
 #' @param ... Additional arguments for `stats::lm()`
 #' @return Tibble with the summarized model statistics for all elements requested
 #' @importFrom dplyr %>%
@@ -88,7 +96,14 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                           correct.p.value.terms = c("fdr"), correct.p.value.model = c("fdr"),
                           num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,
                           verbose = TRUE, pbar = TRUE, n_cores = 1,
-                          on_error = "stop", ...) {
+                          on_error = "stop",
+                          write_results_name = NULL,
+                          write_results_file = NULL,
+                          write_results_flush_every = 1000L,
+                          write_results_storage_mode = "double",
+                          write_results_compression_level = 4L,
+                          return_output = TRUE,
+                          ...) {
   .validate_modelarray_input(data)
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
@@ -222,25 +237,74 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
     message(glue::glue("looping across elements...."))
   }
 
-  fits <- .parallel_dispatch(element.subset, analyseOneElement.lm, n_cores, pbar,
-    formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-    var.terms = var.terms, var.model = var.model,
-    num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-    flag_initiate = FALSE, on_error = on_error,
-    ...
+  need_term_correction <- (!all(correct.p.value.terms == "none")) && ("p.value" %in% var.terms)
+  need_model_correction <- (!all(correct.p.value.model == "none")) && ("p.value" %in% var.model)
+  need_full_df <- return_output || need_term_correction || need_model_correction
+  if (!return_output && (need_term_correction || need_model_correction)) {
+    stop("return_output=FALSE is not supported when p-value correction is requested")
+  }
+
+  writer <- .init_results_stream_writer(
+    write_results_name = write_results_name,
+    write_results_file = write_results_file,
+    n_rows = length(element.subset),
+    column_names = column_names,
+    flush_every = write_results_flush_every,
+    storage_mode = write_results_storage_mode,
+    compression_level = write_results_compression_level
   )
 
+  fits_all <- if (need_full_df) vector("list", length(element.subset)) else NULL
+  chunk_size <- if (is.null(writer)) length(element.subset) else as.integer(write_results_flush_every)
+  chunk_starts <- seq(1L, length(element.subset), by = chunk_size)
+  for (chunk_start in chunk_starts) {
+    chunk_end <- min(chunk_start + chunk_size - 1L, length(element.subset))
+    chunk_elements <- element.subset[chunk_start:chunk_end]
 
-  df_out <- do.call(rbind, fits)
-  df_out <- as.data.frame(df_out) # turn into data.frame
-  colnames(df_out) <- column_names # add column names
+    chunk_fits <- .parallel_dispatch(chunk_elements, analyseOneElement.lm, n_cores, pbar,
+      formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+      var.terms = var.terms, var.model = var.model,
+      num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
+      flag_initiate = FALSE, on_error = on_error,
+      ...
+    )
 
+    if (need_full_df) {
+      fits_all[chunk_start:chunk_end] <- chunk_fits
+    }
+    if (!is.null(writer)) {
+      chunk_df <- as.data.frame(do.call(rbind, chunk_fits))
+      colnames(chunk_df) <- column_names
+      writer <- .results_stream_write_block(writer, chunk_df)
+    }
+  }
+  .finalize_results_stream_writer(writer)
 
-  # Add corrections of p.values
+  if (!need_full_df) {
+    return(invisible(NULL))
+  }
+
+  df_out <- do.call(rbind, fits_all)
+  df_out <- as.data.frame(df_out)
+  colnames(df_out) <- column_names
+
   df_out <- .correct_pvalues(df_out, list.terms, correct.p.value.terms, var.terms)
   df_out <- .correct_pvalues(df_out, "model", correct.p.value.model, var.model)
 
-  df_out # return
+  # Streamed blocks were uncorrected; rewrite final corrected results if needed.
+  if (!is.null(writer) && (need_term_correction || need_model_correction)) {
+    writeResults(
+      fn.output = write_results_file,
+      df.output = df_out,
+      analysis_name = write_results_name,
+      overwrite = TRUE
+    )
+  }
+
+  if (return_output) {
+    return(df_out)
+  }
+  invisible(NULL)
 }
 
 #' Run GAM for element-wise data
@@ -383,6 +447,14 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs
 #' while fitting an element, choose whether to stop, skip returning all-NaN values for
 #' that element, or drop into `browser()` (if interactive) then skip. Default: "stop".
+#' @param write_results_name Optional analysis name for incremental writes to
+#' `results/<write_results_name>/results_matrix`.
+#' @param write_results_file Optional HDF5 file path used when `write_results_name` is provided.
+#' @param write_results_flush_every Positive integer number of elements per write block.
+#' @param write_results_storage_mode Storage mode for results writes (e.g., `"double"`).
+#' @param write_results_compression_level Gzip compression level (0-9) for results writes.
+#' @param return_output If TRUE (default), return the combined data.frame. If FALSE,
+#' returns `invisible(NULL)`; useful for streaming large runs to HDF5.
 #' @param ... Additional arguments for `mgcv::gam()`
 #' @return Tibble with the summarized model statistics for all elements requested
 #' @importFrom dplyr %>% mutate
@@ -403,7 +475,14 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                            correct.p.value.parametricTerms = c("fdr"),
                            num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,
                            verbose = TRUE, pbar = TRUE, n_cores = 1,
-                           on_error = "stop", ...) {
+                           on_error = "stop",
+                           write_results_name = NULL,
+                           write_results_file = NULL,
+                           write_results_flush_every = 1000L,
+                           write_results_storage_mode = "double",
+                           write_results_compression_level = 4L,
+                           return_output = TRUE,
+                           ...) {
   .validate_modelarray_input(data)
   element.subset <- .validate_element_subset(element.subset, data, scalar)
 
@@ -570,19 +649,60 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     message(glue::glue("looping across elements...."))
   }
 
-  fits <- .parallel_dispatch(element.subset, analyseOneElement.gam, n_cores, pbar,
-    formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-    var.smoothTerms = var.smoothTerms, var.parametricTerms = var.parametricTerms,
-    var.model = var.model,
-    num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-    flag_initiate = FALSE, flag_sse = flag_sse, on_error = on_error,
-    ...
+  need_smooth_correction <- (!all(correct.p.value.smoothTerms == "none")) &&
+    ("p.value" %in% var.smoothTerms)
+  need_param_correction <- (!all(correct.p.value.parametricTerms == "none")) &&
+    ("p.value" %in% var.parametricTerms)
+  need_changed_rsq <- !is.null(changed.rsq.term.index)
+  need_full_df <- return_output || need_smooth_correction || need_param_correction || need_changed_rsq
+  if (!return_output && (need_smooth_correction || need_param_correction || need_changed_rsq)) {
+    stop("return_output=FALSE is not supported when p-value correction or changed.rsq is requested")
+  }
+
+  writer <- .init_results_stream_writer(
+    write_results_name = write_results_name,
+    write_results_file = write_results_file,
+    n_rows = length(element.subset),
+    column_names = column_names,
+    flush_every = write_results_flush_every,
+    storage_mode = write_results_storage_mode,
+    compression_level = write_results_compression_level
   )
 
+  fits_all <- if (need_full_df) vector("list", length(element.subset)) else NULL
+  chunk_size <- if (is.null(writer)) length(element.subset) else as.integer(write_results_flush_every)
+  chunk_starts <- seq(1L, length(element.subset), by = chunk_size)
+  for (chunk_start in chunk_starts) {
+    chunk_end <- min(chunk_start + chunk_size - 1L, length(element.subset))
+    chunk_elements <- element.subset[chunk_start:chunk_end]
 
-  df_out <- do.call(rbind, fits)
-  df_out <- as.data.frame(df_out) # turn into data.frame
-  colnames(df_out) <- column_names # add column names
+    chunk_fits <- .parallel_dispatch(chunk_elements, analyseOneElement.gam, n_cores, pbar,
+      formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+      var.smoothTerms = var.smoothTerms, var.parametricTerms = var.parametricTerms,
+      var.model = var.model,
+      num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
+      flag_initiate = FALSE, flag_sse = flag_sse, on_error = on_error,
+      ...
+    )
+
+    if (need_full_df) {
+      fits_all[chunk_start:chunk_end] <- chunk_fits
+    }
+    if (!is.null(writer)) {
+      chunk_df <- as.data.frame(do.call(rbind, chunk_fits))
+      colnames(chunk_df) <- column_names
+      writer <- .results_stream_write_block(writer, chunk_df)
+    }
+  }
+  .finalize_results_stream_writer(writer)
+
+  if (!need_full_df) {
+    return(invisible(NULL))
+  }
+
+  df_out <- do.call(rbind, fits_all)
+  df_out <- as.data.frame(df_out)
+  colnames(df_out) <- column_names
 
 
   ### get the changed.rsq for smooth terms:
@@ -719,8 +839,20 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     df_out, list.parametricTerms, correct.p.value.parametricTerms, var.parametricTerms
   )
 
+  if (!is.null(writer) && (need_smooth_correction || need_param_correction || need_changed_rsq)) {
+    writeResults(
+      fn.output = write_results_file,
+      df.output = df_out,
+      analysis_name = write_results_name,
+      overwrite = TRUE
+    )
+  }
+
   ### return
-  df_out
+  if (return_output) {
+    return(df_out)
+  }
+  invisible(NULL)
 }
 
 
@@ -756,6 +888,26 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 #' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs in
 #' the user function for an element, choose whether to stop, skip returning all-NaN values
 #' for that element, or drop into `browser()` (if interactive) then skip. Default: "stop".
+#' @param write_scalar_name Optional character scalar name. If provided, `ModelArray.wrap`
+#' writes selected output columns into `scalars/<write_scalar_name>/values` while processing.
+#' @param write_scalar_file Optional character HDF5 output filename used when
+#' `write_scalar_name` is provided.
+#' @param write_scalar_columns Optional character/integer selector for output columns to save
+#' as scalar values. If NULL, uses all wrap output columns except `element_id`.
+#' @param write_scalar_column_names Optional character vector of source names saved as
+#' scalar `column_names`. If NULL, uses `phenotypes$source_file`.
+#' @param write_scalar_flush_every Positive integer number of elements per write block.
+#' @param write_scalar_storage_mode Storage mode for scalar writes (e.g., `"double"`).
+#' @param write_scalar_compression_level Gzip compression level (0-9) for scalar writes.
+#' @param write_results_name Optional analysis name for incremental writes to
+#' `results/<write_results_name>/results_matrix`.
+#' @param write_results_file Optional HDF5 file path used when `write_results_name` is provided.
+#' @param write_results_flush_every Positive integer number of elements per write block for
+#' results writes.
+#' @param write_results_storage_mode Storage mode for results writes (e.g., `"double"`).
+#' @param write_results_compression_level Gzip compression level (0-9) for results writes.
+#' @param return_output If TRUE (default), return the combined data.frame. If FALSE,
+#' returns `invisible(NULL)`; useful when writing large outputs directly to HDF5.
 #' @param ... Additional arguments forwarded to `FUN`
 #' @return Tibble/data.frame with one row per element and first column `element_id`
 #' @importFrom dplyr %>%
@@ -766,7 +918,21 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL,
                             num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,
                             verbose = TRUE, pbar = TRUE, n_cores = 1,
-                            on_error = "stop", ...) {
+                            on_error = "stop",
+                            write_scalar_name = NULL,
+                            write_scalar_file = NULL,
+                            write_scalar_columns = NULL,
+                            write_scalar_column_names = NULL,
+                            write_scalar_flush_every = 1000L,
+                            write_scalar_storage_mode = "double",
+                            write_scalar_compression_level = 4L,
+                            write_results_name = NULL,
+                            write_results_file = NULL,
+                            write_results_flush_every = 1000L,
+                            write_results_storage_mode = "double",
+                            write_results_compression_level = 4L,
+                            return_output = TRUE,
+                            ...) {
   .validate_modelarray_input(data)
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
@@ -791,16 +957,163 @@ ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL
 
   if (verbose) message(glue::glue("looping across elements...."))
 
-  fits <- .parallel_dispatch(element.subset, analyseOneElement.wrap, n_cores, pbar,
-    user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-    num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-    flag_initiate = FALSE, on_error = on_error,
-    ...
+  writer_results <- .init_results_stream_writer(
+    write_results_name = write_results_name,
+    write_results_file = write_results_file,
+    n_rows = length(element.subset),
+    column_names = column_names,
+    flush_every = write_results_flush_every,
+    storage_mode = write_results_storage_mode,
+    compression_level = write_results_compression_level
   )
 
-  df_out <- do.call(rbind, fits)
+  writing_scalar <- !is.null(write_scalar_name)
+  if (writing_scalar) {
+    if (!is.character(write_scalar_name) || length(write_scalar_name) != 1L || write_scalar_name == "") {
+      stop("write_scalar_name must be a non-empty character string when provided")
+    }
+    if (is.null(write_scalar_file) || !is.character(write_scalar_file) || length(write_scalar_file) != 1L) {
+      stop("write_scalar_file must be a single character path when write_scalar_name is provided")
+    }
+    if (!is.numeric(write_scalar_flush_every) || length(write_scalar_flush_every) != 1L || write_scalar_flush_every <= 0) {
+      stop("write_scalar_flush_every must be a positive integer")
+    }
+    write_scalar_flush_every <- as.integer(write_scalar_flush_every)
+
+    if (is.null(write_scalar_columns)) {
+      write_scalar_columns <- setdiff(column_names, "element_id")
+    }
+
+    if (is.character(write_scalar_columns)) {
+      missing_cols <- setdiff(write_scalar_columns, column_names)
+      if (length(missing_cols) > 0L) {
+        stop(
+          "write_scalar_columns not found in wrap output: ",
+          paste(missing_cols, collapse = ", ")
+        )
+      }
+      scalar_col_idx <- match(write_scalar_columns, column_names)
+    } else if (is.numeric(write_scalar_columns)) {
+      scalar_col_idx <- as.integer(write_scalar_columns)
+      if (any(scalar_col_idx < 1L) || any(scalar_col_idx > length(column_names))) {
+        stop("write_scalar_columns numeric indices are out of bounds")
+      }
+    } else {
+      stop("write_scalar_columns must be NULL, character, or integer")
+    }
+
+    scalar_col_names <- column_names[scalar_col_idx]
+    if (length(scalar_col_names) == 0L) {
+      stop("write_scalar_columns selected zero columns")
+    }
+
+    if (is.null(write_scalar_column_names)) {
+      write_scalar_column_names <- as.character(phenotypes[["source_file"]])
+    } else {
+      write_scalar_column_names <- as.character(write_scalar_column_names)
+    }
+    if (length(write_scalar_column_names) != length(scalar_col_idx)) {
+      stop("length(write_scalar_column_names) must equal number of selected write_scalar_columns")
+    }
+
+    # Initialize scalar output dataset.
+    if (!file.exists(write_scalar_file)) {
+      rhdf5::h5createFile(write_scalar_file)
+    }
+    scalar_grp <- paste0("scalars/", write_scalar_name)
+    h5_write <- hdf5r::H5File$new(write_scalar_file, mode = "a")
+    if (!h5_write$exists("scalars")) {
+      h5_write$create_group("scalars")
+    }
+    scalars_grp_obj <- h5_write$open("scalars")
+    if (scalars_grp_obj$exists(write_scalar_name)) {
+      scalars_grp_obj$link_delete(write_scalar_name)
+    }
+    scalars_grp_obj$create_group(write_scalar_name)
+    h5_write$close_all()
+
+    dataset_path <- paste0(scalar_grp, "/values")
+    chunk_rows <- min(write_scalar_flush_every, length(element.subset))
+    rhdf5::h5createDataset(
+      file = write_scalar_file,
+      dataset = dataset_path,
+      dims = c(length(element.subset), length(scalar_col_idx)),
+      storage.mode = write_scalar_storage_mode,
+      chunk = c(chunk_rows, length(scalar_col_idx)),
+      level = as.integer(write_scalar_compression_level)
+    )
+  }
+
+  fits_all <- if (return_output) vector("list", length(element.subset)) else NULL
+  write_row_cursor <- 1L
+
+  chunk_size <- length(element.subset)
+  if (writing_scalar) {
+    chunk_size <- min(chunk_size, write_scalar_flush_every)
+  }
+  if (!is.null(writer_results)) {
+    chunk_size <- min(chunk_size, as.integer(write_results_flush_every))
+  }
+  chunk_starts <- seq(1L, length(element.subset), by = chunk_size)
+  for (chunk_start in chunk_starts) {
+    chunk_end <- min(chunk_start + chunk_size - 1L, length(element.subset))
+    chunk_elements <- element.subset[chunk_start:chunk_end]
+
+    chunk_fits <- .parallel_dispatch(chunk_elements, analyseOneElement.wrap, n_cores, pbar,
+      user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+      num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
+      flag_initiate = FALSE, on_error = on_error,
+      ...
+    )
+
+    if (return_output) {
+      fits_all[chunk_start:chunk_end] <- chunk_fits
+    }
+
+    chunk_df <- NULL
+    if (!is.null(writer_results) || writing_scalar) {
+      chunk_df <- as.data.frame(do.call(rbind, chunk_fits))
+      colnames(chunk_df) <- column_names
+    }
+    if (!is.null(writer_results)) {
+      writer_results <- .results_stream_write_block(writer_results, chunk_df)
+    }
+
+    if (writing_scalar) {
+      block <- as.matrix(chunk_df[, scalar_col_idx, drop = FALSE])
+      row_idx <- write_row_cursor:(write_row_cursor + nrow(block) - 1L)
+      rhdf5::h5write(
+        obj = block,
+        file = write_scalar_file,
+        name = dataset_path,
+        index = list(row_idx, seq_len(ncol(block)))
+      )
+      write_row_cursor <- write_row_cursor + nrow(block)
+    }
+  }
+
+  if (writing_scalar) {
+    rhdf5::h5writeAttribute(
+      attr = write_scalar_column_names,
+      h5obj = write_scalar_file,
+      name = "column_names",
+      h5loc = dataset_path
+    )
+    rhdf5::h5write(
+      obj = write_scalar_column_names,
+      file = write_scalar_file,
+      name = paste0("scalars/", write_scalar_name, "/column_names")
+    )
+    rhdf5::h5closeAll()
+  }
+  .finalize_results_stream_writer(writer_results)
+
+  if (!return_output) {
+    return(invisible(NULL))
+  }
+
+  df_out <- do.call(rbind, fits_all)
   df_out <- as.data.frame(df_out)
   colnames(df_out) <- column_names
-
   df_out
 }
