@@ -453,7 +453,7 @@ test_that("ModelArray.wrap validation branches are exercised", {
       phenotypes = rbind(phen, phen[1, ]),
       scalar = "FD", element.subset = as.integer(1)
     ),
-    "not the same as that in ModelArray 'data'"
+    "not the same as the length of the source file list in ModelArray"
   )
 
   # non-identical but matchable source_file order should be handled
