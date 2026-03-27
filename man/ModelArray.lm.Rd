@@ -21,6 +21,12 @@ ModelArray.lm(
   pbar = TRUE,
   n_cores = 1,
   on_error = "stop",
+  write_results_name = NULL,
+  write_results_file = NULL,
+  write_results_flush_every = 1000L,
+  write_results_storage_mode = "double",
+  write_results_compression_level = 4L,
+  return_output = TRUE,
   ...
 )
 }
@@ -83,10 +89,25 @@ Default is 0.2.}
 while fitting an element, choose whether to stop, skip returning all-NaN values for
 that element, or drop into `browser()` (if interactive) then skip. Default: "stop".}
 
+\item{write_results_name}{Optional analysis name for incremental writes to
+`results/<write_results_name>/results_matrix`.}
+
+\item{write_results_file}{Optional HDF5 file path used when `write_results_name` is provided.}
+
+\item{write_results_flush_every}{Positive integer number of elements per write block.}
+
+\item{write_results_storage_mode}{Storage mode for results writes (e.g., `"double"`).}
+
+\item{write_results_compression_level}{Gzip compression level (0-9) for results writes.}
+
+\item{return_output}{If TRUE (default), return the combined data.frame. If FALSE,
+returns `invisible(NULL)`; useful for streaming large runs to HDF5.}
+
 \item{...}{Additional arguments for `stats::lm()`}
 }
 \value{
-Tibble with the summarized model statistics for all elements requested
+Tibble with the summarized model statistics for all elements requested when
+`return_output = TRUE`; otherwise `invisible(NULL)`.
 }
 \description{
 `ModelArray.lm` fits linear model (`stats::lm()`) for each of elements requested, and returns a tibble

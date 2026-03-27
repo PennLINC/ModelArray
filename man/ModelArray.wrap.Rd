@@ -16,6 +16,19 @@ ModelArray.wrap(
   pbar = TRUE,
   n_cores = 1,
   on_error = "stop",
+  write_scalar_name = NULL,
+  write_scalar_file = NULL,
+  write_scalar_columns = NULL,
+  write_scalar_column_names = NULL,
+  write_scalar_flush_every = 1000L,
+  write_scalar_storage_mode = "double",
+  write_scalar_compression_level = 4L,
+  write_results_name = NULL,
+  write_results_file = NULL,
+  write_results_flush_every = 1000L,
+  write_results_storage_mode = "double",
+  write_results_compression_level = 4L,
+  return_output = TRUE,
   ...
 )
 }
@@ -46,10 +59,44 @@ It must match `sources(data)[[scalar]]` order and contents (reordered if needed)
 the user function for an element, choose whether to stop, skip returning all-NaN values
 for that element, or drop into `browser()` (if interactive) then skip. Default: "stop".}
 
+\item{write_scalar_name}{Optional character scalar name. If provided, `ModelArray.wrap`
+writes selected output columns into `scalars/<write_scalar_name>/values` while processing.}
+
+\item{write_scalar_file}{Optional character HDF5 output filename used when
+`write_scalar_name` is provided.}
+
+\item{write_scalar_columns}{Optional character/integer selector for output columns to save
+as scalar values. If NULL, uses all wrap output columns except `element_id`.}
+
+\item{write_scalar_column_names}{Optional character vector of source names saved as
+scalar `column_names`. If NULL, uses `phenotypes$source_file`.}
+
+\item{write_scalar_flush_every}{Positive integer number of elements per write block.}
+
+\item{write_scalar_storage_mode}{Storage mode for scalar writes (e.g., `"double"`).}
+
+\item{write_scalar_compression_level}{Gzip compression level (0-9) for scalar writes.}
+
+\item{write_results_name}{Optional analysis name for incremental writes to
+`results/<write_results_name>/results_matrix`.}
+
+\item{write_results_file}{Optional HDF5 file path used when `write_results_name` is provided.}
+
+\item{write_results_flush_every}{Positive integer number of elements per write block for
+results writes.}
+
+\item{write_results_storage_mode}{Storage mode for results writes (e.g., `"double"`).}
+
+\item{write_results_compression_level}{Gzip compression level (0-9) for results writes.}
+
+\item{return_output}{If TRUE (default), return the combined data.frame. If FALSE,
+returns `invisible(NULL)`; useful when writing large outputs directly to HDF5.}
+
 \item{...}{Additional arguments forwarded to `FUN`}
 }
 \value{
 Tibble/data.frame with one row per element and first column `element_id`
+when `return_output = TRUE`; otherwise `invisible(NULL)`.
 }
 \description{
 `ModelArray.wrap` runs a user-supplied function `FUN` for each requested element and
