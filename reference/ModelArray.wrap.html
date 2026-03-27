@@ -70,6 +70,19 @@ returns a tibble/data.frame of results combined across elements.</p>
 <span>  pbar <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  on_error <span class="op">=</span> <span class="st">"stop"</span>,</span>
+<span>  write_scalar_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  write_scalar_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  write_scalar_columns <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  write_scalar_column_names <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  write_scalar_flush_every <span class="op">=</span> <span class="fl">1000L</span>,</span>
+<span>  write_scalar_storage_mode <span class="op">=</span> <span class="st">"double"</span>,</span>
+<span>  write_scalar_compression_level <span class="op">=</span> <span class="fl">4L</span>,</span>
+<span>  write_results_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  write_results_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  write_results_flush_every <span class="op">=</span> <span class="fl">1000L</span>,</span>
+<span>  write_results_storage_mode <span class="op">=</span> <span class="st">"double"</span>,</span>
+<span>  write_results_compression_level <span class="op">=</span> <span class="fl">4L</span>,</span>
+<span>  return_output <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -126,13 +139,73 @@ the user function for an element, choose whether to stop, skip returning all-NaN
 for that element, or drop into `browser()` (if interactive) then skip. Default: "stop".</p></dd>
 
 
+<dt id="arg-write-scalar-name">write_scalar_name<a class="anchor" aria-label="anchor" href="#arg-write-scalar-name"></a></dt>
+<dd><p>Optional character scalar name. If provided, `ModelArray.wrap`
+writes selected output columns into `scalars/&lt;write_scalar_name&gt;/values` while processing.</p></dd>
+
+
+<dt id="arg-write-scalar-file">write_scalar_file<a class="anchor" aria-label="anchor" href="#arg-write-scalar-file"></a></dt>
+<dd><p>Optional character HDF5 output filename used when
+`write_scalar_name` is provided.</p></dd>
+
+
+<dt id="arg-write-scalar-columns">write_scalar_columns<a class="anchor" aria-label="anchor" href="#arg-write-scalar-columns"></a></dt>
+<dd><p>Optional character/integer selector for output columns to save
+as scalar values. If NULL, uses all wrap output columns except `element_id`.</p></dd>
+
+
+<dt id="arg-write-scalar-column-names">write_scalar_column_names<a class="anchor" aria-label="anchor" href="#arg-write-scalar-column-names"></a></dt>
+<dd><p>Optional character vector of source names saved as
+scalar `column_names`. If NULL, uses `phenotypes$source_file`.</p></dd>
+
+
+<dt id="arg-write-scalar-flush-every">write_scalar_flush_every<a class="anchor" aria-label="anchor" href="#arg-write-scalar-flush-every"></a></dt>
+<dd><p>Positive integer number of elements per write block.</p></dd>
+
+
+<dt id="arg-write-scalar-storage-mode">write_scalar_storage_mode<a class="anchor" aria-label="anchor" href="#arg-write-scalar-storage-mode"></a></dt>
+<dd><p>Storage mode for scalar writes (e.g., `"double"`).</p></dd>
+
+
+<dt id="arg-write-scalar-compression-level">write_scalar_compression_level<a class="anchor" aria-label="anchor" href="#arg-write-scalar-compression-level"></a></dt>
+<dd><p>Gzip compression level (0-9) for scalar writes.</p></dd>
+
+
+<dt id="arg-write-results-name">write_results_name<a class="anchor" aria-label="anchor" href="#arg-write-results-name"></a></dt>
+<dd><p>Optional analysis name for incremental writes to
+`results/&lt;write_results_name&gt;/results_matrix`.</p></dd>
+
+
+<dt id="arg-write-results-file">write_results_file<a class="anchor" aria-label="anchor" href="#arg-write-results-file"></a></dt>
+<dd><p>Optional HDF5 file path used when `write_results_name` is provided.</p></dd>
+
+
+<dt id="arg-write-results-flush-every">write_results_flush_every<a class="anchor" aria-label="anchor" href="#arg-write-results-flush-every"></a></dt>
+<dd><p>Positive integer number of elements per write block for
+results writes.</p></dd>
+
+
+<dt id="arg-write-results-storage-mode">write_results_storage_mode<a class="anchor" aria-label="anchor" href="#arg-write-results-storage-mode"></a></dt>
+<dd><p>Storage mode for results writes (e.g., `"double"`).</p></dd>
+
+
+<dt id="arg-write-results-compression-level">write_results_compression_level<a class="anchor" aria-label="anchor" href="#arg-write-results-compression-level"></a></dt>
+<dd><p>Gzip compression level (0-9) for results writes.</p></dd>
+
+
+<dt id="arg-return-output">return_output<a class="anchor" aria-label="anchor" href="#arg-return-output"></a></dt>
+<dd><p>If TRUE (default), return the combined data.frame. If FALSE,
+returns `invisible(NULL)`; useful when writing large outputs directly to HDF5.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments forwarded to `FUN`</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Tibble/data.frame with one row per element and first column `element_id`</p>
+    <p>Tibble/data.frame with one row per element and first column `element_id`
+when `return_output = TRUE`; otherwise `invisible(NULL)`.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

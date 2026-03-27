@@ -124,7 +124,7 @@ If you use ModelArray, please cite:
 ## All functions
 
 - [`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.md)
-  : Construct a ModelArray object
+  : An S4 class to represent element-wise scalar data and statistics.
 - [`ModelArray.gam()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md)
   : Run GAM for element-wise data
 - [`ModelArray.lm()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md)
