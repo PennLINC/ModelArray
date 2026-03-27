@@ -275,6 +275,74 @@ head(result)
 writeResults(h5_path, df.output = result, analysis_name = "site_analysis")
 ```
 
+### Case study: harmonize with `covfam` and stream to a new scalar
+
+You can also use `ModelArray.wrap()` as a transformation engine rather than a test runner.
+The example below applies a harmonization step per element, streams the harmonized values
+directly into `/scalars`, and then loads that harmonized scalar in a new `ModelArray`.
+
+```{r wrap_covfam_case_study, eval=FALSE}
+library(covfam)
+
+# Assume phenotypes has harmonization variables, e.g.:
+#   source_file, site, age, sex
+# and that "thickness" is already present in the h5 as an input scalar.
+
+h5_in <- "thickness_raw.h5"
+h5_harmonized <- "thickness_harmonized.h5"
+
+ma_raw <- ModelArray(h5_in, scalar_types = "thickness")
+phenotypes <- read.csv("phenotypes.csv")
+
+# Copy metadata/layout into a new file so we can append new scalars there.
+file.copy(h5_in, h5_harmonized, overwrite = TRUE)
+
+covfam_harmonize_element <- function(data) {
+  # Harmonize one element across subjects.
+  # Adjust arguments here to match your covfam configuration.
+  out <- covfam::covfam(
+    y = data$thickness,
+    batch = data$site,
+    mod = data.frame(age = data$age, sex = data$sex)
+  )
+
+  # Return named subject-level vector so wrap columns map to source_file order.
+  vals <- out$y_harmonized
+  names(vals) <- data$source_file
+  vals
+}
+
+# Stream harmonized subject-level values into scalars/thickness_covfam/values.
+# Set return_output = FALSE to avoid keeping the full output table in memory.
+ModelArray.wrap(
+  FUN = covfam_harmonize_element,
+  data = ma_raw,
+  phenotypes = phenotypes,
+  scalar = "thickness",
+  n_cores = 8,
+  write_scalar_name = "thickness_covfam",
+  write_scalar_file = h5_harmonized,
+  write_scalar_flush_every = 2000L,
+  return_output = FALSE
+)
+
+# Load the harmonized scalar as a new modelling input
+ma_harmonized <- ModelArray(h5_harmonized, scalar_types = c("thickness_covfam"))
+
+# Use harmonized data in downstream models
+fit_harmonized <- ModelArray.lm(
+  thickness_covfam ~ age + sex,
+  data = ma_harmonized,
+  phenotypes = phenotypes,
+  scalar = "thickness_covfam",
+  n_cores = 8
+)
+```
+
+If you want to stream model statistics too (not only transformed scalars), use
+`write_results_name` and `write_results_file` in `ModelArray.lm()`, `ModelArray.gam()`,
+or `ModelArray.wrap()`.
+
 ## Modelling across multiple h5 files with `mergeModelArrays()`
 
 When scalars live in separate h5 files — for example, cortical thickness in one file
