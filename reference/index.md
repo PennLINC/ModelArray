@@ -3,7 +3,7 @@
 ## All functions
 
 - [`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.md)
-  : Construct a ModelArray object
+  : ModelArray class
 - [`ModelArray.gam()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md)
   : Run GAM for element-wise data
 - [`ModelArray.lm()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md)
