@@ -2,21 +2,97 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{ModelArray}
 \alias{ModelArray}
-\title{Construct a ModelArray object}
+\alias{ModelArray-class}
+\title{ModelArray class}
 \usage{
+ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
+
 ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
 }
 \arguments{
-\item{filepath}{Path to an .h5 file}
+\item{filepath}{Character. Path to an existing HDF5 (\code{.h5}) file
+containing element-wise scalar data.}
 
-\item{scalar_types}{Expected scalars}
+\item{scalar_types}{Character vector. Names of scalar groups to read from
+\code{/scalars/} in the HDF5 file. Default is \code{c("FD")}. Must match
+group names in the file; verify with \code{rhdf5::h5ls(filepath)}.}
 
-\item{analysis_names}{The subfolder names for results in the .h5 file.
-If empty (default), results are not read.}
+\item{analysis_names}{Character vector. Subfolder names under
+\code{/results/} to load. Default is \code{character(0)} (no results
+loaded).}
 }
 \value{
-A `ModelArray` object
+A \linkS4class{ModelArray} object.
 }
 \description{
-Load element-wise data from an .h5 file as a `ModelArray` object.
+A ModelArray wraps one or more element-wise scalar matrices (e.g., FD, FC,
+log_FC for fixel data) read lazily via \pkg{DelayedArray}, along with any
+previously saved analysis results. The object holds references to the
+underlying HDF5 file and reads data on demand, making it suitable for
+large-scale neuroimaging datasets.
+
+Reads scalar matrices and (optionally) saved analysis results from an HDF5
+file and returns a \linkS4class{ModelArray} object.
+}
+\details{
+ModelArray is an S4 class that represents element-wise scalar data and
+associated statistical results backed by an HDF5 file on disk.
+
+Each scalar in the HDF5 file is stored at \code{/scalars/<name>/values}
+as a matrix of elements (rows) by source files (columns). Source filenames
+are read from HDF5 attributes or companion datasets. Analysis results, if
+present, live under \code{/results/<analysis_name>/results_matrix}.
+
+ModelArray objects are typically created with the \code{\link{ModelArray}}
+constructor function. Element-wise models are fit with
+\code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}}, or
+\code{\link{ModelArray.wrap}}.
+
+The constructor reads each scalar listed in \code{scalar_types} from
+\code{/scalars/<scalar_type>/values} in the HDF5 file, wrapping them as
+\linkS4class{DelayedArray} objects for lazy access. Source filenames are
+extracted from HDF5 attributes or companion datasets.
+
+If \code{analysis_names} is non-empty, saved results are read from
+\code{/results/<name>/results_matrix} along with column name metadata.
+
+\strong{Debugging tip:} If you encounter
+\code{"Error in h(simpleError(msg, call)) : error in evaluating the
+argument 'seed'..."}, check that \code{scalar_types} matches the groups
+present in the file. Inspect with \code{rhdf5::h5ls(filepath)}.
+}
+\section{Slots}{
+
+\describe{
+\item{\code{sources}}{A named list of character vectors. Each element corresponds
+to a scalar and contains the source filenames (one per input file/subject).}
+
+\item{\code{scalars}}{A named list of \linkS4class{DelayedArray} matrices.
+Each matrix has elements as rows and source files as columns.}
+
+\item{\code{results}}{A named list of analysis results. Each element is itself a
+list containing at minimum \code{results_matrix} (a
+\linkS4class{DelayedArray}).}
+
+\item{\code{path}}{Character. Path(s) to the HDF5 file(s) on disk.}
+}}
+
+\examples{
+\dontrun{
+ma <- ModelArray("path/to/data.h5", scalar_types = c("FD", "FC"))
+ma
+scalars(ma)
+}
+
+}
+\seealso{
+\code{\link{ModelArray}} for the constructor,
+\code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}},
+\code{\link{ModelArray.wrap}} for analysis,
+\code{\link{scalars}}, \code{\link{sources}}, \code{\link{results}} for
+accessors.
+
+\linkS4class{ModelArray} for the class definition,
+\code{\link{h5summary}} for inspecting an HDF5 file without loading,
+\code{\link{scalars}}, \code{\link{sources}} for accessing loaded data.
 }
