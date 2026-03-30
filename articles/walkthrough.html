@@ -195,7 +195,7 @@ for details.</p>
 <span><span class="va">h5_path</span> <span class="op">&lt;-</span> <span class="st">"~/Desktop/myProject/demo_FDC_n100.h5"</span></span>
 <span><span class="va">csv_path</span> <span class="op">&lt;-</span> <span class="st">"~/Desktop/myProject/cohort_FDC_n100.csv"</span></span>
 <span></span>
-<span><span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FDC"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FDC"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">modelarray</span></span></code></pre></div>
 <pre class="console"><code>ModelArray located at ~/Desktop/myProject/demo_FDC_n100.h5
 
@@ -250,7 +250,7 @@ this takes about 2.5 hours for 602,229 fixels.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span><span class="va">h5_path</span>, df.output <span class="op">=</span> <span class="va">result_full</span>, analysis_name <span class="op">=</span> <span class="st">"results_lm"</span><span class="op">)</span></span></code></pre></div>
 <p>You can verify the results were saved:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">modelarray_new</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>,</span>
+<code class="sourceCode R"><span><span class="va">modelarray_new</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>,</span>
 <span>  scalar_types <span class="op">=</span> <span class="st">"FDC"</span>,</span>
 <span>  analysis_names <span class="op">=</span> <span class="st">"results_lm"</span></span>
 <span><span class="op">)</span></span>

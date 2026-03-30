@@ -6,6 +6,12 @@ previously saved analysis results. The object holds references to the
 underlying HDF5 file and reads data on demand, making it suitable for
 large-scale neuroimaging datasets.
 
+## Usage
+
+``` r
+ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
+```
+
 ## Details
 
 ModelArray is an S4 class that represents element-wise scalar data and
@@ -16,7 +22,8 @@ matrix of elements (rows) by source files (columns). Source filenames
 are read from HDF5 attributes or companion datasets. Analysis results,
 if present, live under `/results/<analysis_name>/results_matrix`.
 
-ModelArray objects are typically created with the `ModelArray`
+ModelArray objects are typically created with the
+[`ModelArray`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html)
 constructor function. Element-wise models are fit with
 [`ModelArray.lm`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md),
 [`ModelArray.gam`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md),
@@ -46,7 +53,8 @@ or
 
 ## See also
 
-`ModelArray` for the constructor,
+[`ModelArray`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html)
+for the constructor,
 [`ModelArray.lm`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md),
 [`ModelArray.gam`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md),
 [`ModelArray.wrap`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md)

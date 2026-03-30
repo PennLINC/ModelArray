@@ -2,11 +2,8 @@
 
 ## All functions
 
-- [`ModelArray-class`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
-  [`ModelArray`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
-  : ModelArray class
-- [`modelarray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.md)
-  : Load element-wise data from an HDF5 file as a ModelArray object
+- [`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.md)
+  : Load element-wise data from an HDF5 file
 - [`ModelArray.gam()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md)
   : Run GAM for element-wise data
 - [`ModelArray.lm()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md)
