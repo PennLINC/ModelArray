@@ -36,6 +36,8 @@
 #'   \code{\link{scalars}}, \code{\link{sources}}, \code{\link{results}} for
 #'   accessors.
 #'
+#' @aliases ModelArray-class
+#' @rdname ModelArray-class
 #' @importClassesFrom DelayedArray DelayedArray
 #' @exportClass ModelArray
 ModelArray <- setClass(
@@ -70,54 +72,53 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 
 
 
-#' Load element-wise data from an HDF5 file as a ModelArray object
+#' Load element-wise data from an HDF5 file
 #'
 #' @description
-#' Reads scalar matrices and (optionally) saved analysis results from an HDF5
-#' file and returns a \linkS4class{ModelArray} object.
+#' Reads scalar matrices and (optionally) saved analysis results from
+#' an HDF5 file and returns a \linkS4class{ModelArray} object.
 #'
 #' @details
 #' The constructor reads each scalar listed in \code{scalar_types} from
-#' \code{/scalars/<scalar_type>/values} in the HDF5 file, wrapping them as
-#' \linkS4class{DelayedArray} objects for lazy access. Source filenames are
-#' extracted from HDF5 attributes or companion datasets.
+#' \code{/scalars/<scalar_type>/values}, wrapping them as
+#' \linkS4class{DelayedArray} objects. Source filenames are extracted
+#' from HDF5 attributes or companion datasets.
 #'
-#' If \code{analysis_names} is non-empty, saved results are read from
-#' \code{/results/<name>/results_matrix} along with column name metadata.
+#' If \code{analysis_names} is non-empty, saved results are loaded from
+#' \code{/results/<name>/results_matrix}.
 #'
 #' \strong{Debugging tip:} If you encounter
-#' \code{"Error in h(simpleError(msg, call)) : error in evaluating the
-#' argument 'seed'..."}, check that \code{scalar_types} matches the groups
-#' present in the file. Inspect with \code{rhdf5::h5ls(filepath)}.
+#' \code{"error in evaluating the argument 'seed'..."}, check that
+#' \code{scalar_types} matches groups in the file. Inspect with
+#' \code{rhdf5::h5ls(filepath)}.
 #'
-#' @param filepath Character. Path to an existing HDF5 (\code{.h5}) file
-#'   containing element-wise scalar data.
-#' @param scalar_types Character vector. Names of scalar groups to read from
-#'   \code{/scalars/} in the HDF5 file. Default is \code{c("FD")}. Must match
-#'   group names in the file; verify with \code{rhdf5::h5ls(filepath)}.
+#' @param filepath Character. Path to an existing HDF5 (\code{.h5})
+#'   file containing element-wise scalar data.
+#' @param scalar_types Character vector. Names of scalar groups to read
+#'   from \code{/scalars/} in the HDF5 file. Default is \code{c("FD")}.
+#'   Must match group names in the file.
 #' @param analysis_names Character vector. Subfolder names under
-#'   \code{/results/} to load. Default is \code{character(0)} (no results
-#'   loaded).
+#'   \code{/results/} to load. Default is \code{character(0)} (none).
 #'
 #' @return A \linkS4class{ModelArray} object.
 #'
 #' @seealso \linkS4class{ModelArray} for the class definition,
-#'   \code{\link{h5summary}} for inspecting an HDF5 file without loading,
-#'   \code{\link{scalars}}, \code{\link{sources}} for accessing loaded data.
+#'   \code{\link{h5summary}} for inspecting an HDF5 file.
 #'
 #' @examples
 #' \dontrun{
 #' ma <- ModelArray("path/to/data.h5", scalar_types = c("FD", "FC"))
 #' ma
-#' scalars(ma)
 #' }
 #'
+#' @rdname ModelArray
+#' @aliases ModelArray
 #' @export
 #' @import methods
 #' @importFrom dplyr %>%
 #' @importFrom DelayedArray DelayedArray realize
 #' @importFrom rhdf5 h5readAttributes
-modelarray <- function(filepath,
+ModelArray <- function(filepath,
                        scalar_types = c("FD"),
                        analysis_names = character(0)) {
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
