@@ -107,7 +107,7 @@ colnames(lm_results)
 
 If you see an error about a missing analysis, make sure you specified it
 in the `analysis_names` argument when calling
-[`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.md):
+[`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md):
 
 ``` r
 # This loads results; without analysis_names, the results slot is empty
