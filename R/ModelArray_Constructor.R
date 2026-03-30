@@ -38,7 +38,6 @@
 #'
 #' @importClassesFrom DelayedArray DelayedArray
 #' @exportClass ModelArray
-#' @aliases ModelArray-class
 ModelArray <- setClass(
   "ModelArray",
   slots = c(
@@ -48,8 +47,6 @@ ModelArray <- setClass(
     path = "character"
   )
 )
-
-
 
 #' ModelArraySeed
 #'
@@ -120,7 +117,7 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @importFrom dplyr %>%
 #' @importFrom DelayedArray DelayedArray realize
 #' @importFrom rhdf5 h5readAttributes
-ModelArray <- function(filepath,
+modelarray <- function(filepath,
                        scalar_types = c("FD"),
                        analysis_names = character(0)) {
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
