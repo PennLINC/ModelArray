@@ -77,7 +77,7 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
 #' print the additional arguments settings
 #' @param FUN The function, e.g. mgcv::gam, without "()"
 #' @param argu_name The argument name of the function
-#' @param dots: list of additional arguments
+#' @param dots list of additional arguments
 #' @param message_default The message for default
 #' @param message_usr_input The message describing user's input
 #' @importFrom crayon black
