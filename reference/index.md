@@ -7,7 +7,7 @@
 - [`ModelArray.gam()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md)
   : Run GAM for element-wise data
 - [`ModelArray.lm()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md)
-  : Fit linear model for element-wise data
+  : Fit element-wise linear models
 - [`ModelArray.wrap()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md)
   : Run a user-supplied function for element-wise data
 - [`analyseOneElement.gam()`](https://pennlinc.github.io/ModelArray/reference/analyseOneElement.gam.md)
