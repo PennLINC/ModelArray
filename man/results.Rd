@@ -10,13 +10,44 @@ results(x, ...)
 \S4method{results}{ModelArray}(x, ...)
 }
 \arguments{
-\item{x}{A ModelArray object}
+\item{x}{A \linkS4class{ModelArray} object.}
 
-\item{...}{Additional arguments. Currently accepts an analysis name (character).}
+\item{...}{Optional: a single character string giving the analysis name to
+extract. If omitted, the entire named list is returned.}
 }
 \value{
-Statistical results in this ModelArray object
+If called with no extra arguments, a named list of result lists.
+If called with an analysis name, the corresponding result list (containing
+at minimum \code{results_matrix}).
 }
 \description{
-Statistical results of a ModelArray object
+Retrieve previously saved analysis results from a \linkS4class{ModelArray}.
+When called with no additional arguments, returns the full named list of all
+result sets. When called with a single analysis name, returns that one
+result set.
+}
+\details{
+Each result set is itself a list containing at minimum
+\code{results_matrix} (a \linkS4class{DelayedArray} with elements as rows
+and statistics as columns). Column names are stored alongside the matrix
+in the HDF5 file.
+
+Results are only available if \code{analysis_names} was supplied when the
+\linkS4class{ModelArray} was constructed, or if results have been written
+back with \code{\link{writeResults}}.
+}
+\examples{
+\dontrun{
+ma <- ModelArray("data.h5", scalar_types = c("FD"),
+                 analysis_names = c("lm_age"))
+results(ma)                # named list of all results
+results(ma, "lm_age")     # single result set
+results(ma, "lm_age")$results_matrix
+}
+
+}
+\seealso{
+\code{\link{sources}}, \code{\link{scalars}},
+\code{\link{analysisNames}}, \code{\link{writeResults}},
+\code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}}
 }

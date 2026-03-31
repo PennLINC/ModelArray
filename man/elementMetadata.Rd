@@ -10,12 +10,26 @@ elementMetadata(x)
 \S4method{elementMetadata}{ModelArray}(x)
 }
 \arguments{
-\item{x}{A ModelArray object}
+\item{x}{A \linkS4class{ModelArray} object.}
 }
 \value{
-A matrix or data.frame of element metadata, or NULL
+A matrix or data.frame of element metadata if found, or \code{NULL}
+if no known metadata dataset exists in the HDF5 file.
 }
 \description{
-Reads element metadata (e.g., greyordinates for cifti data) from the h5 file
-if present. Returns NULL if no element metadata is found.
+Reads element metadata (e.g., greyordinates for CIFTI data, or fixel/voxel
+coordinate information) from the HDF5 file if present. The function searches
+for known metadata dataset names (\code{"greyordinates"}, \code{"fixels"},
+\code{"voxels"}) at the top level of the HDF5 file.
+}
+\examples{
+\dontrun{
+ma <- ModelArray("data.h5", scalar_types = c("FD"))
+meta <- elementMetadata(ma)
+if (!is.null(meta)) head(meta)
+}
+
+}
+\seealso{
+\code{\link{nElements}}, \code{\link{scalars}}
 }

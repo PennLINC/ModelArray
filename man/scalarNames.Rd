@@ -10,11 +10,23 @@ scalarNames(x)
 \S4method{scalarNames}{ModelArray}(x)
 }
 \arguments{
-\item{x}{A ModelArray object}
+\item{x}{A \linkS4class{ModelArray} object.}
 }
 \value{
-Character vector of scalar names
+Character vector of scalar names.
 }
 \description{
-Names of scalars in a ModelArray
+Returns the names of all scalar datasets loaded in a
+\linkS4class{ModelArray} (e.g. \code{"FD"}, \code{"FC"}, \code{"log_FC"}).
+}
+\examples{
+\dontrun{
+ma <- ModelArray("data.h5", scalar_types = c("FD", "FC"))
+scalarNames(ma)   # c("FD", "FC")
+}
+
+}
+\seealso{
+\code{\link{scalars}}, \code{\link{analysisNames}},
+\code{\link{nElements}}
 }

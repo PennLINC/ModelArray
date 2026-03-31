@@ -10,11 +10,26 @@ analysisNames(x)
 \S4method{analysisNames}{ModelArray}(x)
 }
 \arguments{
-\item{x}{A ModelArray object}
+\item{x}{A \linkS4class{ModelArray} object.}
 }
 \value{
-Character vector of analysis names
+Character vector of analysis names. Returns \code{character(0)}
+if no analyses have been loaded or saved.
 }
 \description{
-Names of analyses in a ModelArray
+Returns the names of all analysis result sets currently loaded in a
+\linkS4class{ModelArray}. These correspond to subfolder names under
+\code{/results/} in the HDF5 file.
+}
+\examples{
+\dontrun{
+ma <- ModelArray("data.h5", scalar_types = c("FD"),
+                 analysis_names = c("lm_age"))
+analysisNames(ma)   # "lm_age"
+}
+
+}
+\seealso{
+\code{\link{results}}, \code{\link{scalarNames}},
+\code{\link{writeResults}}
 }
