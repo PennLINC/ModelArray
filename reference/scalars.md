@@ -46,7 +46,7 @@ name, the corresponding single DelayedArray matrix.
 ``` r
 if (FALSE) { # \dontrun{
 ma <- ModelArray("data.h5", scalar_types = c("FD", "FC"))
-scalars(ma)         # named list of all scalars
-scalars(ma, "FD")   # single DelayedArray matrix
+scalars(ma) # named list of all scalars
+scalars(ma, "FD") # single DelayedArray matrix
 } # }
 ```

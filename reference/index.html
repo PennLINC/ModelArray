@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ModelArray</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.1.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,9 +48,9 @@
     </div>
 
     <div class="section level2">
-      <h2 id="all-functions">All functions<a class="anchor" aria-label="anchor" href="#all-functions"></a></h2>
+      <h2 id="modelarray-class">ModelArray Class<a class="anchor" aria-label="anchor" href="#modelarray-class"></a></h2>
 
-
+      <div class="section-desc"><p>Create, load, and combine ModelArray objects backed by HDF5 files.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -59,6 +59,13 @@
 
       <dl><dt>
 
+          <code><a href="ModelArray-class.html">ModelArray()</a></code> <code><a href="ModelArray-class.html">show(<i>&lt;ModelArray&gt;</i>)</a></code>
+
+        </dt>
+        <dd>ModelArray class</dd>
+
+        <dt>
+
           <code><a href="ModelArray.html">ModelArray()</a></code>
 
         </dt>
@@ -66,45 +73,54 @@
 
         <dt>
 
-          <code><a href="ModelArray.gam.html">ModelArray.gam()</a></code>
+          <code><a href="h5summary.html">h5summary()</a></code> <code><a href="h5summary.html">print(<i>&lt;h5summary&gt;</i>)</a></code>
 
         </dt>
-        <dd>Fit element-wise generalized additive models no model-level p-value for GAMs, so there is no <code>correct.p.value.model</code> argument.</dd>
+        <dd>Summarize an HDF5 file without loading a full ModelArray</dd>
 
         <dt>
 
-          <code><a href="ModelArray.lm.html">ModelArray.lm()</a></code>
+          <code><a href="mergeModelArrays.html">mergeModelArrays()</a></code>
 
         </dt>
-        <dd>Fit element-wise linear models</dd>
+        <dd>Merge multiple ModelArrays from different HDF5 files</dd>
+      </dl></div><div class="section level2">
+      <h2 id="accessors">Accessors<a class="anchor" aria-label="anchor" href="#accessors"></a></h2>
+
+      <div class="section-desc"><p>Extract scalar data, source filenames, results, and metadata from a ModelArray object.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="scalars.html">scalars()</a></code>
+
+        </dt>
+        <dd>Element-wise scalar data of a ModelArray object</dd>
 
         <dt>
 
-          <code><a href="ModelArray.wrap.html">ModelArray.wrap()</a></code>
+          <code><a href="sources.html">sources()</a></code>
 
         </dt>
-        <dd>Run a user-supplied function for element-wise data</dd>
+        <dd>Source filenames of a ModelArray object</dd>
 
         <dt>
 
-          <code><a href="analyseOneElement.gam.html">analyseOneElement.gam()</a></code>
+          <code><a href="results.html">results()</a></code>
 
         </dt>
-        <dd>Fit GAM for one element</dd>
+        <dd>Statistical results of a ModelArray object</dd>
 
         <dt>
 
-          <code><a href="analyseOneElement.lm.html">analyseOneElement.lm()</a></code>
+          <code><a href="scalarNames.html">scalarNames()</a></code>
 
         </dt>
-        <dd>Fit linear model for one element.</dd>
-
-        <dt>
-
-          <code><a href="analyseOneElement.wrap.html">analyseOneElement.wrap()</a></code>
-
-        </dt>
-        <dd>Run a user-supplied function for one element</dd>
+        <dd>Names of scalars in a ModelArray</dd>
 
         <dt>
 
@@ -112,48 +128,6 @@
 
         </dt>
         <dd>Names of analyses in a ModelArray</dd>
-
-        <dt>
-
-          <code><a href="elementMetadata.html">elementMetadata()</a></code>
-
-        </dt>
-        <dd>Element metadata from a ModelArray</dd>
-
-        <dt>
-
-          <code><a href="exampleElementData.html">exampleElementData()</a></code>
-
-        </dt>
-        <dd>Example per-element data.frame for user functions</dd>
-
-        <dt>
-
-          <code><a href="gen_gamFormula_contIx.html">gen_gamFormula_contIx()</a></code>
-
-        </dt>
-        <dd>Generate GAM formula with continuous*continuous interaction</dd>
-
-        <dt>
-
-          <code><a href="gen_gamFormula_fxSmooth.html">gen_gamFormula_fxSmooth()</a></code>
-
-        </dt>
-        <dd>Generate GAM formula with factor-smooth interaction</dd>
-
-        <dt>
-
-          <code><a href="h5summary.html">h5summary()</a></code>
-
-        </dt>
-        <dd>Summarize an h5 file without loading the full ModelArray</dd>
-
-        <dt>
-
-          <code><a href="mergeModelArrays.html">mergeModelArrays()</a></code>
-
-        </dt>
-        <dd>Merge multiple ModelArrays from different h5 files</dd>
 
         <dt>
 
@@ -178,40 +152,119 @@
 
         <dt>
 
-          <code><a href="results.html">results()</a></code>
+          <code><a href="elementMetadata.html">elementMetadata()</a></code>
 
         </dt>
-        <dd>Statistical results of a ModelArray object</dd>
+        <dd>Element metadata from a ModelArray</dd>
+      </dl></div><div class="section level2">
+      <h2 id="element-wise-analysis">Element-wise Analysis<a class="anchor" aria-label="anchor" href="#element-wise-analysis"></a></h2>
+
+      <div class="section-desc"><p>Fit statistical models at every element (fixel, voxel, or vertex) in a ModelArray and write results back to HDF5.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="ModelArray.lm.html">ModelArray.lm()</a></code>
+
+        </dt>
+        <dd>Fit element-wise linear models</dd>
 
         <dt>
 
-          <code><a href="scalarNames.html">scalarNames()</a></code>
+          <code><a href="ModelArray.gam.html">ModelArray.gam()</a></code>
 
         </dt>
-        <dd>Names of scalars in a ModelArray</dd>
+        <dd>Fit element-wise generalized additive models no model-level p-value for GAMs, so there is no <code>correct.p.value.model</code> argument.</dd>
 
         <dt>
 
-          <code><a href="scalars.html">scalars()</a></code>
+          <code><a href="ModelArray.wrap.html">ModelArray.wrap()</a></code>
 
         </dt>
-        <dd>Element-wise scalar data of a ModelArray object</dd>
-
-        <dt>
-
-          <code><a href="sources.html">sources()</a></code>
-
-        </dt>
-        <dd>Source filenames of a ModelArray object</dd>
+        <dd>Run a user-supplied function for element-wise data</dd>
 
         <dt>
 
           <code><a href="writeResults.html">writeResults()</a></code>
 
         </dt>
-        <dd>Write outputs from element-wise statistical analysis to the HDF5 file.</dd>
+        <dd>Write outputs from element-wise statistical analysis to an HDF5 file</dd>
+      </dl></div><div class="section level2">
+      <h2 id="testing-and-debugging">Testing and Debugging<a class="anchor" aria-label="anchor" href="#testing-and-debugging"></a></h2>
+
+      <div class="section-desc"><p>Build per-element test data and inspect your setup before committing to a full analysis run.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="exampleElementData.html">exampleElementData()</a></code>
+
+        </dt>
+        <dd>Example per-element data.frame for user functions</dd>
+      </dl></div><div class="section level2">
+      <h2 id="formula-helpers">Formula Helpers<a class="anchor" aria-label="anchor" href="#formula-helpers"></a></h2>
+
+      <div class="section-desc"><p>Generate GAM formulas for common interaction structures used with ModelArray.gam.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="gen_gamFormula_fxSmooth.html">gen_gamFormula_fxSmooth()</a></code>
+
+        </dt>
+        <dd>Generate GAM formula with factor-smooth interaction</dd>
+
+        <dt>
+
+          <code><a href="gen_gamFormula_contIx.html">gen_gamFormula_contIx()</a></code>
+
+        </dt>
+        <dd>Generate GAM formula with continuous-by-continuous interaction</dd>
+      </dl></div><div class="section level2">
+      <h2 id="internal">Internal<a class="anchor" aria-label="anchor" href="#internal"></a></h2>
+
+      <div class="section-desc"><p>Per-element workhorse functions called by the analysis functions. Most users should not need to call these directly.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="analyseOneElement.lm.html">analyseOneElement.lm()</a></code>
+
+        </dt>
+        <dd>Fit a linear model for a single element If the number of subjects with finite scalar values (not <code>NaN</code>, <code>NA</code>, or <code>Inf</code>) does not exceed <code>num.subj.lthr</code>, the element is skipped and all statistics are set to <code>NaN</code>.</dd>
+
+        <dt>
+
+          <code><a href="analyseOneElement.gam.html">analyseOneElement.gam()</a></code>
+
+        </dt>
+        <dd>Fit a GAM for a single element returns metadata (column names, smooth term names, parametric term names, and the smoothing parameter criterion attribute name) used by <code>ModelArray.gam</code> to initialise the output data.frame. When <code>flag_initiate = FALSE</code>, it returns a numeric vector representing one row of the final results matrix.</dd>
+
+        <dt>
+
+          <code><a href="analyseOneElement.wrap.html">analyseOneElement.wrap()</a></code>
+
+        </dt>
+        <dd>Run a user-supplied function for a single element</dd>
       </dl></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

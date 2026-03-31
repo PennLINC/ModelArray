@@ -39,7 +39,7 @@ A named list of character vectors. Names correspond to scalar names
 ``` r
 if (FALSE) { # \dontrun{
 ma <- ModelArray("data.h5", scalar_types = c("FD"))
-sources(ma)          # named list
-sources(ma)[["FD"]]  # character vector of filenames
+sources(ma) # named list
+sources(ma)[["FD"]] # character vector of filenames
 } # }
 ```

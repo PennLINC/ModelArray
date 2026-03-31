@@ -36,6 +36,6 @@ Character vector of scalar names.
 ``` r
 if (FALSE) { # \dontrun{
 ma <- ModelArray("data.h5", scalar_types = c("FD", "FC"))
-scalarNames(ma)   # c("FD", "FC")
+scalarNames(ma) # c("FD", "FC")
 } # }
 ```

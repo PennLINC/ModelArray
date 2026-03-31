@@ -61,7 +61,7 @@ for inspecting an HDF5 file.
 
 ``` r
 if (FALSE) { # \dontrun{
-ma <- ModelArray("path/to/data.h5", scalar_types = c("FD", "FC"))
+ma <- ModelArray("path/to/data.h5", scalar_types = c("FD"))
 ma
 } # }
 ```

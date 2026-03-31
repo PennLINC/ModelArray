@@ -36,8 +36,10 @@ analyses have been loaded or saved.
 
 ``` r
 if (FALSE) { # \dontrun{
-ma <- ModelArray("data.h5", scalar_types = c("FD"),
-                 analysis_names = c("lm_age"))
-analysisNames(ma)   # "lm_age"
+ma <- ModelArray("data.h5",
+  scalar_types = c("FD"),
+  analysis_names = c("lm_age")
+)
+analysisNames(ma) # "lm_age"
 } # }
 ```
