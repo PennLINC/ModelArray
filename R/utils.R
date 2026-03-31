@@ -357,7 +357,7 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL)
 #' structure. If \code{factor.var} in \code{phenotypes} is not already an
 #' ordered factor, this function creates one using \code{reference.group} as
 #' the baseline level and adds it as a new column (named with
-#' \code{prefix.ordered.factor} prepended to \code{factor.var}) [2].
+#' \code{prefix.ordered.factor} prepended to \code{factor.var}).
 #'
 #' The returned \code{phenotypes} data.frame must be used in the subsequent
 #' \code{\link{ModelArray.gam}} call so that the ordered factor column is
@@ -367,23 +367,23 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL)
 #'   (dependent variable), typically a scalar name like \code{"FD"}.
 #' @param factor.var Character. The variable name for the factor. It should
 #'   be an ordered factor in \code{phenotypes}. If not, an ordered factor
-#'   will be generated as a new column, which requires \code{reference.group} [2].
+#'   will be generated as a new column, which requires \code{reference.group}.
 #' @param smooth.var Character. The variable name for the smooth term main
 #'   effect (e.g. \code{"age"}).
 #' @param phenotypes A data.frame of the cohort with columns of independent
 #'   variables, including \code{factor.var} and \code{smooth.var}.
 #' @param reference.group Character. The reference (baseline) group for the
 #'   ordered factor of \code{factor.var}. Required when \code{factor.var}
-#'   in \code{phenotypes} is not already an ordered factor [2].
+#'   in \code{phenotypes} is not already an ordered factor.
 #' @param prefix.ordered.factor Character. Prefix for the ordered factor
 #'   column name. Required when \code{factor.var} in \code{phenotypes} is
-#'   not already an ordered factor. Default is \code{"o"} [2].
+#'   not already an ordered factor. Default is \code{"o"}.
 #' @param fx Logical. Passed to \code{\link[mgcv]{s}}. If \code{TRUE}
 #'   (recommended), the smooth is treated as fixed degrees of freedom.
 #'   Default is \code{TRUE}.
 #' @param k Integer or \code{NULL}. Basis dimension passed to
 #'   \code{\link[mgcv]{s}} for both the main smooth and interaction terms.
-#'   If \code{NULL} (default), uses the default from \code{mgcv::s()} [2].
+#'   If \code{NULL} (default), uses the default from \code{mgcv::s()}.
 #'
 #' @return A list with two components:
 #'   \describe{
@@ -391,7 +391,7 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL)
 #'     \item{phenotypes}{The (possibly updated) data.frame. If
 #'       \code{factor.var} was not already an ordered factor, a new column
 #'       named \code{paste0(prefix.ordered.factor, factor.var)} is added.
-#'       Otherwise identical to the input [2].}
+#'       Otherwise identical to the input.}
 #'   }
 #'
 #' @seealso \code{\link{gen_gamFormula_contIx}} for continuous-by-continuous
@@ -505,7 +505,7 @@ gen_gamFormula_fxSmooth <- function(response.var, factor.var, smooth.var, phenot
 #' interaction effect, separate from the main effects \code{ti(x)} and
 #' \code{ti(z)}. This decomposition is important for interpretability and
 #' for requesting \code{changed.rsq.term.index} in
-#' \code{\link{ModelArray.gam}} [4].
+#' \code{\link{ModelArray.gam}}.
 #'
 #' @param response.var Character. The variable name for the response
 #'   (dependent variable), typically a scalar name like \code{"FD"}.
@@ -513,11 +513,11 @@ gen_gamFormula_fxSmooth <- function(response.var, factor.var, smooth.var, phenot
 #' @param cont2.var Character. The name of the second continuous variable.
 #' @param fx Logical. Passed to \code{\link[mgcv]{ti}}. If \code{TRUE}
 #'   (recommended), the smooth is treated as fixed degrees of freedom.
-#'   Default is \code{TRUE} [2].
+#'   Default is \code{TRUE}.
 #' @param k Integer or \code{NULL}. Basis dimension passed to
 #'   \code{\link[mgcv]{ti}} for all three terms (both main effects and the
 #'   interaction). If \code{NULL} (default), uses the default from
-#'   \code{mgcv::ti()} [2].
+#'   \code{mgcv::ti()}.
 #'
 #' @return A \code{\link[stats]{formula}} object.
 #'
@@ -596,7 +596,7 @@ bind_cols_check_emptyTibble <- function(a, b) {
 #' This function opens the HDF5 file read-only via \code{\link[rhdf5]{h5ls}},
 #' inspects the group structure under \code{/scalars/} and \code{/results/},
 #' and closes the file. It does not load any data into memory. The returned
-#' object has a \code{print} method that displays a formatted summary [2].
+#' object has a \code{print} method that displays a formatted summary.
 #'
 #' @param filepath Character. Path to an HDF5 (\code{.h5}) file.
 #'
@@ -604,9 +604,9 @@ bind_cols_check_emptyTibble <- function(a, b) {
 #'   components:
 #'   \describe{
 #'     \item{scalars}{A data.frame with columns \code{name},
-#'       \code{nElements}, and \code{nInputFiles} [2].}
+#'       \code{nElements}, and \code{nInputFiles}.}
 #'     \item{analyses}{Character vector of analysis names found under
-#'       \code{/results/} [2].}
+#'       \code{/results/}.}
 #'     \item{filepath}{The input filepath.}
 #'   }
 #'

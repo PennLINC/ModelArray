@@ -11,7 +11,7 @@
 #' columns specified by \code{merge_on}. Only subjects present in all
 #' phenotype data.frames are retained. Scalar matrices from each input
 #' \linkS4class{ModelArray} are column-subsetted and reordered to match
-#' the joined subject list [6].
+#' the joined subject list.
 #'
 #' A unified \code{source_file} column is created from the \code{merge_on}
 #' columns so that downstream analysis functions
@@ -19,16 +19,16 @@
 #' \code{\link{ModelArray.wrap}}) can align phenotypes to scalars. The
 #' original \code{source_file} columns are renamed to
 #' \code{source_file.<first_scalar_name>} for each input
-#' \linkS4class{ModelArray} [6].
+#' \linkS4class{ModelArray}.
 #'
 #' Scalar names must be unique across all input ModelArrays. If two
 #' ModelArrays share a scalar name (e.g. both have \code{"FD"}), the
 #' function will error. Element counts (number of rows) must match
-#' across all scalars [6].
+#' across all scalars.
 #'
 #' If element metadata is available (see \code{\link{elementMetadata}}),
 #' the function checks that it is consistent across inputs and warns if
-#' it differs or is only partially available [6].
+#' it differs or is only partially available.
 #'
 #' @param modelarrays A list of at least two \linkS4class{ModelArray}
 #'   objects, each constructed from a different HDF5 file.
@@ -36,12 +36,12 @@
 #'   \linkS4class{ModelArray} in \code{modelarrays}. Each must contain a
 #'   \code{source_file} column whose entries match the corresponding
 #'   ModelArray's sources (i.e. \code{sources(modelarrays[[i]])}).
-#'   Each must also contain all columns named in \code{merge_on} [6].
+#'   Each must also contain all columns named in \code{merge_on}.
 #' @param merge_on Character vector of column names present in all
 #'   data.frames in \code{phenotypes_list}, used to inner-join subjects
 #'   across sessions/modalities (e.g. \code{c("subject_id")}). The
 #'   combination of these columns must uniquely identify each subject
-#'   within each data.frame [6].
+#'   within each data.frame.
 #'
 #' @return A list with two components:
 #'   \describe{
@@ -52,7 +52,7 @@
 #'       \code{source_file} columns are renamed to
 #'       \code{source_file.<scalar_name>} and a new unified
 #'       \code{source_file} column is added for use with analysis
-#'       functions [6].}
+#'       functions.}
 #'   }
 #'
 #' @seealso \code{\link{ModelArray}} for constructing individual
