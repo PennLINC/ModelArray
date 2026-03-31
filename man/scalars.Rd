@@ -29,8 +29,8 @@ matrices. When called with a single scalar name, returns that one matrix.
 \examples{
 \dontrun{
 ma <- ModelArray("data.h5", scalar_types = c("FD", "FC"))
-scalars(ma)         # named list of all scalars
-scalars(ma, "FD")   # single DelayedArray matrix
+scalars(ma) # named list of all scalars
+scalars(ma, "FD") # single DelayedArray matrix
 }
 
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{writeResults}
 \alias{writeResults}
-\title{Write outputs from element-wise statistical analysis to the HDF5 file.}
+\title{Write outputs from element-wise statistical analysis to an HDF5 file}
 \usage{
 writeResults(
   fn.output,
@@ -12,20 +12,76 @@ writeResults(
 )
 }
 \arguments{
-\item{fn.output}{A character, The HDF5 (.h5) filename for the output}
+\item{fn.output}{Character. The HDF5 (\code{.h5}) filename for the output.
+The file must already exist; use an absolute path if you encounter
+file-not-found errors.}
 
-\item{df.output}{A data.frame object with element-wise statistical results, returned from `ModelArray.lm()` etc}
+\item{df.output}{A data.frame of element-wise statistical results, as
+returned by \code{\link{ModelArray.lm}},
+\code{\link{ModelArray.gam}}, or \code{\link{ModelArray.wrap}}.
+Must inherit from \code{data.frame} \link{7}.}
 
-\item{analysis_name}{A character, the name of the results}
+\item{analysis_name}{Character. The name for this set of results. Used
+as the group name under \code{/results/} in the HDF5 file.
+Default is \code{"myAnalysis"} \link{7}.}
 
-\item{overwrite}{If a group with the same analysis_name exists in HDF5 file,
-whether overwrite it (TRUE) or not (FALSE)}
+\item{overwrite}{Logical. If a group with the same \code{analysis_name}
+already exists in the HDF5 file, whether to overwrite it (\code{TRUE})
+or skip with a warning (\code{FALSE}). Default is \code{TRUE} \link{7}.}
+}
+\value{
+Invisible \code{NULL}. Called for its side effect of writing
+results to the HDF5 file.
 }
 \description{
-Create a group named `analysis_name` in HDF5 file,
-then write the statistical results data.frame (i.e. for one analysis) in it.
+Creates a group named \code{analysis_name} under \code{/results/} in the
+HDF5 file, then writes the statistical results data.frame (i.e. for one
+analysis) into it as \code{results_matrix} along with column names \link{7}.
 }
 \details{
-debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)",
-check if there is message 'No such file or directory'. Try absolute .h5 filename.
+The results are stored at
+\code{/results/<analysis_name>/results_matrix} with column names saved
+as a separate dataset at
+\code{/results/<analysis_name>/column_names} \link{7}.
+
+If any column of \code{df.output} is not numeric or integer, it is
+coerced to numeric via \code{factor()} and the factor levels are saved
+as a look-up table at
+\code{/results/<analysis_name>/lut_forcol<i>} \link{7}.
+
+\strong{Debugging tip:} If you encounter
+\code{"Error in H5File.open(filename, mode, file_create_pl, file_access_pl)"},
+check if the message mentions "No such file or directory". Try using an
+absolute path for the \code{fn.output} argument \link{7}.
+}
+\examples{
+\dontrun{
+ma <- ModelArray("data.h5", scalar_types = c("FD"))
+phenotypes <- read.csv("cohort.csv")
+
+results <- ModelArray.lm(
+  FD ~ age + sex,
+  data = ma,
+  phenotypes = phenotypes,
+  scalar = "FD"
+)
+
+writeResults(
+  fn.output = "data.h5",
+  df.output = results,
+  analysis_name = "lm_age_sex",
+  overwrite = TRUE
+)
+
+# Verify
+h5summary("data.h5")
+}
+
+}
+\seealso{
+\code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}},
+\code{\link{ModelArray.wrap}} which produce the \code{df.output},
+\code{\link{results}} for reading results back from a
+\linkS4class{ModelArray}, \code{\link{h5summary}} for inspecting what
+has been written.
 }

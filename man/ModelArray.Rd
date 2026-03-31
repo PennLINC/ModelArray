@@ -40,7 +40,7 @@ If \code{analysis_names} is non-empty, saved results are loaded from
 }
 \examples{
 \dontrun{
-ma <- ModelArray("path/to/data.h5", scalar_types = c("FD", "FC"))
+ma <- ModelArray("path/to/data.h5", scalar_types = c("FD"))
 ma
 }
 

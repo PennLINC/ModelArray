@@ -22,7 +22,7 @@ Returns the names of all scalar datasets loaded in a
 \examples{
 \dontrun{
 ma <- ModelArray("data.h5", scalar_types = c("FD", "FC"))
-scalarNames(ma)   # c("FD", "FC")
+scalarNames(ma) # c("FD", "FC")
 }
 
 }

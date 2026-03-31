@@ -25,8 +25,8 @@ file/subject.
 \examples{
 \dontrun{
 ma <- ModelArray("data.h5", scalar_types = c("FD"))
-sources(ma)          # named list
-sources(ma)[["FD"]]  # character vector of filenames
+sources(ma) # named list
+sources(ma)[["FD"]] # character vector of filenames
 }
 
 }

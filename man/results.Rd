@@ -38,10 +38,12 @@ back with \code{\link{writeResults}}.
 }
 \examples{
 \dontrun{
-ma <- ModelArray("data.h5", scalar_types = c("FD"),
-                 analysis_names = c("lm_age"))
-results(ma)                # named list of all results
-results(ma, "lm_age")     # single result set
+ma <- ModelArray("data.h5",
+  scalar_types = c("FD"),
+  analysis_names = c("lm_age")
+)
+results(ma) # named list of all results
+results(ma, "lm_age") # single result set
 results(ma, "lm_age")$results_matrix
 }
 

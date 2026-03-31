@@ -16,35 +16,90 @@ gen_gamFormula_fxSmooth(
 )
 }
 \arguments{
-\item{response.var}{character class, the variable name for response}
+\item{response.var}{Character. The variable name for the response
+(dependent variable), typically a scalar name like \code{"FD"}.}
 
-\item{factor.var}{character class, the variable name for factor. It should be an ordered factor.
-If not, it will generate it as a new column in `phenotypes`, which requires `reference.group`.}
+\item{factor.var}{Character. The variable name for the factor. It should
+be an ordered factor in \code{phenotypes}. If not, an ordered factor
+will be generated as a new column, which requires \code{reference.group} \link{2}.}
 
-\item{smooth.var}{character class, the variable name in smooth term as main effect}
+\item{smooth.var}{Character. The variable name for the smooth term main
+effect (e.g. \code{"age"}).}
 
-\item{phenotypes}{data.frame class, the cohort matrix with columns of independent variables (including
-\code{factor.var} and \code{smooth.var}) to be added to the model}
+\item{phenotypes}{A data.frame of the cohort with columns of independent
+variables, including \code{factor.var} and \code{smooth.var}.}
 
-\item{reference.group}{character class, the reference group for ordered factor of `factor.var`; required when
-`factor.var` in `phenotypes` is not an ordered factor.}
+\item{reference.group}{Character. The reference (baseline) group for the
+ordered factor of \code{factor.var}. Required when \code{factor.var}
+in \code{phenotypes} is not already an ordered factor \link{2}.}
 
-\item{prefix.ordered.factor}{character class, the prefix for ordered factor; required when `factor.var` in
-`phenotypes` is not an ordered factor.}
+\item{prefix.ordered.factor}{Character. Prefix for the ordered factor
+column name. Required when \code{factor.var} in \code{phenotypes} is
+not already an ordered factor. Default is \code{"o"} \link{2}.}
 
-\item{fx}{TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.}
+\item{fx}{Logical. Passed to \code{\link[mgcv]{s}}. If \code{TRUE}
+(recommended), the smooth is treated as fixed degrees of freedom.
+Default is \code{TRUE}.}
 
-\item{k}{integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default
-value as in mgcv::s()}
+\item{k}{Integer or \code{NULL}. Basis dimension passed to
+\code{\link[mgcv]{s}} for both the main smooth and interaction terms.
+If \code{NULL} (default), uses the default from \code{mgcv::s()} \link{2}.}
 }
 \value{
-a list, including: 1) formula generated; 2) data.frame phenotypes - updated if argument factor.var
-is not an ordered factor
+A list with two components:
+\describe{
+\item{formula}{The generated \code{\link[stats]{formula}} object.}
+\item{phenotypes}{The (possibly updated) data.frame. If
+\code{factor.var} was not already an ordered factor, a new column
+named \code{paste0(prefix.ordered.factor, factor.var)} is added.
+Otherwise identical to the input \link{2}.}
+}
 }
 \description{
-This function will generate a formula in the following format:
-\code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor)},
+Generates a formula in the format
+\code{y ~ orderedFactor + s(x) + s(x, by = orderedFactor)},
 where \code{y} is \code{response.var}, \code{x} is \code{smooth.var},
-and \code{orderedFactor} is \code{factor.var} - see \code{factor.var} for more.
-The formula generated could be further modified, e.g. adding covariates.
+and \code{orderedFactor} is \code{factor.var}.
+The formula generated can be further modified, e.g. by adding covariates.
+}
+\details{
+This helper exists because setting up factor-smooth interactions in
+\code{\link[mgcv]{gam}} requires an ordered factor and a specific formula
+structure. If \code{factor.var} in \code{phenotypes} is not already an
+ordered factor, this function creates one using \code{reference.group} as
+the baseline level and adds it as a new column (named with
+\code{prefix.ordered.factor} prepended to \code{factor.var}) \link{2}.
+
+The returned \code{phenotypes} data.frame must be used in the subsequent
+\code{\link{ModelArray.gam}} call so that the ordered factor column is
+available to the model.
+}
+\examples{
+\dontrun{
+phenotypes <- read.csv("cohort.csv")
+
+# factor.var is not yet ordered - function creates it
+result <- gen_gamFormula_fxSmooth(
+  response.var = "FD",
+  factor.var = "sex",
+  smooth.var = "age",
+  phenotypes = phenotypes,
+  reference.group = "female"
+)
+result$formula
+
+# Use the updated phenotypes (contains the ordered factor column)
+results <- ModelArray.gam(
+  result$formula,
+  data = ma,
+  phenotypes = result$phenotypes,
+  scalar = "FD"
+)
+}
+
+}
+\seealso{
+\code{\link{gen_gamFormula_contIx}} for continuous-by-continuous
+interactions, \code{\link{ModelArray.gam}} which accepts the generated
+formula.
 }

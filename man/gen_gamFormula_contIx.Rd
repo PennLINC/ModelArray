@@ -2,27 +2,67 @@
 % Please edit documentation in R/utils.R
 \name{gen_gamFormula_contIx}
 \alias{gen_gamFormula_contIx}
-\title{Generate GAM formula with continuous*continuous interaction}
+\title{Generate GAM formula with continuous-by-continuous interaction}
 \usage{
 gen_gamFormula_contIx(response.var, cont1.var, cont2.var, fx = TRUE, k = NULL)
 }
 \arguments{
-\item{response.var}{character class, the variable name for response}
+\item{response.var}{Character. The variable name for the response
+(dependent variable), typically a scalar name like \code{"FD"}.}
 
-\item{cont1.var}{character class, the name of the first continuous variable}
+\item{cont1.var}{Character. The name of the first continuous variable.}
 
-\item{cont2.var}{character class, the name of the second continuous variable}
+\item{cont2.var}{Character. The name of the second continuous variable.}
 
-\item{fx}{TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.}
+\item{fx}{Logical. Passed to \code{\link[mgcv]{ti}}. If \code{TRUE}
+(recommended), the smooth is treated as fixed degrees of freedom.
+Default is \code{TRUE} \link{2}.}
 
-\item{k}{integer, to be used in smooth term including the interaction term.
-If NULL (no entry), will use default value as in mgcv::s()}
+\item{k}{Integer or \code{NULL}. Basis dimension passed to
+\code{\link[mgcv]{ti}} for all three terms (both main effects and the
+interaction). If \code{NULL} (default), uses the default from
+\code{mgcv::ti()} \link{2}.}
 }
 \value{
-The formula generated
+A \code{\link[stats]{formula}} object.
 }
 \description{
-This function will generate a formula in the following format: \code{y ~ ti(x) + ti(z) + ti(x,z)},
-where \code{y} is \code{response.var}, \code{x} is \code{cont1.var}, and \code{z} is \code{cont2.var}.
-The formula generated could be further modified, e.g. adding covariates.
+Generates a formula in the format
+\code{y ~ ti(x) + ti(z) + ti(x, z)}, where \code{y} is
+\code{response.var}, \code{x} is \code{cont1.var}, and \code{z} is
+\code{cont2.var}. The formula generated can be further modified, e.g.
+by adding covariates.
+}
+\details{
+This helper uses \code{\link[mgcv]{ti}} (tensor product interaction)
+terms so that the interaction \code{ti(x, z)} captures only the
+interaction effect, separate from the main effects \code{ti(x)} and
+\code{ti(z)}. This decomposition is important for interpretability and
+for requesting \code{changed.rsq.term.index} in
+\code{\link{ModelArray.gam}} \link{4}.
+}
+\examples{
+\dontrun{
+formula <- gen_gamFormula_contIx(
+  response.var = "FD",
+  cont1.var = "age",
+  cont2.var = "cognition"
+)
+formula
+
+# Use in ModelArray.gam with changed R-squared for the interaction
+results <- ModelArray.gam(
+  formula,
+  data = ma,
+  phenotypes = phenotypes,
+  scalar = "FD",
+  changed.rsq.term.index = list(3)
+)
+}
+
+}
+\seealso{
+\code{\link{gen_gamFormula_fxSmooth}} for factor-smooth
+interactions, \code{\link{ModelArray.gam}} which accepts the generated
+formula.
 }

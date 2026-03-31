@@ -2,21 +2,58 @@
 % Please edit documentation in R/utils.R
 \name{h5summary}
 \alias{h5summary}
-\title{Summarize an h5 file without loading the full ModelArray}
+\alias{print.h5summary}
+\title{Summarize an HDF5 file without loading a full ModelArray}
 \usage{
 h5summary(filepath)
+
+\method{print}{h5summary}(x, ...)
 }
 \arguments{
-\item{filepath}{Path to an h5 file}
+\item{filepath}{Character. Path to an HDF5 (\code{.h5}) file.}
+
+\item{x}{An \code{h5summary} object as returned by
+\code{\link{h5summary}}.}
+
+\item{...}{Additional arguments (currently ignored).}
 }
 \value{
-A list with components:
-  \item{scalars}{A data.frame with columns: name, nElements, nInputFiles}
-  \item{analyses}{Character vector of analysis names}
-  \item{filepath}{The input filepath}
+An object of class \code{"h5summary"}, which is a list with
+components:
+\describe{
+\item{scalars}{A data.frame with columns \code{name},
+\code{nElements}, and \code{nInputFiles} \link{2}.}
+\item{analyses}{Character vector of analysis names found under
+\code{/results/} \link{2}.}
+\item{filepath}{The input filepath.}
+}
+
+Invisible \code{x}. Called for its side effect of printing a
+human-readable summary to the console.
 }
 \description{
-Reads the h5 file structure and returns a summary of available scalars,
+Reads the HDF5 file structure and returns a summary of available scalars,
 their dimensions, and any saved analyses. Useful for inspecting large files
-without constructing a full ModelArray object.
+without constructing a full \linkS4class{ModelArray} object.
+}
+\details{
+This function opens the HDF5 file read-only via \code{\link[rhdf5]{h5ls}},
+inspects the group structure under \code{/scalars/} and \code{/results/},
+and closes the file. It does not load any data into memory. The returned
+object has a \code{print} method that displays a formatted summary \link{2}.
+}
+\examples{
+\dontrun{
+h5summary("path/to/data.h5")
+
+# Inspect before deciding which scalars to load
+info <- h5summary("path/to/data.h5")
+info$scalars$name
+ma <- ModelArray("path/to/data.h5", scalar_types = info$scalars$name)
+}
+
+}
+\seealso{
+\code{\link{ModelArray}} for loading the full object,
+\linkS4class{ModelArray} for the class definition.
 }
