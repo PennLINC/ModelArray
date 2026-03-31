@@ -154,8 +154,8 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 #' @details
 #' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/s
 #'
-#' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula);
-#' ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
+#' @param ofInterest got via: `gam.formula.breakdown <- mgcv::interpret.gam(formula)`;
+#' `ofInterest <- gam.formula.breakdown$smooth.spec[[i]]`
 #' @importFrom mgcv s
 #' @importFrom dplyr %>%
 #' @importFrom crayon black
@@ -233,8 +233,8 @@ checker_gam_s <- function(ofInterest) {
 #' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/te or /t2()
 #'
 #' @param FUN could be mgcv::te(), ti() or t2()
-#' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula);
-#' ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
+#' @param ofInterest got via: `gam.formula.breakdown <- mgcv::interpret.gam(formula)`;
+#' `ofInterest <- gam.formula.breakdown$smooth.spec[[i]]`
 #' @importFrom mgcv te ti t2
 #' @importFrom dplyr %>%
 #' @importFrom crayon black
