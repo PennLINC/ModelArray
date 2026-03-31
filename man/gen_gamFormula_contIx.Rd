@@ -16,12 +16,12 @@ gen_gamFormula_contIx(response.var, cont1.var, cont2.var, fx = TRUE, k = NULL)
 
 \item{fx}{Logical. Passed to \code{\link[mgcv]{ti}}. If \code{TRUE}
 (recommended), the smooth is treated as fixed degrees of freedom.
-Default is \code{TRUE} \link{2}.}
+Default is \code{TRUE}.}
 
 \item{k}{Integer or \code{NULL}. Basis dimension passed to
 \code{\link[mgcv]{ti}} for all three terms (both main effects and the
 interaction). If \code{NULL} (default), uses the default from
-\code{mgcv::ti()} \link{2}.}
+\code{mgcv::ti()}.}
 }
 \value{
 A \code{\link[stats]{formula}} object.
@@ -39,7 +39,7 @@ terms so that the interaction \code{ti(x, z)} captures only the
 interaction effect, separate from the main effects \code{ti(x)} and
 \code{ti(z)}. This decomposition is important for interpretability and
 for requesting \code{changed.rsq.term.index} in
-\code{\link{ModelArray.gam}} \link{4}.
+\code{\link{ModelArray.gam}}.
 }
 \examples{
 \dontrun{

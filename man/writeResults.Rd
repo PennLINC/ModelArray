@@ -19,15 +19,15 @@ file-not-found errors.}
 \item{df.output}{A data.frame of element-wise statistical results, as
 returned by \code{\link{ModelArray.lm}},
 \code{\link{ModelArray.gam}}, or \code{\link{ModelArray.wrap}}.
-Must inherit from \code{data.frame} \link{7}.}
+Must inherit from \code{data.frame}.}
 
 \item{analysis_name}{Character. The name for this set of results. Used
 as the group name under \code{/results/} in the HDF5 file.
-Default is \code{"myAnalysis"} \link{7}.}
+Default is \code{"myAnalysis"}.}
 
 \item{overwrite}{Logical. If a group with the same \code{analysis_name}
 already exists in the HDF5 file, whether to overwrite it (\code{TRUE})
-or skip with a warning (\code{FALSE}). Default is \code{TRUE} \link{7}.}
+or skip with a warning (\code{FALSE}). Default is \code{TRUE}.}
 }
 \value{
 Invisible \code{NULL}. Called for its side effect of writing
@@ -36,23 +36,23 @@ results to the HDF5 file.
 \description{
 Creates a group named \code{analysis_name} under \code{/results/} in the
 HDF5 file, then writes the statistical results data.frame (i.e. for one
-analysis) into it as \code{results_matrix} along with column names \link{7}.
+analysis) into it as \code{results_matrix} along with column names.
 }
 \details{
 The results are stored at
 \code{/results/<analysis_name>/results_matrix} with column names saved
 as a separate dataset at
-\code{/results/<analysis_name>/column_names} \link{7}.
+\code{/results/<analysis_name>/column_names}.
 
 If any column of \code{df.output} is not numeric or integer, it is
 coerced to numeric via \code{factor()} and the factor levels are saved
 as a look-up table at
-\code{/results/<analysis_name>/lut_forcol<i>} \link{7}.
+\code{/results/<analysis_name>/lut_forcol<i>}.
 
 \strong{Debugging tip:} If you encounter
 \code{"Error in H5File.open(filename, mode, file_create_pl, file_access_pl)"},
 check if the message mentions "No such file or directory". Try using an
-absolute path for the \code{fn.output} argument \link{7}.
+absolute path for the \code{fn.output} argument.
 }
 \examples{
 \dontrun{

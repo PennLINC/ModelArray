@@ -22,9 +22,9 @@ An object of class \code{"h5summary"}, which is a list with
 components:
 \describe{
 \item{scalars}{A data.frame with columns \code{name},
-\code{nElements}, and \code{nInputFiles} \link{2}.}
+\code{nElements}, and \code{nInputFiles}.}
 \item{analyses}{Character vector of analysis names found under
-\code{/results/} \link{2}.}
+\code{/results/}.}
 \item{filepath}{The input filepath.}
 }
 
@@ -40,7 +40,7 @@ without constructing a full \linkS4class{ModelArray} object.
 This function opens the HDF5 file read-only via \code{\link[rhdf5]{h5ls}},
 inspects the group structure under \code{/scalars/} and \code{/results/},
 and closes the file. It does not load any data into memory. The returned
-object has a \code{print} method that displays a formatted summary \link{2}.
+object has a \code{print} method that displays a formatted summary.
 }
 \examples{
 \dontrun{

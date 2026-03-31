@@ -21,7 +21,7 @@ gen_gamFormula_fxSmooth(
 
 \item{factor.var}{Character. The variable name for the factor. It should
 be an ordered factor in \code{phenotypes}. If not, an ordered factor
-will be generated as a new column, which requires \code{reference.group} \link{2}.}
+will be generated as a new column, which requires \code{reference.group}.}
 
 \item{smooth.var}{Character. The variable name for the smooth term main
 effect (e.g. \code{"age"}).}
@@ -31,11 +31,11 @@ variables, including \code{factor.var} and \code{smooth.var}.}
 
 \item{reference.group}{Character. The reference (baseline) group for the
 ordered factor of \code{factor.var}. Required when \code{factor.var}
-in \code{phenotypes} is not already an ordered factor \link{2}.}
+in \code{phenotypes} is not already an ordered factor.}
 
 \item{prefix.ordered.factor}{Character. Prefix for the ordered factor
 column name. Required when \code{factor.var} in \code{phenotypes} is
-not already an ordered factor. Default is \code{"o"} \link{2}.}
+not already an ordered factor. Default is \code{"o"}.}
 
 \item{fx}{Logical. Passed to \code{\link[mgcv]{s}}. If \code{TRUE}
 (recommended), the smooth is treated as fixed degrees of freedom.
@@ -43,7 +43,7 @@ Default is \code{TRUE}.}
 
 \item{k}{Integer or \code{NULL}. Basis dimension passed to
 \code{\link[mgcv]{s}} for both the main smooth and interaction terms.
-If \code{NULL} (default), uses the default from \code{mgcv::s()} \link{2}.}
+If \code{NULL} (default), uses the default from \code{mgcv::s()}.}
 }
 \value{
 A list with two components:
@@ -52,7 +52,7 @@ A list with two components:
 \item{phenotypes}{The (possibly updated) data.frame. If
 \code{factor.var} was not already an ordered factor, a new column
 named \code{paste0(prefix.ordered.factor, factor.var)} is added.
-Otherwise identical to the input \link{2}.}
+Otherwise identical to the input.}
 }
 }
 \description{
@@ -68,7 +68,7 @@ This helper exists because setting up factor-smooth interactions in
 structure. If \code{factor.var} in \code{phenotypes} is not already an
 ordered factor, this function creates one using \code{reference.group} as
 the baseline level and adds it as a new column (named with
-\code{prefix.ordered.factor} prepended to \code{factor.var}) \link{2}.
+\code{prefix.ordered.factor} prepended to \code{factor.var}).
 
 The returned \code{phenotypes} data.frame must be used in the subsequent
 \code{\link{ModelArray.gam}} call so that the ordered factor column is
