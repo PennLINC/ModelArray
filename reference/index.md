@@ -42,8 +42,6 @@
   : Names of scalars in a ModelArray
 - [`scalars()`](https://pennlinc.github.io/ModelArray/reference/scalars.md)
   : Element-wise scalar data of a ModelArray object
-- [`show(`*`<ModelArray>`*`)`](https://pennlinc.github.io/ModelArray/reference/show-ModelArray-method.md)
-  : Show ModelArray object
 - [`sources()`](https://pennlinc.github.io/ModelArray/reference/sources.md)
   : Source filenames of a ModelArray object
 - [`writeResults()`](https://pennlinc.github.io/ModelArray/reference/writeResults.md)

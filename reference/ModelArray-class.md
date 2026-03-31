@@ -6,11 +6,27 @@ previously saved analysis results. The object holds references to the
 underlying HDF5 file and reads data on demand, making it suitable for
 large-scale neuroimaging datasets.
 
+Prints a summary of the ModelArray including file path, scalar
+dimensions, and any saved analysis names.
+
 ## Usage
 
 ``` r
 ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
+
+# S4 method for class 'ModelArray'
+show(object)
 ```
+
+## Arguments
+
+- object:
+
+  A ModelArray object.
+
+## Value
+
+Invisible `NULL`. Called for its side effect of printing to the console.
 
 ## Details
 
