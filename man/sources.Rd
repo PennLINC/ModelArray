@@ -10,11 +10,27 @@ sources(x)
 \S4method{sources}{ModelArray}(x)
 }
 \arguments{
-\item{x}{A ModelArray object}
+\item{x}{A \linkS4class{ModelArray} object.}
 }
 \value{
-A list of source filenames
+A named list of character vectors. Names correspond to scalar names
+(e.g. \code{"FD"}, \code{"FC"}).
 }
 \description{
-Source filenames of a ModelArray object
+Retrieve the named list of source filename vectors from a
+\linkS4class{ModelArray}. Each element of the list corresponds to one
+scalar and contains a character vector of filenames, one per input
+file/subject.
+}
+\examples{
+\dontrun{
+ma <- ModelArray("data.h5", scalar_types = c("FD"))
+sources(ma)          # named list
+sources(ma)[["FD"]]  # character vector of filenames
+}
+
+}
+\seealso{
+\code{\link{scalars}}, \code{\link{results}},
+\code{\link{scalarNames}}, \code{\link{nInputFiles}}
 }
