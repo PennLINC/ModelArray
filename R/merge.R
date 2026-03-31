@@ -78,7 +78,7 @@
 #'
 #' # Use the merged object for cross-scalar analysis
 #' merged$data
-#' scalarNames(merged$data)   # c("FD", "FC")
+#' scalarNames(merged$data) # c("FD", "FC")
 #' head(merged$phenotypes)
 #'
 #' results <- ModelArray.lm(

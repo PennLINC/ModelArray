@@ -25,7 +25,6 @@ flagObjectExistInh5 <- function(fn_h5, group_name = "/results", object_name = "m
 }
 
 
-
 #' check if h5 group "results" exist in current .h5 file
 #' @param fn_h5 filename of the .h5 file
 #' @noRd
@@ -489,7 +488,6 @@ gen_gamFormula_fxSmooth <- function(response.var, factor.var, smooth.var, phenot
   )
   return(toReturn)
 }
-
 
 
 #' Generate GAM formula with continuous-by-continuous interaction

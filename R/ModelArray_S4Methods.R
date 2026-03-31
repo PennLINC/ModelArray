@@ -71,8 +71,8 @@ setMethod("show", "ModelArray", function(object) { # , group_name_results="resul
 #' @examples
 #' \dontrun{
 #' ma <- ModelArray("data.h5", scalar_types = c("FD"))
-#' sources(ma)          # named list
-#' sources(ma)[["FD"]]  # character vector of filenames
+#' sources(ma) # named list
+#' sources(ma)[["FD"]] # character vector of filenames
 #' }
 #'
 #' @name sources
@@ -106,8 +106,8 @@ setMethod("sources", "ModelArray", function(x) x@sources)
 #' @examples
 #' \dontrun{
 #' ma <- ModelArray("data.h5", scalar_types = c("FD", "FC"))
-#' scalars(ma)         # named list of all scalars
-#' scalars(ma, "FD")   # single DelayedArray matrix
+#' scalars(ma) # named list of all scalars
+#' scalars(ma, "FD") # single DelayedArray matrix
 #' }
 #'
 #' @name scalars
@@ -163,10 +163,12 @@ setMethod(
 #'
 #' @examples
 #' \dontrun{
-#' ma <- ModelArray("data.h5", scalar_types = c("FD"),
-#'                  analysis_names = c("lm_age"))
-#' results(ma)                # named list of all results
-#' results(ma, "lm_age")     # single result set
+#' ma <- ModelArray("data.h5",
+#'   scalar_types = c("FD"),
+#'   analysis_names = c("lm_age")
+#' )
+#' results(ma) # named list of all results
+#' results(ma, "lm_age") # single result set
 #' results(ma, "lm_age")$results_matrix
 #' }
 #'
@@ -380,7 +382,7 @@ setMethod("nInputFiles", "ModelArray", function(x, scalar = NULL) {
 #' @examples
 #' \dontrun{
 #' ma <- ModelArray("data.h5", scalar_types = c("FD", "FC"))
-#' scalarNames(ma)   # c("FD", "FC")
+#' scalarNames(ma) # c("FD", "FC")
 #' }
 #'
 #' @name scalarNames
@@ -411,9 +413,11 @@ setMethod("scalarNames", "ModelArray", function(x) {
 #'
 #' @examples
 #' \dontrun{
-#' ma <- ModelArray("data.h5", scalar_types = c("FD"),
-#'                  analysis_names = c("lm_age"))
-#' analysisNames(ma)   # "lm_age"
+#' ma <- ModelArray("data.h5",
+#'   scalar_types = c("FD"),
+#'   analysis_names = c("lm_age")
+#' )
+#' analysisNames(ma) # "lm_age"
 #' }
 #'
 #' @name analysisNames
@@ -465,7 +469,9 @@ setMethod("elementMetadata", "ModelArray", function(x) {
       rhdf5::h5read(filepath, p),
       error = function(e) NULL
     )
-    if (!is.null(result)) return(result)
+    if (!is.null(result)) {
+      return(result)
+    }
   }
   NULL
 })
