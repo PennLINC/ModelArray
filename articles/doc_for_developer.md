@@ -72,7 +72,7 @@ operations such as indexing and transposing can be applied, we utilize
 package `DelayedArray` to wraps the data in on-disk HDF5 file into a
 `DelayedArray` object. Finally a `ModelArray` class is defined by
 integrating above slots together. This is done in the
-[`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html)
+[`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.md)
 function.
 
 Above functions and setups can be found in script

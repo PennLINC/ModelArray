@@ -1,13 +1,14 @@
-# Load element-wise data from an HDF5 file
+# An S4 class to represent element-wise scalar data and statistics.
 
-Reads scalar matrices and (optionally) saved analysis results from an
-HDF5 file and returns a
-[ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
-object.
+An S4 class to represent element-wise scalar data and statistics.
+
+Load element-wise data from .h5 file as an ModelArray object
 
 ## Usage
 
 ``` r
+ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
+
 ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
 ```
 
@@ -15,53 +16,43 @@ ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
 
 - filepath:
 
-  Character. Path to an existing HDF5 (`.h5`) file containing
-  element-wise scalar data.
+  file
 
 - scalar_types:
 
-  Character vector. Names of scalar groups to read from `/scalars/` in
-  the HDF5 file. Default is `c("FD")`. Must match group names in the
-  file.
+  expected scalars
 
 - analysis_names:
 
-  Character vector. Subfolder names under `/results/` to load. Default
-  is `character(0)` (none).
+  the subfolder names for results in .h5 file. If empty (default),
+  results are not read.
 
 ## Value
 
-A
-[ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
-object.
+ModelArray object
 
 ## Details
 
-The constructor reads each scalar listed in `scalar_types` from
-`/scalars/<scalar_type>/values`, wrapping them as DelayedArray objects.
-Source filenames are extracted from HDF5 attributes or companion
-datasets.
+: Tips for debugging: if you run into this error: "Error in
+h(simpleError(msg, call)) : error in evaluating the argument 'seed' in
+selecting a method for function 'DelayedArray': HDF5. Symbol table.
+Can't open object." Then please check if you give correct
+"scalar_types" - check via rhdf5::h5ls(filename_for_h5)
 
-If `analysis_names` is non-empty, saved results are loaded from
-`/results/<name>/results_matrix`.
+## Slots
 
-**Debugging tip:** If you encounter
-`"error in evaluating the argument 'seed'..."`, check that
-`scalar_types` matches groups in the file. Inspect with
-`rhdf5::h5ls(filepath)`.
+- `sources`:
 
-## See also
+  A list of source filenames
 
-[ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
-for the class definition,
-[`h5summary`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
-for inspecting an HDF5 file.
+- `scalars`:
 
-## Examples
+  A list of element-wise scalar matrix
 
-``` r
-if (FALSE) { # \dontrun{
-ma <- ModelArray("path/to/data.h5", scalar_types = c("FD"))
-ma
-} # }
-```
+- `results`:
+
+  A list of statistical result matrix
+
+- `path`:
+
+  Path to the h5 file on disk
