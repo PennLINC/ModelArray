@@ -34,7 +34,8 @@
 #' @param phenotypes A data.frame of the cohort with columns of independent variables
 #' and covariates to be added to the model. It should contains a column called "source_file",
 #' and this column should match to that in \code{data}.
-#' @param scalar A character. The name of the element-wise scalar to be analysed
+#' @param scalar Optional character scalar name. If omitted, it is inferred from
+#' the left-hand side of `formula`.
 #' @param element.subset A list of positive integers (min = 1, max = number of elements).
 #' The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs.
@@ -90,7 +91,7 @@
 #' @importFrom rlang :=
 #' @export
 
-ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE,
+ModelArray.lm <- function(formula, data, phenotypes, scalar = NULL, element.subset = NULL, full.outputs = FALSE,
                           var.terms = c("estimate", "statistic", "p.value"),
                           var.model = c("adj.r.squared", "p.value"),
                           correct.p.value.terms = c("fdr"), correct.p.value.model = c("fdr"),
@@ -105,6 +106,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                           return_output = TRUE,
                           ...) {
   .validate_modelarray_input(data)
+  scalar <- .resolve_formula_scalar(formula, data, scalar)
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
@@ -400,7 +402,8 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates
 #' to be added to the model. It should contains a column called "source_file",
 #' and this column should match to that in \code{data}.
-#' @param scalar A character. The name of the element-wise scalar to be analysed
+#' @param scalar Optional character scalar name. If omitted, it is inferred from
+#' the left-hand side of `formula`.
 #' @param element.subset A list of positive integers (min = 1, max = number of elements).
 #' The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.
 #' @param full.outputs TRUE or FALSE, Whether to return full set of outputs.
@@ -466,7 +469,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @importFrom rlang :=
 #' @export
 
-ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE,
+ModelArray.gam <- function(formula, data, phenotypes, scalar = NULL, element.subset = NULL, full.outputs = FALSE,
                            var.smoothTerms = c("statistic", "p.value"),
                            var.parametricTerms = c("estimate", "statistic", "p.value"),
                            var.model = c("dev.expl"),
@@ -484,6 +487,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                            return_output = TRUE,
                            ...) {
   .validate_modelarray_input(data)
+  scalar <- .resolve_formula_scalar(formula, data, scalar)
   element.subset <- .validate_element_subset(element.subset, data, scalar)
 
   # check if the formula is valid in terms of mgcv::gam()

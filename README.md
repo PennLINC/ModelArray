@@ -31,7 +31,7 @@ library(ModelArray)
 modelarray <- ModelArray("data.h5", scalar_types = c("FDC"))
 phenotypes  <- read.csv("cohort.csv")
 
-results <- ModelArray.lm(FDC ~ Age + sex + motion, modelarray, phenotypes, "FDC",
+results <- ModelArray.lm(FDC ~ Age + sex + motion, modelarray, phenotypes,
   n_cores = 4
 )
 ```
