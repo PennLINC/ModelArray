@@ -82,10 +82,10 @@
 #' head(merged$phenotypes)
 #'
 #' results <- ModelArray.lm(
-#'   FD ~ age + sex,
+#'   FD ~ age + sex + FC,
 #'   data = merged$data,
 #'   phenotypes = merged$phenotypes,
-#'   scalar = "FD"
+#'   scalar = c("FD", "FC")
 #' )
 #' }
 #'
