@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ModelArray</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.1.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,7 +89,7 @@ is.</p>
 <span></span>
 <span><span class="co"># Using the PNC fixel demo data (see walkthrough for download instructions)</span></span>
 <span><span class="va">h5_path</span> <span class="op">&lt;-</span> <span class="st">"~/Desktop/myProject/demo_FDC_n100.h5"</span></span>
-<span><span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FDC"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FDC"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">phenotypes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"~/Desktop/myProject/cohort_FDC_n100.csv"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="linear-models-with-modelarray-lm">Linear models with <code>ModelArray.lm()</code><a class="anchor" aria-label="anchor" href="#linear-models-with-modelarray-lm"></a>
@@ -345,7 +345,7 @@ to see what a per-element data frame looks like:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Using the HBN cortical thickness data</span></span>
 <span><span class="va">h5_path</span> <span class="op">&lt;-</span> <span class="st">"path/to/thickness.h5"</span></span>
-<span><span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"thickness"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"thickness"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">phenotypes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"path/to/phenotypes.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">example_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/exampleElementData.html">exampleElementData</a></span><span class="op">(</span><span class="va">modelarray</span>,</span>
@@ -439,7 +439,7 @@ new <code>ModelArray</code>.</p>
 <span><span class="va">h5_in</span> <span class="op">&lt;-</span> <span class="st">"thickness_raw.h5"</span></span>
 <span><span class="va">h5_harmonized</span> <span class="op">&lt;-</span> <span class="st">"thickness_harmonized.h5"</span></span>
 <span></span>
-<span><span class="va">ma_raw</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_in</span>, scalar_types <span class="op">=</span> <span class="st">"thickness"</span><span class="op">)</span></span>
+<span><span class="va">ma_raw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_in</span>, scalar_types <span class="op">=</span> <span class="st">"thickness"</span><span class="op">)</span></span>
 <span><span class="va">phenotypes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"phenotypes.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Copy metadata/layout into a new file so we can append new scalars there.</span></span>
@@ -475,7 +475,7 @@ new <code>ModelArray</code>.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load the harmonized scalar as a new modelling input</span></span>
-<span><span class="va">ma_harmonized</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_harmonized</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"thickness_covfam"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ma_harmonized</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_harmonized</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"thickness_covfam"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Use harmonized data in downstream models</span></span>
 <span><span class="va">fit_harmonized</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span></span>
@@ -524,8 +524,8 @@ disk.</p>
 phenotypes must share a common identifier column (e.g.,
 <code>subject_id</code>):</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ma_thick</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="st">"thickness.h5"</span>, scalar_types <span class="op">=</span> <span class="st">"thickness"</span><span class="op">)</span></span>
-<span><span class="va">ma_curv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.html">ModelArray</a></span><span class="op">(</span><span class="st">"curv.h5"</span>, scalar_types <span class="op">=</span> <span class="st">"curv"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">ma_thick</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="st">"thickness.h5"</span>, scalar_types <span class="op">=</span> <span class="st">"thickness"</span><span class="op">)</span></span>
+<span><span class="va">ma_curv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="st">"curv.h5"</span>, scalar_types <span class="op">=</span> <span class="st">"curv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">phen_thick</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"phenotypes_thickness.csv"</span><span class="op">)</span></span>
 <span><span class="co"># Must contain: subject_id, source_file, (other covariates)</span></span>
