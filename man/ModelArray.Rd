@@ -2,46 +2,50 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{ModelArray}
 \alias{ModelArray}
-\title{An S4 class to represent element-wise scalar data and statistics.}
+\title{Load element-wise data from an HDF5 file}
 \usage{
-ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
-
 ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
 }
 \arguments{
-\item{filepath}{file}
+\item{filepath}{Character. Path to an existing HDF5 (\code{.h5})
+file containing element-wise scalar data.}
 
-\item{scalar_types}{expected scalars}
+\item{scalar_types}{Character vector. Names of scalar groups to read
+from \code{/scalars/} in the HDF5 file. Default is \code{c("FD")}.
+Must match group names in the file.}
 
-\item{analysis_names}{the subfolder names for results in .h5 file. If empty
-(default), results are not read.}
+\item{analysis_names}{Character vector. Subfolder names under
+\code{/results/} to load. Default is \code{character(0)} (none).}
 }
 \value{
-ModelArray object
+A \linkS4class{ModelArray} object.
 }
 \description{
-An S4 class to represent element-wise scalar data and statistics.
-
-Load element-wise data from .h5 file as an ModelArray object
+Reads scalar matrices and (optionally) saved analysis results from
+an HDF5 file and returns a \linkS4class{ModelArray} object.
 }
 \details{
-:
-Tips for debugging:
-if you run into this error: "Error in h(simpleError(msg, call)) :
-error in evaluating the argument 'seed' in selecting a method for
-function 'DelayedArray': HDF5. Symbol table. Can't open object."
-Then please check if you give correct "scalar_types" - check via
-rhdf5::h5ls(filename_for_h5)
+The constructor reads each scalar listed in \code{scalar_types} from
+\code{/scalars/<scalar_type>/values}, wrapping them as
+\linkS4class{DelayedArray} objects. Source filenames are extracted
+from HDF5 attributes or companion datasets.
+
+If \code{analysis_names} is non-empty, saved results are loaded from
+\code{/results/<name>/results_matrix}.
+
+\strong{Debugging tip:} If you encounter
+\code{"error in evaluating the argument 'seed'..."}, check that
+\code{scalar_types} matches groups in the file. Inspect with
+\code{rhdf5::h5ls(filepath)}.
 }
-\section{Slots}{
+\examples{
+\dontrun{
+ma <- ModelArray("path/to/data.h5", scalar_types = c("FD"))
+ma
+}
 
-\describe{
-\item{\code{sources}}{A list of source filenames}
-
-\item{\code{scalars}}{A list of element-wise scalar matrix}
-
-\item{\code{results}}{A list of statistical result matrix}
-
-\item{\code{path}}{Path to the h5 file on disk}
-}}
-
+}
+\seealso{
+\linkS4class{ModelArray} for the class definition,
+\code{\link{h5summary}} for inspecting an HDF5 file.
+}

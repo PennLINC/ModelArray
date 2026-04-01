@@ -10,29 +10,42 @@ exampleElementData(x, ...)
 \S4method{exampleElementData}{ModelArray}(x, scalar = "FD", i_element = 1L, phenotypes)
 }
 \arguments{
-\item{x}{An ModelArray object}
+\item{x}{A \linkS4class{ModelArray} object.}
 
-\item{...}{Additional arguments (ignored)}
+\item{...}{Additional arguments passed to the method (currently unused
+at the generic level).}
 
-\item{scalar}{A character. The name of the element-wise scalar to append}
+\item{scalar}{Character. The name of the element-wise scalar to append
+as a column. Must be one of \code{names(scalars(x))}. Default is
+\code{"FD"}.}
 
-\item{i_element}{An integer, the i_th element (1-based)}
+\item{i_element}{Integer. The 1-based index of the element whose values
+should be extracted. Must be between 1 and the number of elements for
+the given scalar.}
 
-\item{phenotypes}{A data.frame of the cohort with independent variables/covariates}
+\item{phenotypes}{A data.frame of the cohort with columns of independent
+variables and covariates. Must have the same number of rows as the
+number of source files in the \linkS4class{ModelArray}.}
 }
 \value{
-A data.frame with the additional response column named by `scalar`
+A data.frame: the input \code{phenotypes} with one additional
+column named by \code{scalar} containing that element's values across
+all subjects.
 }
 \description{
-Generic for constructing a per-element data.frame from a `ModelArray`.
-See the `ModelArray` method for details.
-
-Returns a copy of `phenotypes` with an extra column named by `scalar` populated
-with the selected element's values from the `ModelArray`. This mirrors the
-per-element data that `ModelArray.wrap` passes to user functions (`data = dat`).
+Constructs a per-element data.frame from a \linkS4class{ModelArray} that
+mirrors the \code{data} argument passed to user functions by
+\code{\link{ModelArray.wrap}}. This is useful for testing and debugging
+user-supplied functions outside of the full element-wise analysis loop.
 }
 \details{
-Example per-element data.frame for user functions
+Returns a copy of \code{phenotypes} with an extra column named by
+\code{scalar} populated with the selected element's values from the
+\linkS4class{ModelArray}. This mirrors the per-element data that
+\code{\link{ModelArray.wrap}} passes to user functions (as \code{data = dat}).
+
+Use this to verify that your custom function works correctly on a single
+element before committing to a full \code{\link{ModelArray.wrap}} run.
 }
 \examples{
 \dontrun{
@@ -41,5 +54,16 @@ csv_path <- system.file("extdata", "n50_cohort.csv", package = "ModelArray")
 ma <- ModelArray(h5_path, scalar_types = c("FD"))
 phen <- read.csv(csv_path)
 df <- exampleElementData(ma, scalar = "FD", i_element = 1, phenotypes = phen)
+
+# Now test your custom function on this single element:
+my_fun <- function(data, ...) {
+  mod <- lm(FD ~ age + sex, data = data)
+  broom::tidy(mod)
 }
+my_fun(data = df)
+}
+
+}
+\seealso{
+\code{\link{ModelArray.wrap}}, \code{\link{scalars}}
 }

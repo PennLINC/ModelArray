@@ -2,7 +2,12 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{analyseOneElement.gam}
 \alias{analyseOneElement.gam}
-\title{Fit GAM for one element}
+\title{Fit a GAM for a single element
+returns metadata (column names, smooth term names, parametric term names,
+and the smoothing parameter criterion attribute name) used by
+\code{\link{ModelArray.gam}} to initialise the output data.frame. When
+\code{flag_initiate = FALSE}, it returns a numeric vector representing one
+row of the final results matrix.}
 \usage{
 analyseOneElement.gam(
   i_element,
@@ -22,58 +27,87 @@ analyseOneElement.gam(
 )
 }
 \arguments{
-\item{i_element}{An integer, the i_th element, starting from 1.
-For initiating (flag_initiate = TRUE), use i_element=1}
+\item{i_element}{Integer. The 1-based index of the element to analyse.}
 
-\item{formula}{A formula (passed to `mgcv::gam()`)}
+\item{formula}{A \code{\link[stats]{formula}} passed to
+\code{\link[mgcv]{gam}}.}
 
-\item{modelarray}{ModelArray class}
+\item{modelarray}{A \linkS4class{ModelArray} object.}
 
-\item{phenotypes}{A data.frame of the cohort with columns of independent variables
-and covariates to be added to the model}
+\item{phenotypes}{A data.frame of the cohort with columns of independent
+variables and covariates. Must contain a \code{"source_file"} column
+matching \code{sources(modelarray)[[scalar]]}.}
 
-\item{scalar}{A character. The name of the element-wise scalar to be analysed}
+\item{scalar}{Character. The name of the element-wise scalar to analyse.
+Must be one of \code{names(scalars(modelarray))}.}
 
-\item{var.smoothTerms}{The list of variables to save for smooth terms
-(got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".}
+\item{var.smoothTerms}{Character vector. Statistics to extract for smooth
+terms from \code{\link[broom]{tidy.gam}} with \code{parametric = FALSE}
+(e.g. \code{"edf"}, \code{"ref.df"}, \code{"statistic"},
+\code{"p.value"}).}
 
-\item{var.parametricTerms}{The list of variables to save for parametric terms
-(got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".}
+\item{var.parametricTerms}{Character vector. Statistics to extract for
+parametric terms from \code{\link[broom]{tidy.gam}} with
+\code{parametric = TRUE} (e.g. \code{"estimate"}, \code{"std.error"},
+\code{"statistic"}, \code{"p.value"}).}
 
-\item{var.model}{The list of variables to save for the model (got from broom::glance() and summary()).}
+\item{var.model}{Character vector. Statistics to extract for the overall
+model from \code{\link[broom]{glance.gam}} and
+\code{\link[mgcv]{summary.gam}} (e.g. \code{"adj.r.squared"},
+\code{"dev.expl"}, \code{"sp.criterion"}).}
 
-\item{num.subj.lthr}{The minimal number of subjects with valid value in input h5 file,
-i.e. number of subjects with finite values (defined by `is.finite()`,
-i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr},
-then this element will be run normally;
-otherwise, this element will be skipped and statistical outputs will be set as NaN.}
+\item{num.subj.lthr}{Numeric. The pre-computed minimum number of subjects
+with finite values required for this element to be analysed. Elements
+below this threshold are skipped. This value is typically computed by
+the parent function from \code{num.subj.lthr.abs} and
+\code{num.subj.lthr.rel}.}
 
-\item{num.stat.output}{The number of output stat metrics
-(for generating all NaN stat when # subjects does not meet criteria).
-This includes column `element_id`.
-This is required when flag_initiate = TRUE.}
+\item{num.stat.output}{Integer or \code{NULL}. The total number of output
+columns (including \code{element_id}). Used when
+\code{flag_initiate = FALSE} to generate an all-\code{NaN} row for
+skipped elements. Must be \code{NULL} when \code{flag_initiate = TRUE}.}
 
-\item{flag_initiate}{TRUE or FALSE, Whether this is to initiate the new analysis.
-If TRUE, it will return column names etc to be used for initiating data.frame;
-if FALSE, it will return the list of requested statistic values.}
+\item{flag_initiate}{Logical. If \code{TRUE}, fit the model once and return
+metadata for initialising the output data.frame (column names and term
+names). If \code{FALSE}, return a numeric vector of results for this
+element.}
 
-\item{flag_sse}{TRUE or FALSE, Whether to calculate SSE (sum of squared error) for the model (`model.sse`).
-SSE is needed for calculating partial R-squared.}
+\item{flag_sse}{Logical. If \code{TRUE}, also compute the error sum of
+squares (\code{model.sse}) for the model, which is needed for
+partial R-squared calculations in \code{\link{ModelArray.gam}}.
+Default: \code{FALSE}.}
 
-\item{on_error}{Character: one of "stop", "skip", or "debug". When an error occurs while
-fitting one element, choose whether to stop, skip returning all-NaN values for that element,
-or drop into `browser()` (if interactive) then skip. Default: "stop".}
+\item{on_error}{Character. One of \code{"stop"}, \code{"skip"}, or
+\code{"debug"}. When an error occurs fitting the model: \code{"stop"}
+halts execution; \code{"skip"} returns all-\code{NaN} for this element;
+\code{"debug"} drops into \code{\link{browser}} (if interactive) then
+skips. Default: \code{"stop"}.}
 
-\item{...}{Additional arguments for `mgcv::gam()`}
+\item{...}{Additional arguments passed to \code{\link[mgcv]{gam}}.}
 }
 \value{
-If flag_initiate==TRUE, returns column names,
-list of term names of final results, and attr.name of sp.criterion;
-if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
+If \code{flag_initiate = TRUE}, a list with components:
+\describe{
+\item{column_names}{Character vector of output column names.}
+\item{list.smoothTerms}{Character vector of smooth term names.}
+\item{list.parametricTerms}{Character vector of parametric term names.}
+\item{sp.criterion.attr.name}{Character. The name attribute of the
+smoothing parameter selection criterion (e.g. \code{"REML"} or
+\code{"GCV.Cp"}).}
+}
+If \code{flag_initiate = FALSE}, a numeric vector of length
+\code{num.stat.output} with \code{element_id} (0-based) first and
+requested statistics in subsequent positions. All-\code{NaN} (except
+\code{element_id}) if the element was skipped.
 }
 \description{
-`analyseOneElement.gam` fits a GAM model for one element data, and returns requested model statistics.
+If the number of subjects with finite scalar values does not exceed
+\code{num.subj.lthr}, the element is skipped and all statistics are set
+to \code{NaN}.
 }
-\details{
-`ModelArray.gam` iteratively calls this function to get statistics for all requested elements.
+\seealso{
+\code{\link{ModelArray.gam}} which calls this function iteratively,
+\code{\link{analyseOneElement.lm}} for the linear model equivalent,
+\code{\link{analyseOneElement.wrap}} for user-supplied functions.
 }
+\keyword{internal}

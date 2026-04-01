@@ -10,13 +10,31 @@ scalars(x, ...)
 \S4method{scalars}{ModelArray}(x, ...)
 }
 \arguments{
-\item{x}{A ModelArray object}
+\item{x}{A \linkS4class{ModelArray} object.}
 
-\item{...}{Additional arguments. Currently accepts a scalar name (character).}
+\item{...}{Optional: a single character string giving the scalar name to
+extract. If omitted, the entire named list is returned.}
 }
 \value{
-A matrix of element-wise scalar data: elements (row) by source files (column).
+If called with no extra arguments, a named list of
+\linkS4class{DelayedArray} matrices (elements as rows, source files as
+columns). If called with a scalar name, the corresponding single
+\linkS4class{DelayedArray} matrix.
 }
 \description{
-Element-wise scalar data of a ModelArray object
+Retrieve scalar matrices from a \linkS4class{ModelArray}. When called
+with no additional arguments, returns the full named list of all scalar
+matrices. When called with a single scalar name, returns that one matrix.
+}
+\examples{
+\dontrun{
+ma <- ModelArray("data.h5", scalar_types = c("FD", "FC"))
+scalars(ma) # named list of all scalars
+scalars(ma, "FD") # single DelayedArray matrix
+}
+
+}
+\seealso{
+\code{\link{sources}}, \code{\link{results}},
+\code{\link{scalarNames}}, \code{\link{nElements}}
 }

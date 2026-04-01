@@ -219,12 +219,14 @@
     }
   } else {
     if (pbar) {
-      fits <- pbapply::pblapply(element.subset,
+      fits <- pbapply::pblapply(
+        element.subset,
         FUN,
         ...
       )
     } else {
-      fits <- lapply(element.subset,
+      fits <- lapply(
+        element.subset,
         FUN,
         ...
       )

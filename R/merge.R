@@ -1,19 +1,95 @@
-#' Merge multiple ModelArrays from different h5 files
+#' Merge multiple ModelArrays from different HDF5 files
 #'
 #' @description
-#' Combines scalars from multiple ModelArray objects into a single ModelArray,
-#' aligning subjects via phenotype columns. Uses `DelayedArray::acbind()` for
-#' virtual column-binding — no h5 rewriting is needed.
+#' Combines scalars from multiple \linkS4class{ModelArray} objects into a
+#' single \linkS4class{ModelArray}, aligning subjects via shared phenotype
+#' columns. Uses \code{\link[DelayedArray]{acbind}} for virtual
+#' column-binding — no HDF5 rewriting is needed.
 #'
-#' @param modelarrays A list of ModelArray objects
-#' @param phenotypes_list A list of data.frames, one per ModelArray. Each must
-#'   contain a `source_file` column matching its corresponding ModelArray's sources.
-#' @param merge_on Character vector of column names to join phenotypes on
-#'   (e.g., `c("subject_id")`). These columns must exist in all phenotypes data.frames.
-#' @return A list with:
-#'   \item{data}{A combined ModelArray with scalars from all inputs}
-#'   \item{phenotypes}{The inner-joined phenotypes data.frame. The original
-#'     `source_file` columns are renamed to `source_file.<scalar_name>`.}
+#' @details
+#' The merge performs an inner join of the phenotype data.frames on the
+#' columns specified by \code{merge_on}. Only subjects present in all
+#' phenotype data.frames are retained. Scalar matrices from each input
+#' \linkS4class{ModelArray} are column-subsetted and reordered to match
+#' the joined subject list.
+#'
+#' A unified \code{source_file} column is created from the \code{merge_on}
+#' columns so that downstream analysis functions
+#' (\code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}},
+#' \code{\link{ModelArray.wrap}}) can align phenotypes to scalars. The
+#' original \code{source_file} columns are renamed to
+#' \code{source_file.<first_scalar_name>} for each input
+#' \linkS4class{ModelArray}.
+#'
+#' Scalar names must be unique across all input ModelArrays. If two
+#' ModelArrays share a scalar name (e.g. both have \code{"FD"}), the
+#' function will error. Element counts (number of rows) must match
+#' across all scalars.
+#'
+#' If element metadata is available (see \code{\link{elementMetadata}}),
+#' the function checks that it is consistent across inputs and warns if
+#' it differs or is only partially available.
+#'
+#' @param modelarrays A list of at least two \linkS4class{ModelArray}
+#'   objects, each constructed from a different HDF5 file.
+#' @param phenotypes_list A list of data.frames, one per
+#'   \linkS4class{ModelArray} in \code{modelarrays}. Each must contain a
+#'   \code{source_file} column whose entries match the corresponding
+#'   ModelArray's sources (i.e. \code{sources(modelarrays[[i]])}).
+#'   Each must also contain all columns named in \code{merge_on}.
+#' @param merge_on Character vector of column names present in all
+#'   data.frames in \code{phenotypes_list}, used to inner-join subjects
+#'   across sessions/modalities (e.g. \code{c("subject_id")}). The
+#'   combination of these columns must uniquely identify each subject
+#'   within each data.frame.
+#'
+#' @return A list with two components:
+#'   \describe{
+#'     \item{data}{A combined \linkS4class{ModelArray} containing scalars
+#'       from all inputs. Each scalar's columns are subsetted and reordered
+#'       to match the inner-joined subject list.}
+#'     \item{phenotypes}{The inner-joined data.frame. Original
+#'       \code{source_file} columns are renamed to
+#'       \code{source_file.<scalar_name>} and a new unified
+#'       \code{source_file} column is added for use with analysis
+#'       functions.}
+#'   }
+#'
+#' @seealso \code{\link{ModelArray}} for constructing individual
+#'   ModelArray objects, \code{\link{ModelArray.lm}},
+#'   \code{\link{ModelArray.gam}}, \code{\link{ModelArray.wrap}} for
+#'   fitting models on the merged object,
+#'   \code{\link{elementMetadata}} for element correspondence checks.
+#'
+#' @examples
+#' \dontrun{
+#' # Load two sessions from different h5 files
+#' ma1 <- ModelArray("session1.h5", scalar_types = c("FD"))
+#' ma2 <- ModelArray("session2.h5", scalar_types = c("FC"))
+#' phen1 <- read.csv("session1_cohort.csv")
+#' phen2 <- read.csv("session2_cohort.csv")
+#'
+#' # Merge on subject ID
+#' merged <- mergeModelArrays(
+#'   modelarrays = list(ma1, ma2),
+#'   phenotypes_list = list(phen1, phen2),
+#'   merge_on = "subject_id"
+#' )
+#'
+#' # Use the merged object for cross-scalar analysis
+#' merged$data
+#' scalarNames(merged$data) # c("FD", "FC")
+#' head(merged$phenotypes)
+#'
+#' results <- ModelArray.lm(
+#'   FD ~ age + sex + FC,
+#'   data = merged$data,
+#'   phenotypes = merged$phenotypes,
+#'   scalar = c("FD", "FC")
+#' )
+#' }
+#'
+#' @rdname mergeModelArrays
 #' @importFrom DelayedArray acbind
 #' @importFrom utils head
 #' @export

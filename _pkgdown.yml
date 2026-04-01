@@ -1,6 +1,10 @@
 url: https://pennlinc.github.io/ModelArray/
+
 template:
   bootstrap: 5
+
+development:
+  mode: auto
 
 navbar:
   structure:
@@ -36,6 +40,65 @@ navbar:
           href: articles/container.html
         - text: "Developer Documentation"
           href: articles/doc_for_developer.html
+
+reference:
+- title: "ModelArray Class"
+  desc: >
+    Create, load, and combine ModelArray objects backed by HDF5 files.
+  contents:
+  - ModelArray-class
+  - ModelArray
+  - h5summary
+  - mergeModelArrays
+
+- title: "Accessors"
+  desc: >
+    Extract scalar data, source filenames, results, and metadata from a
+    ModelArray object.
+  contents:
+  - scalars
+  - sources
+  - results
+  - scalarNames
+  - analysisNames
+  - nElements
+  - nInputFiles
+  - numElementsTotal
+  - elementMetadata
+
+- title: "Element-wise Analysis"
+  desc: >
+    Fit statistical models at every element (fixel, voxel, or vertex)
+    in a ModelArray and write results back to HDF5.
+  contents:
+  - ModelArray.lm
+  - ModelArray.gam
+  - ModelArray.wrap
+  - writeResults
+
+- title: "Testing and Debugging"
+  desc: >
+    Build per-element test data and inspect your setup before committing
+    to a full analysis run.
+  contents:
+  - exampleElementData
+
+- title: "Formula Helpers"
+  desc: >
+    Generate GAM formulas for common interaction structures used with
+    ModelArray.gam.
+  contents:
+  - gen_gamFormula_fxSmooth
+  - gen_gamFormula_contIx
+
+- title: "Internal"
+  desc: >
+    Per-element workhorse functions called by the analysis functions.
+    Most users should not need to call these directly.
+  contents:
+  - analyseOneElement.lm
+  - analyseOneElement.gam
+  - analyseOneElement.wrap
 
 redirects:
   - ["articles/wrap.html", "articles/modelling.html"]

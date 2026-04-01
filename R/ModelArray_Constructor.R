@@ -1,16 +1,47 @@
-# Exported Functions
-
-### setClass of "ModelArray" #####
-#' An S4 class to represent element-wise scalar data and statistics.
+#' ModelArray class
 #'
-#' @slot sources A list of source filenames
-#' @slot scalars A list of element-wise scalar matrix
-#' @slot results A list of statistical result matrix
-#' @slot path Path to the h5 file on disk
+#' ModelArray is an S4 class that represents element-wise scalar data and
+#' associated statistical results backed by an HDF5 file on disk.
+#'
+#' @description
+#' A ModelArray wraps one or more element-wise scalar matrices (e.g., FD, FC,
+#' log_FC for fixel data) read lazily via \pkg{DelayedArray}, along with any
+#' previously saved analysis results. The object holds references to the
+#' underlying HDF5 file and reads data on demand, making it suitable for
+#' large-scale neuroimaging datasets.
+#'
+#' @details
+#' Each scalar in the HDF5 file is stored at \code{/scalars/<name>/values}
+#' as a matrix of elements (rows) by source files (columns). Source filenames
+#' are read from HDF5 attributes or companion datasets. Analysis results, if
+#' present, live under \code{/results/<analysis_name>/results_matrix}.
+#'
+#' ModelArray objects are typically created with the \code{\link{ModelArray}}
+#' constructor function. Element-wise models are fit with
+#' \code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}}, or
+#' \code{\link{ModelArray.wrap}}.
+#'
+#' @slot sources A named list of character vectors. Each element corresponds
+#'   to a scalar and contains the source filenames (one per input file/subject).
+#' @slot scalars A named list of \linkS4class{DelayedArray} matrices.
+#'   Each matrix has elements as rows and source files as columns.
+#' @slot results A named list of analysis results. Each element is itself a
+#'   list containing at minimum \code{results_matrix} (a
+#'   \linkS4class{DelayedArray}).
+#' @slot path Character. Path(s) to the HDF5 file(s) on disk.
+#'
+#' @seealso \code{\link{ModelArray}} for the constructor,
+#'   \code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}},
+#'   \code{\link{ModelArray.wrap}} for analysis,
+#'   \code{\link{scalars}}, \code{\link{sources}}, \code{\link{results}} for
+#'   accessors.
+#'
+#' @aliases ModelArray-class
+#' @rdname ModelArray-class
 #' @importClassesFrom DelayedArray DelayedArray
+#' @exportClass ModelArray
 ModelArray <- setClass(
   "ModelArray",
-  # contains="DelayedArray",
   slots = c(
     results = "list",
     sources = "list",
@@ -18,8 +49,6 @@ ModelArray <- setClass(
     path = "character"
   )
 )
-
-
 
 #' ModelArraySeed
 #'
@@ -42,22 +71,47 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 }
 
 
-
-#' Load element-wise data from .h5 file as an ModelArray object
+#' Load element-wise data from an HDF5 file
 #'
-#' @details:
-#' Tips for debugging:
-#' if you run into this error: "Error in h(simpleError(msg, call)) :
-#' error in evaluating the argument 'seed' in selecting a method for
-#' function 'DelayedArray': HDF5. Symbol table. Can't open object."
-#' Then please check if you give correct "scalar_types" - check via
-#' rhdf5::h5ls(filename_for_h5)
+#' @description
+#' Reads scalar matrices and (optionally) saved analysis results from
+#' an HDF5 file and returns a \linkS4class{ModelArray} object.
 #'
-#' @param filepath file
-#' @param scalar_types expected scalars
-#' @param analysis_names the subfolder names for results in .h5 file. If empty
-#' (default), results are not read.
-#' @return ModelArray object
+#' @details
+#' The constructor reads each scalar listed in \code{scalar_types} from
+#' \code{/scalars/<scalar_type>/values}, wrapping them as
+#' \linkS4class{DelayedArray} objects. Source filenames are extracted
+#' from HDF5 attributes or companion datasets.
+#'
+#' If \code{analysis_names} is non-empty, saved results are loaded from
+#' \code{/results/<name>/results_matrix}.
+#'
+#' \strong{Debugging tip:} If you encounter
+#' \code{"error in evaluating the argument 'seed'..."}, check that
+#' \code{scalar_types} matches groups in the file. Inspect with
+#' \code{rhdf5::h5ls(filepath)}.
+#'
+#' @param filepath Character. Path to an existing HDF5 (\code{.h5})
+#'   file containing element-wise scalar data.
+#' @param scalar_types Character vector. Names of scalar groups to read
+#'   from \code{/scalars/} in the HDF5 file. Default is \code{c("FD")}.
+#'   Must match group names in the file.
+#' @param analysis_names Character vector. Subfolder names under
+#'   \code{/results/} to load. Default is \code{character(0)} (none).
+#'
+#' @return A \linkS4class{ModelArray} object.
+#'
+#' @seealso \linkS4class{ModelArray} for the class definition,
+#'   \code{\link{h5summary}} for inspecting an HDF5 file.
+#'
+#' @examples
+#' \dontrun{
+#' ma <- ModelArray("path/to/data.h5", scalar_types = c("FD"))
+#' ma
+#' }
+#'
+#' @rdname ModelArray
+#' @aliases ModelArray
 #' @export
 #' @import methods
 #' @importFrom dplyr %>%
@@ -344,42 +398,65 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
   numElementsTotal
 }
 
-#' Fit linear model for one element.
+#' Fit a linear model for a single element
+#' If the number of subjects with finite scalar values (not \code{NaN},
+#' \code{NA}, or \code{Inf}) does not exceed \code{num.subj.lthr}, the
+#' element is skipped and all statistics are set to \code{NaN}.
 #'
-#' @description
-#' `analyseOneElement.lm` fits a linear model for one element data, and returns requested model statistics.
+#' @param i_element Integer. The 1-based index of the element to analyse.
+#' @param formula A \code{\link[stats]{formula}} passed to
+#'   \code{\link[stats]{lm}}.
+#' @param modelarray A \linkS4class{ModelArray} object.
+#' @param phenotypes A data.frame of the cohort with columns of independent
+#'   variables and covariates. Must contain a \code{"source_file"} column
+#'   matching \code{sources(modelarray)[[scalar]]}.
+#' @param scalar Character. The name of the element-wise scalar to analyse.
+#'   Must be one of \code{names(scalars(modelarray))}.
+#' @param var.terms Character vector. Statistics to extract per term from
+#'   \code{\link[broom]{tidy.lm}} (e.g. \code{"estimate"}, \code{"statistic"},
+#'   \code{"p.value"}).
+#' @param var.model Character vector. Statistics to extract for the overall
+#'   model from \code{\link[broom]{glance.lm}} (e.g. \code{"adj.r.squared"},
+#'   \code{"p.value"}).
+#' @param num.subj.lthr Numeric. The pre-computed minimum number of subjects
+#'   with finite values required for this element to be analysed. Elements
+#'   below this threshold are skipped. This value is typically computed by
+#'   the parent function from \code{num.subj.lthr.abs} and
+#'   \code{num.subj.lthr.rel}.
+#' @param num.stat.output Integer or \code{NULL}. The total number of output
+#'   columns (including \code{element_id}). Used when
+#'   \code{flag_initiate = FALSE} to generate an all-\code{NaN} row for
+#'   skipped elements. Must be \code{NULL} when \code{flag_initiate = TRUE}.
+#' @param flag_initiate Logical. If \code{TRUE}, fit the model once and return
+#'   metadata for initialising the output data.frame (column names and term
+#'   names). If \code{FALSE}, return a numeric vector of results for this
+#'   element.
+#' @param on_error Character. One of \code{"stop"}, \code{"skip"}, or
+#'   \code{"debug"}. When an error occurs fitting the model: \code{"stop"}
+#'   halts execution; \code{"skip"} returns all-\code{NaN} for this element;
+#'   \code{"debug"} drops into \code{\link{browser}} (if interactive) then
+#'   skips. Default: \code{"stop"}.
+#' @param ... Additional arguments passed to \code{\link[stats]{lm}}.
 #'
-#' @details
-#' `ModelArray.lm` iteratively calls this function to get statistics for all requested elements.
+#' @return If \code{flag_initiate = TRUE}, a list with components:
+#'   \describe{
+#'     \item{column_names}{Character vector. The column names for the output
+#'       data.frame, with \code{"element_id"} first.}
+#'     \item{list.terms}{Character vector. The names of the model terms
+#'       (from \code{\link[broom]{tidy.lm}}).}
+#'   }
+#'   If \code{flag_initiate = FALSE}, a numeric vector of length
+#'   \code{num.stat.output} with \code{element_id} (0-based) as the first
+#'   value and the requested statistics in subsequent positions. All-\code{NaN}
+#'   (except \code{element_id}) if the element had insufficient valid subjects
+#'   or if an error occurred with \code{on_error = "skip"}.
 #'
-#' @param i_element An integer, the i_th element, starting from 1.
-#' For initiating (flag_initiate = TRUE), use i_element=1
-#' @param formula Formula (passed to `stats::lm()`)
-#' @param modelarray ModelArray class
-#' @param phenotypes A data.frame of the cohort with columns of independent variables
-#' and covariates to be added to the model.
-#' @param scalar A character. The name of the element-wise scalar to be analysed
-#' @param var.terms A list of characters. The list of variables to save for terms (got from `broom::tidy()`).
-#' @param var.model A list of characters. The list of variables to save for the model (got from `broom::glance()`).
-#' @param num.subj.lthr The minimal number of subjects with valid value in input h5 file,
-#' i.e. number of subjects with finite values (defined by `is.finite()`,
-#' i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr},
-#' then this element will be run normally;
-#' otherwise, this element will be skipped and statistical outputs will be set as NaN.
-#' @param num.stat.output The number of output stat metrics
-#' (for generating all NaN stat when # subjects does not meet criteria).
-#' This includes column `element_id`.
-#' This is required when flag_initiate = TRUE.
-#' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis.
-#' If TRUE, it will return column names etc to be used for initiating data.frame;
-#' if FALSE, it will return the list of requested statistic values.
-#' @param ... Additional arguments for `stats::lm()`
-#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs while
-#' fitting one element, choose whether to stop, skip returning all-NaN values for that element,
-#' or drop into `browser()` (if interactive) then skip. Default: "stop".
+#' @seealso \code{\link{ModelArray.lm}} which calls this function iteratively,
+#'   \code{\link{analyseOneElement.gam}} for the GAM equivalent,
+#'   \code{\link{analyseOneElement.wrap}} for user-supplied functions.
 #'
-#' @return If flag_initiate==TRUE, returns column names, and list of term names of final results;
-#' if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
+#' @keywords internal
+#' @rdname analyseOneElement.lm
 #' @export
 #' @importFrom stats lm
 #' @import broom
@@ -652,47 +729,60 @@ analyseOneElement.lm <- function(i_element,
     }
   }
 }
-#' Fit GAM for one element
+
+#' Fit a GAM for a single element
+#' returns metadata (column names, smooth term names, parametric term names,
+#' and the smoothing parameter criterion attribute name) used by
+#' \code{\link{ModelArray.gam}} to initialise the output data.frame. When
+#' \code{flag_initiate = FALSE}, it returns a numeric vector representing one
+#' row of the final results matrix.
 #'
-#' @description
-#' `analyseOneElement.gam` fits a GAM model for one element data, and returns requested model statistics.
+#' If the number of subjects with finite scalar values does not exceed
+#' \code{num.subj.lthr}, the element is skipped and all statistics are set
+#' to \code{NaN}.
 #'
-#' @details
-#' `ModelArray.gam` iteratively calls this function to get statistics for all requested elements.
+#' @inheritParams analyseOneElement.lm
 #'
-#' @param i_element An integer, the i_th element, starting from 1.
-#' For initiating (flag_initiate = TRUE), use i_element=1
-#' @param formula A formula (passed to `mgcv::gam()`)
-#' @param modelarray ModelArray class
-#' @param phenotypes A data.frame of the cohort with columns of independent variables
-#' and covariates to be added to the model
-#' @param scalar A character. The name of the element-wise scalar to be analysed
-#' @param var.smoothTerms The list of variables to save for smooth terms
-#' (got from broom::tidy(parametric = FALSE)). Example smooth term: age in formula "outcome ~ s(age)".
-#' @param var.parametricTerms The list of variables to save for parametric terms
-#' (got from broom::tidy(parametric = TRUE)). Example parametric term: sex in formula "outcome ~ s(age) + sex".
-#' @param var.model The list of variables to save for the model (got from broom::glance() and summary()).
-#' @param num.subj.lthr The minimal number of subjects with valid value in input h5 file,
-#' i.e. number of subjects with finite values (defined by `is.finite()`,
-#' i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr},
-#' then this element will be run normally;
-#' otherwise, this element will be skipped and statistical outputs will be set as NaN.
-#' @param num.stat.output The number of output stat metrics
-#' (for generating all NaN stat when # subjects does not meet criteria).
-#' This includes column `element_id`.
-#' This is required when flag_initiate = TRUE.
-#' @param flag_initiate TRUE or FALSE, Whether this is to initiate the new analysis.
-#' If TRUE, it will return column names etc to be used for initiating data.frame;
-#' if FALSE, it will return the list of requested statistic values.
-#' @param flag_sse TRUE or FALSE, Whether to calculate SSE (sum of squared error) for the model (`model.sse`).
-#' SSE is needed for calculating partial R-squared.
-#' @param ... Additional arguments for `mgcv::gam()`
-#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs while
-#' fitting one element, choose whether to stop, skip returning all-NaN values for that element,
-#' or drop into `browser()` (if interactive) then skip. Default: "stop".
-#' @return If flag_initiate==TRUE, returns column names,
-#' list of term names of final results, and attr.name of sp.criterion;
-#' if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
+#' @param formula A \code{\link[stats]{formula}} passed to
+#'   \code{\link[mgcv]{gam}}.
+#' @param var.smoothTerms Character vector. Statistics to extract for smooth
+#'   terms from \code{\link[broom]{tidy.gam}} with \code{parametric = FALSE}
+#'   (e.g. \code{"edf"}, \code{"ref.df"}, \code{"statistic"},
+#'   \code{"p.value"}).
+#' @param var.parametricTerms Character vector. Statistics to extract for
+#'   parametric terms from \code{\link[broom]{tidy.gam}} with
+#'   \code{parametric = TRUE} (e.g. \code{"estimate"}, \code{"std.error"},
+#'   \code{"statistic"}, \code{"p.value"}).
+#' @param var.model Character vector. Statistics to extract for the overall
+#'   model from \code{\link[broom]{glance.gam}} and
+#'   \code{\link[mgcv]{summary.gam}} (e.g. \code{"adj.r.squared"},
+#'   \code{"dev.expl"}, \code{"sp.criterion"}).
+#' @param flag_sse Logical. If \code{TRUE}, also compute the error sum of
+#'   squares (\code{model.sse}) for the model, which is needed for
+#'   partial R-squared calculations in \code{\link{ModelArray.gam}}.
+#'   Default: \code{FALSE}.
+#' @param ... Additional arguments passed to \code{\link[mgcv]{gam}}.
+#'
+#' @return If \code{flag_initiate = TRUE}, a list with components:
+#'   \describe{
+#'     \item{column_names}{Character vector of output column names.}
+#'     \item{list.smoothTerms}{Character vector of smooth term names.}
+#'     \item{list.parametricTerms}{Character vector of parametric term names.}
+#'     \item{sp.criterion.attr.name}{Character. The name attribute of the
+#'       smoothing parameter selection criterion (e.g. \code{"REML"} or
+#'       \code{"GCV.Cp"}).}
+#'   }
+#'   If \code{flag_initiate = FALSE}, a numeric vector of length
+#'   \code{num.stat.output} with \code{element_id} (0-based) first and
+#'   requested statistics in subsequent positions. All-\code{NaN} (except
+#'   \code{element_id}) if the element was skipped.
+#'
+#' @seealso \code{\link{ModelArray.gam}} which calls this function iteratively,
+#'   \code{\link{analyseOneElement.lm}} for the linear model equivalent,
+#'   \code{\link{analyseOneElement.wrap}} for user-supplied functions.
+#'
+#' @keywords internal
+#' @rdname analyseOneElement.gam
 #' @export
 #' @import mgcv
 #' @import broom
@@ -1083,36 +1173,65 @@ analyseOneElement.gam <- function(i_element,
 }
 
 
-#' Run a user-supplied function for one element
+#' Run a user-supplied function for a single element
 #'
 #' @description
-#' `analyseOneElement.wrap` runs a user-supplied function `FUN` on a single element's data.
-#' It prepares the per-element data by attaching the element values as a new column named by `scalar`
-#' to the provided `phenotypes` data.frame, then calls `FUN(data = dat, ...)`.
+#' Runs a user-supplied function on one element's data, preparing the
+#' per-element data.frame by attaching all scalar values as new columns to
+#' the provided \code{phenotypes}. This is the per-element workhorse called
+#' iteratively by \code{\link{ModelArray.wrap}}.
 #'
 #' @details
-#' The user-supplied `FUN` should return either a one-row data.frame/tibble, a named list, or a named vector.
-#' The result will be coerced to a one-row tibble and combined into the final results matrix across elements.
+#' Most users should call \code{\link{ModelArray.wrap}} directly, which handles
+#' looping, parallelisation, and result assembly.
+#' \code{analyseOneElement.wrap} is exported for advanced use cases such as
+#' debugging a single element or building custom analysis loops.
 #'
-#' @param i_element An integer, the i_th element, starting from 1.
-#' @param user_fun A function that accepts at least an argument named `data` (the per-element
-#' `phenotypes` with the response column appended) and returns a one-row data.frame/tibble,
-#' named list, or named vector.
-#' @param modelarray ModelArray class
-#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates
-#' @param scalar A character. The name of the element-wise scalar to be analysed
-#' @param num.subj.lthr The minimal number of subjects with valid value in input h5 file
-#' @param num.stat.output The number of output stat metrics (including `element_id`).
-#' Required when `flag_initiate = TRUE`.
-#' @param flag_initiate TRUE or FALSE, whether this is to initiate the new analysis to get column names
-#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs while
-#' executing the user function, choose whether to stop, skip returning all-NaN values for this
-#' element, or drop into `browser()` (if interactive) then skip. Default: "stop".
-#' @param ... Additional arguments forwarded to `FUN`
+#' The user-supplied \code{user_fun} is called as
+#' \code{user_fun(data = dat, ...)} where \code{dat} is \code{phenotypes} with
+#' columns appended for \strong{all} scalars in the \linkS4class{ModelArray}
+#' (not just the one named by \code{scalar}). The function should return a
+#' one-row data.frame/tibble, a named list, or a named atomic vector. The
+#' result is coerced to a numeric vector for assembly into the final results
+#' matrix.
 #'
-#' @return If `flag_initiate==TRUE`, returns a list with `column_names`.
-#' If `flag_initiate==FALSE`, returns a numeric vector representing the one-row result for this element
-#' with `element_id` as the first value.
+#' Unlike \code{\link{analyseOneElement.lm}} and
+#' \code{\link{analyseOneElement.gam}}, this function appends \strong{all}
+#' scalar columns (not just the response) and checks for column name
+#' collisions between scalar names and existing \code{phenotypes} columns.
+#'
+#' If the number of subjects with finite values across all scalars does not
+#' exceed \code{num.subj.lthr}, the element is skipped and all statistics
+#' are set to \code{NaN}.
+#'
+#' @inheritParams analyseOneElement.lm
+#'
+#' @param user_fun A function that accepts at least an argument named
+#'   \code{data} (a data.frame: \code{phenotypes} with scalar columns
+#'   appended for the current element) and returns a one-row
+#'   data.frame/tibble, a named list, or a named atomic vector.
+#' @param ... Additional arguments forwarded to \code{user_fun}.
+#'
+#' @return If \code{flag_initiate = TRUE}, a list with one component:
+#'   \describe{
+#'     \item{column_names}{Character vector. The column names derived from
+#'       the return value of \code{user_fun}, with \code{"element_id"}
+#'       prepended.}
+#'   }
+#'   If \code{flag_initiate = FALSE}, a numeric vector of length
+#'   \code{num.stat.output} with \code{element_id} (0-based) first and
+#'   the coerced output of \code{user_fun} in subsequent positions.
+#'   All-\code{NaN} (except \code{element_id}) if the element was skipped
+#'   or if an error occurred with \code{on_error = "skip"}.
+#'
+#' @seealso \code{\link{ModelArray.wrap}} which calls this function
+#'   iteratively, \code{\link{exampleElementData}} for building a test
+#'   data.frame matching the format passed to \code{user_fun},
+#'   \code{\link{analyseOneElement.lm}} for the linear model equivalent,
+#'   \code{\link{analyseOneElement.gam}} for the GAM equivalent.
+#'
+#' @keywords internal
+#' @rdname analyseOneElement.wrap
 #' @export
 #' @importFrom dplyr %>%
 #' @import tibble
@@ -1268,21 +1387,76 @@ analyseOneElement.wrap <- function(i_element,
   }
 }
 
-#' Write outputs from element-wise statistical analysis to the HDF5 file.
+#' Write outputs from element-wise statistical analysis to an HDF5 file
 #'
 #' @description
-#' Create a group named `analysis_name` in HDF5 file,
-#' then write the statistical results data.frame (i.e. for one analysis) in it.
+#' Creates a group named \code{analysis_name} under \code{/results/} in the
+#' HDF5 file, then writes the statistical results data.frame (i.e. for one
+#' analysis) into it as \code{results_matrix} along with column names.
 #'
 #' @details
-#' debug tip: For "Error in H5File.open(filename, mode, file_create_pl, file_access_pl)",
-#' check if there is message 'No such file or directory'. Try absolute .h5 filename.
+#' The results are stored at
+#' \code{/results/<analysis_name>/results_matrix} with column names saved
+#' as a separate dataset at
+#' \code{/results/<analysis_name>/column_names}.
 #'
-#' @param fn.output A character, The HDF5 (.h5) filename for the output
-#' @param df.output A data.frame object with element-wise statistical results, returned from `ModelArray.lm()` etc
-#' @param analysis_name A character, the name of the results
-#' @param overwrite If a group with the same analysis_name exists in HDF5 file,
-#' whether overwrite it (TRUE) or not (FALSE)
+#' If any column of \code{df.output} is not numeric or integer, it is
+#' coerced to numeric via \code{factor()} and the factor levels are saved
+#' as a look-up table at
+#' \code{/results/<analysis_name>/lut_forcol<i>}.
+#'
+#' \strong{Debugging tip:} If you encounter
+#' \code{"Error in H5File.open(filename, mode, file_create_pl, file_access_pl)"},
+#' check if the message mentions "No such file or directory". Try using an
+#' absolute path for the \code{fn.output} argument.
+#'
+#' @param fn.output Character. The HDF5 (\code{.h5}) filename for the output.
+#'   The file must already exist; use an absolute path if you encounter
+#'   file-not-found errors.
+#' @param df.output A data.frame of element-wise statistical results, as
+#'   returned by \code{\link{ModelArray.lm}},
+#'   \code{\link{ModelArray.gam}}, or \code{\link{ModelArray.wrap}}.
+#'   Must inherit from \code{data.frame}.
+#' @param analysis_name Character. The name for this set of results. Used
+#'   as the group name under \code{/results/} in the HDF5 file.
+#'   Default is \code{"myAnalysis"}.
+#' @param overwrite Logical. If a group with the same \code{analysis_name}
+#'   already exists in the HDF5 file, whether to overwrite it (\code{TRUE})
+#'   or skip with a warning (\code{FALSE}). Default is \code{TRUE}.
+#'
+#' @return Invisible \code{NULL}. Called for its side effect of writing
+#'   results to the HDF5 file.
+#'
+#' @seealso \code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}},
+#'   \code{\link{ModelArray.wrap}} which produce the \code{df.output},
+#'   \code{\link{results}} for reading results back from a
+#'   \linkS4class{ModelArray}, \code{\link{h5summary}} for inspecting what
+#'   has been written.
+#'
+#' @examples
+#' \dontrun{
+#' ma <- ModelArray("data.h5", scalar_types = c("FD"))
+#' phenotypes <- read.csv("cohort.csv")
+#'
+#' results <- ModelArray.lm(
+#'   FD ~ age + sex,
+#'   data = ma,
+#'   phenotypes = phenotypes,
+#'   scalar = "FD"
+#' )
+#'
+#' writeResults(
+#'   fn.output = "data.h5",
+#'   df.output = results,
+#'   analysis_name = "lm_age_sex",
+#'   overwrite = TRUE
+#' )
+#'
+#' # Verify
+#' h5summary("data.h5")
+#' }
+#'
+#' @rdname writeResults
 #' @import hdf5r
 #' @export
 writeResults <- function(fn.output,

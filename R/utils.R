@@ -25,7 +25,6 @@ flagObjectExistInh5 <- function(fn_h5, group_name = "/results", object_name = "m
 }
 
 
-
 #' check if h5 group "results" exist in current .h5 file
 #' @param fn_h5 filename of the .h5 file
 #' @noRd
@@ -77,7 +76,7 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
 #' print the additional arguments settings
 #' @param FUN The function, e.g. mgcv::gam, without "()"
 #' @param argu_name The argument name of the function
-#' @param dots: list of additional arguments
+#' @param dots list of additional arguments
 #' @param message_default The message for default
 #' @param message_usr_input The message describing user's input
 #' @importFrom crayon black
@@ -155,8 +154,8 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 #' @details
 #' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/s
 #'
-#' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula);
-#' ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
+#' @param ofInterest got via: `gam.formula.breakdown <- mgcv::interpret.gam(formula)`;
+#' `ofInterest <- gam.formula.breakdown$smooth.spec[[i]]`
 #' @importFrom mgcv s
 #' @importFrom dplyr %>%
 #' @importFrom crayon black
@@ -234,8 +233,8 @@ checker_gam_s <- function(ofInterest) {
 #' ref: https://www.rdocumentation.org/packages/mgcv/versions/1.8-38/topics/te or /t2()
 #'
 #' @param FUN could be mgcv::te(), ti() or t2()
-#' @param ofInterest got via: gam.formula.breakdown <- mgcv::interpret.gam(formula);
-#' ofInterest <- gam.formula.breakdown$smooth.spec[[i]]
+#' @param ofInterest got via: `gam.formula.breakdown <- mgcv::interpret.gam(formula)`;
+#' `ofInterest <- gam.formula.breakdown$smooth.spec[[i]]`
 #' @importFrom mgcv te ti t2
 #' @importFrom dplyr %>%
 #' @importFrom crayon black
@@ -346,27 +345,83 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL)
 #' Generate GAM formula with factor-smooth interaction
 #'
 #' @description
-#' This function will generate a formula in the following format:
-#' \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor)},
+#' Generates a formula in the format
+#' \code{y ~ orderedFactor + s(x) + s(x, by = orderedFactor)},
 #' where \code{y} is \code{response.var}, \code{x} is \code{smooth.var},
-#' and \code{orderedFactor} is \code{factor.var} - see \code{factor.var} for more.
-#' The formula generated could be further modified, e.g. adding covariates.
+#' and \code{orderedFactor} is \code{factor.var}.
+#' The formula generated can be further modified, e.g. by adding covariates.
 #'
-#' @param response.var character class, the variable name for response
-#' @param factor.var character class, the variable name for factor. It should be an ordered factor.
-#' If not, it will generate it as a new column in `phenotypes`, which requires `reference.group`.
-#' @param smooth.var character class, the variable name in smooth term as main effect
-#' @param phenotypes data.frame class, the cohort matrix with columns of independent variables (including
-#' \code{factor.var} and \code{smooth.var}) to be added to the model
-#' @param reference.group character class, the reference group for ordered factor of `factor.var`; required when
-#' `factor.var` in `phenotypes` is not an ordered factor.
-#' @param prefix.ordered.factor character class, the prefix for ordered factor; required when `factor.var` in
-#' `phenotypes` is not an ordered factor.
-#' @param fx TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.
-#' @param k integer, to be used in smooth term including the interaction term. If NULL (no entry), will use default
-#' value as in mgcv::s()
-#' @return a list, including: 1) formula generated; 2) data.frame phenotypes - updated if argument factor.var
-#' is not an ordered factor
+#' @details
+#' This helper exists because setting up factor-smooth interactions in
+#' \code{\link[mgcv]{gam}} requires an ordered factor and a specific formula
+#' structure. If \code{factor.var} in \code{phenotypes} is not already an
+#' ordered factor, this function creates one using \code{reference.group} as
+#' the baseline level and adds it as a new column (named with
+#' \code{prefix.ordered.factor} prepended to \code{factor.var}).
+#'
+#' The returned \code{phenotypes} data.frame must be used in the subsequent
+#' \code{\link{ModelArray.gam}} call so that the ordered factor column is
+#' available to the model.
+#'
+#' @param response.var Character. The variable name for the response
+#'   (dependent variable), typically a scalar name like \code{"FD"}.
+#' @param factor.var Character. The variable name for the factor. It should
+#'   be an ordered factor in \code{phenotypes}. If not, an ordered factor
+#'   will be generated as a new column, which requires \code{reference.group}.
+#' @param smooth.var Character. The variable name for the smooth term main
+#'   effect (e.g. \code{"age"}).
+#' @param phenotypes A data.frame of the cohort with columns of independent
+#'   variables, including \code{factor.var} and \code{smooth.var}.
+#' @param reference.group Character. The reference (baseline) group for the
+#'   ordered factor of \code{factor.var}. Required when \code{factor.var}
+#'   in \code{phenotypes} is not already an ordered factor.
+#' @param prefix.ordered.factor Character. Prefix for the ordered factor
+#'   column name. Required when \code{factor.var} in \code{phenotypes} is
+#'   not already an ordered factor. Default is \code{"o"}.
+#' @param fx Logical. Passed to \code{\link[mgcv]{s}}. If \code{TRUE}
+#'   (recommended), the smooth is treated as fixed degrees of freedom.
+#'   Default is \code{TRUE}.
+#' @param k Integer or \code{NULL}. Basis dimension passed to
+#'   \code{\link[mgcv]{s}} for both the main smooth and interaction terms.
+#'   If \code{NULL} (default), uses the default from \code{mgcv::s()}.
+#'
+#' @return A list with two components:
+#'   \describe{
+#'     \item{formula}{The generated \code{\link[stats]{formula}} object.}
+#'     \item{phenotypes}{The (possibly updated) data.frame. If
+#'       \code{factor.var} was not already an ordered factor, a new column
+#'       named \code{paste0(prefix.ordered.factor, factor.var)} is added.
+#'       Otherwise identical to the input.}
+#'   }
+#'
+#' @seealso \code{\link{gen_gamFormula_contIx}} for continuous-by-continuous
+#'   interactions, \code{\link{ModelArray.gam}} which accepts the generated
+#'   formula.
+#'
+#' @examples
+#' \dontrun{
+#' phenotypes <- read.csv("cohort.csv")
+#'
+#' # factor.var is not yet ordered - function creates it
+#' result <- gen_gamFormula_fxSmooth(
+#'   response.var = "FD",
+#'   factor.var = "sex",
+#'   smooth.var = "age",
+#'   phenotypes = phenotypes,
+#'   reference.group = "female"
+#' )
+#' result$formula
+#'
+#' # Use the updated phenotypes (contains the ordered factor column)
+#' results <- ModelArray.gam(
+#'   result$formula,
+#'   data = ma,
+#'   phenotypes = result$phenotypes,
+#'   scalar = "FD"
+#' )
+#' }
+#'
+#' @rdname gen_gamFormula_fxSmooth
 #' @importFrom mgcv s
 #' @importFrom stats as.formula
 #' @export
@@ -435,25 +490,64 @@ gen_gamFormula_fxSmooth <- function(response.var, factor.var, smooth.var, phenot
 }
 
 
-
-#' Generate GAM formula with continuous*continuous interaction
+#' Generate GAM formula with continuous-by-continuous interaction
 #'
 #' @description
-#' This function will generate a formula in the following format: \code{y ~ ti(x) + ti(z) + ti(x,z)},
-#' where \code{y} is \code{response.var}, \code{x} is \code{cont1.var}, and \code{z} is \code{cont2.var}.
-#' The formula generated could be further modified, e.g. adding covariates.
+#' Generates a formula in the format
+#' \code{y ~ ti(x) + ti(z) + ti(x, z)}, where \code{y} is
+#' \code{response.var}, \code{x} is \code{cont1.var}, and \code{z} is
+#' \code{cont2.var}. The formula generated can be further modified, e.g.
+#' by adding covariates.
 #'
-#' @param response.var character class, the variable name for response
-#' @param cont1.var character class, the name of the first continuous variable
-#' @param cont2.var character class, the name of the second continuous variable
-#' @param fx TRUE or FALSE, to be used in smooth term s(). Recommend TRUE.
-#' @param k integer, to be used in smooth term including the interaction term.
-#' If NULL (no entry), will use default value as in mgcv::s()
-#' @return The formula generated
+#' @details
+#' This helper uses \code{\link[mgcv]{ti}} (tensor product interaction)
+#' terms so that the interaction \code{ti(x, z)} captures only the
+#' interaction effect, separate from the main effects \code{ti(x)} and
+#' \code{ti(z)}. This decomposition is important for interpretability and
+#' for requesting \code{changed.rsq.term.index} in
+#' \code{\link{ModelArray.gam}}.
+#'
+#' @param response.var Character. The variable name for the response
+#'   (dependent variable), typically a scalar name like \code{"FD"}.
+#' @param cont1.var Character. The name of the first continuous variable.
+#' @param cont2.var Character. The name of the second continuous variable.
+#' @param fx Logical. Passed to \code{\link[mgcv]{ti}}. If \code{TRUE}
+#'   (recommended), the smooth is treated as fixed degrees of freedom.
+#'   Default is \code{TRUE}.
+#' @param k Integer or \code{NULL}. Basis dimension passed to
+#'   \code{\link[mgcv]{ti}} for all three terms (both main effects and the
+#'   interaction). If \code{NULL} (default), uses the default from
+#'   \code{mgcv::ti()}.
+#'
+#' @return A \code{\link[stats]{formula}} object.
+#'
+#' @seealso \code{\link{gen_gamFormula_fxSmooth}} for factor-smooth
+#'   interactions, \code{\link{ModelArray.gam}} which accepts the generated
+#'   formula.
+#'
+#' @examples
+#' \dontrun{
+#' formula <- gen_gamFormula_contIx(
+#'   response.var = "FD",
+#'   cont1.var = "age",
+#'   cont2.var = "cognition"
+#' )
+#' formula
+#'
+#' # Use in ModelArray.gam with changed R-squared for the interaction
+#' results <- ModelArray.gam(
+#'   formula,
+#'   data = ma,
+#'   phenotypes = phenotypes,
+#'   scalar = "FD",
+#'   changed.rsq.term.index = list(3)
+#' )
+#' }
+#'
+#' @rdname gen_gamFormula_contIx
 #' @importFrom mgcv ti
 #' @importFrom stats as.formula
 #' @export
-#'
 gen_gamFormula_contIx <- function(response.var, cont1.var, cont2.var,
                                   fx = TRUE, k = NULL) {
   if (is.null(k)) {
@@ -491,18 +585,45 @@ bind_cols_check_emptyTibble <- function(a, b) {
 }
 
 
-#' Summarize an h5 file without loading the full ModelArray
+#' Summarize an HDF5 file without loading a full ModelArray
 #'
 #' @description
-#' Reads the h5 file structure and returns a summary of available scalars,
+#' Reads the HDF5 file structure and returns a summary of available scalars,
 #' their dimensions, and any saved analyses. Useful for inspecting large files
-#' without constructing a full ModelArray object.
+#' without constructing a full \linkS4class{ModelArray} object.
 #'
-#' @param filepath Path to an h5 file
-#' @return A list with components:
-#'   \item{scalars}{A data.frame with columns: name, nElements, nInputFiles}
-#'   \item{analyses}{Character vector of analysis names}
-#'   \item{filepath}{The input filepath}
+#' @details
+#' This function opens the HDF5 file read-only via \code{\link[rhdf5]{h5ls}},
+#' inspects the group structure under \code{/scalars/} and \code{/results/},
+#' and closes the file. It does not load any data into memory. The returned
+#' object has a \code{print} method that displays a formatted summary.
+#'
+#' @param filepath Character. Path to an HDF5 (\code{.h5}) file.
+#'
+#' @return An object of class \code{"h5summary"}, which is a list with
+#'   components:
+#'   \describe{
+#'     \item{scalars}{A data.frame with columns \code{name},
+#'       \code{nElements}, and \code{nInputFiles}.}
+#'     \item{analyses}{Character vector of analysis names found under
+#'       \code{/results/}.}
+#'     \item{filepath}{The input filepath.}
+#'   }
+#'
+#' @seealso \code{\link{ModelArray}} for loading the full object,
+#'   \linkS4class{ModelArray} for the class definition.
+#'
+#' @examples
+#' \dontrun{
+#' h5summary("path/to/data.h5")
+#'
+#' # Inspect before deciding which scalars to load
+#' info <- h5summary("path/to/data.h5")
+#' info$scalars$name
+#' ma <- ModelArray("path/to/data.h5", scalar_types = info$scalars$name)
+#' }
+#'
+#' @rdname h5summary
 #' @importFrom rhdf5 h5ls h5closeAll
 #' @export
 h5summary <- function(filepath) {
@@ -549,6 +670,15 @@ h5summary <- function(filepath) {
   )
 }
 
+#' @rdname h5summary
+#'
+#' @param x An \code{h5summary} object as returned by
+#'   \code{\link{h5summary}}.
+#' @param ... Additional arguments (currently ignored).
+#'
+#' @return Invisible \code{x}. Called for its side effect of printing a
+#'   human-readable summary to the console.
+#'
 #' @method print h5summary
 #' @export
 print.h5summary <- function(x, ...) {

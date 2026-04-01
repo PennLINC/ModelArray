@@ -33,83 +33,167 @@ ModelArray.wrap(
 )
 }
 \arguments{
-\item{FUN}{A function that accepts at least `data` and returns a one-row data.frame/tibble,
-a named list, or a named vector of results for that element.}
+\item{FUN}{A function that accepts at least \code{data} (a data.frame)
+and returns a one-row data.frame/tibble, a named list, or a named
+vector of results for that element.}
 
-\item{data}{ModelArray class}
+\item{data}{A \linkS4class{ModelArray} object.}
 
-\item{phenotypes}{A data.frame with cohort covariates; must contain column `source_file`.
-It must match `sources(data)[[scalar]]` order and contents (reordered if needed).}
+\item{phenotypes}{A data.frame of the cohort with columns of independent
+variables and covariates to be added to the model. It must contain a
+column called \code{"source_file"} whose entries match those in
+\code{sources(data)[[scalar]]}.}
 
-\item{scalar}{Character, the scalar name to analyze}
+\item{scalar}{Character. The name of the element-wise scalar to analyse.
+Must be one of \code{names(scalars(data))}.}
 
-\item{element.subset}{Optional integer vector of element indices (1-based); defaults to all}
+\item{element.subset}{Integer vector of element indices (1-based) to run.
+Default is \code{NULL}, i.e. all elements in \code{data}.}
 
-\item{num.subj.lthr.abs}{Integer lower threshold for subjects with finite values (default 10)}
+\item{num.subj.lthr.abs}{Integer. Lower threshold for the absolute
+number of subjects with finite scalar values (not \code{NaN},
+\code{NA}, or \code{Inf}) required per element. Elements below this
+threshold are skipped (outputs set to \code{NaN}). Default is 10.}
 
-\item{num.subj.lthr.rel}{Relative lower threshold (0-1) (default 0.2)}
+\item{num.subj.lthr.rel}{Numeric between 0 and 1. Lower threshold for
+the proportion of subjects with finite values. Used together with
+\code{num.subj.lthr.abs} (the effective threshold is the maximum of
+the two). Default is 0.2.}
 
-\item{verbose}{TRUE/FALSE to print messages}
+\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
 
-\item{pbar}{TRUE/FALSE to show progress bar}
+\item{pbar}{Logical. Show progress bar. Default \code{TRUE}.}
 
-\item{n_cores}{Positive integer number of CPU cores}
+\item{n_cores}{Positive integer. Number of CPU cores for parallel
+processing via \code{\link[parallel]{mclapply}}. Default is 1
+(serial).}
 
-\item{on_error}{Character: one of "stop", "skip", or "debug". When an error occurs in
-the user function for an element, choose whether to stop, skip returning all-NaN values
-for that element, or drop into `browser()` (if interactive) then skip. Default: "stop".}
+\item{on_error}{Character: one of \code{"stop"}, \code{"skip"}, or
+\code{"debug"}. When an error occurs fitting one element: \code{"stop"}
+halts execution; \code{"skip"} returns all-\code{NaN} for that element;
+\code{"debug"} drops into \code{\link{browser}} (if interactive) then
+skips. Default: \code{"stop"}.}
 
-\item{write_scalar_name}{Optional character scalar name. If provided, `ModelArray.wrap`
-writes selected output columns into `scalars/<write_scalar_name>/values` while processing.}
+\item{write_scalar_name}{Optional character. If provided, selected
+output columns are written into
+\code{scalars/<write_scalar_name>/values} in the HDF5 file specified
+by \code{write_scalar_file}.}
 
-\item{write_scalar_file}{Optional character HDF5 output filename used when
-`write_scalar_name` is provided.}
+\item{write_scalar_file}{Optional character. HDF5 output file path.
+Required when \code{write_scalar_name} is provided.}
 
-\item{write_scalar_columns}{Optional character/integer selector for output columns to save
-as scalar values. If NULL, uses all wrap output columns except `element_id`.}
+\item{write_scalar_columns}{Optional character or integer vector
+selecting which output columns to save as scalar values. If
+\code{NULL} (default), uses all output columns except
+\code{element_id}.}
 
-\item{write_scalar_column_names}{Optional character vector of source names saved as
-scalar `column_names`. If NULL, uses `phenotypes$source_file`.}
+\item{write_scalar_column_names}{Optional character vector of source
+names saved as scalar \code{column_names}. If \code{NULL}, uses
+\code{phenotypes$source_file}.}
 
-\item{write_scalar_flush_every}{Positive integer number of elements per write block.}
+\item{write_scalar_flush_every}{Positive integer. Elements per write
+block for scalar writes. Default 1000.}
 
-\item{write_scalar_storage_mode}{Storage mode for scalar writes (e.g., `"double"`).}
+\item{write_scalar_storage_mode}{Character. Storage mode for scalar
+writes (e.g. \code{"double"}). Default \code{"double"}.}
 
-\item{write_scalar_compression_level}{Gzip compression level (0-9) for scalar writes.}
+\item{write_scalar_compression_level}{Integer 0--9. Gzip compression
+level for scalar writes. Default 4.}
 
-\item{write_results_name}{Optional analysis name for incremental writes to
-`results/<write_results_name>/results_matrix`.}
+\item{write_results_name}{Optional character. If provided, results are
+incrementally written to
+\code{results/<write_results_name>/results_matrix} in the HDF5 file
+specified by \code{write_results_file}.}
 
-\item{write_results_file}{Optional HDF5 file path used when `write_results_name` is provided.}
+\item{write_results_file}{Optional character. HDF5 file path for
+incremental result writes. Required when \code{write_results_name}
+is provided.}
 
-\item{write_results_flush_every}{Positive integer number of elements per write block for
-results writes.}
+\item{write_results_flush_every}{Positive integer. Number of elements
+per write block. Default 1000.}
 
-\item{write_results_storage_mode}{Storage mode for results writes (e.g., `"double"`).}
+\item{write_results_storage_mode}{Character. Storage mode for HDF5
+writes (e.g. \code{"double"}). Default \code{"double"}.}
 
-\item{write_results_compression_level}{Gzip compression level (0-9) for results writes.}
+\item{write_results_compression_level}{Integer 0--9. Gzip compression
+level for HDF5 writes. Default 4.}
 
-\item{return_output}{If TRUE (default), return the combined data.frame. If FALSE,
-returns `invisible(NULL)`; useful when writing large outputs directly to HDF5.}
+\item{return_output}{Logical. If \code{TRUE} (default), return the
+combined data.frame. If \code{FALSE}, return \code{invisible(NULL)};
+useful when writing large outputs directly to HDF5.}
 
-\item{...}{Additional arguments forwarded to `FUN`}
+\item{...}{Additional arguments forwarded to \code{FUN}.}
 }
 \value{
-Tibble/data.frame with one row per element and first column `element_id`
-when `return_output = TRUE`; otherwise `invisible(NULL)`.
+A tibble with one row per element and first column
+\code{element_id} (0-based). Remaining columns are determined by
+the return value of \code{FUN}.
 }
 \description{
-`ModelArray.wrap` runs a user-supplied function `FUN` for each requested element and
-returns a tibble/data.frame of results combined across elements.
+\code{ModelArray.wrap} runs a user-supplied function \code{FUN} at each
+requested element and returns a tibble of results combined across
+elements.
 }
 \details{
-This provides a generic framework reusing ModelArray's per-element looping, alignment,
-subject-thresholding, and parallelization. The user function will be called as
-`FUN(data = dat, ...)` where `dat` is `phenotypes` with the response column named `scalar`
-appended for the current element. The return value from `FUN` for a single element must be
-either a one-row data.frame/tibble, a named list, or a named atomic vector. The column
-names from the first successful element determine the final schema.
+This provides a generic framework reusing ModelArray's per-element
+looping, alignment, subject-thresholding, and parallelization. The user
+function is called as \code{FUN(data = dat, ...)} where \code{dat} is
+\code{phenotypes} with all scalar columns appended for the current
+element. The return value from \code{FUN} for a single element must be
+one of:
+\itemize{
+\item a one-row \code{data.frame} or \code{tibble}
+\item a named list
+\item a named atomic vector
+}
+The column names from the first successful element determine the final
+schema.
 
-Note: `ModelArray.wrap` never performs any p-value corrections or modifications.
-If you need adjusted p-values (e.g., FDR), implement them inside your provided `FUN`.
+Note: \code{ModelArray.wrap} never performs any p-value corrections or
+modifications. If you need adjusted p-values (e.g. FDR), implement
+them inside \code{FUN}.
+
+Use \code{\link{exampleElementData}} to construct a sample per-element
+data.frame for testing your function before committing to a full run.
+}
+\examples{
+{
+\dontrun{
+ma <- ModelArray("path/to/data.h5", scalar_types = c("FD"))
+phenotypes <- read.csv("cohort.csv")
+
+# Simple custom function
+my_fun <- function(data, ...) {
+  mod <- lm(FD ~ age + sex, data = data)
+  tidy_out <- broom::tidy(mod)
+  # Return a one-row tibble
+  tibble::tibble(
+    age_estimate = tidy_out$estimate[tidy_out$term == "age"],
+    age_pvalue   = tidy_out$p.value[tidy_out$term == "age"]
+  )
+}
+
+
+# Test on one element first
+test_df <- exampleElementData(ma, scalar = "FD",
+                               i_element = 1,
+                               phenotypes = phenotypes)
+my_fun(data = test_df)
+
+# Run across all elements
+results <- ModelArray.wrap(
+  FUN = my_fun,
+  data = ma,
+  phenotypes = phenotypes,
+  scalar = "FD"
+)
+}
+}
+
+}
+\seealso{
+\code{\link{ModelArray.lm}} for linear models,
+\code{\link{ModelArray.gam}} for GAMs,
+\code{\link{exampleElementData}} for building test data,
+\linkS4class{ModelArray} for the input class.
 }
