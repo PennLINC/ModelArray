@@ -27,7 +27,7 @@ an HDF5 file and returns a \linkS4class{ModelArray} object.
 \details{
 The constructor reads each scalar listed in \code{scalar_types} from
 \code{/scalars/<scalar_type>/values}, wrapping them as
-\linkS4class{DelayedArray} objects. Source filenames are extracted
+\link[DelayedArray:DelayedArray-class]{DelayedArray::DelayedArray} objects. Source filenames are extracted
 from HDF5 attributes or companion datasets.
 
 If \code{analysis_names} is non-empty, saved results are loaded from

@@ -59,5 +59,15 @@
 ## ---------------------------------------------------------------
 #' @importFrom HDF5Array HDF5ArraySeed
 #'
+## ---------------------------------------------------------------
+## mgcv smooth term constructors: these are referenced inside
+## user-supplied formulas (e.g. FD ~ s(age) + ti(x, z)) and are
+## evaluated in the package namespace when the formula passes
+## through ModelArray.gam() to mgcv::gam(). They must be
+## importable here even though package code never calls them
+## directly.
+## ---------------------------------------------------------------
+#' @importFrom mgcv s ti te t2
+#'
 #' @keywords internal
 "_PACKAGE"

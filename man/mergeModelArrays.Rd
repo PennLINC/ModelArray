@@ -38,8 +38,7 @@ functions.}
 \description{
 Combines scalars from multiple \linkS4class{ModelArray} objects into a
 single \linkS4class{ModelArray}, aligning subjects via shared phenotype
-columns. Uses \code{\link[DelayedArray]{acbind}} for virtual
-column-binding — no HDF5 rewriting is needed.
+columns.
 }
 \details{
 The merge performs an inner join of the phenotype data.frames on the

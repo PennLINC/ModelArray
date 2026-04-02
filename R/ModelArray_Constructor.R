@@ -23,11 +23,11 @@
 #'
 #' @slot sources A named list of character vectors. Each element corresponds
 #'   to a scalar and contains the source filenames (one per input file/subject).
-#' @slot scalars A named list of \linkS4class{DelayedArray} matrices.
+#' @slot scalars A named list of [DelayedArray::DelayedArray][DelayedArray-class] matrices.
 #'   Each matrix has elements as rows and source files as columns.
 #' @slot results A named list of analysis results. Each element is itself a
 #'   list containing at minimum \code{results_matrix} (a
-#'   \linkS4class{DelayedArray}).
+#'   [DelayedArray::DelayedArray][DelayedArray-class]).
 #' @slot path Character. Path(s) to the HDF5 file(s) on disk.
 #'
 #' @seealso \code{\link{ModelArray}} for the constructor,
@@ -36,6 +36,7 @@
 #'   \code{\link{scalars}}, \code{\link{sources}}, \code{\link{results}} for
 #'   accessors.
 #'
+#' @name ModelArray-class
 #' @aliases ModelArray-class
 #' @rdname ModelArray-class
 #' @exportClass ModelArray
@@ -78,7 +79,7 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @details
 #' The constructor reads each scalar listed in \code{scalar_types} from
 #' \code{/scalars/<scalar_type>/values}, wrapping them as
-#' \linkS4class{DelayedArray} objects. Source filenames are extracted
+#' [DelayedArray::DelayedArray][DelayedArray-class] objects. Source filenames are extracted
 #' from HDF5 attributes or companion datasets.
 #'
 #' If \code{analysis_names} is non-empty, saved results are loaded from
@@ -655,7 +656,7 @@ analyseOneElement.lm <- function(i_element,
     if (all(dim(onemodel.tidy))) {
       # not empty | if any dim is 0, all=FALSE
       onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(
-        names_from = term,
+        names_from = "term",
         values_from = dplyr::all_of(var.terms.orig),
         names_glue = "{term}.{.value}"
       )
@@ -666,7 +667,7 @@ analyseOneElement.lm <- function(i_element,
     if (all(dim(onemodel.glance))) {
       # not empty
       onemodel.glance.onerow <- onemodel.glance %>% tidyr::pivot_wider(
-        names_from = term,
+        names_from = "term",
         values_from = dplyr::all_of(var.model),
         names_glue = "{term}.{.value}"
       )
@@ -1062,7 +1063,7 @@ analyseOneElement.gam <- function(i_element,
     if (all(dim(onemodel.tidy.smoothTerms))) {
       # not empty | if any dim is 0, all=FALSE
       onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(
-        names_from = term,
+        names_from = "term",
         values_from = dplyr::all_of(var.smoothTerms.orig),
         names_glue = "{term}.{.value}"
       )
@@ -1073,7 +1074,7 @@ analyseOneElement.gam <- function(i_element,
     if (all(dim(onemodel.tidy.parametricTerms))) {
       # not empty
       onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(
-        names_from = term,
+        names_from = "term",
         values_from = dplyr::all_of(var.parametricTerms.orig),
         names_glue = "{term}.{.value}"
       )
@@ -1084,7 +1085,7 @@ analyseOneElement.gam <- function(i_element,
     if (all(dim(onemodel.glance))) {
       # not empty
       onemodel.glance.onerow <- onemodel.glance %>% tidyr::pivot_wider(
-        names_from = term,
+        names_from = "term",
         values_from = dplyr::all_of(var.model),
         names_glue = "{term}.{.value}"
       )
