@@ -130,7 +130,6 @@
 #' )
 #'
 #' @rdname ModelArray.lm
-#' @importFrom dplyr %>%
 #' @export
 
 ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE,
@@ -413,7 +412,6 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' }
 #'
 #' @rdname ModelArray.gam
-#' @importFrom dplyr %>%
 #' @export
 
 ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE,
@@ -904,7 +902,6 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 #' }
 #'
 #' @rdname ModelArray.wrap
-#' @importFrom dplyr %>%
 #' @export
 ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL,
                             num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,

@@ -38,7 +38,6 @@
 #'
 #' @aliases ModelArray-class
 #' @rdname ModelArray-class
-#' @importClassesFrom DelayedArray DelayedArray
 #' @exportClass ModelArray
 ModelArray <- setClass(
   "ModelArray",
@@ -58,7 +57,6 @@ ModelArray <- setClass(
 #' @param filepath Path to an existing h5 file.
 #' @param name Name of the group/field in the h5 file.
 #' @param type Type of DelayedArray object, used as an argument for `HDF5Array::HDF5ArraySeed`.
-#' @importFrom HDF5Array HDF5ArraySeed
 #' @noRd
 #'
 ModelArraySeed <- function(filepath, name, type = NA) {
@@ -113,10 +111,6 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @rdname ModelArray
 #' @aliases ModelArray
 #' @export
-#' @import methods
-#' @importFrom dplyr %>%
-#' @importFrom DelayedArray DelayedArray
-#' @importFrom rhdf5 h5readAttributes
 ModelArray <- function(filepath,
                        scalar_types = c("FD"),
                        analysis_names = character(0)) {
@@ -458,7 +452,6 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #' @keywords internal
 #' @rdname analyseOneElement.lm
 #' @export
-#' @importFrom dplyr %>%
 
 analyseOneElement.lm <- function(i_element,
                                  formula,
@@ -781,7 +774,6 @@ analyseOneElement.lm <- function(i_element,
 #' @keywords internal
 #' @rdname analyseOneElement.gam
 #' @export
-#' @importFrom dplyr %>%
 
 analyseOneElement.gam <- function(i_element,
                                   formula,
@@ -1227,7 +1219,6 @@ analyseOneElement.gam <- function(i_element,
 #' @keywords internal
 #' @rdname analyseOneElement.wrap
 #' @export
-#' @importFrom dplyr %>%
 analyseOneElement.wrap <- function(i_element,
                                    user_fun,
                                    modelarray,

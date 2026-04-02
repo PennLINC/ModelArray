@@ -39,7 +39,6 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
 #' @param dots list of additional arguments
 #' @param message_default The message for default
 #' @param message_usr_input The message describing user's input
-#' @importFrom dplyr %>%
 #' @noRd
 printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, message_usr_input = NULL) {
   dots_names <- names(dots)
@@ -114,7 +113,6 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 #'
 #' @param ofInterest got via: `gam.formula.breakdown <- mgcv::interpret.gam(formula)`;
 #' `ofInterest <- gam.formula.breakdown$smooth.spec[[i]]`
-#' @importFrom dplyr %>%
 #' @noRd
 #'
 checker_gam_s <- function(ofInterest) {
@@ -191,7 +189,6 @@ checker_gam_s <- function(ofInterest) {
 #' @param FUN could be mgcv::te(), ti() or t2()
 #' @param ofInterest got via: `gam.formula.breakdown <- mgcv::interpret.gam(formula)`;
 #' `ofInterest <- gam.formula.breakdown$smooth.spec[[i]]`
-#' @importFrom dplyr %>%
 #' @noRd
 #'
 checker_gam_t <- function(FUN, ofInterest) {
@@ -246,7 +243,6 @@ checker_gam_t <- function(FUN, ofInterest) {
 #' @param formula The formula
 #' @param gam.formula.breakdown Got from mgcv::interpret.gam(formula)
 #' @param onemodel The model of one element got from mgcv::gam()
-#' @importFrom dplyr %>%
 #' @noRd
 #'
 checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL) {

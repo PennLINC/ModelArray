@@ -90,8 +90,6 @@
 #' }
 #'
 #' @rdname mergeModelArrays
-#' @importFrom DelayedArray acbind
-#' @importFrom utils head
 #' @export
 mergeModelArrays <- function(modelarrays, phenotypes_list, merge_on) {
   if (!is.list(modelarrays) || length(modelarrays) < 2) {
@@ -186,7 +184,7 @@ mergeModelArrays <- function(modelarrays, phenotypes_list, merge_on) {
         missing <- original_sources[is.na(col_idx)]
         stop(
           "Source files from merged phenotypes not found in ModelArray for scalar '",
-          sn, "': ", paste(head(missing, 3), collapse = ", ")
+          sn, "': ", paste(utils::head(missing, 3), collapse = ", ")
         )
       }
 
