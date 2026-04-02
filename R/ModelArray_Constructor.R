@@ -648,13 +648,13 @@ analyseOneElement.lm <- function(i_element,
     temp <- union(temp_colnames, "term")
     # just an empty tibble (so below, all(dim(onemodel.tidy)) = FALSE)
     if (all(temp == "term")) {
-      onemodel.tidy <- tibble()
+      onemodel.tidy <- tibble::tibble()
     }
 
     temp_colnames <- onemodel.glance %>% colnames()
     temp <- union(temp_colnames, "term") # union of colnames and "term";
     if (all(temp == "term")) {
-      onemodel.glance <- tibble()
+      onemodel.glance <- tibble::tibble()
     }
 
 
@@ -1049,20 +1049,20 @@ analyseOneElement.gam <- function(i_element,
     # union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term",
     # all(union) = c(TRUE, FALSE, ...)
     if (all(temp == "term")) {
-      onemodel.tidy.smoothTerms <- tibble()
+      onemodel.tidy.smoothTerms <- tibble::tibble()
     }
     # just an empty tibble (so below, all(dim(onemodel.tidy.smoothTerms)) = FALSE)
 
     temp_colnames <- onemodel.tidy.parametricTerms %>% colnames()
     temp <- union(temp_colnames, "term")
     if (all(temp == "term")) {
-      onemodel.tidy.parametricTerms <- tibble()
+      onemodel.tidy.parametricTerms <- tibble::tibble()
     } # just an empty tibble
 
     temp_colnames <- onemodel.glance %>% colnames()
     temp <- union(temp_colnames, "term")
     if (all(temp == "term")) {
-      onemodel.glance <- tibble()
+      onemodel.glance <- tibble::tibble()
     } # just an empty tibble
 
 
