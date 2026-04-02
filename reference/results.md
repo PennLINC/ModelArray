@@ -37,8 +37,10 @@ at minimum `results_matrix`).
 ## Details
 
 Each result set is itself a list containing at minimum `results_matrix`
-(a DelayedArray with elements as rows and statistics as columns). Column
-names are stored alongside the matrix in the HDF5 file.
+(a
+[DelayedArray::DelayedArray](https://rdrr.io/pkg/DelayedArray/man/DelayedArray-class.html)
+with elements as rows and statistics as columns). Column names are
+stored alongside the matrix in the HDF5 file.
 
 Results are only available if `analysis_names` was supplied when the
 [ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)

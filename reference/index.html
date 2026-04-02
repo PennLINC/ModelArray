@@ -48,9 +48,25 @@
     </div>
 
     <div class="section level2">
-      <h2 id="modelarray-class">ModelArray Class<a class="anchor" aria-label="anchor" href="#modelarray-class"></a></h2>
+      <h2 id="package-overview">Package overview<a class="anchor" aria-label="anchor" href="#package-overview"></a></h2>
 
-      <div class="section-desc"><p>Create, load, and combine ModelArray objects backed by HDF5 files.</p></div>
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="ModelArray-package.html">ModelArray-package</a></code>
+
+        </dt>
+        <dd>ModelArray: Statistical Analysis of Element-Wise Neuroimaging Data</dd>
+      </dl></div><div class="section level2">
+      <h2 id="modelarray-class-and-constructor">ModelArray class and constructor<a class="anchor" aria-label="anchor" href="#modelarray-class-and-constructor"></a></h2>
+
+
 
       <dl></dl></div><div class="section level2">
 
@@ -70,24 +86,10 @@
 
         </dt>
         <dd>Load element-wise data from an HDF5 file</dd>
-
-        <dt>
-
-          <code><a href="h5summary.html">h5summary()</a></code> <code><a href="h5summary.html">print(<i>&lt;h5summary&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Summarize an HDF5 file without loading a full ModelArray</dd>
-
-        <dt>
-
-          <code><a href="mergeModelArrays.html">mergeModelArrays()</a></code>
-
-        </dt>
-        <dd>Merge multiple ModelArrays from different HDF5 files</dd>
       </dl></div><div class="section level2">
       <h2 id="accessors">Accessors<a class="anchor" aria-label="anchor" href="#accessors"></a></h2>
 
-      <div class="section-desc"><p>Extract scalar data, source filenames, results, and metadata from a ModelArray object.</p></div>
+
 
       <dl></dl></div><div class="section level2">
 
@@ -96,13 +98,6 @@
 
       <dl><dt>
 
-          <code><a href="scalars.html">scalars()</a></code>
-
-        </dt>
-        <dd>Element-wise scalar data of a ModelArray object</dd>
-
-        <dt>
-
           <code><a href="sources.html">sources()</a></code>
 
         </dt>
@@ -110,24 +105,17 @@
 
         <dt>
 
+          <code><a href="scalars.html">scalars()</a></code>
+
+        </dt>
+        <dd>Element-wise scalar data of a ModelArray object</dd>
+
+        <dt>
+
           <code><a href="results.html">results()</a></code>
 
         </dt>
         <dd>Statistical results of a ModelArray object</dd>
-
-        <dt>
-
-          <code><a href="scalarNames.html">scalarNames()</a></code>
-
-        </dt>
-        <dd>Names of scalars in a ModelArray</dd>
-
-        <dt>
-
-          <code><a href="analysisNames.html">analysisNames()</a></code>
-
-        </dt>
-        <dd>Names of analyses in a ModelArray</dd>
 
         <dt>
 
@@ -145,10 +133,17 @@
 
         <dt>
 
-          <code><a href="numElementsTotal.html">numElementsTotal()</a></code>
+          <code><a href="scalarNames.html">scalarNames()</a></code>
 
         </dt>
-        <dd>Number of elements in ModelArray</dd>
+        <dd>Names of scalars in a ModelArray</dd>
+
+        <dt>
+
+          <code><a href="analysisNames.html">analysisNames()</a></code>
+
+        </dt>
+        <dd>Names of analyses in a ModelArray</dd>
 
         <dt>
 
@@ -156,10 +151,17 @@
 
         </dt>
         <dd>Element metadata from a ModelArray</dd>
-      </dl></div><div class="section level2">
-      <h2 id="element-wise-analysis">Element-wise Analysis<a class="anchor" aria-label="anchor" href="#element-wise-analysis"></a></h2>
 
-      <div class="section-desc"><p>Fit statistical models at every element (fixel, voxel, or vertex) in a ModelArray and write results back to HDF5.</p></div>
+        <dt>
+
+          <code><a href="exampleElementData.html">exampleElementData()</a></code>
+
+        </dt>
+        <dd>Example per-element data.frame for user functions</dd>
+      </dl></div><div class="section level2">
+      <h2 id="analysis-functions">Analysis functions<a class="anchor" aria-label="anchor" href="#analysis-functions"></a></h2>
+
+
 
       <dl></dl></div><div class="section level2">
 
@@ -186,56 +188,10 @@
 
         </dt>
         <dd>Run a user-supplied function for element-wise data</dd>
-
-        <dt>
-
-          <code><a href="writeResults.html">writeResults()</a></code>
-
-        </dt>
-        <dd>Write outputs from element-wise statistical analysis to an HDF5 file</dd>
       </dl></div><div class="section level2">
-      <h2 id="testing-and-debugging">Testing and Debugging<a class="anchor" aria-label="anchor" href="#testing-and-debugging"></a></h2>
+      <h2 id="per-element-internals">Per-element internals<a class="anchor" aria-label="anchor" href="#per-element-internals"></a></h2>
 
-      <div class="section-desc"><p>Build per-element test data and inspect your setup before committing to a full analysis run.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="exampleElementData.html">exampleElementData()</a></code>
-
-        </dt>
-        <dd>Example per-element data.frame for user functions</dd>
-      </dl></div><div class="section level2">
-      <h2 id="formula-helpers">Formula Helpers<a class="anchor" aria-label="anchor" href="#formula-helpers"></a></h2>
-
-      <div class="section-desc"><p>Generate GAM formulas for common interaction structures used with ModelArray.gam.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="gen_gamFormula_fxSmooth.html">gen_gamFormula_fxSmooth()</a></code>
-
-        </dt>
-        <dd>Generate GAM formula with factor-smooth interaction</dd>
-
-        <dt>
-
-          <code><a href="gen_gamFormula_contIx.html">gen_gamFormula_contIx()</a></code>
-
-        </dt>
-        <dd>Generate GAM formula with continuous-by-continuous interaction</dd>
-      </dl></div><div class="section level2">
-      <h2 id="internal">Internal<a class="anchor" aria-label="anchor" href="#internal"></a></h2>
-
-      <div class="section-desc"><p>Per-element workhorse functions called by the analysis functions. Most users should not need to call these directly.</p></div>
+      <div class="section-desc"><p>These functions are called internally by the analysis functions. Most users should not call them directly.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -262,6 +218,66 @@
 
         </dt>
         <dd>Run a user-supplied function for a single element</dd>
+      </dl></div><div class="section level2">
+      <h2 id="merging">Merging<a class="anchor" aria-label="anchor" href="#merging"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="mergeModelArrays.html">mergeModelArrays()</a></code>
+
+        </dt>
+        <dd>Merge multiple ModelArrays from different HDF5 files</dd>
+      </dl></div><div class="section level2">
+      <h2 id="utilities">Utilities<a class="anchor" aria-label="anchor" href="#utilities"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="writeResults.html">writeResults()</a></code>
+
+        </dt>
+        <dd>Write outputs from element-wise statistical analysis to an HDF5 file</dd>
+
+        <dt>
+
+          <code><a href="h5summary.html">h5summary()</a></code> <code><a href="h5summary.html">print(<i>&lt;h5summary&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Summarize an HDF5 file without loading a full ModelArray</dd>
+
+        <dt>
+
+          <code><a href="numElementsTotal.html">numElementsTotal()</a></code>
+
+        </dt>
+        <dd>Number of elements in ModelArray</dd>
+
+        <dt>
+
+          <code><a href="gen_gamFormula_fxSmooth.html">gen_gamFormula_fxSmooth()</a></code>
+
+        </dt>
+        <dd>Generate GAM formula with factor-smooth interaction</dd>
+
+        <dt>
+
+          <code><a href="gen_gamFormula_contIx.html">gen_gamFormula_contIx()</a></code>
+
+        </dt>
+        <dd>Generate GAM formula with continuous-by-continuous interaction</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

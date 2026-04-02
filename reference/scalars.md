@@ -30,9 +30,12 @@ scalars(x, ...)
 
 ## Value
 
-If called with no extra arguments, a named list of DelayedArray matrices
-(elements as rows, source files as columns). If called with a scalar
-name, the corresponding single DelayedArray matrix.
+If called with no extra arguments, a named list of
+[DelayedArray::DelayedArray](https://rdrr.io/pkg/DelayedArray/man/DelayedArray-class.html)
+matrices (elements as rows, source files as columns). If called with a
+scalar name, the corresponding single
+[DelayedArray::DelayedArray](https://rdrr.io/pkg/DelayedArray/man/DelayedArray-class.html)
+matrix.
 
 ## See also
 

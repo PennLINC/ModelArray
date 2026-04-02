@@ -4,8 +4,7 @@ Combines scalars from multiple
 [ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
 objects into a single
 [ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md),
-aligning subjects via shared phenotype columns. Uses `acbind` for
-virtual column-binding — no HDF5 rewriting is needed.
+aligning subjects via shared phenotype columns.
 
 ## Usage
 

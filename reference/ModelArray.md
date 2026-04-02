@@ -38,9 +38,10 @@ object.
 ## Details
 
 The constructor reads each scalar listed in `scalar_types` from
-`/scalars/<scalar_type>/values`, wrapping them as DelayedArray objects.
-Source filenames are extracted from HDF5 attributes or companion
-datasets.
+`/scalars/<scalar_type>/values`, wrapping them as
+[DelayedArray::DelayedArray](https://rdrr.io/pkg/DelayedArray/man/DelayedArray-class.html)
+objects. Source filenames are extracted from HDF5 attributes or
+companion datasets.
 
 If `analysis_names` is non-empty, saved results are loaded from
 `/results/<name>/results_matrix`.

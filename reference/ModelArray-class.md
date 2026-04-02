@@ -55,13 +55,16 @@ or
 
 - `scalars`:
 
-  A named list of DelayedArray matrices. Each matrix has elements as
-  rows and source files as columns.
+  A named list of
+  [DelayedArray::DelayedArray](https://rdrr.io/pkg/DelayedArray/man/DelayedArray-class.html)
+  matrices. Each matrix has elements as rows and source files as
+  columns.
 
 - `results`:
 
   A named list of analysis results. Each element is itself a list
-  containing at minimum `results_matrix` (a DelayedArray).
+  containing at minimum `results_matrix` (a
+  [DelayedArray::DelayedArray](https://rdrr.io/pkg/DelayedArray/man/DelayedArray-class.html)).
 
 - `path`:
 
