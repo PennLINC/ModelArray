@@ -96,9 +96,9 @@ setMethod("sources", "ModelArray", function(x) x@sources)
 #'   extract. If omitted, the entire named list is returned.
 #'
 #' @return If called with no extra arguments, a named list of
-#'   \linkS4class{DelayedArray} matrices (elements as rows, source files as
+#'   [DelayedArray::DelayedArray][DelayedArray-class] matrices (elements as rows, source files as
 #'   columns). If called with a scalar name, the corresponding single
-#'   \linkS4class{DelayedArray} matrix.
+#'   [DelayedArray::DelayedArray][DelayedArray-class] matrix.
 #'
 #' @seealso \code{\link{sources}}, \code{\link{results}},
 #'   \code{\link{scalarNames}}, \code{\link{nElements}}
@@ -141,7 +141,7 @@ setMethod(
 #'
 #' @details
 #' Each result set is itself a list containing at minimum
-#' \code{results_matrix} (a \linkS4class{DelayedArray} with elements as rows
+#' \code{results_matrix} (a [DelayedArray::DelayedArray][DelayedArray-class] with elements as rows
 #' and statistics as columns). Column names are stored alongside the matrix
 #' in the HDF5 file.
 #'

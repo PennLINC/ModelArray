@@ -22,7 +22,7 @@ calcu_stat_lm <- function(formula, data, i_element, ...) {
   # change the term name from "(Intercept)" to "Intercept"
   onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"
   # add a column
-  onemodel.glance <- onemodel.glance %>% mutate(term = "model")
+  onemodel.glance <- onemodel.glance %>% dplyr::mutate(term = "model")
 
   # list of column names to keep:
   var.terms <- colnames(onemodel.tidy)
@@ -132,7 +132,7 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
     }
   }
 
-  onemodel.glance <- onemodel.glance %>% mutate(term = "model") # add a column
+  onemodel.glance <- onemodel.glance %>% dplyr::mutate(term = "model") # add a column
 
 
   # check if the onemodel.* does not have real statistics (but only a column of 'term')

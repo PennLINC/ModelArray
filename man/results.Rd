@@ -28,7 +28,7 @@ result set.
 }
 \details{
 Each result set is itself a list containing at minimum
-\code{results_matrix} (a \linkS4class{DelayedArray} with elements as rows
+\code{results_matrix} (a \link[DelayedArray:DelayedArray-class]{DelayedArray::DelayedArray} with elements as rows
 and statistics as columns). Column names are stored alongside the matrix
 in the HDF5 file.
 

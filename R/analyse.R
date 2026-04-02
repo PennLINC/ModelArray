@@ -130,10 +130,6 @@
 #' )
 #'
 #' @rdname ModelArray.lm
-#' @importFrom dplyr %>%
-#' @import doParallel
-#' @import tibble
-#' @importFrom glue glue
 #' @export
 
 ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE,
@@ -416,10 +412,6 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' }
 #'
 #' @rdname ModelArray.gam
-#' @importFrom dplyr %>%
-#' @import doParallel
-#' @import tibble
-#' @importFrom glue glue
 #' @export
 
 ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE,
@@ -763,13 +755,13 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       df_out <- merge(df_out, reduced.model.df_out, by = "element_id")
 
       # calculate the delta.adj.rsq, add to the df_out:
-      df_out <- df_out %>% dplyr::mutate(
-        "{changed.rsq.term.shortFormat}.delta.adj.rsq" := model.adj.r.squared - redModel.adj.r.squared
-      ) # calculate the partial.rsq, add to the df_out:
-      df_out <- df_out %>% dplyr::mutate(
-        "{changed.rsq.term.shortFormat}.partial.rsq" := (redModel.sse - model.sse) / redModel.sse
-      ) # partialRsq <- (sse.red - sse.full) / sse.red
+      col_name <- paste0(changed.rsq.term.shortFormat, ".delta.adj.rsq")
+      df_out[[col_name]] <- df_out[["model.adj.r.squared"]] - df_out[["redModel.adj.r.squared"]]
 
+      # calculate the partial.rsq, add to the df_out
+      # partialRsq <- (sse.red - sse.full) / sse.red
+      col_name <- paste0(changed.rsq.term.shortFormat, ".partial.rsq")
+      df_out[[col_name]] <- (df_out[["redModel.sse"]] - df_out[["model.sse"]]) / df_out[["redModel.sse"]]
 
       # remove column of redModel
       df_out <- df_out %>% subset(select = -c(
@@ -910,10 +902,6 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 #' }
 #'
 #' @rdname ModelArray.wrap
-#' @importFrom dplyr %>%
-#' @import doParallel
-#' @import tibble
-#' @importFrom glue glue
 #' @export
 ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL,
                             num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,
