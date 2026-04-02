@@ -115,7 +115,7 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @export
 #' @import methods
 #' @importFrom dplyr %>%
-#' @importFrom DelayedArray DelayedArray realize
+#' @importFrom DelayedArray DelayedArray
 #' @importFrom rhdf5 h5readAttributes
 ModelArray <- function(filepath,
                        scalar_types = c("FD"),
@@ -458,10 +458,7 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #' @keywords internal
 #' @rdname analyseOneElement.lm
 #' @export
-#' @importFrom stats lm
-#' @import broom
-#' @importFrom dplyr %>% select bind_cols
-#' @import tibble
+#' @importFrom dplyr %>%
 
 analyseOneElement.lm <- function(i_element,
                                  formula,
@@ -629,10 +626,10 @@ analyseOneElement.lm <- function(i_element,
     # remove those columns:
     if (length(var.terms.remove) != 0) {
       # if length=0, it's list(), nothing to remove
-      onemodel.tidy <- dplyr::select(onemodel.tidy, -all_of(var.terms.remove))
+      onemodel.tidy <- dplyr::select(onemodel.tidy, -dplyr::all_of(var.terms.remove))
     }
     if (length(var.model.remove) != 0) {
-      onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
+      onemodel.glance <- dplyr::select(onemodel.glance, -dplyr::all_of(var.model.remove))
     }
 
     # adjust:
@@ -666,7 +663,7 @@ analyseOneElement.lm <- function(i_element,
       # not empty | if any dim is 0, all=FALSE
       onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(
         names_from = term,
-        values_from = all_of(var.terms.orig),
+        values_from = dplyr::all_of(var.terms.orig),
         names_glue = "{term}.{.value}"
       )
     } else {
@@ -677,7 +674,7 @@ analyseOneElement.lm <- function(i_element,
       # not empty
       onemodel.glance.onerow <- onemodel.glance %>% tidyr::pivot_wider(
         names_from = term,
-        values_from = all_of(var.model),
+        values_from = dplyr::all_of(var.model),
         names_glue = "{term}.{.value}"
       )
     } else {
@@ -784,10 +781,7 @@ analyseOneElement.lm <- function(i_element,
 #' @keywords internal
 #' @rdname analyseOneElement.gam
 #' @export
-#' @import mgcv
-#' @import broom
-#' @importFrom dplyr select %>% bind_cols
-#' @import tibble
+#' @importFrom dplyr %>%
 
 analyseOneElement.gam <- function(i_element,
                                   formula,
@@ -978,14 +972,14 @@ analyseOneElement.gam <- function(i_element,
     # remove those columns:
     if (length(var.smoothTerms.remove) != 0) {
       # if length=0, it's list(), nothing to remove
-      onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -all_of(var.smoothTerms.remove))
+      onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -dplyr::all_of(var.smoothTerms.remove))
     }
     if (length(var.parametricTerms.remove) != 0) {
       # if length=0, it's list(), nothing to remove
-      onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -all_of(var.parametricTerms.remove))
+      onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -dplyr::all_of(var.parametricTerms.remove))
     }
     if (length(var.model.remove) != 0) {
-      onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
+      onemodel.glance <- dplyr::select(onemodel.glance, -dplyr::all_of(var.model.remove))
     }
 
     # adjust:
@@ -1077,7 +1071,7 @@ analyseOneElement.gam <- function(i_element,
       # not empty | if any dim is 0, all=FALSE
       onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(
         names_from = term,
-        values_from = all_of(var.smoothTerms.orig),
+        values_from = dplyr::all_of(var.smoothTerms.orig),
         names_glue = "{term}.{.value}"
       )
     } else {
@@ -1088,7 +1082,7 @@ analyseOneElement.gam <- function(i_element,
       # not empty
       onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(
         names_from = term,
-        values_from = all_of(var.parametricTerms.orig),
+        values_from = dplyr::all_of(var.parametricTerms.orig),
         names_glue = "{term}.{.value}"
       )
     } else {
@@ -1099,7 +1093,7 @@ analyseOneElement.gam <- function(i_element,
       # not empty
       onemodel.glance.onerow <- onemodel.glance %>% tidyr::pivot_wider(
         names_from = term,
-        values_from = all_of(var.model),
+        values_from = dplyr::all_of(var.model),
         names_glue = "{term}.{.value}"
       )
     } else {
@@ -1234,7 +1228,6 @@ analyseOneElement.gam <- function(i_element,
 #' @rdname analyseOneElement.wrap
 #' @export
 #' @importFrom dplyr %>%
-#' @import tibble
 analyseOneElement.wrap <- function(i_element,
                                    user_fun,
                                    modelarray,
@@ -1457,7 +1450,6 @@ analyseOneElement.wrap <- function(i_element,
 #' }
 #'
 #' @rdname writeResults
-#' @import hdf5r
 #' @export
 writeResults <- function(fn.output,
                          df.output,

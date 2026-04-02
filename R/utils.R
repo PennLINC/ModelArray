@@ -3,8 +3,6 @@
 #' @param group_name full directory of this object in .h5 name
 #' @param object_name name of the object, should be a string without "/"
 #' @noRd
-#' @importFrom rhdf5 h5ls h5closeAll
-#' @importFrom dplyr filter
 #' @importFrom rlang .data
 flagObjectExistInh5 <- function(fn_h5, group_name = "/results", object_name = "myAnalysis") {
   rhdf5::h5closeAll()
@@ -28,8 +26,6 @@ flagObjectExistInh5 <- function(fn_h5, group_name = "/results", object_name = "m
 #' check if h5 group "results" exist in current .h5 file
 #' @param fn_h5 filename of the .h5 file
 #' @noRd
-#' @importFrom rhdf5 h5ls h5closeAll
-#' @importFrom dplyr filter
 #' @importFrom rlang .data
 flagResultsGroupExistInh5 <- function(fn_h5) {
   rhdf5::h5closeAll()
@@ -52,8 +48,6 @@ flagResultsGroupExistInh5 <- function(fn_h5) {
 #' @param fn_h5 filename of the .h5 file
 #' @param analysis_name The subfolder name in "results" in .h5 file
 #' @noRd
-#' @importFrom rhdf5 h5ls h5closeAll
-#' @importFrom dplyr filter
 #' @importFrom rlang .data
 flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
   rhdf5::h5closeAll()
@@ -79,7 +73,6 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
 #' @param dots list of additional arguments
 #' @param message_default The message for default
 #' @param message_usr_input The message describing user's input
-#' @importFrom crayon black
 #' @importFrom dplyr %>%
 #' @noRd
 printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, message_usr_input = NULL) {
@@ -118,7 +111,6 @@ printAdditionalArgu <- function(FUN, argu_name, dots, message_default = NULL, me
 #' @param name.correct.list The name of the list of correction methods for this type of term/model
 #' @param var.list The list of statistics to be saved for this type of term/model
 #' @param name.var.list The name of the list of statistics to be saved for this type of term/model
-#' @importFrom stats p.adjust.methods
 #' @noRd
 check_validity_correctPValue <- function(correct.list, name.correct.list,
                                          var.list, name.var.list) {
@@ -156,9 +148,7 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
 #'
 #' @param ofInterest got via: `gam.formula.breakdown <- mgcv::interpret.gam(formula)`;
 #' `ofInterest <- gam.formula.breakdown$smooth.spec[[i]]`
-#' @importFrom mgcv s
 #' @importFrom dplyr %>%
-#' @importFrom crayon black
 #' @noRd
 #'
 checker_gam_s <- function(ofInterest) {
@@ -235,9 +225,7 @@ checker_gam_s <- function(ofInterest) {
 #' @param FUN could be mgcv::te(), ti() or t2()
 #' @param ofInterest got via: `gam.formula.breakdown <- mgcv::interpret.gam(formula)`;
 #' `ofInterest <- gam.formula.breakdown$smooth.spec[[i]]`
-#' @importFrom mgcv te ti t2
 #' @importFrom dplyr %>%
-#' @importFrom crayon black
 #' @noRd
 #'
 checker_gam_t <- function(FUN, ofInterest) {
@@ -292,9 +280,7 @@ checker_gam_t <- function(FUN, ofInterest) {
 #' @param formula The formula
 #' @param gam.formula.breakdown Got from mgcv::interpret.gam(formula)
 #' @param onemodel The model of one element got from mgcv::gam()
-#' @importFrom mgcv s ti t2 te
 #' @importFrom dplyr %>%
-#' @importFrom crayon black
 #' @noRd
 #'
 checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL) {
@@ -422,8 +408,6 @@ checker_gam_formula <- function(formula, gam.formula.breakdown, onemodel = NULL)
 #' }
 #'
 #' @rdname gen_gamFormula_fxSmooth
-#' @importFrom mgcv s
-#' @importFrom stats as.formula
 #' @export
 #'
 gen_gamFormula_fxSmooth <- function(response.var, factor.var, smooth.var, phenotypes,
@@ -545,8 +529,6 @@ gen_gamFormula_fxSmooth <- function(response.var, factor.var, smooth.var, phenot
 #' }
 #'
 #' @rdname gen_gamFormula_contIx
-#' @importFrom mgcv ti
-#' @importFrom stats as.formula
 #' @export
 gen_gamFormula_contIx <- function(response.var, cont1.var, cont2.var,
                                   fx = TRUE, k = NULL) {
@@ -569,14 +551,12 @@ gen_gamFormula_contIx <- function(response.var, cont1.var, cont2.var,
 #' @param a A tibble, can be empty tibble()
 #' @param b A tibble, can be empty tibble()
 #' @return c, A tibble after binding a and b together
-#' @importFrom dplyr bind_cols
-#' @import tibble
 #' @noRd
 bind_cols_check_emptyTibble <- function(a, b) {
   flag_a_empty <- !all(dim(a)) # if TRUE, a is empty
   flag_b_empty <- !all(dim(b)) # if TRUE, b is empty
 
-  if (flag_a_empty && flag_b_empty) c <- tibble() # both are empty
+  if (flag_a_empty && flag_b_empty) c <- tibble::tibble() # both are empty
   if (flag_a_empty && (!flag_b_empty)) c <- b # b is not empty ==> taking b
   if ((!flag_a_empty) && flag_b_empty) c <- a # a is not empty ==> taking a
   if ((!flag_a_empty) && (!flag_b_empty)) c <- dplyr::bind_cols(a, b) # neither of them is empty ==> simply combine
@@ -624,7 +604,6 @@ bind_cols_check_emptyTibble <- function(a, b) {
 #' }
 #'
 #' @rdname h5summary
-#' @importFrom rhdf5 h5ls h5closeAll
 #' @export
 h5summary <- function(filepath) {
   if (!file.exists(filepath)) {
