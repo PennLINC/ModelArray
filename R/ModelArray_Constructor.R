@@ -635,7 +635,7 @@ analyseOneElement.lm <- function(i_element,
     # adjust:
     # change the term name from "(Intercept)" to "Intercept"
     onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"
-    onemodel.glance <- onemodel.glance %>% mutate(term = "model") # add a column
+    onemodel.glance <- onemodel.glance %>% dplyr::mutate(term = "model") # add a column
 
     # get the list of terms:
     list.terms <- onemodel.tidy$term
@@ -1026,7 +1026,7 @@ analyseOneElement.gam <- function(i_element,
     }
 
 
-    onemodel.glance <- onemodel.glance %>% mutate(term = "model") # add a column
+    onemodel.glance <- onemodel.glance %>% dplyr::mutate(term = "model") # add a column
 
     # get the list of terms:
     if (num.smoothTerms > 0) {
