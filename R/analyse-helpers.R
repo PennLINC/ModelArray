@@ -258,9 +258,7 @@
     for (tempstr in term_list) {
       tempstr.raw <- paste0(tempstr, ".p.value")
       tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
-      temp.corrected <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
-      df_out <- df_out %>%
-        tibble::add_column("{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
+      df_out[[tempstr.corrected]] <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
     }
   }
 

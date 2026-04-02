@@ -757,13 +757,13 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       df_out <- merge(df_out, reduced.model.df_out, by = "element_id")
 
       # calculate the delta.adj.rsq, add to the df_out:
-      df_out <- df_out %>% dplyr::mutate(
-        "{changed.rsq.term.shortFormat}.delta.adj.rsq" := model.adj.r.squared - redModel.adj.r.squared
-      ) # calculate the partial.rsq, add to the df_out:
-      df_out <- df_out %>% dplyr::mutate(
-        "{changed.rsq.term.shortFormat}.partial.rsq" := (redModel.sse - model.sse) / redModel.sse
-      ) # partialRsq <- (sse.red - sse.full) / sse.red
+      col_name <- paste0(changed.rsq.term.shortFormat, ".delta.adj.rsq")
+      df_out[[col_name]] <- df_out[["model.adj.r.squared"]] - df_out[["redModel.adj.r.squared"]]
 
+      # calculate the partial.rsq, add to the df_out
+      # partialRsq <- (sse.red - sse.full) / sse.red
+      col_name <- paste0(changed.rsq.term.shortFormat, ".partial.rsq")
+      df_out[[col_name]] <- (df_out[["redModel.sse"]] - df_out[["model.sse"]]) / df_out[["redModel.sse"]]
 
       # remove column of redModel
       df_out <- df_out %>% subset(select = -c(

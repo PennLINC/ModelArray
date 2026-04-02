@@ -3,67 +3,33 @@
 #' @param group_name full directory of this object in .h5 name
 #' @param object_name name of the object, should be a string without "/"
 #' @noRd
-#' @importFrom rlang .data
 flagObjectExistInh5 <- function(fn_h5, group_name = "/results", object_name = "myAnalysis") {
   rhdf5::h5closeAll()
-
   h5 <- rhdf5::h5ls(fn_h5)
-
-  h5.nrow <- h5 %>%
-    dplyr::filter(.data$group == group_name & .data$name == object_name) %>%
-    nrow()
-
-  if (h5.nrow == 0) {
-    object_exists <- FALSE
-  } else {
-    object_exists <- TRUE
-  }
-
-  object_exists
+  h5.nrow <- nrow(h5[h5$group == group_name & h5$name == object_name, ])
+  h5.nrow > 0
 }
 
 
 #' check if h5 group "results" exist in current .h5 file
 #' @param fn_h5 filename of the .h5 file
 #' @noRd
-#' @importFrom rlang .data
 flagResultsGroupExistInh5 <- function(fn_h5) {
   rhdf5::h5closeAll()
   h5 <- rhdf5::h5ls(fn_h5)
-
-  h5.nrow <- h5 %>%
-    dplyr::filter(.data$group == "/" & .data$name == "results") %>%
-    nrow()
-
-  if (h5.nrow == 0) {
-    object_exists <- FALSE
-  } else {
-    object_exists <- TRUE
-  }
-
-  object_exists
+  h5.nrow <- nrow(h5[h5$group == "/" & h5$name == "results", ])
+  h5.nrow > 0
 }
 
 #' check if a subfolder of results exist in current .h5 file
 #' @param fn_h5 filename of the .h5 file
 #' @param analysis_name The subfolder name in "results" in .h5 file
 #' @noRd
-#' @importFrom rlang .data
 flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
   rhdf5::h5closeAll()
   h5 <- rhdf5::h5ls(fn_h5)
-
-  h5.nrow <- h5 %>%
-    dplyr::filter(.data$group == "/results" & .data$name == analysis_name) %>%
-    nrow()
-
-  if (h5.nrow == 0) {
-    object_exists <- FALSE
-  } else {
-    object_exists <- TRUE
-  }
-
-  object_exists
+  h5.nrow <- nrow(h5[h5$group == "/results" & h5$name == analysis_name, ])
+  h5.nrow > 0
 }
 
 
