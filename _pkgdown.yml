@@ -84,6 +84,7 @@ reference:
 
   - title: "Utilities"
     contents:
+      - writeResults
       - h5summary
       - numElementsTotal
       - gen_gamFormula_fxSmooth
