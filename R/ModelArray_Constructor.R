@@ -23,11 +23,11 @@
 #'
 #' @slot sources A named list of character vectors. Each element corresponds
 #'   to a scalar and contains the source filenames (one per input file/subject).
-#' @slot scalars A named list of \linkS4class{DelayedArray} matrices.
+#' @slot scalars A named list of [DelayedArray::DelayedArray][DelayedArray-class] matrices.
 #'   Each matrix has elements as rows and source files as columns.
 #' @slot results A named list of analysis results. Each element is itself a
 #'   list containing at minimum \code{results_matrix} (a
-#'   \linkS4class{DelayedArray}).
+#'   [DelayedArray::DelayedArray][DelayedArray-class]).
 #' @slot path Character. Path(s) to the HDF5 file(s) on disk.
 #'
 #' @seealso \code{\link{ModelArray}} for the constructor,
@@ -36,9 +36,9 @@
 #'   \code{\link{scalars}}, \code{\link{sources}}, \code{\link{results}} for
 #'   accessors.
 #'
+#' @name ModelArray-class
 #' @aliases ModelArray-class
 #' @rdname ModelArray-class
-#' @importClassesFrom DelayedArray DelayedArray
 #' @exportClass ModelArray
 ModelArray <- setClass(
   "ModelArray",
@@ -58,7 +58,6 @@ ModelArray <- setClass(
 #' @param filepath Path to an existing h5 file.
 #' @param name Name of the group/field in the h5 file.
 #' @param type Type of DelayedArray object, used as an argument for `HDF5Array::HDF5ArraySeed`.
-#' @importFrom HDF5Array HDF5ArraySeed
 #' @noRd
 #'
 ModelArraySeed <- function(filepath, name, type = NA) {
@@ -80,7 +79,7 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @details
 #' The constructor reads each scalar listed in \code{scalar_types} from
 #' \code{/scalars/<scalar_type>/values}, wrapping them as
-#' \linkS4class{DelayedArray} objects. Source filenames are extracted
+#' [DelayedArray::DelayedArray][DelayedArray-class] objects. Source filenames are extracted
 #' from HDF5 attributes or companion datasets.
 #'
 #' If \code{analysis_names} is non-empty, saved results are loaded from
@@ -113,10 +112,6 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @rdname ModelArray
 #' @aliases ModelArray
 #' @export
-#' @import methods
-#' @importFrom dplyr %>%
-#' @importFrom DelayedArray DelayedArray realize
-#' @importFrom rhdf5 h5readAttributes
 ModelArray <- function(filepath,
                        scalar_types = c("FD"),
                        analysis_names = character(0)) {
@@ -458,10 +453,6 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #' @keywords internal
 #' @rdname analyseOneElement.lm
 #' @export
-#' @importFrom stats lm
-#' @import broom
-#' @importFrom dplyr %>% select bind_cols
-#' @import tibble
 
 analyseOneElement.lm <- function(i_element,
                                  formula,
@@ -629,16 +620,16 @@ analyseOneElement.lm <- function(i_element,
     # remove those columns:
     if (length(var.terms.remove) != 0) {
       # if length=0, it's list(), nothing to remove
-      onemodel.tidy <- dplyr::select(onemodel.tidy, -all_of(var.terms.remove))
+      onemodel.tidy <- dplyr::select(onemodel.tidy, -dplyr::all_of(var.terms.remove))
     }
     if (length(var.model.remove) != 0) {
-      onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
+      onemodel.glance <- dplyr::select(onemodel.glance, -dplyr::all_of(var.model.remove))
     }
 
     # adjust:
     # change the term name from "(Intercept)" to "Intercept"
     onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"
-    onemodel.glance <- onemodel.glance %>% mutate(term = "model") # add a column
+    onemodel.glance <- onemodel.glance %>% dplyr::mutate(term = "model") # add a column
 
     # get the list of terms:
     list.terms <- onemodel.tidy$term
@@ -651,13 +642,13 @@ analyseOneElement.lm <- function(i_element,
     temp <- union(temp_colnames, "term")
     # just an empty tibble (so below, all(dim(onemodel.tidy)) = FALSE)
     if (all(temp == "term")) {
-      onemodel.tidy <- tibble()
+      onemodel.tidy <- tibble::tibble()
     }
 
     temp_colnames <- onemodel.glance %>% colnames()
     temp <- union(temp_colnames, "term") # union of colnames and "term";
     if (all(temp == "term")) {
-      onemodel.glance <- tibble()
+      onemodel.glance <- tibble::tibble()
     }
 
 
@@ -665,8 +656,8 @@ analyseOneElement.lm <- function(i_element,
     if (all(dim(onemodel.tidy))) {
       # not empty | if any dim is 0, all=FALSE
       onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(
-        names_from = term,
-        values_from = all_of(var.terms.orig),
+        names_from = "term",
+        values_from = dplyr::all_of(var.terms.orig),
         names_glue = "{term}.{.value}"
       )
     } else {
@@ -676,8 +667,8 @@ analyseOneElement.lm <- function(i_element,
     if (all(dim(onemodel.glance))) {
       # not empty
       onemodel.glance.onerow <- onemodel.glance %>% tidyr::pivot_wider(
-        names_from = term,
-        values_from = all_of(var.model),
+        names_from = "term",
+        values_from = dplyr::all_of(var.model),
         names_glue = "{term}.{.value}"
       )
     } else {
@@ -784,10 +775,6 @@ analyseOneElement.lm <- function(i_element,
 #' @keywords internal
 #' @rdname analyseOneElement.gam
 #' @export
-#' @import mgcv
-#' @import broom
-#' @importFrom dplyr select %>% bind_cols
-#' @import tibble
 
 analyseOneElement.gam <- function(i_element,
                                   formula,
@@ -978,14 +965,14 @@ analyseOneElement.gam <- function(i_element,
     # remove those columns:
     if (length(var.smoothTerms.remove) != 0) {
       # if length=0, it's list(), nothing to remove
-      onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -all_of(var.smoothTerms.remove))
+      onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -dplyr::all_of(var.smoothTerms.remove))
     }
     if (length(var.parametricTerms.remove) != 0) {
       # if length=0, it's list(), nothing to remove
-      onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -all_of(var.parametricTerms.remove))
+      onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -dplyr::all_of(var.parametricTerms.remove))
     }
     if (length(var.model.remove) != 0) {
-      onemodel.glance <- dplyr::select(onemodel.glance, -all_of(var.model.remove))
+      onemodel.glance <- dplyr::select(onemodel.glance, -dplyr::all_of(var.model.remove))
     }
 
     # adjust:
@@ -1032,7 +1019,7 @@ analyseOneElement.gam <- function(i_element,
     }
 
 
-    onemodel.glance <- onemodel.glance %>% mutate(term = "model") # add a column
+    onemodel.glance <- onemodel.glance %>% dplyr::mutate(term = "model") # add a column
 
     # get the list of terms:
     if (num.smoothTerms > 0) {
@@ -1055,20 +1042,20 @@ analyseOneElement.gam <- function(i_element,
     # union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term",
     # all(union) = c(TRUE, FALSE, ...)
     if (all(temp == "term")) {
-      onemodel.tidy.smoothTerms <- tibble()
+      onemodel.tidy.smoothTerms <- tibble::tibble()
     }
     # just an empty tibble (so below, all(dim(onemodel.tidy.smoothTerms)) = FALSE)
 
     temp_colnames <- onemodel.tidy.parametricTerms %>% colnames()
     temp <- union(temp_colnames, "term")
     if (all(temp == "term")) {
-      onemodel.tidy.parametricTerms <- tibble()
+      onemodel.tidy.parametricTerms <- tibble::tibble()
     } # just an empty tibble
 
     temp_colnames <- onemodel.glance %>% colnames()
     temp <- union(temp_colnames, "term")
     if (all(temp == "term")) {
-      onemodel.glance <- tibble()
+      onemodel.glance <- tibble::tibble()
     } # just an empty tibble
 
 
@@ -1076,8 +1063,8 @@ analyseOneElement.gam <- function(i_element,
     if (all(dim(onemodel.tidy.smoothTerms))) {
       # not empty | if any dim is 0, all=FALSE
       onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(
-        names_from = term,
-        values_from = all_of(var.smoothTerms.orig),
+        names_from = "term",
+        values_from = dplyr::all_of(var.smoothTerms.orig),
         names_glue = "{term}.{.value}"
       )
     } else {
@@ -1087,8 +1074,8 @@ analyseOneElement.gam <- function(i_element,
     if (all(dim(onemodel.tidy.parametricTerms))) {
       # not empty
       onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(
-        names_from = term,
-        values_from = all_of(var.parametricTerms.orig),
+        names_from = "term",
+        values_from = dplyr::all_of(var.parametricTerms.orig),
         names_glue = "{term}.{.value}"
       )
     } else {
@@ -1098,8 +1085,8 @@ analyseOneElement.gam <- function(i_element,
     if (all(dim(onemodel.glance))) {
       # not empty
       onemodel.glance.onerow <- onemodel.glance %>% tidyr::pivot_wider(
-        names_from = term,
-        values_from = all_of(var.model),
+        names_from = "term",
+        values_from = dplyr::all_of(var.model),
         names_glue = "{term}.{.value}"
       )
     } else {
@@ -1233,8 +1220,6 @@ analyseOneElement.gam <- function(i_element,
 #' @keywords internal
 #' @rdname analyseOneElement.wrap
 #' @export
-#' @importFrom dplyr %>%
-#' @import tibble
 analyseOneElement.wrap <- function(i_element,
                                    user_fun,
                                    modelarray,
@@ -1457,7 +1442,6 @@ analyseOneElement.wrap <- function(i_element,
 #' }
 #'
 #' @rdname writeResults
-#' @import hdf5r
 #' @export
 writeResults <- function(fn.output,
                          df.output,

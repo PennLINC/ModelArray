@@ -17,9 +17,9 @@ extract. If omitted, the entire named list is returned.}
 }
 \value{
 If called with no extra arguments, a named list of
-\linkS4class{DelayedArray} matrices (elements as rows, source files as
+\link[DelayedArray:DelayedArray-class]{DelayedArray::DelayedArray} matrices (elements as rows, source files as
 columns). If called with a scalar name, the corresponding single
-\linkS4class{DelayedArray} matrix.
+\link[DelayedArray:DelayedArray-class]{DelayedArray::DelayedArray} matrix.
 }
 \description{
 Retrieve scalar matrices from a \linkS4class{ModelArray}. When called

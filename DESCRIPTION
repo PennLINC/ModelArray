@@ -26,7 +26,6 @@ Imports:
     HDF5Array,
     broom,
     crayon,
-    doParallel,
     dplyr,
     glue,
     hdf5r,
@@ -37,7 +36,6 @@ Imports:
     pbapply,
     pbmcapply,
     rhdf5,
-    rlang,
     tibble,
     tidyr
 RoxygenNote: 7.3.3
