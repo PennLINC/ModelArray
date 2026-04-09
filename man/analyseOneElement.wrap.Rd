@@ -31,7 +31,9 @@ returns will error.
 as \code{v1}, \code{v2}, etc.
 \item A named atomic vector. Unnamed vectors are accepted and
 auto-named as \code{v1}, \code{v2}, etc.
-}}
+}
+All return values are coerced to a numeric vector internally.
+Unsupported types (e.g., environments, S4 objects) will error.}
 
 \item{modelarray}{A \linkS4class{ModelArray} object. Ignored when
 \code{ctx} is provided.}
