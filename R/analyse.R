@@ -187,6 +187,27 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
     var.model <- var.model.full
   }
 
+  # check on validity of list of vars:
+  var.terms <- var.terms[!duplicated(var.terms)]
+  var.model <- var.model[!duplicated(var.model)]
+
+  # check if all var.* are empty:
+  if (length(var.terms) == 0 && length(var.model) == 0) {
+    stop("All var.* arguments [var.terms, var.model] are empty!")
+  }
+
+  # check if every var is valid:
+  for (var in var.terms) {
+    if (!(var %in% var.terms.full)) {
+      stop(paste0(var, " is not valid for var.terms!"))
+    }
+  }
+  for (var in var.model) {
+    if (!(var %in% var.model.full)) {
+      stop(paste0(var, " is not valid for var.model!"))
+    }
+  }
+
   # P-value correction checks ----
   check_validity_correctPValue(
     correct.p.value.terms, "correct.p.value.terms",
@@ -417,9 +438,58 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar,
     var.model <- var.model.full
   }
 
+  var.smoothTerms <- var.smoothTerms[!duplicated(var.smoothTerms)]
+  var.parametricTerms <- var.parametricTerms[!duplicated(var.parametricTerms)]
+  var.model <- var.model[!duplicated(var.model)]
+
+  if (length(var.smoothTerms) == 0 && length(var.parametricTerms) == 0 && length(var.model) == 0) {
+    stop("All var.* arguments [var.smoothTerms, var.parametricTerms, var.model] are empty!")
+  }
+
+  for (var in var.smoothTerms) {
+    if (!(var %in% var.smoothTerms.full)) {
+      stop(paste0(var, " is not valid for var.smoothTerms!"))
+    }
+  }
+  for (var in var.parametricTerms) {
+    if (!(var %in% var.parametricTerms.full)) {
+      stop(paste0(var, " is not valid for var.parametricTerms!"))
+    }
+  }
+  for (var in var.model) {
+    if (!(var %in% var.model.full)) {
+      stop(paste0(var, " is not valid!"))
+    }
+  }
+
   # Changed.rsq setup ----
+  var.model.orig <- var.model
   if (!is.null(changed.rsq.term.index)) {
-    terms.full.formula <- stats::terms(formula)
+
+    # check if the term index is valid:
+    if (min(changed.rsq.term.index) <= 0) {
+      stop(
+        "There is element(s) in changed.rsq.term.index <= 0. ",
+        "It should be a (list of) positive integer!"
+      )
+    }
+
+    terms.full.formula <- stats::terms(formula, keep.order = TRUE)
+
+    if (max(changed.rsq.term.index) > length(labels(terms.full.formula))) {
+      stop(
+        "Largest index in changed.rsq.term.index is more than the term number on the ",
+        "right hand side of formula!"
+      )
+    }
+
+    if (length(labels(terms.full.formula)) == 0) {
+      stop(
+        "Trying to analyze changed.rsq but there is no variable (except intercept 1) ",
+        "on right hand side of formula! Please provide at least one valid variable."
+      )
+    }
+
     changed.rsq.term.fullFormat.list <- labels(terms.full.formula)[unlist(changed.rsq.term.index)]
     changed.rsq.term.shortFormat.list <- list()
     for (idx in seq_along(changed.rsq.term.index)) {
