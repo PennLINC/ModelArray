@@ -253,7 +253,7 @@
 #' @noRd
 .build_lm_context <- function(formula, modelarray, phenotypes, scalar) {
   # Formula parsing — currently repeated per element inside
-  # analyseOneElement.lm [4]
+  # analyseOneElement.lm
   all_vars <- all.vars(formula)
   lhs_name <- tryCatch(
     as.character(formula[[2]]),
@@ -307,7 +307,7 @@
 #'   }
 #' @noRd
 .build_gam_context <- function(formula, modelarray, phenotypes, scalar) {
-  # GAM formula validation — currently runs in ModelArray.gam() preamble [1]
+  # GAM formula validation — currently runs in ModelArray.gam() preamble
   # but the breakdown result is discarded. We cache it here.
   gam_breakdown <- tryCatch(
     mgcv::interpret.gam(formula),
@@ -357,7 +357,7 @@
 # Extracts scalar values for one element using the precomputed context,
 # builds the validity mask, and returns the filtered data.frame.
 # This replaces duplicated logic across analyseOneElement.lm,
-# analyseOneElement.gam, and analyseOneElement.wrap [4].
+# analyseOneElement.gam, and analyseOneElement.wrap.
 
 #' Assemble per-element data.frame from precomputed context
 #'
