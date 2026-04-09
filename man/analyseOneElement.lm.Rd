@@ -2,23 +2,21 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{analyseOneElement.lm}
 \alias{analyseOneElement.lm}
-\title{Fit a linear model for a single element
-If the number of subjects with finite scalar values (not \code{NaN},
-\code{NA}, or \code{Inf}) does not exceed \code{num.subj.lthr}, the
-element is skipped and all statistics are set to \code{NaN}.}
+\title{Fit a linear model for a single element}
 \usage{
 analyseOneElement.lm(
   i_element,
-  formula,
-  modelarray,
-  phenotypes,
-  scalar,
-  var.terms,
-  var.model,
+  formula = NULL,
+  modelarray = NULL,
+  phenotypes = NULL,
+  scalar = NULL,
+  var.terms = c("estimate", "statistic", "p.value"),
+  var.model = c("adj.r.squared", "p.value"),
   num.subj.lthr,
   num.stat.output = NULL,
   flag_initiate = FALSE,
   on_error = "stop",
+  ctx = NULL,
   ...
 )
 }
@@ -26,16 +24,18 @@ analyseOneElement.lm(
 \item{i_element}{Integer. The 1-based index of the element to analyse.}
 
 \item{formula}{A \code{\link[stats]{formula}} passed to
-\code{\link[stats]{lm}}.}
+\code{\link[stats]{lm}}. Ignored when \code{ctx} is provided (the
+formula is taken from the context).}
 
-\item{modelarray}{A \linkS4class{ModelArray} object.}
+\item{modelarray}{A \linkS4class{ModelArray} object. Ignored when
+\code{ctx} is provided.}
 
 \item{phenotypes}{A data.frame of the cohort with columns of independent
 variables and covariates. Must contain a \code{"source_file"} column
-matching \code{sources(modelarray)[[scalar]]}.}
+matching \code{sources(modelarray)[[scalar]]}. Ignored when \code{ctx} is provided.}
 
 \item{scalar}{Character. The name of the element-wise scalar to analyse.
-Must be one of \code{names(scalars(modelarray))}.}
+Must be one of \code{names(scalars(modelarray))}. Ignored when \code{ctx} is provided.}
 
 \item{var.terms}{Character vector. Statistics to extract per term from
 \code{\link[broom]{tidy.lm}} (e.g. \code{"estimate"}, \code{"statistic"},
@@ -67,6 +67,9 @@ halts execution; \code{"skip"} returns all-\code{NaN} for this element;
 \code{"debug"} drops into \code{\link{browser}} (if interactive) then
 skips. Default: \code{"stop"}.}
 
+\item{ctx}{A precomputed context list from \code{.build_lm_context()},
+or \code{NULL} for legacy inline computation.}
+
 \item{...}{Additional arguments passed to \code{\link[stats]{lm}}.}
 }
 \value{
@@ -84,14 +87,19 @@ value and the requested statistics in subsequent positions. All-\code{NaN}
 or if an error occurred with \code{on_error = "skip"}.
 }
 \description{
-Fit a linear model for a single element
+Fits \code{\link[stats]{lm}} on one element's data. When a precomputed
+context (\code{ctx}) is provided, all loop-invariant work (formula parsing,
+collision checks, source alignment) is skipped. When \code{ctx} is
+\code{NULL}, the function falls back to computing everything inline
+(legacy behaviour for direct calls / debugging).
+
 If the number of subjects with finite scalar values (not \code{NaN},
 \code{NA}, or \code{Inf}) does not exceed \code{num.subj.lthr}, the
 element is skipped and all statistics are set to \code{NaN}.
 }
 \seealso{
-\code{\link{ModelArray.lm}} which calls this function iteratively,
+\code{\link{ModelArray.lm}}, \code{.build_lm_context},
 \code{\link{analyseOneElement.gam}} for the GAM equivalent,
-\code{\link{analyseOneElement.wrap}} for user-supplied functions.
+\code{\link{analyseOneElement.wrap}} for user-supplied functions
 }
 \keyword{internal}

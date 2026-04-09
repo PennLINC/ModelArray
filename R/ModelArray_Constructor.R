@@ -1,3 +1,4 @@
+# ModelArray class ----
 #' ModelArray class
 #'
 #' ModelArray is an S4 class that represents element-wise scalar data and
@@ -394,19 +395,29 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 }
 
 #' Fit a linear model for a single element
+#'
+#' @description
+#' Fits \code{\link[stats]{lm}} on one element's data. When a precomputed
+#' context (\code{ctx}) is provided, all loop-invariant work (formula parsing,
+#' collision checks, source alignment) is skipped. When \code{ctx} is
+#' \code{NULL}, the function falls back to computing everything inline
+#' (legacy behaviour for direct calls / debugging).
+#'
 #' If the number of subjects with finite scalar values (not \code{NaN},
 #' \code{NA}, or \code{Inf}) does not exceed \code{num.subj.lthr}, the
 #' element is skipped and all statistics are set to \code{NaN}.
 #'
 #' @param i_element Integer. The 1-based index of the element to analyse.
 #' @param formula A \code{\link[stats]{formula}} passed to
-#'   \code{\link[stats]{lm}}.
-#' @param modelarray A \linkS4class{ModelArray} object.
+#'   \code{\link[stats]{lm}}. Ignored when \code{ctx} is provided (the
+#'   formula is taken from the context).
+#' @param modelarray A \linkS4class{ModelArray} object. Ignored when
+#'   \code{ctx} is provided.
 #' @param phenotypes A data.frame of the cohort with columns of independent
 #'   variables and covariates. Must contain a \code{"source_file"} column
-#'   matching \code{sources(modelarray)[[scalar]]}.
+#'   matching \code{sources(modelarray)[[scalar]]}. Ignored when \code{ctx} is provided.
 #' @param scalar Character. The name of the element-wise scalar to analyse.
-#'   Must be one of \code{names(scalars(modelarray))}.
+#'   Must be one of \code{names(scalars(modelarray))}. Ignored when \code{ctx} is provided.
 #' @param var.terms Character vector. Statistics to extract per term from
 #'   \code{\link[broom]{tidy.lm}} (e.g. \code{"estimate"}, \code{"statistic"},
 #'   \code{"p.value"}).
@@ -418,7 +429,7 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #'   below this threshold are skipped. This value is typically computed by
 #'   the parent function from \code{num.subj.lthr.abs} and
 #'   \code{num.subj.lthr.rel}.
-#' @param num.stat.output Integer or \code{NULL}. The total number of output
+#' @param num.stat.output  Integer or \code{NULL}. The total number of output
 #'   columns (including \code{element_id}). Used when
 #'   \code{flag_initiate = FALSE} to generate an all-\code{NaN} row for
 #'   skipped elements. Must be \code{NULL} when \code{flag_initiate = TRUE}.
@@ -431,6 +442,8 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #'   halts execution; \code{"skip"} returns all-\code{NaN} for this element;
 #'   \code{"debug"} drops into \code{\link{browser}} (if interactive) then
 #'   skips. Default: \code{"stop"}.
+#' @param ctx A precomputed context list from \code{.build_lm_context()},
+#'   or \code{NULL} for legacy inline computation.
 #' @param ... Additional arguments passed to \code{\link[stats]{lm}}.
 #'
 #' @return If \code{flag_initiate = TRUE}, a list with components:
@@ -446,283 +459,144 @@ numElementsTotal <- function(modelarray, scalar_name = "FD") {
 #'   (except \code{element_id}) if the element had insufficient valid subjects
 #'   or if an error occurred with \code{on_error = "skip"}.
 #'
-#' @seealso \code{\link{ModelArray.lm}} which calls this function iteratively,
+#' @seealso \code{\link{ModelArray.lm}}, \code{.build_lm_context},
 #'   \code{\link{analyseOneElement.gam}} for the GAM equivalent,
-#'   \code{\link{analyseOneElement.wrap}} for user-supplied functions.
+#'   \code{\link{analyseOneElement.wrap}} for user-supplied functions
 #'
 #' @keywords internal
 #' @rdname analyseOneElement.lm
 #' @export
-
 analyseOneElement.lm <- function(i_element,
-                                 formula,
-                                 modelarray,
-                                 phenotypes,
-                                 scalar,
-                                 var.terms,
-                                 var.model,
+                                 formula = NULL,
+                                 modelarray = NULL,
+                                 phenotypes = NULL,
+                                 scalar = NULL,
+                                 var.terms = c("estimate", "statistic", "p.value"),
+                                 var.model = c("adj.r.squared", "p.value"),
                                  num.subj.lthr,
                                  num.stat.output = NULL,
                                  flag_initiate = FALSE,
                                  on_error = "stop",
+                                 ctx = NULL,
                                  ...) {
-  values <- scalars(modelarray)[[scalar]][i_element, ]
 
-  ## check number of subjects with (in)valid values:
-  flag_sufficient <- NULL # whether number of subjects with valid values are sufficient
-  num.subj.valid <- length(values[is.finite(values)])
-  if (num.subj.valid > num.subj.lthr) {
-    flag_sufficient <- TRUE
+
+  # Resolve context ----
+  # Use precomputed if available, else build inline
+
+  if (!is.null(ctx)) {
+    # Fast path: all invariant work already done
+    effective_formula   <- ctx$formula
+    effective_scalar    <- ctx$scalar
   } else {
-    flag_sufficient <- FALSE
+    # Legacy path: compute everything inline (for direct calls / debugging)
+    effective_formula   <- formula
+    effective_scalar    <- scalar
+    ctx <- .build_lm_context(formula, modelarray, phenotypes, scalar)
   }
 
-  if (flag_sufficient == TRUE) {
-    dat <- phenotypes
-    # detect scalar predictors referenced in formula
-    all_vars <- all.vars(formula)
-    lhs_name <- tryCatch(as.character(formula[[2]]), error = function(e) NULL)
-    rhs_vars <- setdiff(all_vars, lhs_name)
-    scalar_names <- names(scalars(modelarray))
-    scalar_predictors <- intersect(rhs_vars, scalar_names)
 
-    # collision check with phenotypes
-    collisions <- intersect(c(scalar, scalar_predictors), colnames(dat))
-    if (length(collisions) > 0) {
-      stop(paste0(
-        "Column name collision between phenotypes and scalar names: ",
-        paste(collisions, collapse = ", "),
-        ". Please rename or remove these columns from phenotypes before modeling."
-      ))
+  # Per-element data assembly ----
+  elem <- .assemble_element_data(i_element, ctx, num.subj.lthr)
+
+  if (!elem$sufficient) {
+    if (flag_initiate) {
+      return(list(column_names = NaN, list.terms = NaN))
+    } else {
+      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      return(onerow)
     }
+  }
 
-    # attach response first
-    dat[[scalar]] <- values
+  dat <- elem$dat
 
-    # attach scalar predictors with source alignment and build intersection mask
-    masks <- list(is.finite(values))
-    if (length(scalar_predictors) > 0) {
-      for (pred in scalar_predictors) {
-        pred_sources <- sources(modelarray)[[pred]]
-        phen_sources <- dat[["source_file"]]
-        if (!(all(pred_sources %in% phen_sources) && all(phen_sources %in% pred_sources))) {
-          stop(paste0(
-            "The source files for predictor scalar '", pred, "' do not match phenotypes$source_file."
-          ))
-        }
-        reorder_idx <- match(phen_sources, pred_sources)
-        pred_vals <- scalars(modelarray)[[pred]][i_element, ]
-        pred_vals <- pred_vals[reorder_idx]
-        dat[[pred]] <- pred_vals
-        masks[[length(masks) + 1L]] <- is.finite(pred_vals)
+
+  # Fit model ----
+  arguments_lm <- list(...)
+  arguments_lm$formula <- effective_formula
+  arguments_lm$data <- dat
+
+  onemodel <- tryCatch(
+    {
+      do.call(stats::lm, arguments_lm)
+    },
+    error = function(e) {
+      msg <- paste0(
+        "analyseOneElement.lm error at element ",
+        i_element, ": ", conditionMessage(e)
+      )
+      if (on_error == "debug" && interactive()) {
+        message(msg)
+        browser()
       }
+      if (on_error == "skip" || on_error == "debug") {
+        warning(msg)
+        if (flag_initiate) {
+          return(structure(list(.lm_error_initiate = TRUE), class = "lm_error"))
+        } else {
+          return(structure(list(.lm_error_runtime = TRUE), class = "lm_error"))
+        }
+      }
+      stop(e)
     }
+  )
 
-    # intersection-based threshold
-    valid_mask <- Reduce("&", masks)
-    num.subj.valid <- sum(valid_mask)
-    if (!(num.subj.valid > num.subj.lthr)) {
-      if (flag_initiate == TRUE) {
-        toreturn <- list(column_names = NaN, list.terms = NaN)
-        return(toreturn)
-      } else {
-        onerow <- c(
-          i_element - 1,
-          rep(NaN, (num.stat.output - 1))
-        )
-        return(onerow)
-      }
+  if (inherits(onemodel, "lm_error")) {
+    if (flag_initiate) {
+      return(list(column_names = NaN, list.terms = NaN))
+    } else {
+      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      return(onerow)
     }
+  }
 
-    # dots <- list(...)
-    # dots_names <- names(dots)
-    # if ("weights" %in% dots_names) {
-    #   message(dots$weights)
-    #   myWeights <- dots$weights
-    #   dots$weights <- NULL  # remove weights from
-    #
-    #   arguments_lm <- dots
-    #
-    # }
-    arguments_lm <- list(...)
-    arguments_lm$formula <- formula
-    arguments_lm$data <- dat
 
-    # onemodel <- stats::lm(formula, data = dat, ...)
-    # onemodel <- stats::lm(formula, data = dat, weights = myWeights,...)
-    onemodel <- tryCatch(
-      {
-        do.call(stats::lm, arguments_lm)
-      },
-      error = function(e) {
-        msg <- paste0(
-          "analyseOneElement.lm error at element ",
-          i_element,
-          ": ",
-          conditionMessage(e)
-        )
-        if (on_error == "debug" && interactive()) {
-          message(msg)
-          browser()
-        }
-        if (on_error == "skip" || on_error == "debug") {
-          warning(msg)
-          if (flag_initiate == TRUE) {
-            return(structure(list(.lm_error_initiate = TRUE), class = "lm_error"))
-          } else {
-            return(structure(list(.lm_error_runtime = TRUE), class = "lm_error"))
-          }
-        }
-        stop(e)
-      }
+  # Extract statistics ----
+  onemodel.tidy <- onemodel %>% broom::tidy()
+  onemodel.glance <- onemodel %>% broom::glance()
+
+  # Normalize intercept term name to match expected output convention
+  onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"
+
+  list.terms <- onemodel.tidy$term
+
+  ## Term-level statistics ----
+  onerow.terms <- tibble::tibble()
+  for (i_term in seq_along(list.terms)) {
+    for (i_var in seq_along(var.terms)) {
+      temp <- tibble::tibble(
+        placeholder = onemodel.tidy[[var.terms[i_var]]][i_term]
+      )
+      colnames(temp) <- paste0(list.terms[i_term], ".", var.terms[i_var])
+      onerow.terms <- bind_cols_check_emptyTibble(onerow.terms, temp)
+    }
+  }
+
+  ## Model-level statistics ----
+  onerow.model <- tibble::tibble()
+  for (i_var in seq_along(var.model)) {
+    temp <- tibble::tibble(placeholder = onemodel.glance[[var.model[i_var]]])
+    colnames(temp) <- paste0("model.", var.model[i_var])
+    onerow.model <- bind_cols_check_emptyTibble(onerow.model, temp)
+  }
+
+  onerow.all <- bind_cols_check_emptyTibble(onerow.terms, onerow.model)
+  column_names <- c("element_id", colnames(onerow.all))
+
+  if (flag_initiate) {
+    toreturn <- list(
+      column_names = column_names,
+      list.terms = list.terms
     )
-
-    if (inherits(onemodel, "lm_error")) {
-      if (flag_initiate == TRUE) {
-        toreturn <- list(column_names = NaN, list.terms = NaN)
-        return(toreturn)
-      } else {
-        onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
-        return(onerow)
-      }
-    }
-    # explicitly passing arguments into lm, to avoid error of argument "weights"
-
-    onemodel.tidy <- onemodel %>% broom::tidy()
-    onemodel.glance <- onemodel %>% broom::glance()
-
-    # delete columns you don't want:
-    var.terms.full <- names(onemodel.tidy)
-
-    var.model.full <- names(onemodel.glance)
-
-    # list to remove:
-    var.terms.orig <- var.terms
-    var.terms <- list("term", var.terms) %>% unlist() # we will always keep "term" column
-    var.terms.remove <- list()
-    for (l in var.terms.full) {
-      if (!(l %in% var.terms)) {
-        var.terms.remove <- var.terms.remove %>%
-          append(., l) %>%
-          unlist() # the order will still be kept
-      }
-    }
-
-    var.model.remove <- list()
-    for (l in var.model.full) {
-      if (!(l %in% var.model)) {
-        var.model.remove <- var.model.remove %>%
-          append(., l) %>%
-          unlist() # the order will still be kept
-      }
-    }
-
-    # remove those columns:
-    if (length(var.terms.remove) != 0) {
-      # if length=0, it's list(), nothing to remove
-      onemodel.tidy <- dplyr::select(onemodel.tidy, -dplyr::all_of(var.terms.remove))
-    }
-    if (length(var.model.remove) != 0) {
-      onemodel.glance <- dplyr::select(onemodel.glance, -dplyr::all_of(var.model.remove))
-    }
-
-    # adjust:
-    # change the term name from "(Intercept)" to "Intercept"
-    onemodel.tidy$term[onemodel.tidy$term == "(Intercept)"] <- "Intercept"
-    onemodel.glance <- onemodel.glance %>% dplyr::mutate(term = "model") # add a column
-
-    # get the list of terms:
-    list.terms <- onemodel.tidy$term
-
-    # check if the onemodel.* does not have real statistics (but only a column of 'term')
-    temp_colnames <- onemodel.tidy %>% colnames()
-    # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()),
-    # union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term",
-    # all(union) = c(TRUE, FALSE, ...)
-    temp <- union(temp_colnames, "term")
-    # just an empty tibble (so below, all(dim(onemodel.tidy)) = FALSE)
-    if (all(temp == "term")) {
-      onemodel.tidy <- tibble::tibble()
-    }
-
-    temp_colnames <- onemodel.glance %>% colnames()
-    temp <- union(temp_colnames, "term") # union of colnames and "term";
-    if (all(temp == "term")) {
-      onemodel.glance <- tibble::tibble()
-    }
-
-
-    # flatten .tidy results into one row:
-    if (all(dim(onemodel.tidy))) {
-      # not empty | if any dim is 0, all=FALSE
-      onemodel.tidy.onerow <- onemodel.tidy %>% tidyr::pivot_wider(
-        names_from = "term",
-        values_from = dplyr::all_of(var.terms.orig),
-        names_glue = "{term}.{.value}"
-      )
-    } else {
-      onemodel.tidy.onerow <- onemodel.tidy
-    }
-
-    if (all(dim(onemodel.glance))) {
-      # not empty
-      onemodel.glance.onerow <- onemodel.glance %>% tidyr::pivot_wider(
-        names_from = "term",
-        values_from = dplyr::all_of(var.model),
-        names_glue = "{term}.{.value}"
-      )
-    } else {
-      onemodel.glance.onerow <- onemodel.glance
-    }
-
-
-    # combine the tables: check if any of them is empty (tibble())
-    onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.tidy.onerow, onemodel.glance.onerow)
-
-    # add a column of element ids:
-    colnames.temp <- colnames(onemodel.onerow)
-    onemodel.onerow <- onemodel.onerow %>%
-      tibble::add_column(
-        element_id = i_element - 1,
-        .before = colnames.temp[1]
-      ) # add as the first column
-
-    # now you can get the headers, # of columns, etc of the output results
-
-
-    if (flag_initiate == TRUE) {
-      # return the column names:
-
-      # return:
-      column_names <- colnames(onemodel.onerow)
-      toreturn <- list(column_names = column_names, list.terms = list.terms)
-      toreturn
-    } else if (flag_initiate == FALSE) {
-      # return the one row results:
-
-      # return:
-      onerow <- as.numeric(onemodel.onerow) # change from tibble to numeric to save some space
-      onerow
-    }
+    return(toreturn)
   } else {
-    # if flag_sufficient==FALSE
-    if (flag_initiate == TRUE) {
-      toreturn <- list(column_names = NaN, list.terms = NaN)
-      toreturn
-    } else if (flag_initiate == FALSE) {
-      onerow <- c(
-        i_element - 1,
-        # first is element_id, which will still be a finite number
-        rep(NaN, (num.stat.output - 1))
-      ) # other columns will be NaN
-
-      onerow
-    }
+    onerow <- c(i_element - 1, as.numeric(onerow.all))
+    return(onerow)
   }
 }
 
 #' Fit a GAM for a single element
-#' returns metadata (column names, smooth term names, parametric term names,
+#' Returns metadata (column names, smooth term names, parametric term names,
 #' and the smoothing parameter criterion attribute name) used by
 #' \code{\link{ModelArray.gam}} to initialise the output data.frame. When
 #' \code{flag_initiate = FALSE}, it returns a numeric vector representing one
@@ -752,6 +626,8 @@ analyseOneElement.lm <- function(i_element,
 #'   squares (\code{model.sse}) for the model, which is needed for
 #'   partial R-squared calculations in \code{\link{ModelArray.gam}}.
 #'   Default: \code{FALSE}.
+#' @param ctx A precomputed context list from \code{.build_gam_context()},
+#'   or \code{NULL}.
 #' @param ... Additional arguments passed to \code{\link[mgcv]{gam}}.
 #'
 #' @return If \code{flag_initiate = TRUE}, a list with components:
@@ -777,385 +653,225 @@ analyseOneElement.lm <- function(i_element,
 #' @export
 
 analyseOneElement.gam <- function(i_element,
-                                  formula,
-                                  modelarray,
-                                  phenotypes,
-                                  scalar,
-                                  var.smoothTerms,
-                                  var.parametricTerms,
-                                  var.model,
+                                  formula = NULL,
+                                  modelarray = NULL,
+                                  phenotypes = NULL,
+                                  scalar = NULL,
+                                  var.smoothTerms = c("statistic", "p.value"),
+                                  var.parametricTerms = c("estimate", "statistic", "p.value"),
+                                  var.model = c("dev.expl"),
                                   num.subj.lthr,
                                   num.stat.output = NULL,
                                   flag_initiate = FALSE,
                                   flag_sse = FALSE,
                                   on_error = "stop",
+                                  ctx = NULL,
                                   ...) {
-  values <- scalars(modelarray)[[scalar]][i_element, ]
 
-  ## check number of subjects with (in)valid values:
-  flag_sufficient <- NULL # whether number of subjects with valid values are sufficient
-  num.subj.valid <- length(values[is.finite(values)])
-  if (num.subj.valid > num.subj.lthr) {
-    flag_sufficient <- TRUE
+
+  # Resolve context ----
+  if (!is.null(ctx)) {
+    effective_formula <- ctx$formula
+    effective_scalar  <- ctx$scalar
   } else {
-    flag_sufficient <- FALSE
+    effective_formula <- formula
+    effective_scalar  <- scalar
+    ctx <- .build_gam_context(formula, modelarray, phenotypes, scalar)
   }
 
-  if (flag_sufficient == TRUE) {
-    dat <- phenotypes
-    # detect scalar predictors referenced in formula
-    all_vars <- all.vars(formula)
-    lhs_name <- tryCatch(as.character(formula[[2]]), error = function(e) NULL)
-    rhs_vars <- setdiff(all_vars, lhs_name)
-    scalar_names <- names(scalars(modelarray))
-    scalar_predictors <- intersect(rhs_vars, scalar_names)
+  # Per-element data assembly ----
+  elem <- .assemble_element_data(i_element, ctx, num.subj.lthr)
 
-    # collision check with phenotypes
-    collisions <- intersect(c(scalar, scalar_predictors), colnames(dat))
-    if (length(collisions) > 0) {
-      stop(paste0(
-        "Column name collision between phenotypes and scalar names: ",
-        paste(collisions, collapse = ", "),
-        ". Please rename or remove these columns from phenotypes before modeling."
-      ))
-    }
-
-    # attach response first
-    dat[[scalar]] <- values
-
-    # attach scalar predictors with source alignment and build intersection mask
-    masks <- list(is.finite(values))
-    if (length(scalar_predictors) > 0) {
-      for (pred in scalar_predictors) {
-        pred_sources <- sources(modelarray)[[pred]]
-        phen_sources <- dat[["source_file"]]
-        if (!(all(pred_sources %in% phen_sources) && all(phen_sources %in% pred_sources))) {
-          stop(paste0(
-            "The source files for predictor scalar '", pred, "' do not match phenotypes$source_file."
-          ))
-        }
-        reorder_idx <- match(phen_sources, pred_sources)
-        pred_vals <- scalars(modelarray)[[pred]][i_element, ]
-        pred_vals <- pred_vals[reorder_idx]
-        dat[[pred]] <- pred_vals
-        masks[[length(masks) + 1L]] <- is.finite(pred_vals)
-      }
-    }
-
-    # intersection-based threshold
-    valid_mask <- Reduce("&", masks)
-    num.subj.valid <- sum(valid_mask)
-    if (!(num.subj.valid > num.subj.lthr)) {
-      if (flag_initiate == TRUE) {
-        toreturn <- list(
-          column_names = NaN,
-          list.smoothTerms = NaN,
-          list.parametricTerms = NaN,
-          sp.criterion.attr.name = NaN
-        )
-        return(toreturn)
-      } else {
-        onerow <- c(
-          i_element - 1,
-          rep(NaN, (num.stat.output - 1))
-        )
-        return(onerow)
-      }
-    }
-
-    arguments <- list(...)
-    arguments$formula <- formula
-    arguments$data <- dat
-
-    # explicitly passing arguments into command, to avoid error of argument "weights"
-    onemodel <- tryCatch(
-      {
-        do.call(mgcv::gam, arguments)
-      },
-      error = function(e) {
-        msg <- paste0(
-          "analyseOneElement.gam error at element ",
-          i_element,
-          ": ",
-          conditionMessage(e)
-        )
-        if (on_error == "debug" && interactive()) {
-          message(msg)
-          browser()
-        }
-        if (on_error == "skip" || on_error == "debug") {
-          warning(msg)
-          if (flag_initiate == TRUE) {
-            return(structure(list(.gam_error_initiate = TRUE), class = "gam_error"))
-          } else {
-            return(structure(list(.gam_error_runtime = TRUE), class = "gam_error"))
-          }
-        }
-        stop(e)
-      }
-    )
-
-    if (inherits(onemodel, "gam_error")) {
-      if (flag_initiate == TRUE) {
-        toreturn <- list(
-          column_names = NaN,
-          list.smoothTerms = NaN,
-          list.parametricTerms = NaN,
-          sp.criterion.attr.name = NaN
-        )
-        return(toreturn)
-      } else {
-        onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
-        return(onerow)
-      }
-    }
-
-    onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
-    onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
-    onemodel.glance <- onemodel %>% broom::glance()
-    onemodel.summary <- onemodel %>% summary()
-    # add additional model's stat to onemodel.glance():
-    onemodel.glance[["adj.r.squared"]] <- onemodel.summary$r.sq
-    onemodel.glance[["dev.expl"]] <- onemodel.summary$dev.expl
-
-    sp.criterion.attr.name <- onemodel.summary$sp.criterion %>% attr(which = "name")
-    onemodel.glance[["sp.criterion"]] <- onemodel.summary$sp.criterion[[sp.criterion.attr.name]]
-    onemodel.glance[["scale"]] <- onemodel.summary$scale # scale estimate
-
-    num.smoothTerms <- onemodel.summary$m # The number of smooth terms in the model.
-
-
-    # delete columns you don't want:
-    var.smoothTerms.full <- names(onemodel.tidy.smoothTerms)
-    var.parametricTerms.full <- names(onemodel.tidy.parametricTerms)
-    var.model.full <- names(onemodel.glance)
-
-    # list to remove:
-    var.smoothTerms.orig <- var.smoothTerms
-    var.smoothTerms <- list("term", var.smoothTerms) %>% unlist() # we will always keep "term" column
-    var.smoothTerms.remove <- list()
-    for (l in var.smoothTerms.full) {
-      if (!(l %in% var.smoothTerms)) {
-        var.smoothTerms.remove <- var.smoothTerms.remove %>%
-          append(., l) %>%
-          unlist() # the order will still be kept
-      }
-    }
-
-    var.parametricTerms.orig <- var.parametricTerms
-    var.parametricTerms <- list("term", var.parametricTerms) %>% unlist() # we will always keep "term" column
-    var.parametricTerms.remove <- list()
-    for (l in var.parametricTerms.full) {
-      if (!(l %in% var.parametricTerms)) {
-        var.parametricTerms.remove <- var.parametricTerms.remove %>%
-          append(., l) %>%
-          unlist() # the order will still be kept
-      }
-    }
-
-    var.model.remove <- list()
-    for (l in var.model.full) {
-      if (!(l %in% var.model)) {
-        var.model.remove <- var.model.remove %>%
-          append(., l) %>%
-          unlist() # the order will still be kept
-      }
-    }
-
-    # remove those columns:
-    if (length(var.smoothTerms.remove) != 0) {
-      # if length=0, it's list(), nothing to remove
-      onemodel.tidy.smoothTerms <- dplyr::select(onemodel.tidy.smoothTerms, -dplyr::all_of(var.smoothTerms.remove))
-    }
-    if (length(var.parametricTerms.remove) != 0) {
-      # if length=0, it's list(), nothing to remove
-      onemodel.tidy.parametricTerms <- dplyr::select(onemodel.tidy.parametricTerms, -dplyr::all_of(var.parametricTerms.remove))
-    }
-    if (length(var.model.remove) != 0) {
-      onemodel.glance <- dplyr::select(onemodel.glance, -dplyr::all_of(var.model.remove))
-    }
-
-    # adjust:
-    if (num.smoothTerms > 0) {
-      # if there is any smooth term
-      onemodel.tidy.smoothTerms$term[onemodel.tidy.smoothTerms$term == "(Intercept)"] <- "Intercept"
-      # change the term name from "(Intercept)" to "Intercept"
-    }
-    if (nrow(onemodel.tidy.parametricTerms) > 0) {
-      # if there is any parametric term
-      onemodel.tidy.parametricTerms$term[onemodel.tidy.parametricTerms$term == "(Intercept)"] <- "Intercept"
-      # change the term name from "(Intercept)" to "Intercept"
-    }
-
-    # change from s(x) to s_x: (could be s, te, etc); from s(x):oFactor to s_x_BYoFactor; from ti(x,z) to ti_x_z
-    if (num.smoothTerms > 0) {
-      # if there is any smooth term
-      for (i_row in seq_len(nrow(onemodel.tidy.smoothTerms))) {
-        # step 1: change from s(x) to s_x
-        term_name <- onemodel.tidy.smoothTerms$term[i_row]
-        str_list <- strsplit(term_name, split = "[()]")[[1]]
-
-        str <- str_list[2] # extract string between ()
-        smooth_name <- str_list[1] # "s" or some other smooth method type such as "te"
-        str_valid <- paste0(smooth_name, "_", str)
-
-        if (length(str_list) > 2) {
-          # there is string after variable name
-          str_valid <- paste0(
-            str_valid,
-            "_",
-            paste(str_list[3:length(str_list)], collapse = "")
-          ) # combine rest of strings
-        }
-
-        # detect ":", and change to "BY"   # there is "_" replacing for ")" in "s()" already
-        str_valid <- gsub(":", "BY", str_valid, fixed = TRUE)
-
-        # detect ",", and change to "_"
-        str_valid <- gsub(",", "_", str_valid, fixed = TRUE)
-
-        onemodel.tidy.smoothTerms$term[i_row] <- str_valid
-      }
-    }
-
-
-    onemodel.glance <- onemodel.glance %>% dplyr::mutate(term = "model") # add a column
-
-    # get the list of terms:
-    if (num.smoothTerms > 0) {
-      list.smoothTerms <- onemodel.tidy.smoothTerms$term # if empty, gives warning
-    } else {
-      list.smoothTerms <- NULL
-    }
-
-    if (nrow(onemodel.tidy.parametricTerms) > 0) {
-      list.parametricTerms <- onemodel.tidy.parametricTerms$term
-    } else {
-      list.parametricTerms <- NULL
-    }
-
-
-    # check if the onemodel.* does not have real statistics (but only a column of 'term')
-    temp_colnames <- onemodel.tidy.smoothTerms %>% colnames()
-    temp <- union(temp_colnames, "term")
-    # union of colnames and "term"; if colnames only has "term" or lengt of 0 (tibble()),
-    # union = "term", all(union)=TRUE; otherwise, if there is colnames other than "term",
-    # all(union) = c(TRUE, FALSE, ...)
-    if (all(temp == "term")) {
-      onemodel.tidy.smoothTerms <- tibble::tibble()
-    }
-    # just an empty tibble (so below, all(dim(onemodel.tidy.smoothTerms)) = FALSE)
-
-    temp_colnames <- onemodel.tidy.parametricTerms %>% colnames()
-    temp <- union(temp_colnames, "term")
-    if (all(temp == "term")) {
-      onemodel.tidy.parametricTerms <- tibble::tibble()
-    } # just an empty tibble
-
-    temp_colnames <- onemodel.glance %>% colnames()
-    temp <- union(temp_colnames, "term")
-    if (all(temp == "term")) {
-      onemodel.glance <- tibble::tibble()
-    } # just an empty tibble
-
-
-    # flatten .tidy results into one row:
-    if (all(dim(onemodel.tidy.smoothTerms))) {
-      # not empty | if any dim is 0, all=FALSE
-      onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms %>% tidyr::pivot_wider(
-        names_from = "term",
-        values_from = dplyr::all_of(var.smoothTerms.orig),
-        names_glue = "{term}.{.value}"
-      )
-    } else {
-      onemodel.tidy.smoothTerms.onerow <- onemodel.tidy.smoothTerms
-    }
-
-    if (all(dim(onemodel.tidy.parametricTerms))) {
-      # not empty
-      onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms %>% tidyr::pivot_wider(
-        names_from = "term",
-        values_from = dplyr::all_of(var.parametricTerms.orig),
-        names_glue = "{term}.{.value}"
-      )
-    } else {
-      onemodel.tidy.parametricTerms.onerow <- onemodel.tidy.parametricTerms
-    }
-
-    if (all(dim(onemodel.glance))) {
-      # not empty
-      onemodel.glance.onerow <- onemodel.glance %>% tidyr::pivot_wider(
-        names_from = "term",
-        values_from = dplyr::all_of(var.model),
-        names_glue = "{term}.{.value}"
-      )
-    } else {
-      onemodel.glance.onerow <- onemodel.glance
-    }
-
-
-    # combine the tables: check if any of them is empty (tibble())
-    onemodel.onerow <- bind_cols_check_emptyTibble(
-      onemodel.tidy.smoothTerms.onerow,
-      onemodel.tidy.parametricTerms.onerow
-    )
-    onemodel.onerow <- bind_cols_check_emptyTibble(onemodel.onerow, onemodel.glance.onerow)
-
-
-    # add a column of element ids:
-    colnames.temp <- colnames(onemodel.onerow)
-    onemodel.onerow <- onemodel.onerow %>% tibble::add_column(element_id = i_element - 1, .before = colnames.temp[1])
-    # add as the first column
-
-    # add sse if requested:
-    if (flag_sse == TRUE) {
-      onemodel.onerow[["model.sse"]] <- sum((onemodel$y - onemodel$fitted.values)^2)
-      # using values from model itself, where NAs in y have been excluded -->
-      # sse won't be NA --> partial R-squared won't be NA
-    }
-
-
-    # now you can get the headers, # of columns, etc of the output results
-
-
-    if (flag_initiate == TRUE) {
-      # return the column names:
-
-      # return:
-      column_names <- colnames(onemodel.onerow)
-      toreturn <- list(
-        column_names = column_names,
-        list.smoothTerms = list.smoothTerms,
-        list.parametricTerms = list.parametricTerms,
-        sp.criterion.attr.name = sp.criterion.attr.name
-      )
-      toreturn
-    } else if (flag_initiate == FALSE) {
-      # return the one row results:
-
-      # return:
-      onerow <- as.numeric(onemodel.onerow) # change from tibble to numeric to save some space
-      onerow
-    }
-  } else {
-    # if flag_sufficient==FALSE
-    if (flag_initiate == TRUE) {
-      toreturn <- list(
+  if (!elem$sufficient) {
+    if (flag_initiate) {
+      return(list(
         column_names = NaN,
         list.smoothTerms = NaN,
         list.parametricTerms = NaN,
         sp.criterion.attr.name = NaN
-      )
-      toreturn
-    } else if (flag_initiate == FALSE) {
-      onerow <- c(
-        i_element - 1,
-        # first is element_id, which will still be a finite number
-        rep(NaN, (num.stat.output - 1))
-      ) # other columns will be NaN
-
-      onerow
+      ))
+    } else {
+      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      return(onerow)
     }
+  }
+
+  dat <- elem$dat
+
+  # Fit GAM ----
+  arguments <- list(...)
+  arguments$formula <- effective_formula
+  arguments$data <- dat
+
+  onemodel <- tryCatch(
+    {
+      do.call(mgcv::gam, arguments)
+    },
+    error = function(e) {
+      msg <- paste0(
+        "analyseOneElement.gam error at element ",
+        i_element, ": ", conditionMessage(e)
+      )
+      if (on_error == "debug" && interactive()) {
+        message(msg)
+        browser()
+      }
+      if (on_error == "skip" || on_error == "debug") {
+        warning(msg)
+        if (flag_initiate) {
+          return(structure(list(.gam_error_initiate = TRUE), class = "gam_error"))
+        } else {
+          return(structure(list(.gam_error_runtime = TRUE), class = "gam_error"))
+        }
+      }
+      stop(e)
+    }
+  )
+
+  if (inherits(onemodel, "gam_error")) {
+    if (flag_initiate) {
+      return(list(
+        column_names = NaN,
+        list.smoothTerms = NaN,
+        list.parametricTerms = NaN,
+        sp.criterion.attr.name = NaN
+      ))
+    } else {
+      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      return(onerow)
+    }
+  }
+
+
+  # Extract statistics ----
+
+  onemodel.tidy.smoothTerms <- onemodel %>% broom::tidy(parametric = FALSE)
+  onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
+  onemodel.glance <- onemodel %>% broom::glance()
+  onemodel.summary <- onemodel %>% summary()
+
+  # ---- Normalize term names (must happen before column name assembly) ----
+
+  # Parametric: (Intercept) → Intercept
+  if (nrow(onemodel.tidy.parametricTerms) > 0) {
+    onemodel.tidy.parametricTerms$term[
+      onemodel.tidy.parametricTerms$term == "(Intercept)"
+    ] <- "Intercept"
+  }
+
+  # Smooth: s(age) → s_age, ti(x,z) → ti_x_z, s(x):oFactor → s_x_BYoFactor
+  num.smoothTerms <- onemodel.summary$m
+  if (num.smoothTerms > 0) {
+    if (nrow(onemodel.tidy.smoothTerms) > 0) {
+      onemodel.tidy.smoothTerms$term[
+        onemodel.tidy.smoothTerms$term == "(Intercept)"
+      ] <- "Intercept"
+    }
+
+    for (i_row in seq_len(nrow(onemodel.tidy.smoothTerms))) {
+      term_name <- onemodel.tidy.smoothTerms$term[i_row]
+      str_list <- strsplit(term_name, split = "[()]")[[1]]
+
+      str <- str_list[2]
+      smooth_name <- str_list[1]
+      str_valid <- paste0(smooth_name, "_", str)
+
+      if (length(str_list) > 2) {
+        str_valid <- paste0(
+          str_valid, "_",
+          paste(str_list[3:length(str_list)], collapse = "")
+        )
+      }
+
+      # : → BY
+      str_valid <- gsub(":", "BY", str_valid, fixed = TRUE)
+      # , → _
+      str_valid <- gsub(",", "_", str_valid, fixed = TRUE)
+
+      onemodel.tidy.smoothTerms$term[i_row] <- str_valid
+    }
+  }
+
+  list.smoothTerms <- onemodel.tidy.smoothTerms$term
+  list.parametricTerms <- onemodel.tidy.parametricTerms$term
+
+  ## Smooth term statistics ----
+  onerow.smoothTerms <- tibble::tibble()
+  for (i_term in seq_along(list.smoothTerms)) {
+    for (i_var in seq_along(var.smoothTerms)) {
+      temp <- tibble::tibble(
+        placeholder = onemodel.tidy.smoothTerms[[var.smoothTerms[i_var]]][i_term]
+      )
+      colnames(temp) <- paste0(list.smoothTerms[i_term], ".", var.smoothTerms[i_var])
+      onerow.smoothTerms <- bind_cols_check_emptyTibble(onerow.smoothTerms, temp)
+    }
+  }
+
+  ## Parametric term statistics ----
+  onerow.parametricTerms <- tibble::tibble()
+  for (i_term in seq_along(list.parametricTerms)) {
+    for (i_var in seq_along(var.parametricTerms)) {
+      temp <- tibble::tibble(
+        placeholder = onemodel.tidy.parametricTerms[[var.parametricTerms[i_var]]][i_term]
+      )
+      colnames(temp) <- paste0(list.parametricTerms[i_term], ".", var.parametricTerms[i_var])
+      onerow.parametricTerms <- bind_cols_check_emptyTibble(onerow.parametricTerms, temp)
+    }
+  }
+
+  ## Model-level statistics ----
+  onerow.model <- tibble::tibble()
+  for (i_var in seq_along(var.model)) {
+    val <- NULL
+    if (var.model[i_var] %in% colnames(onemodel.glance)) {
+      val <- onemodel.glance[[var.model[i_var]]]
+    } else if (var.model[i_var] == "adj.r.squared") {
+      val <- onemodel.summary$r.sq
+    } else if (var.model[i_var] == "dev.expl") {
+      val <- onemodel.summary$dev.expl
+    } else if (var.model[i_var] == "sp.criterion") {
+      val <- onemodel.summary$sp.criterion
+      if (flag_initiate) {
+        sp.criterion.attr.name <- names(onemodel.summary$sp.criterion)
+      }
+    } else if (var.model[i_var] == "scale") {
+      val <- onemodel.summary$scale
+    } else {
+      val <- onemodel.glance[[var.model[i_var]]]
+    }
+    temp <- tibble::tibble(placeholder = val)
+    colnames(temp) <- paste0("model.", var.model[i_var])
+    onerow.model <- bind_cols_check_emptyTibble(onerow.model, temp)
+  }
+
+  ## SSE if requested ----
+  onerow.sse <- tibble::tibble()
+  if (flag_sse) {
+    sse_val <- sum(onemodel$residuals^2)
+    temp <- tibble::tibble(placeholder = sse_val)
+    colnames(temp) <- "model.sse"
+    onerow.sse <- temp
+  }
+
+  onerow.all <- bind_cols_check_emptyTibble(onerow.smoothTerms, onerow.parametricTerms)
+  onerow.all <- bind_cols_check_emptyTibble(onerow.all, onerow.model)
+  onerow.all <- bind_cols_check_emptyTibble(onerow.all, onerow.sse)
+
+  column_names <- c("element_id", colnames(onerow.all))
+
+  if (flag_initiate) {
+    if (!exists("sp.criterion.attr.name")) {
+      sp.criterion.attr.name <- NA_character_
+    }
+    return(list(
+      column_names = column_names,
+      list.smoothTerms = list.smoothTerms,
+      list.parametricTerms = list.parametricTerms,
+      sp.criterion.attr.name = sp.criterion.attr.name
+    ))
+  } else {
+    onerow <- c(i_element - 1, as.numeric(onerow.all))
+    return(onerow)
   }
 }
 
@@ -1195,8 +911,17 @@ analyseOneElement.gam <- function(i_element,
 #'
 #' @param user_fun A function that accepts at least an argument named
 #'   \code{data} (a data.frame: \code{phenotypes} with scalar columns
-#'   appended for the current element) and returns a one-row
-#'   data.frame/tibble, a named list, or a named atomic vector.
+#'   appended for the current element) and returns one of:
+#'   \itemize{
+#'     \item A one-row \code{data.frame} or \code{tibble}. Multi-row
+#'       returns will error.
+#'     \item A named list. Unnamed lists are accepted and auto-named
+#'       as \code{v1}, \code{v2}, etc.
+#'     \item A named atomic vector. Unnamed vectors are accepted and
+#'       auto-named as \code{v1}, \code{v2}, etc.
+#'   }
+#' @param ctx A precomputed context list from \code{.build_wrap_context()},
+#'   or \code{NULL}.
 #' @param ... Additional arguments forwarded to \code{user_fun}.
 #'
 #' @return If \code{flag_initiate = TRUE}, a list with one component:
@@ -1222,153 +947,124 @@ analyseOneElement.gam <- function(i_element,
 #' @export
 analyseOneElement.wrap <- function(i_element,
                                    user_fun,
-                                   modelarray,
-                                   phenotypes,
-                                   scalar,
+                                   modelarray = NULL,
+                                   phenotypes = NULL,
+                                   scalar = NULL,
                                    num.subj.lthr,
                                    num.stat.output = NULL,
                                    flag_initiate = FALSE,
                                    on_error = "stop",
+                                   ctx = NULL,
                                    ...) {
-  values <- scalars(modelarray)[[scalar]][i_element, ]
 
-  ## check number of subjects with (in)valid values:
-  flag_sufficient <- NULL
-  num.subj.valid <- length(values[is.finite(values)])
-  if (num.subj.valid > num.subj.lthr) {
-    flag_sufficient <- TRUE
-  } else {
-    flag_sufficient <- FALSE
+  # Resolve context ----
+
+  if (is.null(ctx)) {
+    ctx <- .build_wrap_context(modelarray, phenotypes, scalar)
   }
 
-  if (flag_sufficient == TRUE) {
-    dat <- phenotypes
-    # attach all scalars with alignment and collision checks
-    scalar_names <- names(scalars(modelarray))
-    collisions <- intersect(scalar_names, colnames(dat))
-    if (length(collisions) > 0) {
-      stop(paste0(
-        "Column name collision between phenotypes and scalar names: ",
-        paste(collisions, collapse = ", "),
-        ". Please rename or remove these columns from phenotypes before wrapping."
-      ))
-    }
 
-    masks <- list()
-    phen_sources <- dat[["source_file"]]
-    for (sname in scalar_names) {
-      s_sources <- sources(modelarray)[[sname]]
-      if (!(all(s_sources %in% phen_sources) && all(phen_sources %in% s_sources))) {
-        stop(paste0(
-          "The source files for scalar '", sname, "' do not match phenotypes$source_file."
-        ))
-      }
-      reorder_idx <- match(phen_sources, s_sources)
-      s_vals <- scalars(modelarray)[[sname]][i_element, ]
-      s_vals <- s_vals[reorder_idx]
-      dat[[sname]] <- s_vals
-      masks[[length(masks) + 1L]] <- is.finite(s_vals)
-    }
+  # Per-element data assembly ----
 
-    # intersection-based threshold across all scalars
-    valid_mask <- Reduce("&", masks)
-    num.subj.valid <- sum(valid_mask)
-    if (!(num.subj.valid > num.subj.lthr)) {
-      if (flag_initiate == TRUE) {
-        toreturn <- list(column_names = NaN)
-        return(toreturn)
-      } else {
-        onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
-        return(onerow)
-      }
-    }
+  elem <- .assemble_element_data(i_element, ctx, num.subj.lthr)
 
-    arguments <- list(...)
-    arguments$data <- dat
-
-    # Execute user function with error handling
-    result <- tryCatch(
-      {
-        do.call(user_fun, arguments)
-      },
-      error = function(e) {
-        msg <- paste0(
-          "analyseOneElement.wrap error at element ",
-          i_element,
-          ": ",
-          conditionMessage(e)
-        )
-        if (on_error == "debug" && interactive()) {
-          message(msg)
-          browser()
-        }
-        if (on_error == "skip" || on_error == "debug") {
-          warning(msg)
-          if (flag_initiate == TRUE) {
-            return(structure(list(.wrap_error_initiate = TRUE), class = "wrap_error"))
-          } else {
-            return(structure(list(.wrap_error_runtime = TRUE), class = "wrap_error"))
-          }
-        }
-        stop(e)
-      }
-    )
-
-    # On error in user function, return NaNs according to flag
-    if (inherits(result, "wrap_error")) {
-      if (flag_initiate == TRUE) {
-        toreturn <- list(column_names = NaN)
-        return(toreturn)
-      } else {
-        onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
-        return(onerow)
-      }
-    }
-
-    # Coerce to one-row tibble
-    if ("data.frame" %in% class(result)) {
-      onerow_tbl <- tibble::as_tibble(result)
-      if (nrow(onerow_tbl) != 1) {
-        stop(
-          "The user function must return a one-row data.frame/tibble, a named list, or a named vector."
-        )
-      }
-    } else if (is.list(result)) {
-      onerow_tbl <- tibble::as_tibble_row(result)
-    } else if (is.atomic(result)) {
-      if (is.null(names(result))) {
-        names(result) <- paste0("v", seq_along(result))
-      }
-      onerow_tbl <- tibble::as_tibble_row(as.list(result))
-    } else {
-      stop(
-        paste0(
-          "Unsupported return type from user function. ",
-          "Return a one-row data.frame/tibble, named list, or named vector."
-        )
-      )
-    }
-
-    # add element_id as first column
-    colnames.temp <- colnames(onerow_tbl)
-    onerow_tbl <- onerow_tbl %>% tibble::add_column(element_id = i_element - 1, .before = colnames.temp[1])
-
-    if (flag_initiate == TRUE) {
-      toreturn <- list(column_names = colnames(onerow_tbl))
-      toreturn
-    } else {
-      # return numeric vector to be consistent with other analysers
-      as.numeric(onerow_tbl)
-    }
-  } else {
-    # insufficient subjects
-    if (flag_initiate == TRUE) {
-      toreturn <- list(column_names = NaN)
-      toreturn
+  if (!elem$sufficient) {
+    if (flag_initiate) {
+      return(list(column_names = NaN))
     } else {
       onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
-      onerow
+      return(onerow)
     }
+  }
+
+  dat <- elem$dat
+
+
+  # Execute user function ----
+
+  arguments <- list(...)
+  arguments$data <- dat
+
+  result <- tryCatch(
+    {
+      do.call(user_fun, arguments)
+    },
+    error = function(e) {
+      msg <- paste0(
+        "analyseOneElement.wrap error at element ",
+        i_element, ": ", conditionMessage(e)
+      )
+      if (on_error == "debug" && interactive()) {
+        message(msg)
+        browser()
+      }
+      if (on_error == "skip" || on_error == "debug") {
+        warning(msg)
+        if (flag_initiate) {
+          return(structure(list(.wrap_error_initiate = TRUE), class = "wrap_error"))
+        } else {
+          return(structure(list(.wrap_error_runtime = TRUE), class = "wrap_error"))
+        }
+      }
+      stop(e)
+    }
+  )
+
+  # Coerce result to named numeric vector ----
+  if (inherits(result, "wrap_error")) {
+    if (flag_initiate) {
+      return(list(column_names = NaN))
+    } else {
+      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      return(onerow)
+    }
+  }
+
+  if (is.data.frame(result) || tibble::is_tibble(result)) {
+    if (nrow(result) != 1) {
+      msg <- paste0(
+        "The user function must return a one-row data.frame/tibble, ",
+        "a named list, or a named vector."
+      )
+      if (on_error == "skip" || on_error == "debug") {
+        warning(paste0("analyseOneElement.wrap at element ", i_element, ": ", msg))
+        if (flag_initiate) return(list(column_names = NaN))
+        return(c(i_element - 1, rep(NaN, (num.stat.output - 1))))
+      }
+      stop(msg)
+    }
+    result_names <- colnames(result)
+    result_values <- as.numeric(result[1, ])
+  } else if (is.list(result)) {
+    result_names <- names(result)
+    if (is.null(result_names) || any(result_names == "")) {
+      result_names <- paste0("v", seq_along(result))
+    }
+    result_values <- as.numeric(unlist(result))
+  } else if (is.atomic(result)) {
+    if (is.null(names(result))) {
+      names(result) <- paste0("v", seq_along(result))
+    }
+    result_names <- names(result)
+    result_values <- as.numeric(result)
+  } else {
+    msg <- paste0("user_fun must return a one-row data.frame/tibble, a named list, ",
+                  "or a named atomic vector. Got: ", class(result)[1])
+    if (on_error == "skip" || on_error == "debug") {
+      warning(paste0("analyseOneElement.wrap at element ", i_element, ": ", msg))
+      if (flag_initiate) return(list(column_names = NaN))
+      return(c(i_element - 1, rep(NaN, (num.stat.output - 1))))
+    }
+    stop(msg)
+  }
+
+  column_names <- c("element_id", result_names)
+
+  if (flag_initiate) {
+    return(list(column_names = column_names))
+  } else {
+    onerow <- c(i_element - 1, result_values)
+    return(onerow)
   }
 }
 

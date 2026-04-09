@@ -125,9 +125,19 @@ useful when writing large outputs directly to HDF5.}
 \item{...}{Additional arguments forwarded to \code{FUN}.}
 }
 \value{
-A tibble with one row per element and first column
-\code{element_id} (0-based). Remaining columns are determined by
-the return value of \code{FUN}.
+If \code{flag_initiate = TRUE}, a list with one component:
+\describe{
+\item{column_names}{Character vector. The column names derived from
+the return value of \code{user_fun}, with \code{"element_id"}
+prepended. For unnamed list or atomic returns, columns are named
+\code{v1}, \code{v2}, etc. Set to \code{NaN} if the element was
+skipped or errored.}
+}
+If \code{flag_initiate = FALSE}, a numeric vector of length
+\code{num.stat.output} with \code{element_id} (0-based) first and
+the coerced output of \code{user_fun} in subsequent positions.
+All-\code{NaN} (except \code{element_id}) if the element was skipped
+or if an error occurred with \code{on_error = "skip"}.
 }
 \description{
 \code{ModelArray.wrap} runs a user-supplied function \code{FUN} at each
