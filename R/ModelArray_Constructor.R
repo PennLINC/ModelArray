@@ -920,6 +920,8 @@ analyseOneElement.gam <- function(i_element,
 #'     \item A named atomic vector. Unnamed vectors are accepted and
 #'       auto-named as \code{v1}, \code{v2}, etc.
 #'   }
+#'   All return values are coerced to a numeric vector internally.
+#'   Unsupported types (e.g., environments, S4 objects) will error.
 #' @param ctx A precomputed context list from \code{.build_wrap_context()},
 #'   or \code{NULL}.
 #' @param ... Additional arguments forwarded to \code{user_fun}.
