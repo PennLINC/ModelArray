@@ -596,6 +596,8 @@ analyseOneElement.lm <- function(i_element,
 }
 
 #' Fit a GAM for a single element
+#'
+#' #' @description
 #' Returns metadata (column names, smooth term names, parametric term names,
 #' and the smoothing parameter criterion attribute name) used by
 #' \code{\link{ModelArray.gam}} to initialise the output data.frame. When

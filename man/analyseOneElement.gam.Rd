@@ -2,12 +2,7 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{analyseOneElement.gam}
 \alias{analyseOneElement.gam}
-\title{Fit a GAM for a single element
-Returns metadata (column names, smooth term names, parametric term names,
-and the smoothing parameter criterion attribute name) used by
-\code{\link{ModelArray.gam}} to initialise the output data.frame. When
-\code{flag_initiate = FALSE}, it returns a numeric vector representing one
-row of the final results matrix.}
+\title{Fit a GAM for a single element}
 \usage{
 analyseOneElement.gam(
   i_element,
@@ -106,6 +101,14 @@ requested statistics in subsequent positions. All-\code{NaN} (except
 \code{element_id}) if the element was skipped.
 }
 \description{
+#' @description
+Returns metadata (column names, smooth term names, parametric term names,
+and the smoothing parameter criterion attribute name) used by
+\code{\link{ModelArray.gam}} to initialise the output data.frame. When
+\code{flag_initiate = FALSE}, it returns a numeric vector representing one
+row of the final results matrix.
+}
+\details{
 If the number of subjects with finite scalar values does not exceed
 \code{num.subj.lthr}, the element is skipped and all statistics are set
 to \code{NaN}.
