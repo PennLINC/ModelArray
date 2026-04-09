@@ -1,8 +1,12 @@
-# Fit a GAM for a single element Returns metadata (column names, smooth term names, parametric term names, and the smoothing parameter criterion attribute name) used by [`ModelArray.gam`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md) to initialise the output data.frame. When `flag_initiate = FALSE`, it returns a numeric vector representing one row of the final results matrix.
+# Fit a GAM for a single element
 
-If the number of subjects with finite scalar values does not exceed
-`num.subj.lthr`, the element is skipped and all statistics are set to
-`NaN`.
+\#' @description Returns metadata (column names, smooth term names,
+parametric term names, and the smoothing parameter criterion attribute
+name) used by
+[`ModelArray.gam`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md)
+to initialise the output data.frame. When `flag_initiate = FALSE`, it
+returns a numeric vector representing one row of the final results
+matrix.
 
 ## Usage
 
@@ -144,6 +148,12 @@ If `flag_initiate = TRUE`, a list with components:
 If `flag_initiate = FALSE`, a numeric vector of length `num.stat.output`
 with `element_id` (0-based) first and requested statistics in subsequent
 positions. All-`NaN` (except `element_id`) if the element was skipped.
+
+## Details
+
+If the number of subjects with finite scalar values does not exceed
+`num.subj.lthr`, the element is skipped and all statistics are set to
+`NaN`.
 
 ## See also
 
