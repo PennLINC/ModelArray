@@ -1,4 +1,4 @@
-# Fit a GAM for a single element returns metadata (column names, smooth term names, parametric term names, and the smoothing parameter criterion attribute name) used by [`ModelArray.gam`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md) to initialise the output data.frame. When `flag_initiate = FALSE`, it returns a numeric vector representing one row of the final results matrix.
+# Fit a GAM for a single element Returns metadata (column names, smooth term names, parametric term names, and the smoothing parameter criterion attribute name) used by [`ModelArray.gam`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md) to initialise the output data.frame. When `flag_initiate = FALSE`, it returns a numeric vector representing one row of the final results matrix.
 
 If the number of subjects with finite scalar values does not exceed
 `num.subj.lthr`, the element is skipped and all statistics are set to
@@ -9,18 +9,19 @@ If the number of subjects with finite scalar values does not exceed
 ``` r
 analyseOneElement.gam(
   i_element,
-  formula,
-  modelarray,
-  phenotypes,
-  scalar,
-  var.smoothTerms,
-  var.parametricTerms,
-  var.model,
+  formula = NULL,
+  modelarray = NULL,
+  phenotypes = NULL,
+  scalar = NULL,
+  var.smoothTerms = c("statistic", "p.value"),
+  var.parametricTerms = c("estimate", "statistic", "p.value"),
+  var.model = c("dev.expl"),
   num.subj.lthr,
   num.stat.output = NULL,
   flag_initiate = FALSE,
   flag_sse = FALSE,
   on_error = "stop",
+  ctx = NULL,
   ...
 )
 ```
@@ -40,18 +41,18 @@ analyseOneElement.gam(
 
   A
   [ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
-  object.
+  object. Ignored when `ctx` is provided.
 
 - phenotypes:
 
   A data.frame of the cohort with columns of independent variables and
   covariates. Must contain a `"source_file"` column matching
-  `sources(modelarray)[[scalar]]`.
+  `sources(modelarray)[[scalar]]`. Ignored when `ctx` is provided.
 
 - scalar:
 
   Character. The name of the element-wise scalar to analyse. Must be one
-  of `names(scalars(modelarray))`.
+  of `names(scalars(modelarray))`. Ignored when `ctx` is provided.
 
 - var.smoothTerms:
 
@@ -109,6 +110,10 @@ analyseOneElement.gam(
   all-`NaN` for this element; `"debug"` drops into
   [`browser`](https://rdrr.io/r/base/browser.html) (if interactive) then
   skips. Default: `"stop"`.
+
+- ctx:
+
+  A precomputed context list from `.build_gam_context()`, or `NULL`.
 
 - ...:
 

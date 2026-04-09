@@ -12,13 +12,14 @@ iteratively by
 analyseOneElement.wrap(
   i_element,
   user_fun,
-  modelarray,
-  phenotypes,
-  scalar,
+  modelarray = NULL,
+  phenotypes = NULL,
+  scalar = NULL,
   num.subj.lthr,
   num.stat.output = NULL,
   flag_initiate = FALSE,
   on_error = "stop",
+  ctx = NULL,
   ...
 )
 ```
@@ -33,25 +34,35 @@ analyseOneElement.wrap(
 
   A function that accepts at least an argument named `data` (a
   data.frame: `phenotypes` with scalar columns appended for the current
-  element) and returns a one-row data.frame/tibble, a named list, or a
-  named atomic vector.
+  element) and returns one of:
+
+  - A one-row `data.frame` or `tibble`. Multi-row returns will error.
+
+  - A named list. Unnamed lists are accepted and auto-named as `v1`,
+    `v2`, etc.
+
+  - A named atomic vector. Unnamed vectors are accepted and auto-named
+    as `v1`, `v2`, etc.
+
+  All return values are coerced to a numeric vector internally.
+  Unsupported types (e.g., environments, S4 objects) will error.
 
 - modelarray:
 
   A
   [ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
-  object.
+  object. Ignored when `ctx` is provided.
 
 - phenotypes:
 
   A data.frame of the cohort with columns of independent variables and
   covariates. Must contain a `"source_file"` column matching
-  `sources(modelarray)[[scalar]]`.
+  `sources(modelarray)[[scalar]]`. Ignored when `ctx` is provided.
 
 - scalar:
 
   Character. The name of the element-wise scalar to analyse. Must be one
-  of `names(scalars(modelarray))`.
+  of `names(scalars(modelarray))`. Ignored when `ctx` is provided.
 
 - num.subj.lthr:
 
@@ -80,6 +91,10 @@ analyseOneElement.wrap(
   all-`NaN` for this element; `"debug"` drops into
   [`browser`](https://rdrr.io/r/base/browser.html) (if interactive) then
   skips. Default: `"stop"`.
+
+- ctx:
+
+  A precomputed context list from `.build_wrap_context()`, or `NULL`.
 
 - ...:
 

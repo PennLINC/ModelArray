@@ -54,17 +54,12 @@ These functions are called internally by the analysis functions. Most
 users should not call them directly.
 
 - [`analyseOneElement.lm()`](https://pennlinc.github.io/ModelArray/reference/analyseOneElement.lm.md)
-  :
-
-  Fit a linear model for a single element If the number of subjects with
-  finite scalar values (not `NaN`, `NA`, or `Inf`) does not exceed
-  `num.subj.lthr`, the element is skipped and all statistics are set to
-  `NaN`.
+  : Fit a linear model for a single element
 
 - [`analyseOneElement.gam()`](https://pennlinc.github.io/ModelArray/reference/analyseOneElement.gam.md)
   :
 
-  Fit a GAM for a single element returns metadata (column names, smooth
+  Fit a GAM for a single element Returns metadata (column names, smooth
   term names, parametric term names, and the smoothing parameter
   criterion attribute name) used by `ModelArray.gam` to initialise the
   output data.frame. When `flag_initiate = FALSE`, it returns a numeric

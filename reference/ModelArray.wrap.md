@@ -173,9 +173,19 @@ ModelArray.wrap(
 
 ## Value
 
-A tibble with one row per element and first column `element_id`
-(0-based). Remaining columns are determined by the return value of
-`FUN`.
+If `flag_initiate = TRUE`, a list with one component:
+
+- column_names:
+
+  Character vector. The column names derived from the return value of
+  `user_fun`, with `"element_id"` prepended. For unnamed list or atomic
+  returns, columns are named `v1`, `v2`, etc. Set to `NaN` if the
+  element was skipped or errored.
+
+If `flag_initiate = FALSE`, a numeric vector of length `num.stat.output`
+with `element_id` (0-based) first and the coerced output of `user_fun`
+in subsequent positions. All-`NaN` (except `element_id`) if the element
+was skipped or if an error occurred with `on_error = "skip"`.
 
 ## Details
 
