@@ -463,11 +463,12 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar,
   }
 
   # Changed.rsq setup ----
+  # Changed.rsq setup ----
   var.model.orig <- var.model
   if (!is.null(changed.rsq.term.index)) {
 
-    # check if the term index is valid:
-    if (min(changed.rsq.term.index) <= 0) {
+    # Validation checks
+    if (min(unlist(changed.rsq.term.index)) <= 0) {
       stop(
         "There is element(s) in changed.rsq.term.index <= 0. ",
         "It should be a (list of) positive integer!"
@@ -476,7 +477,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar,
 
     terms.full.formula <- stats::terms(formula, keep.order = TRUE)
 
-    if (max(changed.rsq.term.index) > length(labels(terms.full.formula))) {
+    if (max(unlist(changed.rsq.term.index)) > length(labels(terms.full.formula))) {
       stop(
         "Largest index in changed.rsq.term.index is more than the term number on the ",
         "right hand side of formula!"
@@ -491,14 +492,35 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar,
     }
 
     changed.rsq.term.fullFormat.list <- labels(terms.full.formula)[unlist(changed.rsq.term.index)]
+
+    # Compute short format names: s(age) -> s_age, ti(x,z) -> ti_x_z, etc.
     changed.rsq.term.shortFormat.list <- list()
-    for (idx in seq_along(changed.rsq.term.index)) {
-      tidx <- changed.rsq.term.index[[idx]]
-      tidy_names_smooth <- character(0)
-      tidy_names_param <- character(0)
-      changed.rsq.term.shortFormat.list[[idx]] <- c(tidy_names_smooth, tidy_names_param)
+    for (changed.rsq.term.fullFormat in changed.rsq.term.fullFormat.list) {
+      temp <- strsplit(changed.rsq.term.fullFormat, "[(]")[[1]]
+      if (length(temp) == 1) {
+        # Not a smooth term — no parentheses
+        str_valid <- changed.rsq.term.fullFormat
+      } else {
+        smooth.class <- temp[1]
+        theEval <- eval(parse(text = changed.rsq.term.fullFormat))
+        str_valid <- paste0(
+          smooth.class, "_",
+          paste(theEval$term, collapse = "_")
+        )
+        if (theEval$by != "NA") {
+          str_valid <- paste0(str_valid, "_BY", theEval$by)
+        }
+      }
+      changed.rsq.term.shortFormat.list <- append(
+        changed.rsq.term.shortFormat.list, str_valid
+      )
     }
-    message("will get changed R-squared (delta.adj.rsq and partial.rsq) so the execution time will be longer.")
+
+    message(
+      "will get changed R-squared (delta.adj.rsq and partial.rsq) ",
+      "so the execution time will be longer."
+    )
+
     if (!("adj.r.squared" %in% var.model)) {
       var.model <- c(var.model, "adj.r.squared")
     }
@@ -616,7 +638,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar,
 
   # Compute changed R-squared ----
   if (need_changed_rsq) {
-    terms.full.formula <- stats::terms(formula)
+    terms.full.formula <- stats::terms(formula, keep.order = TRUE)
 
     for (i.changed.rsq.term in seq_along(changed.rsq.term.index)) {
       idx.changed.rsq.term <- changed.rsq.term.index[[i.changed.rsq.term]]
@@ -682,6 +704,14 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar,
       reduced_sse <- reduced.model.df_out[["model.sse"]]
       df_out[[partial_col]] <- (reduced_sse - full_sse) / reduced_sse
     }
+
+    # if adjusted r sq is not requested (see var.model.orig), remove it:
+    if (!("adj.r.squared" %in% var.model.orig)) {
+      df_out <- df_out[, colnames(df_out) != "model.adj.r.squared", drop = FALSE]
+    }
+
+    # remove full model's sse (model.sse):
+    df_out <- df_out[, colnames(df_out) != "model.sse", drop = FALSE]
   }
 
   # Rewrite if corrections applied and streaming was used ----
