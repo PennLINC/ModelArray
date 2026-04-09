@@ -71,3 +71,7 @@
 #'
 #' @keywords internal
 "_PACKAGE"
+
+## Suppress R CMD check NOTEs for non-standard evaluation symbols
+## used inside magrittr pipe expressions.
+utils::globalVariables(".")
