@@ -361,7 +361,7 @@ test_that("analyseOneElement.wrap covers coercion and error branches", {
       phenotypes = phen, scalar = "FD",
       num.subj.lthr = 0, flag_initiate = FALSE, num.stat.output = 2
     ),
-    "Unsupported return type"
+    "user_fun must return a one-row data.frame/tibble"
   )
 
   expect_warning(

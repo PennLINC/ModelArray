@@ -132,10 +132,12 @@
 #' @rdname ModelArray.lm
 #' @export
 
-ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE,
+ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NULL,
+                          full.outputs = FALSE,
                           var.terms = c("estimate", "statistic", "p.value"),
                           var.model = c("adj.r.squared", "p.value"),
-                          correct.p.value.terms = c("fdr"), correct.p.value.model = c("fdr"),
+                          correct.p.value.terms = c("fdr"),
+                          correct.p.value.model = c("fdr"),
                           num.subj.lthr.abs = 10, num.subj.lthr.rel = 0.2,
                           verbose = TRUE, pbar = TRUE, n_cores = 1,
                           on_error = "stop",
@@ -146,83 +148,47 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                           write_results_compression_level = 4L,
                           return_output = TRUE,
                           ...) {
+  # Validation ----
   .validate_modelarray_input(data)
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
-
-  ### display additional arguments:
+  # Display additional arguments ----
   dots <- list(...)
   dots_names <- names(dots)
-
   FUN <- stats::lm
-
-  # subset:
   m1 <- "no default"
   printAdditionalArgu(FUN, "subset", dots, m1)
-
-  # weights:
   m1 <- "no default"
-  if ("weights" %in% dots_names) { # if user provides weights
-    m_usr_input <- paste0(
-      class(dots$weights),
-      " with length of ",
-      length(dots$weights)
-    ) # message describing usr's input; cannot use dim on c(1,2)
+  if ("weights" %in% dots_names) {
+    m_usr_input <- paste0(class(dots$weights), " with length of ", length(dots$weights))
   } else {
     m_usr_input <- NULL
   }
   printAdditionalArgu(FUN, "weights", dots, m1, m_usr_input)
-
-  # na.action:
   m1 <- "no default"
   printAdditionalArgu(FUN, "na.action", dots, m1)
-
-  # method:
-  printAdditionalArgu(FUN, "method", dots) # default: "qr"
-
-  # model:
-  m1 <- invisible(eval(formals(FUN)[["model"]])) %>% as.character() # default: [logical] TRUE
+  printAdditionalArgu(FUN, "method", dots)
+  m1 <- invisible(eval(formals(FUN)[["model"]])) %>% as.character()
   printAdditionalArgu(FUN, "model", dots, m1)
-
-  # x:
-  m1 <- invisible(eval(formals(FUN)[["x"]])) %>% as.character() # default: [logical] FALSE
+  m1 <- invisible(eval(formals(FUN)[["x"]])) %>% as.character()
   printAdditionalArgu(FUN, "x", dots, m1)
-
-  # y:
-  m1 <- invisible(eval(formals(FUN)[["y"]])) %>% as.character() # default: [logical] FALSE
-  printAdditionalArgu(FUN, "y", dots, m1)
-
-  # qr:
-  m1 <- invisible(eval(formals(FUN)[["qr"]])) %>% as.character() # default: [logical] TRUE
-  printAdditionalArgu(FUN, "qr", dots, m1)
-
-  # singular.ok:
-  m1 <- invisible(eval(formals(FUN)[["singular.ok"]])) %>% as.character() # default: [logical] TRUE
-  printAdditionalArgu(FUN, "singular.ok", dots, m1)
-
-  # contrasts:
-  printAdditionalArgu(FUN, "contrasts", dots) # default: NULL
-
-  # offset:
-  m1 <- "no default" # there is no default
-  printAdditionalArgu(FUN, "offset", dots, m1)
-
 
   num.subj.lthr <- .compute_subject_threshold(phenotypes, num.subj.lthr.abs, num.subj.lthr.rel)
 
-  ### other setups:
+  # Full outputs override ----
   var.terms.full <- c("estimate", "std.error", "statistic", "p.value")
   var.model.full <- c(
     "r.squared", "adj.r.squared", "sigma", "statistic", "p.value",
     "df", "logLik", "AIC", "BIC", "deviance", "df.residual", "nobs"
   )
-  if (full.outputs == TRUE) { # full set of outputs
+  if (full.outputs == TRUE) {
     var.terms <- var.terms.full
     var.model <- var.model.full
   }
+
   # check on validity of list of vars:
-  var.terms <- var.terms[!duplicated(var.terms)] # remove duplicated element(s)
+  var.terms <- var.terms[!duplicated(var.terms)]
   var.model <- var.model[!duplicated(var.model)]
 
   # check if all var.* are empty:
@@ -242,29 +208,30 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
     }
   }
 
-
-  # check for p.value correction:
-  # check for terms:
+  # P-value correction checks ----
   check_validity_correctPValue(
     correct.p.value.terms, "correct.p.value.terms",
     var.terms, "var.terms"
   )
-  # check for model:
   check_validity_correctPValue(
     correct.p.value.model, "correct.p.value.model",
     var.model, "var.model"
   )
 
+  # Build context ONCE before the loop ----
+  ctx <- .build_lm_context(formula, data, phenotypes, scalar)
 
-  ### start the process:
+  # Start the model fitting ----
   if (verbose) {
     message(glue::glue("Fitting element-wise linear models for {scalar}"))
     message(glue::glue("initiating...."))
   }
 
   num.elements.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
+
+  # Initiate using ctx ----
   init_args <- list(
-    formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+    ctx = ctx,
     var.terms = var.terms, var.model = var.model,
     num.subj.lthr = num.subj.lthr, on_error = on_error, ...
   )
@@ -279,13 +246,16 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
     message(glue::glue("looping across elements...."))
   }
 
-  need_term_correction <- (!all(correct.p.value.terms == "none")) && ("p.value" %in% var.terms)
-  need_model_correction <- (!all(correct.p.value.model == "none")) && ("p.value" %in% var.model)
+  need_term_correction <- (!all(correct.p.value.terms == "none")) &&
+    ("p.value" %in% var.terms)
+  need_model_correction <- (!all(correct.p.value.model == "none")) &&
+    ("p.value" %in% var.model)
   need_full_df <- return_output || need_term_correction || need_model_correction
   if (!return_output && (need_term_correction || need_model_correction)) {
     stop("return_output=FALSE is not supported when p-value correction is requested")
   }
 
+  # Initialize stream writer ----
   writer <- .init_results_stream_writer(
     write_results_name = write_results_name,
     write_results_file = write_results_file,
@@ -296,15 +266,19 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
     compression_level = write_results_compression_level
   )
 
+  # Start model looping ----
   fits_all <- if (need_full_df) vector("list", length(element.subset)) else NULL
   chunk_size <- if (is.null(writer)) length(element.subset) else as.integer(write_results_flush_every)
   chunk_starts <- seq(1L, length(element.subset), by = chunk_size)
+
   for (chunk_start in chunk_starts) {
     chunk_end <- min(chunk_start + chunk_size - 1L, length(element.subset))
     chunk_elements <- element.subset[chunk_start:chunk_end]
 
-    chunk_fits <- .parallel_dispatch(chunk_elements, analyseOneElement.lm, n_cores, pbar,
-      formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
+    ## Main loop now passes ctx instead of formula/modelarray/phenotypes/scalar
+    chunk_fits <- .parallel_dispatch(
+      chunk_elements, analyseOneElement.lm, n_cores, pbar,
+      ctx = ctx,
       var.terms = var.terms, var.model = var.model,
       num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
       flag_initiate = FALSE, on_error = on_error,
@@ -333,7 +307,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
   df_out <- .correct_pvalues(df_out, list.terms, correct.p.value.terms, var.terms)
   df_out <- .correct_pvalues(df_out, "model", correct.p.value.model, var.model)
 
-  # Streamed blocks were uncorrected; rewrite final corrected results if needed.
+  # Rewrite corrected results to HDF5 if needed ----
   if (!is.null(writer) && (need_term_correction || need_model_correction)) {
     writeResults(
       fn.output = write_results_file,
@@ -350,8 +324,54 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 }
 
 #' Fit element-wise generalized additive models
-#' no model-level p-value for GAMs, so there is no
-#' \code{correct.p.value.model} argument.
+#'
+#'
+#' @description
+#' `ModelArray.gam` fits a generalized additive model at each requested
+#' element in a \linkS4class{ModelArray} and returns a tibble of requested
+#' model statistics. There is no model-level p-value for GAMs, so there is
+#' no \code{correct.p.value.model} argument.
+#'
+#' @details
+#' You may request returning specific statistical variables by setting
+#' \code{var.*}, or you can get all by setting \code{full.outputs = TRUE}.
+#' Note that statistics covered by \code{full.outputs} or \code{var.*} are
+#' the ones from \code{broom::tidy()}, \code{broom::glance()}, and
+#' \code{summary.gam()} only, and do not include corrected p-values.
+#' However FDR-corrected p-values (\code{"fdr"}) are generated by default.
+#'
+#' List of acceptable statistic names for each of \code{var.*}:
+#' \itemize{
+#'   \item \code{var.smoothTerms}: \code{c("edf", "ref.df", "statistic",
+#'     "p.value")}; From \code{broom::tidy(parametric = FALSE)}.
+#'   \item \code{var.parametricTerms}: \code{c("estimate", "std.error",
+#'     "statistic", "p.value")}; From \code{broom::tidy(parametric = TRUE)}.
+#'   \item \code{var.model}: \code{c("adj.r.squared", "dev.expl",
+#'     "sp.criterion", "scale", "df", "logLik", "AIC", "BIC", "deviance",
+#'     "df.residual", "nobs")}; From \code{broom::glance()} and
+#'     \code{\link[mgcv]{summary.gam}}.
+#' }
+#'
+#' Smooth term names in the output are normalized: \code{s(age)} becomes
+#' \code{s_age}, \code{ti(x,z)} becomes \code{ti_x_z}, and
+#' \code{s(x):oFactor} becomes \code{s_x_BYoFactor}.
+#'
+#' For p-value corrections (arguments \code{correct.p.value.*}), supported
+#' methods include all methods in \code{p.adjust.methods} except
+#' \code{"none"}. You can request more than one method. FDR-corrected
+#' p-values (\code{"fdr"}) are calculated by default. Turn it off by
+#' setting to \code{"none"}.
+#'
+#' When \code{changed.rsq.term.index} is provided, a reduced model (dropping
+#' the specified term) is fit at each element to compute delta adjusted
+#' R-squared and partial R-squared. This approximately doubles execution
+#' time per requested term. The term index refers to the position on the
+#' right-hand side of \code{formula} (use \code{labels(terms(formula))} to
+#' see the ordering).
+#'
+#' Arguments \code{num.subj.lthr.abs} and \code{num.subj.lthr.rel} are
+#' mainly for input data with subject-specific masks, i.e. currently only
+#' for volume data. For fixel-wise data, you may ignore these arguments.
 #'
 #' @inheritParams ModelArray.lm
 #'
@@ -362,21 +382,29 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #'   parametric terms, from \code{broom::tidy(parametric = TRUE)}.
 #'   See Details.
 #' @param var.model Character vector. Statistics to save for the overall
-#'   model, from \code{broom::glance()} and \code{summary()}. See Details.
+#'   model, from \code{broom::glance()} and
+#'   \code{\link[mgcv]{summary.gam}}. See Details.
 #' @param changed.rsq.term.index A list of positive integers. Each value
 #'   is the index of a term on the right-hand side of \code{formula} for
 #'   which delta adjusted R-squared and partial R-squared should be
 #'   computed. Usually the term of interest is a smooth term or interaction
-#'   term. Default \code{NULL} (not computed). See Details for warnings.
+#'   term. Default \code{NULL} (not computed). See Details.
 #' @param correct.p.value.smoothTerms Character vector. P-value
 #'   correction method(s) for each smooth term. Default: \code{"fdr"}.
+#'   See Details.
 #' @param correct.p.value.parametricTerms Character vector. P-value
 #'   correction method(s) for each parametric term. Default: \code{"fdr"}.
-#' @param ... Additional arguments passed to \code{\link[mgcv]{gam}}.
+#'   See Details.
+#' @param ... Additional arguments passed to \code{\link[mgcv]{gam}}
+#'   (e.g. \code{method = "REML"}).
 #'
-#' @return A tibble with one row per element. The first column is
+#' @return A data.frame with one row per element. The first column is
 #'   \code{element_id} (0-based). Remaining columns contain the requested
-#'   statistics, named as \code{<term>.<statistic>}. If
+#'   statistics, named as \code{<term>.<statistic>} for per-term statistics
+#'   and \code{model.<statistic>} for model-level statistics. Smooth term
+#'   names are normalized (e.g. \code{s_age.statistic}). If p-value
+#'   corrections were requested, additional columns are appended with the
+#'   correction method as suffix (e.g. \code{s_age.p.value.fdr}). If
 #'   \code{changed.rsq.term.index} was requested, additional columns
 #'   \code{<term>.delta.adj.rsq} and \code{<term>.partial.rsq} are
 #'   appended.
@@ -385,13 +413,15 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #'   \code{\link{ModelArray.wrap}} for user-supplied functions,
 #'   \code{\link{gen_gamFormula_fxSmooth}} and
 #'   \code{\link{gen_gamFormula_contIx}} for formula helpers,
-#'   \linkS4class{ModelArray} for the input class.
+#'   \linkS4class{ModelArray} for the input class,
+#'   \code{\link{ModelArray}} for the constructor,
+#'   \code{\link{exampleElementData}} for testing formulas on a single
+#'   element.
+#'
 #'
 #' @examples{
 #' \dontrun{
-#' ma <- ModelArray("path/to/data.h5", scalar_types = c("FD"))
-#' phenotypes <- read.csv("cohort.csv")
-#'
+#' # Fit GAM with default outputs
 #' results <- ModelArray.gam(
 #'   FD ~ s(age, fx = TRUE) + sex,
 #'   data = ma,
@@ -408,13 +438,25 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #'   scalar = "FD",
 #'   changed.rsq.term.index = list(1)
 #' )
+#'
+#' # Full outputs, no p-value correction
+#' results_full <- ModelArray.gam(
+#'   FD ~ s(age, fx = TRUE) + sex,
+#'   data = ma,
+#'   phenotypes = phenotypes,
+#'   scalar = "FD",
+#'   full.outputs = TRUE,
+#'   correct.p.value.smoothTerms = "none",
+#'   correct.p.value.parametricTerms = "none"
+#' )
 #' }
 #' }
 #'
 #' @rdname ModelArray.gam
 #' @export
 
-ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = NULL, full.outputs = FALSE,
+ModelArray.gam <- function(formula, data, phenotypes, scalar,
+                           element.subset = NULL, full.outputs = FALSE,
                            var.smoothTerms = c("statistic", "p.value"),
                            var.parametricTerms = c("estimate", "statistic", "p.value"),
                            var.model = c("dev.expl"),
@@ -431,62 +473,46 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
                            write_results_compression_level = 4L,
                            return_output = TRUE,
                            ...) {
+  # Validation ----
   .validate_modelarray_input(data)
   element.subset <- .validate_element_subset(element.subset, data, scalar)
-
-  # check if the formula is valid in terms of mgcv::gam()
-  tryCatch(
-    {
-      gam.formula.breakdown <- mgcv::interpret.gam(formula)
-    },
-    error = function(cond) {
-      stop(paste0("The formula is not valid for mgcv::gam()! Please check and revise."))
-    }
-  )
-
-  checker_gam_formula(formula, gam.formula.breakdown)
-
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
-  ### display additional arguments: [only important one]
+  # Build context ----
+  ctx <- .build_gam_context(formula, data, phenotypes, scalar)
+
+  # Use the cached breakdown for the formula checker display ----
+  checker_gam_formula(formula, ctx$gam_formula_breakdown)
+
+  # Display additional arguments ----
   dots <- list(...)
   dots_names <- names(dots)
-
   FUN <- mgcv::gam
-
-  # method: (default: "GCV.Cp")
-  printAdditionalArgu(FUN, "method", dots) # default: "GCV.Cp"
-
-  # TODO: optional: check if fx=FALSE; if so, add edf to the list of var + warning: fx=TRUE is recommended
-
+  printAdditionalArgu(FUN, "method", dots)
 
   num.subj.lthr <- .compute_subject_threshold(phenotypes, num.subj.lthr.abs, num.subj.lthr.rel)
 
-  ### when full.outputs = TRUE:
+  # Full outputs override ----
   var.smoothTerms.full <- c("edf", "ref.df", "statistic", "p.value")
   var.parametricTerms.full <- c("estimate", "std.error", "statistic", "p.value")
   var.model.full <- c(
     "adj.r.squared", "dev.expl", "sp.criterion", "scale",
     "df", "logLik", "AIC", "BIC", "deviance", "df.residual", "nobs"
   )
-
-  if (full.outputs == TRUE) { # full set of outputs
+  if (full.outputs == TRUE) {
     var.smoothTerms <- var.smoothTerms.full
     var.parametricTerms <- var.parametricTerms.full
     var.model <- var.model.full
   }
 
-  ### check on validity of arguments: var.term and var.model
-  var.smoothTerms <- var.smoothTerms[!duplicated(var.smoothTerms)] # remove duplicated element(s)
+  var.smoothTerms <- var.smoothTerms[!duplicated(var.smoothTerms)]
   var.parametricTerms <- var.parametricTerms[!duplicated(var.parametricTerms)]
   var.model <- var.model[!duplicated(var.model)]
 
-  # check if all var.* are empty:
   if (length(var.smoothTerms) == 0 && length(var.parametricTerms) == 0 && length(var.model) == 0) {
     stop("All var.* arguments [var.smoothTerms, var.parametricTerms, var.model] are empty!")
   }
 
-  # check if every var is valid:
   for (var in var.smoothTerms) {
     if (!(var %in% var.smoothTerms.full)) {
       stop(paste0(var, " is not valid for var.smoothTerms!"))
@@ -503,86 +529,100 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     }
   }
 
-
+  # Changed.rsq setup ----
+  # Changed.rsq setup ----
   var.model.orig <- var.model
-  if (!is.null(changed.rsq.term.index)) { # changed.rsq is not null --> requested
+  if (!is.null(changed.rsq.term.index)) {
 
-    # check if the term index is valid:
-    if (min(changed.rsq.term.index) <= 0) {
-      # any of not positive | can't really check if it's integer as is.integer(1) is FALSE...
+    # Validation checks
+    if (min(unlist(changed.rsq.term.index)) <= 0) {
       stop(
-        paste0(
-          "There is element(s) in changed.rsq.term.index <= 0. ",
-          "It should be a (list of) positive integer!"
-        )
+        "There is element(s) in changed.rsq.term.index <= 0. ",
+        "It should be a (list of) positive integer!"
       )
     }
 
     terms.full.formula <- stats::terms(formula, keep.order = TRUE)
-    # not the re-order the terms | see: https://rdrr.io/r/stats/terms.formula.html
-    if (max(changed.rsq.term.index) > length(labels(terms.full.formula))) {
-      # if max is more than the number of terms on RHS of formula
+
+    if (max(unlist(changed.rsq.term.index)) > length(labels(terms.full.formula))) {
       stop(
-        paste0(
-          "Largest index in changed.rsq.term.index is more than the term number on the ",
-          "right hand side of formula!"
-        )
+        "Largest index in changed.rsq.term.index is more than the term number on the ",
+        "right hand side of formula!"
       )
     }
 
-    # check how many variables on RHS; if no (but intercept, i.e. xx ~ 1), stop
     if (length(labels(terms.full.formula)) == 0) {
       stop(
-        paste0(
-          "Trying to analyze changed.rsq but there is no variable (except intercept 1) ",
-          "on right hand side of formula! Please provide at least one valid variable."
-        )
+        "Trying to analyze changed.rsq but there is no variable (except intercept 1) ",
+        "on right hand side of formula! Please provide at least one valid variable."
       )
     }
 
-    # print warning:
-    message(
-      paste0(
-        "will get changed R-squared (delta.adj.rsq and partial.rsq) so the execution time ",
-        "will be longer."
+    changed.rsq.term.fullFormat.list <- labels(terms.full.formula)[unlist(changed.rsq.term.index)]
+
+    # Compute short format names: s(age) -> s_age, ti(x,z) -> ti_x_z, etc.
+    changed.rsq.term.shortFormat.list <- list()
+    for (changed.rsq.term.fullFormat in changed.rsq.term.fullFormat.list) {
+      temp <- strsplit(changed.rsq.term.fullFormat, "[(]")[[1]]
+      if (length(temp) == 1) {
+        # Not a smooth term — no parentheses
+        str_valid <- changed.rsq.term.fullFormat
+      } else {
+        smooth.class <- temp[1]
+        theEval <- eval(parse(text = changed.rsq.term.fullFormat))
+        str_valid <- paste0(
+          smooth.class, "_",
+          paste(theEval$term, collapse = "_")
+        )
+        if (theEval$by != "NA") {
+          str_valid <- paste0(str_valid, "_BY", theEval$by)
+        }
+      }
+      changed.rsq.term.shortFormat.list <- append(
+        changed.rsq.term.shortFormat.list, str_valid
       )
+    }
+
+    message(
+      "will get changed R-squared (delta.adj.rsq and partial.rsq) ",
+      "so the execution time will be longer."
     )
-    # add adj.r.squared into var.model
+
     if (!("adj.r.squared" %in% var.model)) {
       var.model <- c(var.model, "adj.r.squared")
     }
-
-    # also should return model.sse (for both full and reduced model):
     flag_sse <- TRUE
-  } else { # changed.rsq is null --> not requested
-    flag_sse <- FALSE # no need to calculate sse for the model
+  } else {
+    flag_sse <- FALSE
   }
 
-  ### check on arguments: p-values correction methods
-  # check for smoothTerms:
+  # p-value correction checks ----
   check_validity_correctPValue(
     correct.p.value.smoothTerms, "correct.p.value.smoothTerms",
     var.smoothTerms, "var.smoothTerms"
   )
-  # check for parametricTerms:
   check_validity_correctPValue(
     correct.p.value.parametricTerms, "correct.p.value.parametricTerms",
     var.parametricTerms, "var.parametricTerms"
   )
 
-
-  ### run
+  # Start the model fitting ----
   if (verbose) {
     message(glue::glue("Fitting element-wise GAMs for {scalar}"))
     message(glue::glue("initiating...."))
   }
 
   num.elements.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
+
+  # Initiate using ctx ----
   init_args <- list(
-    formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-    var.smoothTerms = var.smoothTerms, var.parametricTerms = var.parametricTerms,
+    ctx = ctx,
+    var.smoothTerms = var.smoothTerms,
+    var.parametricTerms = var.parametricTerms,
     var.model = var.model,
-    num.subj.lthr = num.subj.lthr, flag_sse = flag_sse, on_error = on_error, ...
+    num.subj.lthr = num.subj.lthr,
+    flag_sse = flag_sse,
+    on_error = on_error, ...
   )
   initiator <- .find_initiator_element(
     analyseOneElement.gam, num.elements.total, init_args, verbose
@@ -607,6 +647,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     stop("return_output=FALSE is not supported when p-value correction or changed.rsq is requested")
   }
 
+  # Initialize stream writer ----
   writer <- .init_results_stream_writer(
     write_results_name = write_results_name,
     write_results_file = write_results_file,
@@ -617,20 +658,26 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     compression_level = write_results_compression_level
   )
 
+  # Start model looping ----
   fits_all <- if (need_full_df) vector("list", length(element.subset)) else NULL
   chunk_size <- if (is.null(writer)) length(element.subset) else as.integer(write_results_flush_every)
   chunk_starts <- seq(1L, length(element.subset), by = chunk_size)
+
   for (chunk_start in chunk_starts) {
     chunk_end <- min(chunk_start + chunk_size - 1L, length(element.subset))
     chunk_elements <- element.subset[chunk_start:chunk_end]
 
-    chunk_fits <- .parallel_dispatch(chunk_elements, analyseOneElement.gam, n_cores, pbar,
-      formula = formula, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-      var.smoothTerms = var.smoothTerms, var.parametricTerms = var.parametricTerms,
+    # Main loop passes ctx
+    chunk_fits <- .parallel_dispatch(
+      chunk_elements, analyseOneElement.gam, n_cores, pbar,
+      ctx = ctx,
+      var.smoothTerms = var.smoothTerms,
+      var.parametricTerms = var.parametricTerms,
       var.model = var.model,
-      num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
-      flag_initiate = FALSE, flag_sse = flag_sse, on_error = on_error,
-      ...
+      num.subj.lthr = num.subj.lthr,
+      num.stat.output = num.stat.output,
+      flag_initiate = FALSE, flag_sse = flag_sse,
+      on_error = on_error, ...
     )
 
     if (need_full_df) {
@@ -652,79 +699,47 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
   df_out <- as.data.frame(df_out)
   colnames(df_out) <- column_names
 
+  # P-value corrections ----
+  df_out <- .correct_pvalues(df_out, list.smoothTerms, correct.p.value.smoothTerms, var.smoothTerms)
+  df_out <- .correct_pvalues(df_out, list.parametricTerms, correct.p.value.parametricTerms, var.parametricTerms)
 
-  ### get the changed.rsq for smooth terms:
-  if (!is.null(changed.rsq.term.index)) { # if changed.rsq is requested
-    message("Getting delta R-squared: running the reduced model...")
+  # Compute changed R-squared ----
+  if (need_changed_rsq) {
+    terms.full.formula <- stats::terms(formula, keep.order = TRUE)
 
-    # list of term of interest for changed.rsq:
-    changed.rsq.term.fullFormat.list <- labels(terms.full.formula)[changed.rsq.term.index]
-    # the term for changed.rsq, in full format
-    # get the short version:
-    changed.rsq.term.shortFormat.list <- list()
-    for (changed.rsq.term.fullFormat in changed.rsq.term.fullFormat.list) {
-      temp <- strsplit(changed.rsq.term.fullFormat, "[(]")[[1]]
-      if (length(temp) == 1) { # it's not a smooth term - as there is no ()
-        str_valid <- changed.rsq.term.fullFormat
-      } else {
-        smooth.class <- temp[1]
-
-        theEval <- eval(parse(text = changed.rsq.term.fullFormat))
-        str_valid <- paste0(
-          smooth.class, "_",
-          paste(theEval$term, collapse = "_")
-        ) # ti(x,z) --> ti_x_z; s(x) --> s_x
-        if (theEval$by != "NA") {
-          str_valid <- paste0(str_valid, "_BY", theEval$by) # s(age,by=oSex) --> s_age_BYoSex
-        }
-      }
-
-      changed.rsq.term.shortFormat <- str_valid
-      changed.rsq.term.shortFormat.list <- append(changed.rsq.term.shortFormat.list, changed.rsq.term.shortFormat)
-    }
-
-    # loop of each changed.rsq.term.index (i.e. each term of interest)
-    for (i.changed.rsq.term in seq_along(changed.rsq.term.fullFormat.list)) {
-      idx.changed.rsq.term <- changed.rsq.term.index[i.changed.rsq.term] # index
+    for (i.changed.rsq.term in seq_along(changed.rsq.term.index)) {
+      idx.changed.rsq.term <- changed.rsq.term.index[[i.changed.rsq.term]]
       changed.rsq.term.fullFormat <- changed.rsq.term.fullFormat.list[i.changed.rsq.term]
-      changed.rsq.term.shortFormat <- changed.rsq.term.shortFormat.list[[i.changed.rsq.term]][1] # it's nested
+      changed.rsq.term.shortFormat <- changed.rsq.term.shortFormat.list[[i.changed.rsq.term]][1]
 
-      # get the formula of reduced model
-      # check if there is only one term (after removing it in reduced model,
-      # there is no term but intercept in the formula...)
       if (length(labels(terms.full.formula)) == 1) {
         temp <- toString(formula) %>% strsplit("[, ]")
         reduced.formula <- stats::as.formula(paste0(temp[[1]][3], "~1"))
       } else {
         reduced.formula <- formula(
-          stats::drop.terms(
-            terms.full.formula,
-            idx.changed.rsq.term,
-            keep.response = TRUE
-          )
-        ) # index on RHS of formula -> change to class of formula (stats::as.formula does not work)
+          stats::drop.terms(terms.full.formula, idx.changed.rsq.term, keep.response = TRUE)
+        )
       }
 
       message(
-        paste0(
-          "* Getting changed R-squared for term: ",
-          changed.rsq.term.fullFormat,
-          " via reduced model as below",
-          "; will show up as ",
-          changed.rsq.term.shortFormat,
-          " in final dataframe"
-        )
+        "* Getting changed R-squared for term: ",
+        changed.rsq.term.fullFormat,
+        " via reduced model; will show up as ",
+        changed.rsq.term.shortFormat,
+        " in final dataframe"
       )
       print(reduced.formula)
 
-      # var* for reduced model: only adjusted r sq is enough
-      # initiate:
+      ## Build a separate context for the reduced model ----
+      reduced_ctx <- .build_gam_context(reduced.formula, data, phenotypes, scalar)
+
       reduced.model.outputs_initiator <- analyseOneElement.gam(
-        i_element = i_element_success_initiate, # directly use the i_element with known success
-        reduced.formula, data, phenotypes, scalar,
-        var.smoothTerms = c(), var.parametricTerms = c(), var.model = c("adj.r.squared"),
+        i_element = i_element_success_initiate,
+        ctx = reduced_ctx,
+        var.smoothTerms = c(), var.parametricTerms = c(),
+        var.model = c("adj.r.squared"),
         num.subj.lthr = num.subj.lthr, num.stat.output = NULL,
-        flag_initiate = TRUE, flag_sse = TRUE, # also to get model.sse
+        flag_initiate = TRUE, flag_sse = TRUE,
         ...
       )
       reduced.model.column_names <- reduced.model.outputs_initiator$column_names
@@ -732,8 +747,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 
       reduced.model.fits <- .parallel_dispatch(
         element.subset, analyseOneElement.gam, n_cores, pbar,
-        formula = reduced.formula, modelarray = data, phenotypes = phenotypes,
-        scalar = scalar,
+        ctx = reduced_ctx,
         var.smoothTerms = c(), var.parametricTerms = c(),
         var.model = c("adj.r.squared"),
         num.subj.lthr = num.subj.lthr,
@@ -746,47 +760,28 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
       reduced.model.df_out <- as.data.frame(reduced.model.df_out)
       colnames(reduced.model.df_out) <- reduced.model.column_names
 
-      # rename "adj.r.squared" as "redModel.adj.r.squared" before merging into df_out
-      names(reduced.model.df_out)[names(reduced.model.df_out) == "model.adj.r.squared"] <- "redModel.adj.r.squared"
-      # rename "model.sse" as "redModel.sse" before merging into df_out
-      names(reduced.model.df_out)[names(reduced.model.df_out) == "model.sse"] <- "redModel.sse"
+      ## Compute delta adj R-sq and partial R-sq ----
+      delta_col <- paste0(changed.rsq.term.shortFormat, ".delta.adj.rsq")
+      partial_col <- paste0(changed.rsq.term.shortFormat, ".partial.rsq")
 
-      # combine new df_out to original one:
-      df_out <- merge(df_out, reduced.model.df_out, by = "element_id")
+      df_out[[delta_col]] <- df_out[["model.adj.r.squared"]] -
+        reduced.model.df_out[["model.adj.r.squared"]]
 
-      # calculate the delta.adj.rsq, add to the df_out:
-      col_name <- paste0(changed.rsq.term.shortFormat, ".delta.adj.rsq")
-      df_out[[col_name]] <- df_out[["model.adj.r.squared"]] - df_out[["redModel.adj.r.squared"]]
-
-      # calculate the partial.rsq, add to the df_out
-      # partialRsq <- (sse.red - sse.full) / sse.red
-      col_name <- paste0(changed.rsq.term.shortFormat, ".partial.rsq")
-      df_out[[col_name]] <- (df_out[["redModel.sse"]] - df_out[["model.sse"]]) / df_out[["redModel.sse"]]
-
-      # remove column of redModel
-      df_out <- df_out %>% subset(select = -c(
-        redModel.adj.r.squared,
-        redModel.sse
-      ))
-    } # end of for loop across term of interest for changed.rsq
-
+      full_sse <- df_out[["model.sse"]]
+      reduced_sse <- reduced.model.df_out[["model.sse"]]
+      df_out[[partial_col]] <- (reduced_sse - full_sse) / reduced_sse
+    }
 
     # if adjusted r sq is not requested (see var.model.orig), remove it:
     if (!("adj.r.squared" %in% var.model.orig)) {
-      df_out <- df_out %>% subset(select = -c(model.adj.r.squared))
+      df_out <- df_out[, colnames(df_out) != "model.adj.r.squared", drop = FALSE]
     }
 
     # remove full model's sse (model.sse):
-    df_out <- df_out %>% subset(select = -c(model.sse))
-  } # end of if: requesting changed.rsq
+    df_out <- df_out[, colnames(df_out) != "model.sse", drop = FALSE]
+  }
 
-
-  ### correct p values
-  df_out <- .correct_pvalues(df_out, list.smoothTerms, correct.p.value.smoothTerms, var.smoothTerms)
-  df_out <- .correct_pvalues(
-    df_out, list.parametricTerms, correct.p.value.parametricTerms, var.parametricTerms
-  )
-
+  # Rewrite if corrections applied and streaming was used ----
   if (!is.null(writer) && (need_smooth_correction || need_param_correction || need_changed_rsq)) {
     writeResults(
       fn.output = write_results_file,
@@ -796,13 +791,11 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
     )
   }
 
-  ### return
   if (return_output) {
     return(df_out)
   }
   invisible(NULL)
 }
-
 
 #' Run a user-supplied function for element-wise data
 #'
@@ -859,9 +852,19 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar, element.subset = N
 #'   level for scalar writes. Default 4.
 #' @param ... Additional arguments forwarded to \code{FUN}.
 #'
-#' @return A tibble with one row per element and first column
-#'   \code{element_id} (0-based). Remaining columns are determined by
-#'   the return value of \code{FUN}.
+#' @return If \code{flag_initiate = TRUE}, a list with one component:
+#'   \describe{
+#'     \item{column_names}{Character vector. The column names derived from
+#'       the return value of \code{user_fun}, with \code{"element_id"}
+#'       prepended. For unnamed list or atomic returns, columns are named
+#'       \code{v1}, \code{v2}, etc. Set to \code{NaN} if the element was
+#'       skipped or errored.}
+#'   }
+#'   If \code{flag_initiate = FALSE}, a numeric vector of length
+#'   \code{num.stat.output} with \code{element_id} (0-based) first and
+#'   the coerced output of \code{user_fun} in subsequent positions.
+#'   All-\code{NaN} (except \code{element_id}) if the element was skipped
+#'   or if an error occurred with \code{on_error = "skip"}.
 #'
 #' @seealso \code{\link{ModelArray.lm}} for linear models,
 #'   \code{\link{ModelArray.gam}} for GAMs,
@@ -921,21 +924,29 @@ ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL
                             write_results_compression_level = 4L,
                             return_output = TRUE,
                             ...) {
+  # Validation ----
   .validate_modelarray_input(data)
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
   num.subj.lthr <- .compute_subject_threshold(phenotypes, num.subj.lthr.abs, num.subj.lthr.rel)
 
-  ### initiate to get column names
+  # Build context ----
+  ctx <- .build_wrap_context(data, phenotypes, scalar)
+
+  # Start model fitting ----
   if (verbose) {
     message(glue::glue("Running element-wise user function for {scalar}"))
     message(glue::glue("initiating...."))
   }
 
   num.elements.total <- numElementsTotal(modelarray = data, scalar_name = scalar)
+
+  # Initiate using ctx ----
   init_args <- list(
-    user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-    num.subj.lthr = num.subj.lthr, on_error = on_error, ...
+    user_fun = FUN,
+    ctx = ctx,
+    num.subj.lthr = num.subj.lthr,
+    on_error = on_error, ...
   )
   initiator <- .find_initiator_element(
     analyseOneElement.wrap, num.elements.total, init_args, verbose
@@ -945,6 +956,7 @@ ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL
 
   if (verbose) message(glue::glue("looping across elements...."))
 
+  # Initialize stream writer ----
   writer_results <- .init_results_stream_writer(
     write_results_name = write_results_name,
     write_results_file = write_results_file,
@@ -975,36 +987,21 @@ ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL
     if (is.character(write_scalar_columns)) {
       missing_cols <- setdiff(write_scalar_columns, column_names)
       if (length(missing_cols) > 0L) {
-        stop(
-          "write_scalar_columns not found in wrap output: ",
-          paste(missing_cols, collapse = ", ")
-        )
+        stop("write_scalar_columns not found in wrap output: ", paste(missing_cols, collapse = ", "))
       }
       scalar_col_idx <- match(write_scalar_columns, column_names)
-    } else if (is.numeric(write_scalar_columns)) {
-      scalar_col_idx <- as.integer(write_scalar_columns)
-      if (any(scalar_col_idx < 1L) || any(scalar_col_idx > length(column_names))) {
-        stop("write_scalar_columns numeric indices are out of bounds")
-      }
     } else {
-      stop("write_scalar_columns must be NULL, character, or integer")
-    }
-
-    scalar_col_names <- column_names[scalar_col_idx]
-    if (length(scalar_col_names) == 0L) {
-      stop("write_scalar_columns selected zero columns")
+      scalar_col_idx <- as.integer(write_scalar_columns)
     }
 
     if (is.null(write_scalar_column_names)) {
-      write_scalar_column_names <- as.character(phenotypes[["source_file"]])
-    } else {
-      write_scalar_column_names <- as.character(write_scalar_column_names)
+      write_scalar_column_names <- column_names[scalar_col_idx]
     }
     if (length(write_scalar_column_names) != length(scalar_col_idx)) {
       stop("length(write_scalar_column_names) must equal number of selected write_scalar_columns")
     }
 
-    # Initialize scalar output dataset.
+    # Initialize scalar output dataset
     if (!file.exists(write_scalar_file)) {
       rhdf5::h5createFile(write_scalar_file)
     }
@@ -1032,6 +1029,7 @@ ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL
     )
   }
 
+  # Start model looping ----
   fits_all <- if (return_output) vector("list", length(element.subset)) else NULL
   write_row_cursor <- 1L
 
@@ -1043,13 +1041,18 @@ ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL
     chunk_size <- min(chunk_size, as.integer(write_results_flush_every))
   }
   chunk_starts <- seq(1L, length(element.subset), by = chunk_size)
+
   for (chunk_start in chunk_starts) {
     chunk_end <- min(chunk_start + chunk_size - 1L, length(element.subset))
     chunk_elements <- element.subset[chunk_start:chunk_end]
 
-    chunk_fits <- .parallel_dispatch(chunk_elements, analyseOneElement.wrap, n_cores, pbar,
-      user_fun = FUN, modelarray = data, phenotypes = phenotypes, scalar = scalar,
-      num.subj.lthr = num.subj.lthr, num.stat.output = num.stat.output,
+    ## Main loop passes ctx ----
+    chunk_fits <- .parallel_dispatch(
+      chunk_elements, analyseOneElement.wrap, n_cores, pbar,
+      user_fun = FUN,
+      ctx = ctx,
+      num.subj.lthr = num.subj.lthr,
+      num.stat.output = num.stat.output,
       flag_initiate = FALSE, on_error = on_error,
       ...
     )
@@ -1080,6 +1083,7 @@ ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL
     }
   }
 
+  # Finalize H5 writing ----
   if (writing_scalar) {
     rhdf5::h5writeAttribute(
       attr = write_scalar_column_names,

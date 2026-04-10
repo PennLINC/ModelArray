@@ -1,7 +1,7 @@
 # Internal shared helpers for ModelArray analysis functions
 # These are not exported — used by ModelArray.lm, ModelArray.gam, ModelArray.wrap
 
-
+# Validation and dataset preparation ----
 #' Validate that data is a ModelArray
 #' @noRd
 .validate_modelarray_input <- function(data) {
@@ -110,7 +110,320 @@
   max(num.subj.total * num.subj.lthr.rel, num.subj.lthr.abs)
 }
 
+# Create analysis context ----
+# Precomputed context builders for element-wise analysis functions.
+# These hoist loop-invariant computations out of the per-element functions
+# so they execute once before the loop rather than millions of times inside it.
 
+# Level 1: Base context shared by all analysis functions (lm, gam, wrap).
+# Handles scalar discovery, collision checks, and cross-scalar source alignment.
+
+#' Build base context shared by all element-wise analysis functions
+#'
+#' Precomputes scalar name lookups, column-name collision checks, and
+#' cross-scalar source-alignment indices that are invariant across elements.
+#' This is the foundation on which model-specific contexts are built.
+#'
+#' @param modelarray A \linkS4class{ModelArray} object.
+#' @param phenotypes A data.frame, already aligned to \code{modelarray} via
+#'   \code{.align_phenotypes()}.
+#' @param scalar Character. The name of the response scalar.
+#' @param scalar_subset Character vector or \code{NULL}. Which scalars to
+#'   attach and align. If \code{NULL}, all scalars in the ModelArray are used
+#'   (the \code{wrap} behaviour). If a character vector, only those scalars
+#'   are included (the \code{lm}/\code{gam} behaviour where we detect
+#'   formula-referenced scalars).
+#' @return A named list with components:
+#'   \describe{
+#'     \item{modelarray}{The ModelArray object (read-only reference).}
+#'     \item{phenotypes}{The aligned phenotypes data.frame.}
+#'     \item{scalar}{Character. The response scalar name.}
+#'     \item{all_scalar_names}{Character vector. Names of all scalars in the
+#'       ModelArray.}
+#'     \item{attached_scalars}{Character vector. Names of scalars that will
+#'       be attached to the per-element data.frame (may be a subset of
+#'       \code{all_scalar_names} or all of them).}
+#'     \item{predictor_reorder}{A named list of integer vectors. For each
+#'       scalar in \code{attached_scalars}, the precomputed index vector
+#'       from \code{match(phen_sources, scalar_sources)} that reorders
+#'       scalar columns to match phenotype rows. For the response scalar
+#'       (which is already aligned by \code{.align_phenotypes()}), this
+#'       entry is \code{NULL} (no reordering needed).}
+#'   }
+#' @noRd
+.build_base_context <- function(modelarray, phenotypes, scalar,
+                                scalar_subset = NULL) {
+  all_scalar_names <- names(scalars(modelarray))
+
+
+  # Determine which scalars to attach
+
+  if (is.null(scalar_subset)) {
+    # wrap mode: attach all scalars
+    attached_scalars <- all_scalar_names
+  } else {
+    # lm/gam mode: attach only the explicitly requested scalars
+    # (response + any predictor scalars detected from the formula)
+    attached_scalars <- unique(scalar_subset)
+  }
+
+
+  # Collision check: scalar names vs phenotype column names.
+  # This is invariant — the same collision would occur at every element,
+
+  # so we fail fast once rather than millions of times.
+
+  collisions <- intersect(attached_scalars, colnames(phenotypes))
+  if (length(collisions) > 0) {
+    stop(
+      "Column name collision between phenotypes and scalar names: ",
+      paste(collisions, collapse = ", "),
+      ". Please rename or remove these columns from phenotypes before ",
+      "modeling."
+    )
+  }
+
+  # Precompute source-alignment reorder indices for each attached scalar.
+  # The response scalar is already aligned by .align_phenotypes(), so it
+
+  # needs no reordering. Predictor scalars from mergeModelArrays() may
+  # have different column orderings and need match()-based reordering.
+  phen_sources <- phenotypes[["source_file"]]
+  predictor_reorder <- stats::setNames(
+    vector("list", length(attached_scalars)),
+    attached_scalars
+  )
+
+  for (sname in attached_scalars) {
+    s_sources <- sources(modelarray)[[sname]]
+
+    if (identical(s_sources, phen_sources)) {
+      # Already aligned (typical for the response scalar, or when all
+      # scalars share the same source order after mergeModelArrays)
+      predictor_reorder[[sname]] <- NULL
+    } else {
+      # Validate that the sets match (once, not per element)
+      if (!(all(s_sources %in% phen_sources) &&
+            all(phen_sources %in% s_sources))) {
+        stop(
+          "The source files for scalar '", sname,
+          "' do not match phenotypes$source_file."
+        )
+      }
+      predictor_reorder[[sname]] <- match(phen_sources, s_sources)
+    }
+  }
+
+  list(
+    modelarray        = modelarray,
+    phenotypes        = phenotypes,
+    scalar            = scalar,
+    all_scalar_names  = all_scalar_names,
+    attached_scalars  = attached_scalars,
+    predictor_reorder = predictor_reorder
+  )
+}
+
+
+# Level 2: Model-specific context builders that add formula-derived
+# information on top of the base context.
+
+#' Build context for element-wise linear model fitting
+#'
+#' Extends the base context with formula parsing results: the LHS variable
+#' name, RHS variable names, and which RHS variables are scalars (as opposed
+#' to phenotype columns). All of this is invariant across elements.
+#'
+#' @param formula A \code{\link[stats]{formula}} to be passed to
+#'   \code{\link[stats]{lm}}.
+#' @param modelarray A \linkS4class{ModelArray} object.
+#' @param phenotypes A data.frame, already aligned via
+#'   \code{.align_phenotypes()}.
+#' @param scalar Character. The response scalar name.
+#' @return A named list inheriting all components from
+#'   \code{.build_base_context()} plus:
+#'   \describe{
+#'     \item{formula}{The model formula.}
+#'     \item{lhs_name}{Character. The response variable name from the
+#'       formula LHS.}
+#'     \item{rhs_vars}{Character vector. All variable names on the RHS.}
+#'     \item{scalar_predictors}{Character vector. RHS variables that are
+#'       scalar names in the ModelArray (i.e., cross-scalar predictors).}
+#'   }
+#' @noRd
+.build_lm_context <- function(formula, modelarray, phenotypes, scalar) {
+  # Formula parsing — currently repeated per element inside
+  # analyseOneElement.lm
+  all_vars <- all.vars(formula)
+  lhs_name <- tryCatch(
+    as.character(formula[[2]]),
+    error = function(e) NULL
+  )
+  rhs_vars <- setdiff(all_vars, lhs_name)
+
+  # Detect which RHS variables are scalars in the ModelArray
+  all_scalar_names <- names(scalars(modelarray))
+  scalar_predictors <- intersect(rhs_vars, all_scalar_names)
+
+  # The scalars to attach: response + any scalar predictors
+  scalar_subset <- unique(c(scalar, scalar_predictors))
+
+  # Build the base context with only the needed scalars
+  base_ctx <- .build_base_context(
+    modelarray    = modelarray,
+    phenotypes    = phenotypes,
+    scalar        = scalar,
+    scalar_subset = scalar_subset
+  )
+
+  # Extend with formula-specific fields
+  base_ctx$formula            <- formula
+  base_ctx$lhs_name           <- lhs_name
+  base_ctx$rhs_vars           <- rhs_vars
+  base_ctx$scalar_predictors  <- scalar_predictors
+
+  base_ctx
+}
+
+
+#' Build context for element-wise GAM fitting
+#'
+#' Extends the base context with formula parsing results and GAM-specific
+#' formula validation that currently runs inside the ModelArray.gam()
+#' preamble but whose results are never passed to the per-element function.
+#'
+#' @param formula A \code{\link[stats]{formula}} to be passed to
+#'   \code{\link[mgcv]{gam}}.
+#' @param modelarray A \linkS4class{ModelArray} object.
+#' @param phenotypes A data.frame, already aligned via
+#'   \code{.align_phenotypes()}.
+#' @param scalar Character. The response scalar name.
+#' @return A named list inheriting all components from
+#'   \code{.build_lm_context()} (which itself inherits from
+#'   \code{.build_base_context()}) plus:
+#'   \describe{
+#'     \item{gam_formula_breakdown}{The result of
+#'       \code{mgcv::interpret.gam(formula)}, cached for reuse.}
+#'   }
+#' @noRd
+.build_gam_context <- function(formula, modelarray, phenotypes, scalar) {
+  # GAM formula validation — currently runs in ModelArray.gam() preamble
+  # but the breakdown result is discarded. We cache it here.
+  gam_breakdown <- tryCatch(
+    mgcv::interpret.gam(formula),
+    error = function(cond) {
+      stop("The formula is not valid for mgcv::gam()! Please check and revise.")
+    }
+  )
+
+  # The formula structure is the same as lm for variable detection purposes
+  ctx <- .build_lm_context(formula, modelarray, phenotypes, scalar)
+
+  # Add GAM-specific cached data
+  ctx$gam_formula_breakdown <- gam_breakdown
+
+  ctx
+}
+
+
+#' Build context for element-wise user-supplied function execution
+#'
+#' Uses the base context in "attach all scalars" mode since
+#' \code{analyseOneElement.wrap} attaches every scalar in the ModelArray
+#' to the per-element data.frame, not just formula-referenced ones.
+#'
+#' @param modelarray A \linkS4class{ModelArray} object.
+#' @param phenotypes A data.frame, already aligned via
+#'   \code{.align_phenotypes()}.
+#' @param scalar Character. The primary scalar name (used for the initial
+#'   validity check).
+#' @return A named list: the base context with \code{scalar_subset = NULL}
+#'   (all scalars attached).
+#' @noRd
+.build_wrap_context <- function(modelarray, phenotypes, scalar) {
+  # scalar_subset = NULL triggers "attach all" mode in .build_base_context()
+  ctx <- .build_base_context(
+    modelarray    = modelarray,
+    phenotypes    = phenotypes,
+    scalar        = scalar,
+    scalar_subset = NULL
+  )
+
+  ctx
+}
+
+
+# Level 3: Shared per-element data assembly helper.
+# Extracts scalar values for one element using the precomputed context,
+# builds the validity mask, and returns the filtered data.frame.
+# This replaces duplicated logic across analyseOneElement.lm,
+# analyseOneElement.gam, and analyseOneElement.wrap.
+
+#' Assemble per-element data.frame from precomputed context
+#'
+#' Reads scalar rows from the ModelArray, applies precomputed reorder
+#' indices, builds the intersection validity mask, and returns the
+#' filtered data.frame ready for model fitting or user function execution.
+#'
+#' @param i_element Integer. 1-based element index.
+#' @param ctx A context list from one of the \code{.build_*_context()}
+#'   functions.
+#' @param num.subj.lthr Numeric. Minimum number of subjects with finite
+#'   values required.
+#' @return A list with components:
+#'   \describe{
+#'     \item{dat}{A data.frame: the filtered phenotypes with scalar columns
+#'       attached. \code{NULL} if the element has insufficient valid
+#'       subjects.}
+#'     \item{sufficient}{Logical. Whether the element passed the subject
+#'       threshold.}
+#'     \item{num_valid}{Integer. Number of subjects with finite values
+#'       across all attached scalars.}
+#'   }
+#' @noRd
+.assemble_element_data <- function(i_element, ctx, num.subj.lthr) {
+  # Read the response scalar row — the only mandatory per-element I/O
+  response_vals <- scalars(ctx$modelarray)[[ctx$scalar]][i_element, ]
+
+  # Start the validity mask with the response scalar
+  masks <- list(is.finite(response_vals))
+
+  # Read and reorder additional attached scalars
+  scalar_values <- list()
+  scalar_values[[ctx$scalar]] <- response_vals
+
+  other_scalars <- setdiff(ctx$attached_scalars, ctx$scalar)
+  for (sname in other_scalars) {
+    s_vals <- scalars(ctx$modelarray)[[sname]][i_element, ]
+
+    # Apply precomputed reorder index (or use as-is if NULL)
+    reorder_idx <- ctx$predictor_reorder[[sname]]
+    if (!is.null(reorder_idx)) {
+      s_vals <- s_vals[reorder_idx]
+    }
+
+    scalar_values[[sname]] <- s_vals
+    masks[[length(masks) + 1L]] <- is.finite(s_vals)
+  }
+
+  # Intersection mask across all scalars
+  valid_mask <- Reduce("&", masks)
+  num_valid <- sum(valid_mask)
+
+  if (!(num_valid > num.subj.lthr)) {
+    return(list(dat = NULL, sufficient = FALSE, num_valid = num_valid))
+  }
+
+  # Build filtered data.frame
+  dat <- ctx$phenotypes[valid_mask, , drop = FALSE]
+  for (sname in ctx$attached_scalars) {
+    dat[[sname]] <- scalar_values[[sname]][valid_mask]
+  }
+
+  list(dat = dat, sufficient = TRUE, num_valid = num_valid)
+}
+
+# Find initiator element ----
 #' Find a valid initiator element by searching middle → forward → backward
 #'
 #' @param analyse_one_fn The per-element analysis function
@@ -186,6 +499,7 @@
 }
 
 
+# Parallelization ----
 #' Dispatch parallel/serial apply with optional progress bar
 #'
 #' @param element.subset Integer vector of element indices
@@ -236,7 +550,7 @@
   fits
 }
 
-
+# P-value correction ----
 #' Correct p-values for a set of terms and append corrected columns
 #'
 #' @param df_out Data.frame of results
@@ -264,7 +578,7 @@
   df_out
 }
 
-
+# Streaming writes ----
 #' Initialize an incremental writer for /results datasets
 #' @noRd
 .init_results_stream_writer <- function(write_results_name,

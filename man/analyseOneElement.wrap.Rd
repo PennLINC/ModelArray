@@ -7,13 +7,14 @@
 analyseOneElement.wrap(
   i_element,
   user_fun,
-  modelarray,
-  phenotypes,
-  scalar,
+  modelarray = NULL,
+  phenotypes = NULL,
+  scalar = NULL,
   num.subj.lthr,
   num.stat.output = NULL,
   flag_initiate = FALSE,
   on_error = "stop",
+  ctx = NULL,
   ...
 )
 }
@@ -22,17 +23,27 @@ analyseOneElement.wrap(
 
 \item{user_fun}{A function that accepts at least an argument named
 \code{data} (a data.frame: \code{phenotypes} with scalar columns
-appended for the current element) and returns a one-row
-data.frame/tibble, a named list, or a named atomic vector.}
+appended for the current element) and returns one of:
+\itemize{
+\item A one-row \code{data.frame} or \code{tibble}. Multi-row
+returns will error.
+\item A named list. Unnamed lists are accepted and auto-named
+as \code{v1}, \code{v2}, etc.
+\item A named atomic vector. Unnamed vectors are accepted and
+auto-named as \code{v1}, \code{v2}, etc.
+}
+All return values are coerced to a numeric vector internally.
+Unsupported types (e.g., environments, S4 objects) will error.}
 
-\item{modelarray}{A \linkS4class{ModelArray} object.}
+\item{modelarray}{A \linkS4class{ModelArray} object. Ignored when
+\code{ctx} is provided.}
 
 \item{phenotypes}{A data.frame of the cohort with columns of independent
 variables and covariates. Must contain a \code{"source_file"} column
-matching \code{sources(modelarray)[[scalar]]}.}
+matching \code{sources(modelarray)[[scalar]]}. Ignored when \code{ctx} is provided.}
 
 \item{scalar}{Character. The name of the element-wise scalar to analyse.
-Must be one of \code{names(scalars(modelarray))}.}
+Must be one of \code{names(scalars(modelarray))}. Ignored when \code{ctx} is provided.}
 
 \item{num.subj.lthr}{Numeric. The pre-computed minimum number of subjects
 with finite values required for this element to be analysed. Elements
@@ -55,6 +66,9 @@ element.}
 halts execution; \code{"skip"} returns all-\code{NaN} for this element;
 \code{"debug"} drops into \code{\link{browser}} (if interactive) then
 skips. Default: \code{"stop"}.}
+
+\item{ctx}{A precomputed context list from \code{.build_wrap_context()},
+or \code{NULL}.}
 
 \item{...}{Additional arguments forwarded to \code{user_fun}.}
 }
