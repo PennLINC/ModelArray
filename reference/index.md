@@ -38,13 +38,8 @@
 
 - [`ModelArray.lm()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md)
   : Fit element-wise linear models
-
 - [`ModelArray.gam()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md)
-  :
-
-  Fit element-wise generalized additive models no model-level p-value
-  for GAMs, so there is no `correct.p.value.model` argument.
-
+  : Fit element-wise generalized additive models
 - [`ModelArray.wrap()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md)
   : Run a user-supplied function for element-wise data
 
