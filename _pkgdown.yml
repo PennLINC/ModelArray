@@ -1,6 +1,10 @@
 url: https://pennlinc.github.io/ModelArray/
+
 template:
   bootstrap: 5
+
+development:
+  mode: auto
 
 navbar:
   structure:
@@ -36,6 +40,55 @@ navbar:
           href: articles/container.html
         - text: "Developer Documentation"
           href: articles/doc_for_developer.html
+
+reference:
+  - title: "Package overview"
+    contents:
+      - ModelArray-package
+
+  - title: "ModelArray class and constructor"
+    contents:
+      - ModelArray-class
+      - ModelArray
+
+  - title: "Accessors"
+    contents:
+      - sources
+      - scalars
+      - results
+      - nElements
+      - nInputFiles
+      - scalarNames
+      - analysisNames
+      - elementMetadata
+      - exampleElementData
+
+  - title: "Analysis functions"
+    contents:
+      - ModelArray.lm
+      - ModelArray.gam
+      - ModelArray.wrap
+
+  - title: "Per-element internals"
+    desc: >
+      These functions are called internally by the analysis functions.
+      Most users should not call them directly.
+    contents:
+      - analyseOneElement.lm
+      - analyseOneElement.gam
+      - analyseOneElement.wrap
+
+  - title: "Merging"
+    contents:
+      - mergeModelArrays
+
+  - title: "Utilities"
+    contents:
+      - writeResults
+      - h5summary
+      - numElementsTotal
+      - gen_gamFormula_fxSmooth
+      - gen_gamFormula_contIx
 
 redirects:
   - ["articles/wrap.html", "articles/modelling.html"]

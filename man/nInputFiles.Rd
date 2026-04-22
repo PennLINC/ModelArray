@@ -10,13 +10,27 @@ nInputFiles(x, scalar = NULL)
 \S4method{nInputFiles}{ModelArray}(x, scalar = NULL)
 }
 \arguments{
-\item{x}{A ModelArray object}
+\item{x}{A \linkS4class{ModelArray} object.}
 
-\item{scalar}{Optional scalar name. Defaults to the first scalar.}
+\item{scalar}{Optional character string. Name of the scalar to query.
+Defaults to the first scalar in \code{names(scalars(x))}.}
 }
 \value{
-Integer, number of input files (columns)
+Integer. The number of input files (columns) in the scalar matrix.
 }
 \description{
-Number of input files in a ModelArray
+Returns the number of input files (i.e., subjects or source files) for a
+given scalar in a \linkS4class{ModelArray}. This is the column count of the
+scalar matrix.
+}
+\examples{
+\dontrun{
+ma <- ModelArray("data.h5", scalar_types = c("FD"))
+nInputFiles(ma)
+}
+
+}
+\seealso{
+\code{\link{nElements}}, \code{\link{sources}},
+\code{\link{scalarNames}}
 }

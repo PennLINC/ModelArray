@@ -2,7 +2,7 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{analyseOneElement.wrap}
 \alias{analyseOneElement.wrap}
-\title{Run a user-supplied function for one element}
+\title{Run a user-supplied function for a single element}
 \usage{
 analyseOneElement.wrap(
   i_element,
@@ -18,42 +18,93 @@ analyseOneElement.wrap(
 )
 }
 \arguments{
-\item{i_element}{An integer, the i_th element, starting from 1.}
+\item{i_element}{Integer. The 1-based index of the element to analyse.}
 
-\item{user_fun}{A function that accepts at least an argument named `data` (the per-element
-`phenotypes` with the response column appended) and returns a one-row data.frame/tibble,
-named list, or named vector.}
+\item{user_fun}{A function that accepts at least an argument named
+\code{data} (a data.frame: \code{phenotypes} with scalar columns
+appended for the current element) and returns a one-row
+data.frame/tibble, a named list, or a named atomic vector.}
 
-\item{modelarray}{ModelArray class}
+\item{modelarray}{A \linkS4class{ModelArray} object.}
 
-\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates}
+\item{phenotypes}{A data.frame of the cohort with columns of independent
+variables and covariates. Must contain a \code{"source_file"} column
+matching \code{sources(modelarray)[[scalar]]}.}
 
-\item{scalar}{A character. The name of the element-wise scalar to be analysed}
+\item{scalar}{Character. The name of the element-wise scalar to analyse.
+Must be one of \code{names(scalars(modelarray))}.}
 
-\item{num.subj.lthr}{The minimal number of subjects with valid value in input h5 file}
+\item{num.subj.lthr}{Numeric. The pre-computed minimum number of subjects
+with finite values required for this element to be analysed. Elements
+below this threshold are skipped. This value is typically computed by
+the parent function from \code{num.subj.lthr.abs} and
+\code{num.subj.lthr.rel}.}
 
-\item{num.stat.output}{The number of output stat metrics (including `element_id`).
-Required when `flag_initiate = TRUE`.}
+\item{num.stat.output}{Integer or \code{NULL}. The total number of output
+columns (including \code{element_id}). Used when
+\code{flag_initiate = FALSE} to generate an all-\code{NaN} row for
+skipped elements. Must be \code{NULL} when \code{flag_initiate = TRUE}.}
 
-\item{flag_initiate}{TRUE or FALSE, whether this is to initiate the new analysis to get column names}
+\item{flag_initiate}{Logical. If \code{TRUE}, fit the model once and return
+metadata for initialising the output data.frame (column names and term
+names). If \code{FALSE}, return a numeric vector of results for this
+element.}
 
-\item{on_error}{Character: one of "stop", "skip", or "debug". When an error occurs while
-executing the user function, choose whether to stop, skip returning all-NaN values for this
-element, or drop into `browser()` (if interactive) then skip. Default: "stop".}
+\item{on_error}{Character. One of \code{"stop"}, \code{"skip"}, or
+\code{"debug"}. When an error occurs fitting the model: \code{"stop"}
+halts execution; \code{"skip"} returns all-\code{NaN} for this element;
+\code{"debug"} drops into \code{\link{browser}} (if interactive) then
+skips. Default: \code{"stop"}.}
 
-\item{...}{Additional arguments forwarded to `FUN`}
+\item{...}{Additional arguments forwarded to \code{user_fun}.}
 }
 \value{
-If `flag_initiate==TRUE`, returns a list with `column_names`.
-If `flag_initiate==FALSE`, returns a numeric vector representing the one-row result for this element
-with `element_id` as the first value.
+If \code{flag_initiate = TRUE}, a list with one component:
+\describe{
+\item{column_names}{Character vector. The column names derived from
+the return value of \code{user_fun}, with \code{"element_id"}
+prepended.}
+}
+If \code{flag_initiate = FALSE}, a numeric vector of length
+\code{num.stat.output} with \code{element_id} (0-based) first and
+the coerced output of \code{user_fun} in subsequent positions.
+All-\code{NaN} (except \code{element_id}) if the element was skipped
+or if an error occurred with \code{on_error = "skip"}.
 }
 \description{
-`analyseOneElement.wrap` runs a user-supplied function `FUN` on a single element's data.
-It prepares the per-element data by attaching the element values as a new column named by `scalar`
-to the provided `phenotypes` data.frame, then calls `FUN(data = dat, ...)`.
+Runs a user-supplied function on one element's data, preparing the
+per-element data.frame by attaching all scalar values as new columns to
+the provided \code{phenotypes}. This is the per-element workhorse called
+iteratively by \code{\link{ModelArray.wrap}}.
 }
 \details{
-The user-supplied `FUN` should return either a one-row data.frame/tibble, a named list, or a named vector.
-The result will be coerced to a one-row tibble and combined into the final results matrix across elements.
+Most users should call \code{\link{ModelArray.wrap}} directly, which handles
+looping, parallelisation, and result assembly.
+\code{analyseOneElement.wrap} is exported for advanced use cases such as
+debugging a single element or building custom analysis loops.
+
+The user-supplied \code{user_fun} is called as
+\code{user_fun(data = dat, ...)} where \code{dat} is \code{phenotypes} with
+columns appended for \strong{all} scalars in the \linkS4class{ModelArray}
+(not just the one named by \code{scalar}). The function should return a
+one-row data.frame/tibble, a named list, or a named atomic vector. The
+result is coerced to a numeric vector for assembly into the final results
+matrix.
+
+Unlike \code{\link{analyseOneElement.lm}} and
+\code{\link{analyseOneElement.gam}}, this function appends \strong{all}
+scalar columns (not just the response) and checks for column name
+collisions between scalar names and existing \code{phenotypes} columns.
+
+If the number of subjects with finite values across all scalars does not
+exceed \code{num.subj.lthr}, the element is skipped and all statistics
+are set to \code{NaN}.
 }
+\seealso{
+\code{\link{ModelArray.wrap}} which calls this function
+iteratively, \code{\link{exampleElementData}} for building a test
+data.frame matching the format passed to \code{user_fun},
+\code{\link{analyseOneElement.lm}} for the linear model equivalent,
+\code{\link{analyseOneElement.gam}} for the GAM equivalent.
+}
+\keyword{internal}

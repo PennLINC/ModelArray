@@ -74,7 +74,7 @@ test_that("ModelArray.lm() works as expected", {
     }
 
     # Now, remove any fdr, etc corrections:
-    actual <- actual %>% select(-ends_with(p.adjust.methods))
+    actual <- actual %>% dplyr::select(-ends_with(p.adjust.methods))
     col.names <- colnames(actual)
 
     # Select the corresponding row (which has the expected value):
@@ -88,7 +88,7 @@ test_that("ModelArray.lm() works as expected", {
     ## test if actual = expected values:
     expect_equal(
       actual,
-      expected %>% select(col.names)
+      expected %>% dplyr::select(col.names)
     )
   }
 

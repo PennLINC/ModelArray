@@ -259,12 +259,14 @@
     }
   } else {
     if (pbar) {
-      fits <- pbapply::pblapply(element.subset,
+      fits <- pbapply::pblapply(
+        element.subset,
         FUN,
         ...
       )
     } else {
-      fits <- lapply(element.subset,
+      fits <- lapply(
+        element.subset,
         FUN,
         ...
       )
@@ -282,7 +284,6 @@
 #' @param correct_methods Character vector of correction methods (e.g., c("fdr"))
 #' @param var_list Character vector of requested variables (checked for "p.value")
 #' @return Modified df_out with corrected p-value columns inserted
-#' @importFrom dplyr %>%
 #' @noRd
 .correct_pvalues <- function(df_out, term_list, correct_methods, var_list) {
   if (all(correct_methods == "none")) {
@@ -296,9 +297,7 @@
     for (tempstr in term_list) {
       tempstr.raw <- paste0(tempstr, ".p.value")
       tempstr.corrected <- paste0(tempstr.raw, ".", methodstr)
-      temp.corrected <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
-      df_out <- df_out %>%
-        tibble::add_column("{tempstr.corrected}" := temp.corrected, .after = tempstr.raw)
+      df_out[[tempstr.corrected]] <- stats::p.adjust(df_out[[tempstr.raw]], method = methodstr)
     }
   }
 

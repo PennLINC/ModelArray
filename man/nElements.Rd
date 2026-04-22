@@ -10,13 +10,27 @@ nElements(x, scalar = NULL)
 \S4method{nElements}{ModelArray}(x, scalar = NULL)
 }
 \arguments{
-\item{x}{A ModelArray object}
+\item{x}{A \linkS4class{ModelArray} object.}
 
-\item{scalar}{Optional scalar name. Defaults to the first scalar.}
+\item{scalar}{Optional character string. Name of the scalar to query.
+Defaults to the first scalar in \code{names(scalars(x))}.}
 }
 \value{
-Integer, number of elements (rows)
+Integer. The number of elements (rows) in the scalar matrix.
 }
 \description{
-Number of elements in a ModelArray
+Returns the number of elements (e.g., fixels or voxels) for a given scalar
+in a \linkS4class{ModelArray}. This is the row count of the scalar matrix.
+}
+\examples{
+\dontrun{
+ma <- ModelArray("data.h5", scalar_types = c("FD"))
+nElements(ma)
+nElements(ma, "FD")
+}
+
+}
+\seealso{
+\code{\link{nInputFiles}}, \code{\link{numElementsTotal}},
+\code{\link{scalars}}, \code{\link{scalarNames}}
 }

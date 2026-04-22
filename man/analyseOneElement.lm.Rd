@@ -2,7 +2,10 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{analyseOneElement.lm}
 \alias{analyseOneElement.lm}
-\title{Fit linear model for one element.}
+\title{Fit a linear model for a single element
+If the number of subjects with finite scalar values (not \code{NaN},
+\code{NA}, or \code{Inf}) does not exceed \code{num.subj.lthr}, the
+element is skipped and all statistics are set to \code{NaN}.}
 \usage{
 analyseOneElement.lm(
   i_element,
@@ -20,50 +23,75 @@ analyseOneElement.lm(
 )
 }
 \arguments{
-\item{i_element}{An integer, the i_th element, starting from 1.
-For initiating (flag_initiate = TRUE), use i_element=1}
+\item{i_element}{Integer. The 1-based index of the element to analyse.}
 
-\item{formula}{Formula (passed to `stats::lm()`)}
+\item{formula}{A \code{\link[stats]{formula}} passed to
+\code{\link[stats]{lm}}.}
 
-\item{modelarray}{ModelArray class}
+\item{modelarray}{A \linkS4class{ModelArray} object.}
 
-\item{phenotypes}{A data.frame of the cohort with columns of independent variables
-and covariates to be added to the model.}
+\item{phenotypes}{A data.frame of the cohort with columns of independent
+variables and covariates. Must contain a \code{"source_file"} column
+matching \code{sources(modelarray)[[scalar]]}.}
 
-\item{scalar}{A character. The name of the element-wise scalar to be analysed}
+\item{scalar}{Character. The name of the element-wise scalar to analyse.
+Must be one of \code{names(scalars(modelarray))}.}
 
-\item{var.terms}{A list of characters. The list of variables to save for terms (got from `broom::tidy()`).}
+\item{var.terms}{Character vector. Statistics to extract per term from
+\code{\link[broom]{tidy.lm}} (e.g. \code{"estimate"}, \code{"statistic"},
+\code{"p.value"}).}
 
-\item{var.model}{A list of characters. The list of variables to save for the model (got from `broom::glance()`).}
+\item{var.model}{Character vector. Statistics to extract for the overall
+model from \code{\link[broom]{glance.lm}} (e.g. \code{"adj.r.squared"},
+\code{"p.value"}).}
 
-\item{num.subj.lthr}{The minimal number of subjects with valid value in input h5 file,
-i.e. number of subjects with finite values (defined by `is.finite()`,
-i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr},
-then this element will be run normally;
-otherwise, this element will be skipped and statistical outputs will be set as NaN.}
+\item{num.subj.lthr}{Numeric. The pre-computed minimum number of subjects
+with finite values required for this element to be analysed. Elements
+below this threshold are skipped. This value is typically computed by
+the parent function from \code{num.subj.lthr.abs} and
+\code{num.subj.lthr.rel}.}
 
-\item{num.stat.output}{The number of output stat metrics
-(for generating all NaN stat when # subjects does not meet criteria).
-This includes column `element_id`.
-This is required when flag_initiate = TRUE.}
+\item{num.stat.output}{Integer or \code{NULL}. The total number of output
+columns (including \code{element_id}). Used when
+\code{flag_initiate = FALSE} to generate an all-\code{NaN} row for
+skipped elements. Must be \code{NULL} when \code{flag_initiate = TRUE}.}
 
-\item{flag_initiate}{TRUE or FALSE, Whether this is to initiate the new analysis.
-If TRUE, it will return column names etc to be used for initiating data.frame;
-if FALSE, it will return the list of requested statistic values.}
+\item{flag_initiate}{Logical. If \code{TRUE}, fit the model once and return
+metadata for initialising the output data.frame (column names and term
+names). If \code{FALSE}, return a numeric vector of results for this
+element.}
 
-\item{on_error}{Character: one of "stop", "skip", or "debug". When an error occurs while
-fitting one element, choose whether to stop, skip returning all-NaN values for that element,
-or drop into `browser()` (if interactive) then skip. Default: "stop".}
+\item{on_error}{Character. One of \code{"stop"}, \code{"skip"}, or
+\code{"debug"}. When an error occurs fitting the model: \code{"stop"}
+halts execution; \code{"skip"} returns all-\code{NaN} for this element;
+\code{"debug"} drops into \code{\link{browser}} (if interactive) then
+skips. Default: \code{"stop"}.}
 
-\item{...}{Additional arguments for `stats::lm()`}
+\item{...}{Additional arguments passed to \code{\link[stats]{lm}}.}
 }
 \value{
-If flag_initiate==TRUE, returns column names, and list of term names of final results;
-if flag_initiate==FALSE, it will return the list of requested statistic values for a element.
+If \code{flag_initiate = TRUE}, a list with components:
+\describe{
+\item{column_names}{Character vector. The column names for the output
+data.frame, with \code{"element_id"} first.}
+\item{list.terms}{Character vector. The names of the model terms
+(from \code{\link[broom]{tidy.lm}}).}
+}
+If \code{flag_initiate = FALSE}, a numeric vector of length
+\code{num.stat.output} with \code{element_id} (0-based) as the first
+value and the requested statistics in subsequent positions. All-\code{NaN}
+(except \code{element_id}) if the element had insufficient valid subjects
+or if an error occurred with \code{on_error = "skip"}.
 }
 \description{
-`analyseOneElement.lm` fits a linear model for one element data, and returns requested model statistics.
+Fit a linear model for a single element
+If the number of subjects with finite scalar values (not \code{NaN},
+\code{NA}, or \code{Inf}) does not exceed \code{num.subj.lthr}, the
+element is skipped and all statistics are set to \code{NaN}.
 }
-\details{
-`ModelArray.lm` iteratively calls this function to get statistics for all requested elements.
+\seealso{
+\code{\link{ModelArray.lm}} which calls this function iteratively,
+\code{\link{analyseOneElement.gam}} for the GAM equivalent,
+\code{\link{analyseOneElement.wrap}} for user-supplied functions.
 }
+\keyword{internal}

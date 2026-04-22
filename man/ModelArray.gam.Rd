@@ -2,7 +2,9 @@
 % Please edit documentation in R/analyse.R
 \name{ModelArray.gam}
 \alias{ModelArray.gam}
-\title{Run GAM for element-wise data}
+\title{Fit element-wise generalized additive models
+no model-level p-value for GAMs, so there is no
+\code{correct.p.value.model} argument.}
 \usage{
 ModelArray.gam(
   formula,
@@ -33,179 +35,139 @@ ModelArray.gam(
 )
 }
 \arguments{
-\item{formula}{Formula (passed to `mgcv::gam()`)}
+\item{formula}{Formula (passed to \code{\link[mgcv]{gam}}).}
 
-\item{data}{ModelArray class}
+\item{data}{A \linkS4class{ModelArray} object.}
 
-\item{phenotypes}{A data.frame of the cohort with columns of independent variables and covariates
-to be added to the model. It should contains a column called "source_file",
-and this column should match to that in \code{data}.}
+\item{phenotypes}{A data.frame of the cohort with columns of independent
+variables and covariates to be added to the model. It must contain a
+column called \code{"source_file"} whose entries match those in
+\code{sources(data)[[scalar]]}.}
 
-\item{scalar}{A character. The name of the element-wise scalar to be analysed}
+\item{scalar}{Character. The name of the element-wise scalar to analyse.
+Must be one of \code{names(scalars(data))}.}
 
-\item{element.subset}{A list of positive integers (min = 1, max = number of elements).
-The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.}
+\item{element.subset}{Integer vector of element indices (1-based) to run.
+Default is \code{NULL}, i.e. all elements in \code{data}.}
 
-\item{full.outputs}{TRUE or FALSE, Whether to return full set of outputs.
-If FALSE, it will only return those requested in arguments \code{var.*} and \code{correct.p.value.*};
-if TRUE, arguments \code{var.*} will be ignored, and will return all possible statistics for \code{var.*}
-and any options requested in arguments \code{correct.p.value.*}.}
+\item{full.outputs}{Logical. If \code{TRUE}, return the full set of
+statistics (ignoring \code{var.*} arguments). If \code{FALSE} (default),
+only return those requested in \code{var.*} and
+\code{correct.p.value.*}.}
 
-\item{var.smoothTerms}{A list of characters.
-The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`).
-Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.}
+\item{var.smoothTerms}{Character vector. Statistics to save for smooth
+terms, from \code{broom::tidy(parametric = FALSE)}. See Details.}
 
-\item{var.parametricTerms}{A list of characters.
-The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`).
-Example parametric term: sex in formula "outcome ~ s(age) + sex".
-See "Details" section for more.}
+\item{var.parametricTerms}{Character vector. Statistics to save for
+parametric terms, from \code{broom::tidy(parametric = TRUE)}.
+See Details.}
 
-\item{var.model}{A list of characters.
-The list of variables to save for the model (got from `broom::glance()` and `summary()`).
-See "Details" section for more.}
+\item{var.model}{Character vector. Statistics to save for the overall
+model, from \code{broom::glance()} and \code{summary()}. See Details.}
 
-\item{changed.rsq.term.index}{A list of (one or several) positive integers.
-Each element in the list means the i-th term of the formula's right hand side
-as the term of interest for changed R-squared between with and without it.
-Both delta adjusted R-squared and partial R-squared will be calculated for each of term requested.
-Usually term of interest is smooth term, or interaction term in models with interactions.
- See "Details" section for more, especially the "WARNING" in Details section for cases with caution!!}
+\item{changed.rsq.term.index}{A list of positive integers. Each value
+is the index of a term on the right-hand side of \code{formula} for
+which delta adjusted R-squared and partial R-squared should be
+computed. Usually the term of interest is a smooth term or interaction
+term. Default \code{NULL} (not computed). See Details for warnings.}
 
-\item{correct.p.value.smoothTerms}{A list of characters.
-To perform and add a column for p.value correction for each smooth term.
-Default: "fdr". See "Details" section for more.}
+\item{correct.p.value.smoothTerms}{Character vector. P-value
+correction method(s) for each smooth term. Default: \code{"fdr"}.}
 
-\item{correct.p.value.parametricTerms}{A list of characters.
-To perform and add a column for p.value correction for each parametric term. Default: "fdr".
-See "Details" section for more.}
+\item{correct.p.value.parametricTerms}{Character vector. P-value
+correction method(s) for each parametric term. Default: \code{"fdr"}.}
 
-\item{num.subj.lthr.abs}{An integer, lower threshold of absolute number of subjects.
-For an element, if number of subjects who have finite values (defined by `is.finite()`,
-i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr.abs},
-then this element will be run normally;
-otherwise, this element will be skipped and statistical outputs will be set as NaN.
-Default is 10.}
+\item{num.subj.lthr.abs}{Integer. Lower threshold for the absolute
+number of subjects with finite scalar values (not \code{NaN},
+\code{NA}, or \code{Inf}) required per element. Elements below this
+threshold are skipped (outputs set to \code{NaN}). Default is 10.}
 
-\item{num.subj.lthr.rel}{A value between 0-1, lower threshold of relative number of subjects.
-Similar to \code{num.subj.lthr.abs},
-if proportion of subjects who have valid value > \code{num.subj.lthr.rel},
-then this element will be run normally; otherwise,
-this element will be skipped and statistical outputs will be set as NaN.
-Default is 0.2.}
+\item{num.subj.lthr.rel}{Numeric between 0 and 1. Lower threshold for
+the proportion of subjects with finite values. Used together with
+\code{num.subj.lthr.abs} (the effective threshold is the maximum of
+the two). Default is 0.2.}
 
-\item{verbose}{TRUE or FALSE, to print verbose messages or not}
+\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
 
-\item{pbar}{TRUE or FALSE, to print progress bar or not}
+\item{pbar}{Logical. Show progress bar. Default \code{TRUE}.}
 
-\item{n_cores}{Positive integer, The number of CPU cores to run with}
+\item{n_cores}{Positive integer. Number of CPU cores for parallel
+processing via \code{\link[parallel]{mclapply}}. Default is 1
+(serial).}
 
-\item{on_error}{Character: one of "stop", "skip", or "debug". When an error occurs
-while fitting an element, choose whether to stop, skip returning all-NaN values for
-that element, or drop into `browser()` (if interactive) then skip. Default: "stop".}
+\item{on_error}{Character: one of \code{"stop"}, \code{"skip"}, or
+\code{"debug"}. When an error occurs fitting one element: \code{"stop"}
+halts execution; \code{"skip"} returns all-\code{NaN} for that element;
+\code{"debug"} drops into \code{\link{browser}} (if interactive) then
+skips. Default: \code{"stop"}.}
 
-\item{write_results_name}{Optional analysis name for incremental writes to
-`results/<write_results_name>/results_matrix`.}
+\item{write_results_name}{Optional character. If provided, results are
+incrementally written to
+\code{results/<write_results_name>/results_matrix} in the HDF5 file
+specified by \code{write_results_file}.}
 
-\item{write_results_file}{Optional HDF5 file path used when `write_results_name` is provided.}
+\item{write_results_file}{Optional character. HDF5 file path for
+incremental result writes. Required when \code{write_results_name}
+is provided.}
 
-\item{write_results_flush_every}{Positive integer number of elements per write block.}
+\item{write_results_flush_every}{Positive integer. Number of elements
+per write block. Default 1000.}
 
-\item{write_results_storage_mode}{Storage mode for results writes (e.g., `"double"`).}
+\item{write_results_storage_mode}{Character. Storage mode for HDF5
+writes (e.g. \code{"double"}). Default \code{"double"}.}
 
-\item{write_results_compression_level}{Gzip compression level (0-9) for results writes.}
+\item{write_results_compression_level}{Integer 0--9. Gzip compression
+level for HDF5 writes. Default 4.}
 
-\item{return_output}{If TRUE (default), return the combined data.frame. If FALSE,
-returns `invisible(NULL)`; useful for streaming large runs to HDF5.}
+\item{return_output}{Logical. If \code{TRUE} (default), return the
+combined data.frame. If \code{FALSE}, return \code{invisible(NULL)};
+useful when writing large outputs directly to HDF5.}
 
-\item{...}{Additional arguments for `mgcv::gam()`}
+\item{...}{Additional arguments passed to \code{\link[mgcv]{gam}}.}
 }
 \value{
-Tibble with the summarized model statistics for all elements requested when
-`return_output = TRUE`; otherwise `invisible(NULL)`.
+A tibble with one row per element. The first column is
+\code{element_id} (0-based). Remaining columns contain the requested
+statistics, named as \code{<term>.<statistic>}. If
+\code{changed.rsq.term.index} was requested, additional columns
+\code{<term>.delta.adj.rsq} and \code{<term>.partial.rsq} are
+appended.
 }
 \description{
-`ModelArray.gam` fits gam model for each of elements requested,
-and returns a tibble data.frame of requested model statistics.
+Fit element-wise generalized additive models
+no model-level p-value for GAMs, so there is no
+\code{correct.p.value.model} argument.
 }
-\details{
-You may request returning specific statistical variables by setting \code{var.*},
-or you can get all by setting \code{full.outputs=TRUE}.
-Note that statistics covered by \code{full.outputs} or
-\code{var.*} are the ones from broom::tidy(), broom::glance(), and summary() only,
-and do not include delta adjusted R-squared or partial R-squared or corrected p-values.
-However FDR-corrected p-values ("fdr") are generated by default.
+\examples{
+{
+\dontrun{
+ma <- ModelArray("path/to/data.h5", scalar_types = c("FD"))
+phenotypes <- read.csv("cohort.csv")
 
-List of acceptable statistic names for each of \code{var.*}:
-\itemize{
- \item \code{var.smoothTerms}: c("edf","ref.df","statistic","p.value");
-   For interpretation please see \link[broom]{tidy.gam} with `parametric=FALSE`.
- \item \code{var.parametricTerms}: c("estimate", "std.error","statistic","p.value");
-   For interpretation please see \link[broom]{tidy.gam} with `parametric=TRUE`.
- \item \code{var.model}: c("adj.r.squared","dev.expl", "sp.criterion", "scale", "df",
-   "logLik","AIC", "BIC", "deviance", "df.residual", "nobs"); "adj.r.squared" is \code{r.sq} from
-   \link[mgcv]{summary.gam}; "sp.criterion" is \code{sp.criterion} from \link[mgcv]{summary.gam};
-   For interpretation please see \link[broom]{glance.gam} and \link[mgcv]{summary.gam}.
+results <- ModelArray.gam(
+  FD ~ s(age, fx = TRUE) + sex,
+  data = ma,
+  phenotypes = phenotypes,
+  scalar = "FD"
+)
+head(results)
+
+# With changed R-squared for the smooth term (term index 1)
+results_rsq <- ModelArray.gam(
+  FD ~ s(age, fx = TRUE) + sex,
+  data = ma,
+  phenotypes = phenotypes,
+  scalar = "FD",
+  changed.rsq.term.index = list(1)
+)
+}
 }
 
-Regarding formula: So far these kinds of formula are tested:
-\itemize{
-  \item formula with smooth term, but without any interactions.
-        Examples like \code{y ~ s(x) + orderedFactor}; \code{y ~ s(x) + s(z)}
-  \item formula with interaction, but limited to only one interaction term, and in the formats of:
-  \itemize{
-      \item Formula #1: \code{y ~ orderedFactor + s(x) + s(x, by=orderedFactor) + other_covariate},
-         where \code{orderedFactor} should be discrete variables and generated by `ordered`.
-         The interaction term will be displayed as "s_x_BYorderedFactor"
-         in the column name in returned data.frame.
-         You may use function `gen_gamFormula_fxSmooth()` to generate one.
-      \item Formula #2: \code{y ~ ti(x) + ti(z) + ti(x,z) + other_covariate},
-         where \code{x} and \code{z} should be continuous variables.
-         The interaction term will be displayed as "ti_x_z" in the column name in the returned data.frame.
-         You may use function `gen_gamFormula_contIx()` to generate one.
-  }
 }
-You may be interested in how important a term is in a model.
-We provide two ways of quantification (see below).
-Both of them require running the reduced model without this term of interest,
-thus it will take longer time to run.
-You can make such request via argument \code{changed.rsq.term.index}, and you'll get both quantifications.
-\itemize{
-  \item Delta adjusted R-squared (\code{delta.adj.rsq}) is defined as the difference between
-     adjusted R-squared of full model (full formula in \code{formula}) and that of reduced model
-     (formula without the term of interest). Notice that adjusted R-squared includes the penalty
-     from the model complexity.
-  \item Partial R-squared (\code{partial.rsq}) is defined as:
-     \code{(sse.reduced.model - sse.full.model) / sse.reduced.model},
-     where \code{sse} is the error sum of squares (or, residual sum of squares).
-     It quantifies the amount of variance in the response variable that cannot be explained by the reduced model
-     (model without term of interest), but can be explained by the term of interest in the full model.
-}
-\strong{___!!! WARNING !!!___}:
-If you want to request \code{changed.rsq.term.index} for a term that has missing values,
-before feeding \code{phenotypes} into \code{ModelArray.gam()},
-you must exclude those observations (i.e., those rows in \code{phenotypes})
-who have missing values in this term of interest from \code{phenotypes}.
-You should do the same for each term you'd like to request in \code{changed.rsq.term.index},
-if that term has missing values.
-Without such exclusion, the full and reduced models would include different number of subjects,
-causing inaccuracy of calculation of \code{delta.adj.rsq} and \code{partial.rsq}. \cr \cr
-Other notes on \code{changed.rsq.term.index}:
-\itemize{
-  \item When requesting \code{changed.rsq.term.index},
-     \code{fx} should be set as \code{TRUE}, so that degree of freedom is fixed.
-  \item For formula with interactions, only formula in above formats are tested,
-     and only the values of interaction term are valid.
-     The delta.adj.rsq and partial.rsq for main effect (such as s(x) in Formula #1)
-     may not "functionally" be these metrics, as their definitions should be changed to
-     reduced formula without both main effect and interaction term.
-}
-For p-value corrections (arguments \code{correct.p.value.*}),
-supported methods include all methods in `p.adjust.methods` except "none".
-You can request more than one method. FDR-corrected p-values ("fdr") are calculated by default.
-Turn it off by setting to "none".
-Please notice that different from `ModelArray.lm`,
-there is no p.value for the GAM model, so no "correct.p.value.model" for GAM model. \cr
-Arguments \code{num.subj.lthr.abs} and \code{num.subj.lthr.rel}
-are mainly for input data with subject-specific masks, i.e. currently only for volume data.
-For fixel-wise data, you may ignore these arguments.
+\seealso{
+\code{\link{ModelArray.lm}} for linear models,
+\code{\link{ModelArray.wrap}} for user-supplied functions,
+\code{\link{gen_gamFormula_fxSmooth}} and
+\code{\link{gen_gamFormula_contIx}} for formula helpers,
+\linkS4class{ModelArray} for the input class.
 }
