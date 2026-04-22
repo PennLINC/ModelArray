@@ -67,14 +67,13 @@ iteratively by <code><a href="ModelArray.wrap.html">ModelArray.wrap</a></code>.<
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">analyseOneElement.wrap</span><span class="op">(</span></span>
 <span>  <span class="va">i_element</span>,</span>
 <span>  <span class="va">user_fun</span>,</span>
-<span>  modelarray <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  phenotypes <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  scalar <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">modelarray</span>,</span>
+<span>  <span class="va">phenotypes</span>,</span>
+<span>  <span class="va">scalar</span>,</span>
 <span>  <span class="va">num.subj.lthr</span>,</span>
 <span>  num.stat.output <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  flag_initiate <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  on_error <span class="op">=</span> <span class="st">"stop"</span>,</span>
-<span>  ctx <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -90,30 +89,23 @@ iteratively by <code><a href="ModelArray.wrap.html">ModelArray.wrap</a></code>.<
 <dt id="arg-user-fun">user_fun<a class="anchor" aria-label="anchor" href="#arg-user-fun"></a></dt>
 <dd><p>A function that accepts at least an argument named
 <code>data</code> (a data.frame: <code>phenotypes</code> with scalar columns
-appended for the current element) and returns one of:</p><ul><li><p>A one-row <code>data.frame</code> or <code>tibble</code>. Multi-row
-returns will error.</p></li>
-<li><p>A named list. Unnamed lists are accepted and auto-named
-as <code>v1</code>, <code>v2</code>, etc.</p></li>
-<li><p>A named atomic vector. Unnamed vectors are accepted and
-auto-named as <code>v1</code>, <code>v2</code>, etc.</p></li>
-</ul><p>All return values are coerced to a numeric vector internally.
-Unsupported types (e.g., environments, S4 objects) will error.</p></dd>
+appended for the current element) and returns a one-row
+data.frame/tibble, a named list, or a named atomic vector.</p></dd>
 
 
 <dt id="arg-modelarray">modelarray<a class="anchor" aria-label="anchor" href="#arg-modelarray"></a></dt>
-<dd><p>A <a href="ModelArray-class.html">ModelArray</a> object. Ignored when
-<code>ctx</code> is provided.</p></dd>
+<dd><p>A <a href="ModelArray-class.html">ModelArray</a> object.</p></dd>
 
 
 <dt id="arg-phenotypes">phenotypes<a class="anchor" aria-label="anchor" href="#arg-phenotypes"></a></dt>
 <dd><p>A data.frame of the cohort with columns of independent
 variables and covariates. Must contain a <code>"source_file"</code> column
-matching <code>sources(modelarray)[[scalar]]</code>. Ignored when <code>ctx</code> is provided.</p></dd>
+matching <code>sources(modelarray)[[scalar]]</code>.</p></dd>
 
 
 <dt id="arg-scalar">scalar<a class="anchor" aria-label="anchor" href="#arg-scalar"></a></dt>
 <dd><p>Character. The name of the element-wise scalar to analyse.
-Must be one of <code>names(scalars(modelarray))</code>. Ignored when <code>ctx</code> is provided.</p></dd>
+Must be one of <code>names(scalars(modelarray))</code>.</p></dd>
 
 
 <dt id="arg-num-subj-lthr">num.subj.lthr<a class="anchor" aria-label="anchor" href="#arg-num-subj-lthr"></a></dt>
@@ -144,11 +136,6 @@ element.</p></dd>
 halts execution; <code>"skip"</code> returns all-<code>NaN</code> for this element;
 <code>"debug"</code> drops into <code><a href="https://rdrr.io/r/base/browser.html" class="external-link">browser</a></code> (if interactive) then
 skips. Default: <code>"stop"</code>.</p></dd>
-
-
-<dt id="arg-ctx">ctx<a class="anchor" aria-label="anchor" href="#arg-ctx"></a></dt>
-<dd><p>A precomputed context list from <code>.build_wrap_context()</code>,
-or <code>NULL</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

@@ -237,19 +237,9 @@ useful when writing large outputs directly to HDF5.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>If <code>flag_initiate = TRUE</code>, a list with one component:</p><dl><dt>column_names</dt>
-<dd><p>Character vector. The column names derived from
-the return value of <code>user_fun</code>, with <code>"element_id"</code>
-prepended. For unnamed list or atomic returns, columns are named
-<code>v1</code>, <code>v2</code>, etc. Set to <code>NaN</code> if the element was
-skipped or errored.</p></dd>
-
-
-</dl><p>If <code>flag_initiate = FALSE</code>, a numeric vector of length
-<code>num.stat.output</code> with <code>element_id</code> (0-based) first and
-the coerced output of <code>user_fun</code> in subsequent positions.
-All-<code>NaN</code> (except <code>element_id</code>) if the element was skipped
-or if an error occurred with <code>on_error = "skip"</code>.</p>
+    <p>A tibble with one row per element and first column
+<code>element_id</code> (0-based). Remaining columns are determined by
+the return value of <code>FUN</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

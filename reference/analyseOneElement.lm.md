@@ -1,31 +1,25 @@
-# Fit a linear model for a single element
+# Fit a linear model for a single element If the number of subjects with finite scalar values (not `NaN`, `NA`, or `Inf`) does not exceed `num.subj.lthr`, the element is skipped and all statistics are set to `NaN`.
 
-Fits [`lm`](https://rdrr.io/r/stats/lm.html) on one element's data. When
-a precomputed context (`ctx`) is provided, all loop-invariant work
-(formula parsing, collision checks, source alignment) is skipped. When
-`ctx` is `NULL`, the function falls back to computing everything inline
-(legacy behaviour for direct calls / debugging).
-
-If the number of subjects with finite scalar values (not `NaN`, `NA`, or
-`Inf`) does not exceed `num.subj.lthr`, the element is skipped and all
-statistics are set to `NaN`.
+Fit a linear model for a single element If the number of subjects with
+finite scalar values (not `NaN`, `NA`, or `Inf`) does not exceed
+`num.subj.lthr`, the element is skipped and all statistics are set to
+`NaN`.
 
 ## Usage
 
 ``` r
 analyseOneElement.lm(
   i_element,
-  formula = NULL,
-  modelarray = NULL,
-  phenotypes = NULL,
-  scalar = NULL,
-  var.terms = c("estimate", "statistic", "p.value"),
-  var.model = c("adj.r.squared", "p.value"),
+  formula,
+  modelarray,
+  phenotypes,
+  scalar,
+  var.terms,
+  var.model,
   num.subj.lthr,
   num.stat.output = NULL,
   flag_initiate = FALSE,
   on_error = "stop",
-  ctx = NULL,
   ...
 )
 ```
@@ -39,25 +33,24 @@ analyseOneElement.lm(
 - formula:
 
   A [`formula`](https://rdrr.io/r/stats/formula.html) passed to
-  [`lm`](https://rdrr.io/r/stats/lm.html). Ignored when `ctx` is
-  provided (the formula is taken from the context).
+  [`lm`](https://rdrr.io/r/stats/lm.html).
 
 - modelarray:
 
   A
   [ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
-  object. Ignored when `ctx` is provided.
+  object.
 
 - phenotypes:
 
   A data.frame of the cohort with columns of independent variables and
   covariates. Must contain a `"source_file"` column matching
-  `sources(modelarray)[[scalar]]`. Ignored when `ctx` is provided.
+  `sources(modelarray)[[scalar]]`.
 
 - scalar:
 
   Character. The name of the element-wise scalar to analyse. Must be one
-  of `names(scalars(modelarray))`. Ignored when `ctx` is provided.
+  of `names(scalars(modelarray))`.
 
 - var.terms:
 
@@ -99,11 +92,6 @@ analyseOneElement.lm(
   [`browser`](https://rdrr.io/r/base/browser.html) (if interactive) then
   skips. Default: `"stop"`.
 
-- ctx:
-
-  A precomputed context list from `.build_lm_context()`, or `NULL` for
-  legacy inline computation.
-
 - ...:
 
   Additional arguments passed to
@@ -131,9 +119,9 @@ the element had insufficient valid subjects or if an error occurred with
 
 ## See also
 
-[`ModelArray.lm`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md),
-`.build_lm_context`,
+[`ModelArray.lm`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md)
+which calls this function iteratively,
 [`analyseOneElement.gam`](https://pennlinc.github.io/ModelArray/reference/analyseOneElement.gam.md)
 for the GAM equivalent,
 [`analyseOneElement.wrap`](https://pennlinc.github.io/ModelArray/reference/analyseOneElement.wrap.md)
-for user-supplied functions
+for user-supplied functions.
