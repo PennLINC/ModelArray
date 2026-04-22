@@ -22,68 +22,6 @@
 #'     \link[broom]{glance.lm}.
 #' }
 #'
-<<<<<<< test-multi-scalars
-#' @param formula Formula (passed to `stats::lm()`)
-#' @param data ModelArray class
-#' @param phenotypes A data.frame of the cohort with columns of independent variables
-#' and covariates to be added to the model. It should contains a column called "source_file",
-#' and this column should match to that in \code{data}.
-#' @param scalar Optional character scalar name. If omitted, it is inferred from
-#' the left-hand side of `formula`.
-#' @param element.subset A list of positive integers (min = 1, max = number of elements).
-#' The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.
-#' @param full.outputs TRUE or FALSE, Whether to return full set of outputs.
-#' If FALSE, it will only return those requested in arguments \code{var.*} and \code{correct.p.value.*};
-#' if TRUE, arguments \code{var.*} will be ignored, and will return all possible statistics for
-#' \code{var.*} and any options requested in arguments \code{correct.p.value.*}.
-#' @param var.terms A list of characters.
-#' The list of variables to save for terms (got from `broom::tidy()`).
-#' See "Details" section for more.
-#' @param var.model A list of characters.
-#' The list of variables to save for the model (got from `broom::glance()`).
-#' See "Details" section for more.
-#' @param correct.p.value.terms A list of characters.
-#' To perform and add a column for p.value correction for each term. Default: "fdr".
-#' See "Details" section for more.
-#' @param correct.p.value.model A list of characters.
-#' To perform and add a column for p.value correction for the model.
-#' Default: "fdr". See "Details" section for more.
-#' @param num.subj.lthr.abs
-#' An integer, lower threshold of absolute number of subjects.
-#' For an element, if number of subjects who have finite values (defined by `is.finite()`,
-#' i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr.abs},
-#' then this element will be run normally; otherwise,
-#' this element will be skipped and statistical outputs will be set as NaN.
-#' Default is 10.
-#' @param num.subj.lthr.rel A value between 0-1, lower threshold of relative number of subjects.
-#' Similar to \code{num.subj.lthr.abs},
-#' if proportion of subjects who have valid value > \code{num.subj.lthr.rel},
-#' then this element will be run normally; otherwise,
-#' this element will be skipped and statistical outputs will be set as NaN.
-#' Default is 0.2.
-#' @param verbose TRUE or FALSE, to print verbose message or not
-#' @param pbar TRUE or FALSE, to print progress bar or not
-#' @param n_cores Positive integer, The number of CPU cores to run with
-#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs
-#' while fitting an element, choose whether to stop, skip returning all-NaN values for
-#' that element, or drop into `browser()` (if interactive) then skip. Default: "stop".
-#' @param write_results_name Optional analysis name for incremental writes to
-#' `results/<write_results_name>/results_matrix`.
-#' @param write_results_file Optional HDF5 file path used when `write_results_name` is provided.
-#' @param write_results_flush_every Positive integer number of elements per write block.
-#' @param write_results_storage_mode Storage mode for results writes (e.g., `"double"`).
-#' @param write_results_compression_level Gzip compression level (0-9) for results writes.
-#' @param return_output If TRUE (default), return the combined data.frame. If FALSE,
-#' returns `invisible(NULL)`; useful for streaming large runs to HDF5.
-#' @param ... Additional arguments for `stats::lm()`
-#' @return Tibble with the summarized model statistics for all elements requested
-#' @importFrom dplyr %>%
-#' @import doParallel
-#' @import tibble
-#' @importFrom stats p.adjust lm
-#' @importFrom glue glue
-#' @importFrom rlang :=
-=======
 #' For p-value corrections (arguments \code{correct.p.value.*}), supported
 #' methods include all methods in \code{p.adjust.methods} except
 #' \code{"none"}. You can request more than one method. FDR-corrected
@@ -192,7 +130,6 @@
 #' )
 #'
 #' @rdname ModelArray.lm
->>>>>>> main
 #' @export
 
 ModelArray.lm <- function(formula, data, phenotypes, scalar = NULL, element.subset = NULL, full.outputs = FALSE,
@@ -475,80 +412,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar = NULL, element.subs
 #' }
 #' }
 #'
-<<<<<<< test-multi-scalars
-#' @param formula Formula (passed to `mgcv::gam()`)
-#' @param data ModelArray class
-#' @param phenotypes A data.frame of the cohort with columns of independent variables and covariates
-#' to be added to the model. It should contains a column called "source_file",
-#' and this column should match to that in \code{data}.
-#' @param scalar Optional character scalar name. If omitted, it is inferred from
-#' the left-hand side of `formula`.
-#' @param element.subset A list of positive integers (min = 1, max = number of elements).
-#' The subset of elements you want to run. Default is `NULL`, i.e. requesting all elements in `data`.
-#' @param full.outputs TRUE or FALSE, Whether to return full set of outputs.
-#' If FALSE, it will only return those requested in arguments \code{var.*} and \code{correct.p.value.*};
-#' if TRUE, arguments \code{var.*} will be ignored, and will return all possible statistics for \code{var.*}
-#' and any options requested in arguments \code{correct.p.value.*}.
-#' @param var.smoothTerms A list of characters.
-#' The list of variables to save for smooth terms (got from `broom::tidy(parametric = FALSE)`).
-#' Example smooth term: age in formula "outcome ~ s(age)". See "Details" section for more.
-#' @param var.parametricTerms A list of characters.
-#' The list of variables to save for parametric terms (got from `broom::tidy(parametric = TRUE)`).
-#' Example parametric term: sex in formula "outcome ~ s(age) + sex".
-#' See "Details" section for more.
-#' @param var.model A list of characters.
-#' The list of variables to save for the model (got from `broom::glance()` and `summary()`).
-#' See "Details" section for more.
-#' @param changed.rsq.term.index A list of (one or several) positive integers.
-#' Each element in the list means the i-th term of the formula's right hand side
-#' as the term of interest for changed R-squared between with and without it.
-#' Both delta adjusted R-squared and partial R-squared will be calculated for each of term requested.
-#' Usually term of interest is smooth term, or interaction term in models with interactions.
-#'  See "Details" section for more, especially the "WARNING" in Details section for cases with caution!!
-#' @param correct.p.value.smoothTerms A list of characters.
-#' To perform and add a column for p.value correction for each smooth term.
-#' Default: "fdr". See "Details" section for more.
-#' @param correct.p.value.parametricTerms A list of characters.
-#' To perform and add a column for p.value correction for each parametric term. Default: "fdr".
-#' See "Details" section for more.
-#' @param num.subj.lthr.abs An integer, lower threshold of absolute number of subjects.
-#' For an element, if number of subjects who have finite values (defined by `is.finite()`,
-#' i.e. not NaN or NA or Inf) in h5 file > \code{num.subj.lthr.abs},
-#' then this element will be run normally;
-#' otherwise, this element will be skipped and statistical outputs will be set as NaN.
-#' Default is 10.
-#' @param num.subj.lthr.rel A value between 0-1, lower threshold of relative number of subjects.
-#' Similar to \code{num.subj.lthr.abs},
-#' if proportion of subjects who have valid value > \code{num.subj.lthr.rel},
-#' then this element will be run normally; otherwise,
-#' this element will be skipped and statistical outputs will be set as NaN.
-#' Default is 0.2.
-#' @param verbose TRUE or FALSE, to print verbose messages or not
-#' @param pbar TRUE or FALSE, to print progress bar or not
-#' @param n_cores Positive integer, The number of CPU cores to run with
-#' @param on_error Character: one of "stop", "skip", or "debug". When an error occurs
-#' while fitting an element, choose whether to stop, skip returning all-NaN values for
-#' that element, or drop into `browser()` (if interactive) then skip. Default: "stop".
-#' @param write_results_name Optional analysis name for incremental writes to
-#' `results/<write_results_name>/results_matrix`.
-#' @param write_results_file Optional HDF5 file path used when `write_results_name` is provided.
-#' @param write_results_flush_every Positive integer number of elements per write block.
-#' @param write_results_storage_mode Storage mode for results writes (e.g., `"double"`).
-#' @param write_results_compression_level Gzip compression level (0-9) for results writes.
-#' @param return_output If TRUE (default), return the combined data.frame. If FALSE,
-#' returns `invisible(NULL)`; useful for streaming large runs to HDF5.
-#' @param ... Additional arguments for `mgcv::gam()`
-#' @return Tibble with the summarized model statistics for all elements requested
-#' @importFrom dplyr %>% mutate
-#' @import doParallel
-#' @import tibble
-#' @import mgcv
-#' @importFrom stats terms as.formula drop.terms p.adjust
-#' @importFrom glue glue
-#' @importFrom rlang :=
-=======
 #' @rdname ModelArray.gam
->>>>>>> main
 #' @export
 
 ModelArray.gam <- function(formula, data, phenotypes, scalar = NULL, element.subset = NULL, full.outputs = FALSE,
