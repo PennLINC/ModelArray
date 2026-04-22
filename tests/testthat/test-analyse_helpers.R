@@ -3,6 +3,24 @@ test_that(".validate_modelarray_input rejects non-ModelArray", {
   expect_error(.validate_modelarray_input(data.frame()), "not ModelArray")
 })
 
+test_that(".resolve_formula_scalar infers and validates scalar names", {
+  h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
+  ma <- ModelArray(h5_path, scalar_types = c("FD"))
+
+  expect_identical(.resolve_formula_scalar(FD ~ age, ma), "FD")
+  expect_identical(.resolve_formula_scalar(log(FD) ~ age, ma), "FD")
+  expect_identical(.resolve_formula_scalar(FD ~ age, ma, scalar = "FD"), "FD")
+
+  expect_error(
+    .resolve_formula_scalar(unknown_response ~ age, ma),
+    "Could not infer the response scalar"
+  )
+  expect_error(
+    .resolve_formula_scalar(FD ~ age, ma, scalar = "FA"),
+    "not found in data"
+  )
+})
+
 test_that(".validate_element_subset defaults and validates", {
   h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
   ma <- ModelArray(h5_path, scalar_types = c("FD"))

@@ -137,3 +137,133 @@ test_that("mergeModelArrays returns proper structure", {
   expect_equal(nInputFiles(merged$data, "FD2"), length(src))
   expect_equal(nElements(merged$data, "FD"), nElements(ma_fd, "FD"))
 })
+
+test_that("merged ModelArrays work with analyseOneElement helpers", {
+  h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
+  ma_fd <- ModelArray(h5_path, scalar_types = c("FD"))
+  src <- sources(ma_fd)[["FD"]]
+  base <- scalars(ma_fd)[["FD"]]
+
+  ma2 <- new("ModelArray",
+    scalars = list(
+      FD2 = base * 1.5 + 2,
+      FD3 = log(base + 1)
+    ),
+    sources = list(FD2 = src, FD3 = src),
+    results = list(),
+    path = c(FD2 = h5_path, FD3 = h5_path)
+  )
+
+  phen1 <- data.frame(
+    subject_id = paste0("subj_", seq_along(src)),
+    source_file = src,
+    age = seq_along(src),
+    stringsAsFactors = FALSE
+  )
+  phen2 <- data.frame(
+    subject_id = rev(paste0("subj_", seq_along(src))),
+    source_file = rev(src),
+    stringsAsFactors = FALSE
+  )
+
+  merged <- mergeModelArrays(
+    list(ma_fd, ma2),
+    list(phen1, phen2),
+    merge_on = "subject_id"
+  )
+
+  lm_init <- suppressWarnings(analyseOneElement.lm(
+    1L,
+    FD ~ FD2 + FD3 + age,
+    merged$data,
+    merged$phenotypes,
+    scalar = "FD",
+    var.terms = c("estimate", "statistic", "p.value"),
+    var.model = c("adj.r.squared", "p.value"),
+    num.subj.lthr = 1,
+    num.stat.output = 12,
+    flag_initiate = TRUE,
+    on_error = "stop"
+  ))
+  expect_true("FD2.estimate" %in% lm_init$column_names)
+  expect_true("FD3.estimate" %in% lm_init$column_names)
+
+  lm_fit <- suppressWarnings(ModelArray.lm(
+    FD ~ FD2 + FD3 + age,
+    merged$data,
+    merged$phenotypes,
+    element.subset = as.integer(1:2),
+    verbose = FALSE,
+    pbar = FALSE,
+    n_cores = 1,
+    on_error = "stop"
+  ))
+  expect_true(all(is.finite(lm_fit$FD2.estimate)))
+  expect_true(all(is.finite(lm_fit$FD3.estimate)))
+
+  expect_error(
+    ModelArray.lm(
+      FD ~ FD2 + FD3 + age,
+      merged$data,
+      merged$phenotypes,
+      scalar = "FD2",
+      element.subset = as.integer(1:2),
+      verbose = FALSE,
+      pbar = FALSE,
+      n_cores = 1,
+      on_error = "stop"
+    ),
+    "formula response refers to scalar 'FD'"
+  )
+
+  gam_init <- analyseOneElement.gam(
+    1L,
+    FD ~ s(age) + FD2 + FD3,
+    merged$data,
+    merged$phenotypes,
+    scalar = "FD",
+    var.smoothTerms = c("edf", "statistic", "p.value"),
+    var.parametricTerms = c("estimate", "statistic", "p.value"),
+    var.model = c("adj.r.squared", "dev.expl"),
+    num.subj.lthr = 1,
+    num.stat.output = 12,
+    flag_initiate = TRUE,
+    flag_sse = FALSE,
+    on_error = "stop"
+  )
+  expect_true("FD2.estimate" %in% gam_init$column_names)
+  expect_true("FD3.estimate" %in% gam_init$column_names)
+
+  gam_fit <- ModelArray.gam(
+    FD ~ s(age) + FD2 + FD3,
+    merged$data,
+    merged$phenotypes,
+    element.subset = as.integer(1:2),
+    verbose = FALSE,
+    pbar = FALSE,
+    n_cores = 1,
+    on_error = "stop"
+  )
+  expect_true("FD2.estimate" %in% colnames(gam_fit))
+  expect_true("FD3.estimate" %in% colnames(gam_fit))
+
+  wrap_out <- analyseOneElement.wrap(
+    1L,
+    function(data) {
+      data.frame(
+        mean_fd = mean(data$FD, na.rm = TRUE),
+        cor_fd2 = cor(data$FD, data$FD2, use = "complete.obs"),
+        cor_fd3 = cor(data$FD, data$FD3, use = "complete.obs")
+      )
+    },
+    merged$data,
+    merged$phenotypes,
+    scalar = "FD",
+    num.subj.lthr = 1,
+    num.stat.output = 4,
+    flag_initiate = FALSE,
+    on_error = "stop"
+  )
+  expect_true(is.finite(unname(wrap_out[[3]])))
+  expect_true(is.finite(unname(wrap_out[[4]])))
+})

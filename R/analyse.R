@@ -132,8 +132,7 @@
 #' @rdname ModelArray.lm
 #' @export
 
-ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NULL,
-                          full.outputs = FALSE,
+ModelArray.lm <- function(formula, data, phenotypes, scalar = NULL, element.subset = NULL, full.outputs = FALSE,
                           var.terms = c("estimate", "statistic", "p.value"),
                           var.model = c("adj.r.squared", "p.value"),
                           correct.p.value.terms = c("fdr"),
@@ -150,6 +149,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
                           ...) {
   # Validation ----
   .validate_modelarray_input(data)
+  scalar <- .resolve_formula_scalar(formula, data, scalar)
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
@@ -455,8 +455,7 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar, element.subset = NU
 #' @rdname ModelArray.gam
 #' @export
 
-ModelArray.gam <- function(formula, data, phenotypes, scalar,
-                           element.subset = NULL, full.outputs = FALSE,
+ModelArray.gam <- function(formula, data, phenotypes, scalar = NULL, element.subset = NULL, full.outputs = FALSE,
                            var.smoothTerms = c("statistic", "p.value"),
                            var.parametricTerms = c("estimate", "statistic", "p.value"),
                            var.model = c("dev.expl"),
@@ -475,6 +474,7 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar,
                            ...) {
   # Validation ----
   .validate_modelarray_input(data)
+  scalar <- .resolve_formula_scalar(formula, data, scalar)
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
