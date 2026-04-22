@@ -11,6 +11,46 @@
 }
 
 
+#' Resolve the response scalar for formula-based analyses
+#'
+#' Uses the left-hand side of the formula when `scalar` is omitted.
+#' If `scalar` is supplied, validates that it exists and matches the formula
+#' response when that response can be mapped to a scalar name.
+#' @noRd
+.resolve_formula_scalar <- function(formula, data, scalar = NULL) {
+  scalar_names <- names(scalars(data))
+  lhs_expr <- tryCatch(formula[[2]], error = function(e) NULL)
+  lhs_vars <- if (is.null(lhs_expr)) character(0) else all.vars(lhs_expr)
+  lhs_scalar <- intersect(lhs_vars, scalar_names)
+
+  if (is.null(scalar)) {
+    if (length(lhs_scalar) == 1L) {
+      return(lhs_scalar)
+    }
+    stop(
+      "Could not infer the response scalar from the formula. ",
+      "Please supply `scalar=` explicitly."
+    )
+  }
+
+  if (!(scalar %in% scalar_names)) {
+    stop(
+      "scalar '", scalar, "' not found in data. Available scalars: ",
+      paste(scalar_names, collapse = ", ")
+    )
+  }
+
+  if (length(lhs_scalar) == 1L && !identical(lhs_scalar, scalar)) {
+    stop(
+      "The formula response refers to scalar '", lhs_scalar,
+      "' but `scalar=` was set to '", scalar, "'."
+    )
+  }
+
+  scalar
+}
+
+
 #' Validate and default element.subset
 #' @return Integer vector of element indices
 #' @noRd
