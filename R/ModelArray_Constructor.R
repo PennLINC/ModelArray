@@ -503,7 +503,7 @@ analyseOneElement.lm <- function(i_element,
     if (flag_initiate) {
       return(list(column_names = NaN, list.terms = NaN))
     } else {
-      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      onerow <- c(i_element - 1, cheapr::rep_len_(NaN, num.stat.output - 1L))
       return(onerow)
     }
   }
@@ -545,7 +545,7 @@ analyseOneElement.lm <- function(i_element,
     if (flag_initiate) {
       return(list(column_names = NaN, list.terms = NaN))
     } else {
-      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      onerow <- c(i_element - 1, cheapr::rep_len_(NaN, num.stat.output - 1L))
       return(onerow)
     }
   }
@@ -693,7 +693,7 @@ analyseOneElement.gam <- function(i_element,
         sp.criterion.attr.name = NaN
       ))
     } else {
-      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      onerow <- c(i_element - 1, cheapr::rep_len_(NaN, num.stat.output - 1L))
       return(onerow)
     }
   }
@@ -739,7 +739,7 @@ analyseOneElement.gam <- function(i_element,
         sp.criterion.attr.name = NaN
       ))
     } else {
-      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      onerow <- c(i_element - 1, cheapr::rep_len_(NaN, num.stat.output - 1L))
       return(onerow)
     }
   }
@@ -976,7 +976,7 @@ analyseOneElement.wrap <- function(i_element,
     if (flag_initiate) {
       return(list(column_names = NaN))
     } else {
-      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      onerow <- c(i_element - 1, cheapr::rep_len_(NaN, num.stat.output - 1L))
       return(onerow)
     }
   }
@@ -1019,7 +1019,7 @@ analyseOneElement.wrap <- function(i_element,
     if (flag_initiate) {
       return(list(column_names = NaN))
     } else {
-      onerow <- c(i_element - 1, rep(NaN, (num.stat.output - 1)))
+      onerow <- c(i_element - 1, cheapr::rep_len_(NaN, num.stat.output - 1L))
       return(onerow)
     }
   }
@@ -1033,7 +1033,7 @@ analyseOneElement.wrap <- function(i_element,
       if (on_error == "skip" || on_error == "debug") {
         warning(paste0("analyseOneElement.wrap at element ", i_element, ": ", msg))
         if (flag_initiate) return(list(column_names = NaN))
-        return(c(i_element - 1, rep(NaN, (num.stat.output - 1))))
+        return(c(i_element - 1, cheapr::rep_len_(NaN, num.stat.output - 1L)))
       }
       stop(msg)
     }
@@ -1057,7 +1057,7 @@ analyseOneElement.wrap <- function(i_element,
     if (on_error == "skip" || on_error == "debug") {
       warning(paste0("analyseOneElement.wrap at element ", i_element, ": ", msg))
       if (flag_initiate) return(list(column_names = NaN))
-      return(c(i_element - 1, rep(NaN, (num.stat.output - 1))))
+      return(c(i_element - 1, cheapr::rep_len_(NaN, num.stat.output - 1L)))
     }
     stop(msg)
   }
