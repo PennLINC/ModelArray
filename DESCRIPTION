@@ -37,7 +37,8 @@ Imports:
     pbmcapply,
     rhdf5,
     tibble,
-    tidyr
+    tidyr,
+    cheapr (>= 1.5.0)
 RoxygenNote: 7.3.3
 Roxygen: list(markdown = TRUE)
 Suggests:
