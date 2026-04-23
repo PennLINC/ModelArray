@@ -2,27 +2,23 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{analyseOneElement.gam}
 \alias{analyseOneElement.gam}
-\title{Fit a GAM for a single element
-returns metadata (column names, smooth term names, parametric term names,
-and the smoothing parameter criterion attribute name) used by
-\code{\link{ModelArray.gam}} to initialise the output data.frame. When
-\code{flag_initiate = FALSE}, it returns a numeric vector representing one
-row of the final results matrix.}
+\title{Fit a GAM for a single element}
 \usage{
 analyseOneElement.gam(
   i_element,
-  formula,
-  modelarray,
-  phenotypes,
-  scalar,
-  var.smoothTerms,
-  var.parametricTerms,
-  var.model,
+  formula = NULL,
+  modelarray = NULL,
+  phenotypes = NULL,
+  scalar = NULL,
+  var.smoothTerms = c("statistic", "p.value"),
+  var.parametricTerms = c("estimate", "statistic", "p.value"),
+  var.model = c("dev.expl"),
   num.subj.lthr,
   num.stat.output = NULL,
   flag_initiate = FALSE,
   flag_sse = FALSE,
   on_error = "stop",
+  ctx = NULL,
   ...
 )
 }
@@ -32,14 +28,15 @@ analyseOneElement.gam(
 \item{formula}{A \code{\link[stats]{formula}} passed to
 \code{\link[mgcv]{gam}}.}
 
-\item{modelarray}{A \linkS4class{ModelArray} object.}
+\item{modelarray}{A \linkS4class{ModelArray} object. Ignored when
+\code{ctx} is provided.}
 
 \item{phenotypes}{A data.frame of the cohort with columns of independent
 variables and covariates. Must contain a \code{"source_file"} column
-matching \code{sources(modelarray)[[scalar]]}.}
+matching \code{sources(modelarray)[[scalar]]}. Ignored when \code{ctx} is provided.}
 
 \item{scalar}{Character. The name of the element-wise scalar to analyse.
-Must be one of \code{names(scalars(modelarray))}.}
+Must be one of \code{names(scalars(modelarray))}. Ignored when \code{ctx} is provided.}
 
 \item{var.smoothTerms}{Character vector. Statistics to extract for smooth
 terms from \code{\link[broom]{tidy.gam}} with \code{parametric = FALSE}
@@ -83,6 +80,9 @@ halts execution; \code{"skip"} returns all-\code{NaN} for this element;
 \code{"debug"} drops into \code{\link{browser}} (if interactive) then
 skips. Default: \code{"stop"}.}
 
+\item{ctx}{A precomputed context list from \code{.build_gam_context()},
+or \code{NULL}.}
+
 \item{...}{Additional arguments passed to \code{\link[mgcv]{gam}}.}
 }
 \value{
@@ -101,6 +101,14 @@ requested statistics in subsequent positions. All-\code{NaN} (except
 \code{element_id}) if the element was skipped.
 }
 \description{
+#' @description
+Returns metadata (column names, smooth term names, parametric term names,
+and the smoothing parameter criterion attribute name) used by
+\code{\link{ModelArray.gam}} to initialise the output data.frame. When
+\code{flag_initiate = FALSE}, it returns a numeric vector representing one
+row of the final results matrix.
+}
+\details{
 If the number of subjects with finite scalar values does not exceed
 \code{num.subj.lthr}, the element is skipped and all statistics are set
 to \code{NaN}.
