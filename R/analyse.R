@@ -149,7 +149,11 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar = NULL, element.subs
                           ...) {
   # Validation ----
   .validate_modelarray_input(data)
-  scalar <- .resolve_formula_scalar(formula, data, scalar)
+
+  if (is.null(scalar)){
+    scalar <- .resolve_formula_scalar(formula, data, scalar)
+  }
+
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
@@ -474,7 +478,11 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar = NULL, element.sub
                            ...) {
   # Validation ----
   .validate_modelarray_input(data)
-  scalar <- .resolve_formula_scalar(formula, data, scalar)
+
+  if (is.null(scalar)){
+    scalar <- .resolve_formula_scalar(formula, data, scalar)
+  }
+
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
