@@ -8,7 +8,7 @@ ModelArray.lm(
   formula,
   data,
   phenotypes,
-  scalar,
+  scalar = NULL,
   element.subset = NULL,
   full.outputs = FALSE,
   var.terms = c("estimate", "statistic", "p.value"),
