@@ -51,10 +51,10 @@ summary to the console.
 ## Details
 
 This function opens the HDF5 file read-only via
-[`h5ls`](https://rdrr.io/pkg/rhdf5/man/h5ls.html), inspects the group
-structure under `/scalars/` and `/results/`, and closes the file. It
-does not load any data into memory. The returned object has a `print`
-method that displays a formatted summary.
+[`h5ls`](https://huber-group-embl.github.io/rhdf5/reference/h5ls.html),
+inspects the group structure under `/scalars/` and `/results/`, and
+closes the file. It does not load any data into memory. The returned
+object has a `print` method that displays a formatted summary.
 
 ## See also
 

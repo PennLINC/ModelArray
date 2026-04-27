@@ -14,7 +14,7 @@ ModelArray.gam(
   formula,
   data,
   phenotypes,
-  scalar,
+  scalar = NULL,
   element.subset = NULL,
   full.outputs = FALSE,
   var.smoothTerms = c("statistic", "p.value"),

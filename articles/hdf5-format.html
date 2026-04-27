@@ -192,9 +192,9 @@ RAM.</p>
 <h2 id="inspecting-an-hdf5-file">Inspecting an HDF5 file<a class="anchor" aria-label="anchor" href="#inspecting-an-hdf5-file"></a>
 </h2>
 <p>You can explore the structure of any HDF5 file using
-<code><a href="https://rdrr.io/pkg/rhdf5/man/h5ls.html" class="external-link">rhdf5::h5ls()</a></code>:</p>
+<code><a href="https://huber-group-embl.github.io/rhdf5/reference/h5ls.html" class="external-link">rhdf5::h5ls()</a></code>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">rhdf5</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/rhdf5/man/h5ls.html" class="external-link">h5ls</a></span><span class="op">(</span><span class="st">"data.h5"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">rhdf5</span><span class="fu">::</span><span class="fu"><a href="https://huber-group-embl.github.io/rhdf5/reference/h5ls.html" class="external-link">h5ls</a></span><span class="op">(</span><span class="st">"data.h5"</span><span class="op">)</span></span></code></pre></div>
 <pre class="console"><code>              group             name       otype  dclass         dim
 0                / analysis_configs   H5I_GROUP
 1 /analysis_configs       results_lm   H5I_GROUP
@@ -207,13 +207,13 @@ RAM.</p>
 <p>You can also read specific pieces of data directly:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Preferred: read names from the text dataset</span></span>
-<span><span class="fu">rhdf5</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/rhdf5/man/h5_read.html" class="external-link">h5read</a></span><span class="op">(</span><span class="st">"data.h5"</span>, <span class="st">"scalars/FDC/column_names"</span><span class="op">)</span></span>
+<span><span class="fu">rhdf5</span><span class="fu">::</span><span class="fu"><a href="https://huber-group-embl.github.io/rhdf5/reference/h5_read.html" class="external-link">h5read</a></span><span class="op">(</span><span class="st">"data.h5"</span>, <span class="st">"scalars/FDC/column_names"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Legacy fallback for older files</span></span>
-<span><span class="fu">rhdf5</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/rhdf5/man/h5_readAttributes.html" class="external-link">h5readAttributes</a></span><span class="op">(</span><span class="st">"data.h5"</span>, <span class="st">"scalars/FDC/values"</span><span class="op">)</span><span class="op">$</span><span class="va">column_names</span></span>
+<span><span class="fu">rhdf5</span><span class="fu">::</span><span class="fu"><a href="https://huber-group-embl.github.io/rhdf5/reference/h5_readAttributes.html" class="external-link">h5readAttributes</a></span><span class="op">(</span><span class="st">"data.h5"</span>, <span class="st">"scalars/FDC/values"</span><span class="op">)</span><span class="op">$</span><span class="va">column_names</span></span>
 <span></span>
 <span><span class="co"># Read a small slice of the data matrix</span></span>
-<span><span class="fu">rhdf5</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/rhdf5/man/h5_read.html" class="external-link">h5read</a></span><span class="op">(</span><span class="st">"data.h5"</span>, <span class="st">"scalars/FDC/values"</span>, index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">rhdf5</span><span class="fu">::</span><span class="fu"><a href="https://huber-group-embl.github.io/rhdf5/reference/h5_read.html" class="external-link">h5read</a></span><span class="op">(</span><span class="st">"data.h5"</span>, <span class="st">"scalars/FDC/values"</span>, index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="creating-hdf5-files">Creating HDF5 files<a class="anchor" aria-label="anchor" href="#creating-hdf5-files"></a>

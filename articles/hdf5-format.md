@@ -99,7 +99,7 @@ on. At no point is the full matrix loaded into RAM.
 ## Inspecting an HDF5 file
 
 You can explore the structure of any HDF5 file using
-[`rhdf5::h5ls()`](https://rdrr.io/pkg/rhdf5/man/h5ls.html):
+[`rhdf5::h5ls()`](https://huber-group-embl.github.io/rhdf5/reference/h5ls.html):
 
 ``` r
 rhdf5::h5ls("data.h5")
