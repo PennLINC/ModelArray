@@ -426,7 +426,7 @@
   response_vals <- scalars(ctx$modelarray)[[ctx$scalar]][i_element, ]
 
   # Start the validity mask with the response scalar
-  masks <- list(is.finite(response_vals))
+  valid_mask <- is.finite(response_vals)
 
   # Read and reorder additional attached scalars
   scalar_values <- list()
@@ -443,22 +443,25 @@
     }
 
     scalar_values[[sname]] <- s_vals
-    masks[[length(masks) + 1L]] <- is.finite(s_vals)
+    valid_mask <- valid_mask & is.finite(s_vals)
   }
 
   # Intersection mask across all scalars
-  valid_mask <- Reduce("&", masks)
-  num_valid <- sum(valid_mask)
+  which_valid <- cheapr::which_(valid_mask)
+  num_valid <- length(which_valid)
 
   if (!(num_valid > num.subj.lthr)) {
     return(list(dat = NULL, sufficient = FALSE, num_valid = num_valid))
   }
 
   # Build filtered data.frame
-  dat <- ctx$phenotypes[valid_mask, , drop = FALSE]
-  for (sname in ctx$attached_scalars) {
-    dat[[sname]] <- scalar_values[[sname]][valid_mask]
-  }
+  dat <- cheapr::sset(ctx$phenotypes, which_valid)
+  scalar_col_list <- lapply(
+    stats::setNames(ctx$attached_scalars, ctx$attached_scalars),
+    function(sname) scalar_values[[sname]][which_valid]
+  )
+  scalar_cols <- cheapr::fast_df(.args = scalar_col_list)
+  dat <- cheapr::col_c(dat, scalar_cols)
 
   list(dat = dat, sufficient = TRUE, num_valid = num_valid)
 }

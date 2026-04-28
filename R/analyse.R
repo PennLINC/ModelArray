@@ -149,7 +149,9 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar = NULL, element.subs
                           ...) {
   # Validation ----
   .validate_modelarray_input(data)
+
   scalar <- .resolve_formula_scalar(formula, data, scalar)
+
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
@@ -300,9 +302,10 @@ ModelArray.lm <- function(formula, data, phenotypes, scalar = NULL, element.subs
     return(invisible(NULL))
   }
 
-  df_out <- do.call(rbind, fits_all)
-  df_out <- as.data.frame(df_out)
-  colnames(df_out) <- column_names
+  result_mat <- do.call(rbind, fits_all)
+  col_list <- lapply(seq_len(ncol(result_mat)), function(j) result_mat[, j])
+  names(col_list) <- column_names
+  df_out <- cheapr::fast_df(.args = col_list)
 
   df_out <- .correct_pvalues(df_out, list.terms, correct.p.value.terms, var.terms)
   df_out <- .correct_pvalues(df_out, "model", correct.p.value.model, var.model)
@@ -474,7 +477,9 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar = NULL, element.sub
                            ...) {
   # Validation ----
   .validate_modelarray_input(data)
+
   scalar <- .resolve_formula_scalar(formula, data, scalar)
+
   element.subset <- .validate_element_subset(element.subset, data, scalar)
   phenotypes <- .align_phenotypes(data, phenotypes, scalar)
 
@@ -695,9 +700,10 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar = NULL, element.sub
     return(invisible(NULL))
   }
 
-  df_out <- do.call(rbind, fits_all)
-  df_out <- as.data.frame(df_out)
-  colnames(df_out) <- column_names
+  result_mat <- do.call(rbind, fits_all)
+  col_list <- lapply(seq_len(ncol(result_mat)), function(j) result_mat[, j])
+  names(col_list) <- column_names
+  df_out <- cheapr::fast_df(.args = col_list)
 
   # P-value corrections ----
   df_out <- .correct_pvalues(df_out, list.smoothTerms, correct.p.value.smoothTerms, var.smoothTerms)
@@ -756,9 +762,13 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar = NULL, element.sub
         ...
       )
 
-      reduced.model.df_out <- do.call(rbind, reduced.model.fits)
-      reduced.model.df_out <- as.data.frame(reduced.model.df_out)
-      colnames(reduced.model.df_out) <- reduced.model.column_names
+      result_mat_reduced <- do.call(rbind, reduced.model.fits)
+      col_list_reduced <- lapply(
+        seq_len(ncol(result_mat_reduced)),
+        function(j) result_mat_reduced[, j]
+      )
+      names(col_list_reduced) <- reduced.model.column_names
+      reduced.model.df_out <- cheapr::fast_df(.args = col_list_reduced)
 
       ## Compute delta adj R-sq and partial R-sq ----
       delta_col <- paste0(changed.rsq.term.shortFormat, ".delta.adj.rsq")
@@ -1104,8 +1114,10 @@ ModelArray.wrap <- function(FUN, data, phenotypes, scalar, element.subset = NULL
     return(invisible(NULL))
   }
 
-  df_out <- do.call(rbind, fits_all)
-  df_out <- as.data.frame(df_out)
-  colnames(df_out) <- column_names
+  # Better proposed change:
+  result_mat <- do.call(rbind, fits_all)
+  col_list <- lapply(seq_len(ncol(result_mat)), function(j) result_mat[, j])
+  names(col_list) <- column_names
+  df_out <- cheapr::fast_df(.args = col_list)
   df_out
 }
