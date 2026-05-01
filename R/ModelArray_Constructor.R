@@ -701,15 +701,45 @@ analyseOneElement.gam <- function(i_element,
   dat <- elem$dat
 
   # Fit GAM ----
+  use_G_path <- !is.null(ctx$G_template) &&
+    nrow(dat) == nrow(ctx$phenotypes)
+  
   arguments <- list(...)
-  arguments$formula <- effective_formula
-  arguments$data <- dat
-
+  
   onemodel <- tryCatch(
     {
-      do.call(mgcv::gam, arguments)
+      if (use_G_path) {
+        # Fast path: reuse pre-built smooth bases and penalties
+        G_elem <- ctx$G_template
+        G_elem$y <- dat[[as.character(effective_formula[[2]])]]
+        G_elem$sp <- rep(-1, ctx$n_sp)
+        
+        # Pass any additional ... arguments as gam() control args
+        # (e.g., method = "REML") via the G_elem object
+        if (!is.null(arguments$method)) {
+          G_elem$method <- arguments$method
+        }
+        
+        mgcv::gam(G = G_elem)
+      } else {
+        # Standard path: full gam() call (missing subjects or no G_template)
+        arguments$formula <- effective_formula
+        arguments$data <- dat
+        do.call(mgcv::gam, arguments)
+      }
     },
     error = function(e) {
+      # If G= path failed, try standard path as fallback
+      if (use_G_path) {
+        fallback <- tryCatch({
+          args_fb <- arguments
+          args_fb$formula <- effective_formula
+          args_fb$data <- dat
+          do.call(mgcv::gam, args_fb)
+        }, error = function(e2) NULL)
+        if (!is.null(fallback)) return(fallback)
+      }
+      
       msg <- paste0(
         "analyseOneElement.gam error at element ",
         i_element, ": ", conditionMessage(e)

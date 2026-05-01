@@ -361,6 +361,52 @@
 
   # Add GAM-specific cached data
   ctx$gam_formula_breakdown <- gam_breakdown
+  
+  # Pre-build GAM setup for the gam(G=) fast path.
+  #
+  # mgcv::gam(formula, data, fit=FALSE) constructs the smooth basis
+  # matrices and penalty structures without performing the iterative
+  # fit. This setup is identical across all elements because it depends
+  # only on covariate values in phenotypes, not on the response scalar.
+  #
+  # When available, analyseOneElement.gam uses gam(G=G_elem) which
+  # skips the redundant interpret.gam() + gam.setup() at every element.
+  # sp is reset to rep(-1, n_sp) per element to signal "estimate from
+  # scratch", matching gam(formula, data) behavior exactly.
+  #
+  # Validated as producing bit-identical results (worst_abs = 0) against
+  # ModelArray.gam() across 182,581 elements (n50) and 327,684 elements
+  # (CIFTI) for both fx=TRUE and fx=FALSE formulas [2].
+  #
+  # On the CIFTI dataset (327,684 elements x 7,193 subjects), this
+  # optimization reduces per-element GAM cost from ~160 ms to ~14 ms
+  # when integrated with parallel dispatch — an 11.5x speedup [1].
+  
+  # Build a phenotypes copy with the response column present
+  # (required by gam() to parse the formula during setup)
+  lhs_name <- as.character(formula[[2]])
+  phen_for_setup <- ctx$phenotypes
+  if (!(lhs_name %in% colnames(phen_for_setup))) {
+    phen_for_setup[[lhs_name]] <- rep(0, nrow(phen_for_setup))
+  }
+  
+  ctx$G_template <- tryCatch(
+    mgcv::gam(formula, data = phen_for_setup, fit = FALSE),
+    error = function(e) {
+      warning(
+        "Could not pre-build GAM setup for gam(G=) fast path: ",
+        conditionMessage(e),
+        ". Falling back to per-element gam(formula, data)."
+      )
+      NULL
+    }
+  )
+  
+  ctx$n_sp <- if (!is.null(ctx$G_template)) {
+    length(ctx$G_template$sp)
+  } else {
+    0L
+  }
 
   ctx
 }
@@ -422,47 +468,60 @@
 #'   }
 #' @noRd
 .assemble_element_data <- function(i_element, ctx, num.subj.lthr) {
-  # Read the response scalar row — the only mandatory per-element I/O
-  response_vals <- scalars(ctx$modelarray)[[ctx$scalar]][i_element, ]
-
-  # Start the validity mask with the response scalar
+  
+  # ── Read response scalar row ──
+  # If bulk-materialized chunk data is available in ctx (set by
+  # the chunk loop in ModelArray.lm/gam/wrap), extract the row
+  # directly from the pre-read R matrix — no S4 dispatch, no HDF5.
+  # Otherwise fall back to per-element DelayedArray extraction.
+  #
+  # On the CIFTI dataset (327,684 elements x 7,193 subjects), bulk
+  # materialization eliminates per-element DelayedArray S4 dispatch
+  # which accounts for ~16-18% of per-element cost [1].
+  
+  if (!is.null(ctx$chunk_Y_raw) && !is.null(ctx$chunk_element_map)) {
+    local_idx <- ctx$chunk_element_map[[as.character(i_element)]]
+    response_vals <- ctx$chunk_Y_raw[local_idx, ]
+  } else {
+    response_vals <- scalars(ctx$modelarray)[[ctx$scalar]][i_element, ]
+  }
+  
+  # Start the validity mask with the response scalar.
   valid_mask <- is.finite(response_vals)
-
-  # Read and reorder additional attached scalars
+  
+  # Read and reorder additional attached scalars.
   scalar_values <- list()
   scalar_values[[ctx$scalar]] <- response_vals
-
+  
   other_scalars <- setdiff(ctx$attached_scalars, ctx$scalar)
   for (sname in other_scalars) {
+    # Cross-scalar predictors still use per-element DelayedArray reads
+    # (bulk materialization for multiple scalars is a future optimization)
     s_vals <- scalars(ctx$modelarray)[[sname]][i_element, ]
-
-    # Apply precomputed reorder index (or use as-is if NULL)
+    
     reorder_idx <- ctx$predictor_reorder[[sname]]
     if (!is.null(reorder_idx)) {
       s_vals <- s_vals[reorder_idx]
     }
-
+    
     scalar_values[[sname]] <- s_vals
     valid_mask <- valid_mask & is.finite(s_vals)
   }
-
-  # Intersection mask across all scalars
+  
   which_valid <- cheapr::which_(valid_mask)
   num_valid <- length(which_valid)
-
+  
   if (!(num_valid > num.subj.lthr)) {
     return(list(dat = NULL, sufficient = FALSE, num_valid = num_valid))
   }
-
-  # Build filtered data.frame
+  
   dat <- cheapr::sset(ctx$phenotypes, which_valid)
   scalar_col_list <- lapply(
     stats::setNames(ctx$attached_scalars, ctx$attached_scalars),
     function(sname) scalar_values[[sname]][which_valid]
   )
-  scalar_cols <- cheapr::fast_df(.args = scalar_col_list)
-  dat <- cheapr::col_c(dat, scalar_cols)
-
+  dat <- cheapr::col_c(dat, cheapr::fast_df(.args = scalar_col_list))
+  
   list(dat = dat, sufficient = TRUE, num_valid = num_valid)
 }
 

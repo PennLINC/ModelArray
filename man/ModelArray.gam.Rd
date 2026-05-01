@@ -22,6 +22,7 @@ ModelArray.gam(
   verbose = TRUE,
   pbar = TRUE,
   n_cores = 1,
+  max_chunk_gb = 0.1,
   on_error = "stop",
   write_results_name = NULL,
   write_results_file = NULL,
@@ -95,6 +96,18 @@ the two). Default is 0.2.}
 \item{n_cores}{Positive integer. Number of CPU cores for parallel
 processing via \code{\link[parallel]{mclapply}}. Default is 1
 (serial).}
+
+\item{max_chunk_gb}{Numeric. Maximum memory budget in gigabytes for bulk
+scalar materialization per sub-chunk. Default \code{2} (0.5 GB).
+Each sub-chunk of elements is read from HDF5 in one bulk operation,
+eliminating per-element I/O overhead. Smaller values reduce peak memory
+usage at the cost of more I/O operations. Larger values reduce I/O but
+increase peak memory. Set to \code{0} to disable bulk materialization
+entirely (falls back to per-element HDF5 reads).
+Peak system RSS is approximately:
+\code{baseline (~700 MB) + chunk_data + (n_cores × ~300 MB)}.
+At the default 2 GB budget with 24 cores on a 327,684-element ×
+7,193-subject dataset, peak RSS is approximately 5.4 GB.}
 
 \item{on_error}{Character: one of \code{"stop"}, \code{"skip"}, or
 \code{"debug"}. When an error occurs fitting one element: \code{"stop"}
