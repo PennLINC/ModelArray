@@ -21,10 +21,10 @@ navbar:
           href: articles/elements.html
         - text: "Splitting Element IDs"
           href: articles/element-splitting.html
-        - text: "Understanding the HDF5 File"
-          href: articles/hdf5-format.html
-        - text: "HDF5 for Large-Scale Analyses"
-          href: articles/hdf5-large-analyses.html
+        - text: "Understanding ModelArray Storage"
+          href: articles/modelarray-storage.html
+        - text: "Large-Scale Analyses"
+          href: articles/large-scale-analyses.html
     case-studies:
       text: Case Studies
       menu:
@@ -33,7 +33,7 @@ navbar:
         - text: "Modelling in Depth"
           href: articles/modelling.html
         - text: "Exploring Data with Convenience Functions"
-          href: articles/exploring-h5.html
+          href: articles/exploring-modelarray-data.html
         - text: "-------"
         - text: Resources
         - text: "Containers"
@@ -85,6 +85,7 @@ reference:
   - title: "Utilities"
     contents:
       - writeResults
+      - ModelArraySummary
       - h5summary
       - numElementsTotal
       - gen_gamFormula_fxSmooth
@@ -95,5 +96,8 @@ redirects:
   - ["articles/wrap_function.html", "articles/modelling.html"]
   - ["articles/voxel-wise_data.html", "articles/modelling.html"]
   - ["articles/basic_r_intro.html", "articles/installations.html"]
-  - ["articles/faq.html", "articles/exploring-h5.html"]
-  - ["articles/debugging.html", "articles/exploring-h5.html"]
+  - ["articles/hdf5-format.html", "articles/modelarray-storage.html"]
+  - ["articles/hdf5-large-analyses.html", "articles/large-scale-analyses.html"]
+  - ["articles/exploring-h5.html", "articles/exploring-modelarray-data.html"]
+  - ["articles/faq.html", "articles/exploring-modelarray-data.html"]
+  - ["articles/debugging.html", "articles/exploring-modelarray-data.html"]

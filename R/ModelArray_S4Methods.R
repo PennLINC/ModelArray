@@ -4,7 +4,7 @@
 #' @rdname ModelArray-class
 #'
 #' @description
-#' Prints a summary of the ModelArray including file path, scalar dimensions,
+#' Prints a summary of the ModelArray including file path, source count,
 #' and any saved analysis names.
 #'
 #' @param object A \linkS4class{ModelArray} object.
@@ -32,21 +32,22 @@ setMethod("show", "ModelArray", function(object) { # , group_name_results="resul
   cat(is(object)[[1]], " located at ", path_str, "\n\n", sep = "")
 
   scalar_names <- names(scalars(object))
-  for (sn in scalar_names) {
-    nr <- nrow(scalars(object)[[sn]])
-    nc <- ncol(scalars(object)[[sn]])
-    cat(format(paste0("  ", sn, ":"), justify = "left", width = 20),
-      nr, " elements x ", nc, " input files\n",
-      sep = ""
-    )
-  }
+  source_counts <- lengths(sources(object))
+  n_source_files <- if (length(source_counts) > 0) max(source_counts) else 0L
+  cat(format("  Source files:", justify = "left", width = 20),
+    n_source_files, "\n",
+    sep = ""
+  )
+  cat(format("  Scalars:", justify = "left", width = 20),
+    paste0(scalar_names, collapse = ", "), "\n",
+    sep = ""
+  )
+
   analysis_names <- names(results(object))
-  if (length(analysis_names) > 0) {
-    cat(format("  Analyses:", justify = "left", width = 20),
-      paste0(analysis_names, collapse = ", "), "\n",
-      sep = ""
-    )
-  }
+  cat(format("  Analyses:", justify = "left", width = 20),
+    paste0(analysis_names, collapse = ", "), "\n",
+    sep = ""
+  )
 })
 
 ### Accessors for ModelArray #####
@@ -434,14 +435,16 @@ setMethod("analysisNames", "ModelArray", function(x) {
 #'
 #' @description
 #' Reads element metadata (e.g., greyordinates for CIFTI data, or fixel/voxel
-#' coordinate information) from the HDF5 file if present. The function searches
-#' for known metadata dataset names (\code{"greyordinates"}, \code{"fixels"},
-#' \code{"voxels"}) at the top level of the HDF5 file.
+#' coordinate information) from the HDF5 file or TileDB store if present. The
+#' function searches for known metadata dataset names (\code{"greyordinates"},
+#' \code{"fixels"}, \code{"voxels"}) at the top level of the storage backend.
+#' It uses the backend retained when the \code{ModelArray} was constructed, so
+#' an explicit constructor choice is preserved.
 #'
 #' @param x A \linkS4class{ModelArray} object.
 #'
 #' @return A matrix or data.frame of element metadata if found, or \code{NULL}
-#'   if no known metadata dataset exists in the HDF5 file.
+#'   if no known metadata dataset exists.
 #'
 #' @seealso \code{\link{nElements}}, \code{\link{scalars}}
 #'
@@ -464,6 +467,32 @@ setMethod("elementMetadata", "ModelArray", function(x) {
 
   # Try known metadata dataset names
   metadata_paths <- c("greyordinates", "fixels", "voxels")
+  backend <- .modelarray_backend(x, filepath)
+  if (identical(backend, "tiledb")) {
+    .require_tiledb_support()
+    for (p in metadata_paths) {
+      result <- tryCatch(
+        {
+          uri <- .modelarray_path(filepath, p)
+          if (!.tiledb_object_exists(uri, "ARRAY")) {
+            NULL
+          } else {
+            result <- as.matrix(DelayedArray::DelayedArray(
+              TileDBArray::TileDBArraySeed(uri, attr = "values")
+            ))
+            dimnames(result) <- NULL
+            result
+          }
+        },
+        error = function(e) NULL
+      )
+      if (!is.null(result)) {
+        return(result)
+      }
+    }
+    return(NULL)
+  }
+
   for (p in metadata_paths) {
     result <- tryCatch(
       rhdf5::h5read(filepath, p),

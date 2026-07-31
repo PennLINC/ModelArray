@@ -104,12 +104,12 @@ skips. Default: \code{"stop"}.}
 
 \item{write_results_name}{Optional character. If provided, results are
 incrementally written to
-\code{results/<write_results_name>/results_matrix} in the HDF5 file
+\code{results/<write_results_name>/results_matrix} in the output
 specified by \code{write_results_file}.}
 
-\item{write_results_file}{Optional character. HDF5 file path for
-incremental result writes. Required when \code{write_results_name}
-is provided.}
+\item{write_results_file}{Optional character. HDF5 file path or TileDB
+store path for incremental result writes. Required when
+\code{write_results_name} is provided.}
 
 \item{write_results_flush_every}{Positive integer. Number of elements
 per write block. Default 1000.}
@@ -122,7 +122,7 @@ level for HDF5 writes. Default 4.}
 
 \item{return_output}{Logical. If \code{TRUE} (default), return the
 combined data.frame. If \code{FALSE}, return \code{invisible(NULL)};
-useful when writing large outputs directly to HDF5.}
+useful when writing outputs directly to storage.}
 
 \item{...}{Additional arguments passed to \code{\link[mgcv]{gam}}
 (e.g. \code{method = "REML"}).}

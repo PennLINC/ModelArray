@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: rocker/r2u:jammy
+From: rocker/r2u:noble
 
 %help
     ModelArray - an R package for statistical analysis of fixel-wise data and beyond
@@ -12,10 +12,11 @@ From: rocker/r2u:jammy
     org.label-schema.schema-version "1.0"
 
 %environment
-    export DEBIAN_FRONTEND=noninteractive
+    export PATH="/opt/modelarrayio/bin:${PATH}"
 
 %post
     set -e
+    sed -i 's#https://cloud.r-project.org#https://cran.r-project.org#' /etc/apt/sources.list.d/cran.sources
     apt-get update \
         && apt-get install -y --no-install-recommends \
             r-bioc-delayedarray \
@@ -37,12 +38,20 @@ From: rocker/r2u:jammy
             r-cran-tibble \
             r-cran-tidyr \
             r-cran-tidyverse \
+            git \
+            python3-venv \
         && apt-get clean \
-        && echo 'options(bspm.sudo = TRUE)' >> /etc/R/Rprofile.site \
         && rm -rf /var/lib/apt/lists/*
+
+    R -e 'install.packages(c("jsonlite", "tiledb", "BiocManager"))'
+    R -e 'BiocManager::install("TileDBArray", ask = FALSE, update = FALSE)'
+    python3 -m venv /opt/modelarrayio
+    /opt/modelarrayio/bin/pip install --no-cache-dir git+https://github.com/PennLINC/ModelArrayIO.git
 
     cd /ModelArray
     R -e 'devtools::install()'
+    R -e 'library(ModelArray); stopifnot(requireNamespace("tiledb", quietly = TRUE)); stopifnot(requireNamespace("TileDBArray", quietly = TRUE))'
+    /opt/modelarrayio/bin/modelarrayio --version
 
 %files
     . /ModelArray
@@ -55,5 +64,3 @@ From: rocker/r2u:jammy
     else
         exec R
     fi
-
-

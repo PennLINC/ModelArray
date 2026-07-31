@@ -76,11 +76,11 @@ skips. Default: \code{"stop"}.}
 
 \item{write_scalar_name}{Optional character. If provided, selected
 output columns are written into
-\code{scalars/<write_scalar_name>/values} in the HDF5 file specified
-by \code{write_scalar_file}.}
+\code{scalars/<write_scalar_name>/values} in the output specified by
+\code{write_scalar_file}.}
 
-\item{write_scalar_file}{Optional character. HDF5 output file path.
-Required when \code{write_scalar_name} is provided.}
+\item{write_scalar_file}{Optional character. HDF5 file path or TileDB store
+path. Required when \code{write_scalar_name} is provided.}
 
 \item{write_scalar_columns}{Optional character or integer vector
 selecting which output columns to save as scalar values. If
@@ -95,19 +95,20 @@ names saved as scalar \code{column_names}. If \code{NULL}, uses
 block for scalar writes. Default 1000.}
 
 \item{write_scalar_storage_mode}{Character. Storage mode for scalar
-writes (e.g. \code{"double"}). Default \code{"double"}.}
+writes (e.g. \code{"double"}). TileDB supports \code{"logical"},
+\code{"integer"}, and \code{"double"}. Default \code{"double"}.}
 
 \item{write_scalar_compression_level}{Integer 0--9. Gzip compression
-level for scalar writes. Default 4.}
+level for HDF5 and TileDB scalar writes. Default 4.}
 
 \item{write_results_name}{Optional character. If provided, results are
 incrementally written to
-\code{results/<write_results_name>/results_matrix} in the HDF5 file
+\code{results/<write_results_name>/results_matrix} in the output
 specified by \code{write_results_file}.}
 
-\item{write_results_file}{Optional character. HDF5 file path for
-incremental result writes. Required when \code{write_results_name}
-is provided.}
+\item{write_results_file}{Optional character. HDF5 file path or TileDB
+store path for incremental result writes. Required when
+\code{write_results_name} is provided.}
 
 \item{write_results_flush_every}{Positive integer. Number of elements
 per write block. Default 1000.}
@@ -120,7 +121,7 @@ level for HDF5 writes. Default 4.}
 
 \item{return_output}{Logical. If \code{TRUE} (default), return the
 combined data.frame. If \code{FALSE}, return \code{invisible(NULL)};
-useful when writing large outputs directly to HDF5.}
+useful when writing outputs directly to storage.}
 
 \item{...}{Additional arguments forwarded to \code{FUN}.}
 }

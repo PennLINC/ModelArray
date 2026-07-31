@@ -37,10 +37,11 @@ test_that("elementMetadata returns fixel metadata", {
   expect_equal(nrow(em), 182581L)
 })
 
-test_that("h5summary returns correct structure", {
+test_that("ModelArraySummary returns correct structure", {
   h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
-  s <- h5summary(h5_path)
+  s <- ModelArraySummary(h5_path)
 
+  expect_s3_class(s, "ModelArraySummary")
   expect_s3_class(s, "h5summary")
   expect_equal(s$scalars$name, "FD")
   expect_equal(s$scalars$nElements, 182581L)
@@ -53,6 +54,24 @@ test_that("h5summary returns correct structure", {
   expect_true(any(grepl("182581", output)))
 })
 
+test_that("h5summary remains a backward-compatible alias", {
+  h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
+
+  current <- ModelArraySummary(h5_path)
+  legacy <- h5summary(h5_path)
+
+  expect_s3_class(legacy, "h5summary")
+  expect_false(inherits(legacy, "ModelArraySummary"))
+  expect_equal(legacy$scalars, current$scalars)
+  expect_equal(legacy$analyses, current$analyses)
+  expect_equal(legacy$filepath, current$filepath)
+  expect_equal(legacy$backend, current$backend)
+})
+
 test_that("h5summary errors on missing file", {
   expect_error(h5summary("/nonexistent/file.h5"), "not found")
+})
+
+test_that("ModelArraySummary errors on missing file", {
+  expect_error(ModelArraySummary("/nonexistent/file.h5"), "not found")
 })

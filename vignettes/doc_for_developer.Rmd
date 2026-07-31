@@ -52,9 +52,10 @@ We first define a class called `ModelArray` using `setClass()`. An `ModelArray` 
 * sources: source filenames (e.g., a list of .mif files of fixel-wise data)
 * scalars: scalar matrix (or matrices)
 * results: statistical result matrices (if any)
-* path: the path to the h5 file on disk
+* path: the path to the HDF5 file or TileDB store
+* backend: the resolved storage backend (`"hdf5"` or `"tiledb"`)
 
-The key feature of an `ModelArray` object is memory efficient. This is because the entire dataset in HDF5 (.h5) file was not loaded into the memory; only minimal data was loaded. To achieve this, we first need `ModelArraySeed()`, which utilizes `HDF5Array::HDF5ArraySeed()`, acting as a pointer to the .hdf5 file on disk. To make the arrays in the `ModelArray` object look more like "real" arrays, e.g. common array operations such as indexing and transposing can be applied, we utilize package `DelayedArray` to wraps the data in on-disk HDF5 file into a `DelayedArray` object. Finally a `ModelArray` class is defined by integrating above slots together. This is done in the `ModelArray()` function.
+The key feature of a `ModelArray` object is memory efficiency: the full dataset is not loaded into memory. `ModelArraySeed()` creates an `HDF5Array::HDF5ArraySeed()` or `TileDBArray::TileDBArraySeed()` that points to the on-disk data. The `DelayedArray` package wraps that seed so common array operations, such as indexing and transposing, remain available. The `ModelArray()` function combines these delayed arrays with the other slots above.
 
 Above functions and setups can be found in script `R/ModelArray_Constructor.R`
 
@@ -174,5 +175,3 @@ For more details on how to write unit tests + test out, please check out `Testin
 The `Dockerfile` for the Docker image can be found in the root folder of the GitHub repository of `ModelArray`.
 
 CircleCI will automatically build the Docker image and push to Docker Hub when there is a GitHub commit or a merge to main branch, or when a version is tagged. See the `.circleci/config.yml` file for more details on these setups.
-
-

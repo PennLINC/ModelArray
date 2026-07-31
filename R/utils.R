@@ -33,6 +33,564 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
 }
 
 
+#' Write an HDF5 attribute with hdf5r's current API
+#' @noRd
+.write_hdf5_attribute <- function(filepath, object_path, attr_name, value) {
+  h5 <- hdf5r::H5File$new(filepath, mode = "a")
+  on.exit(h5$close_all(), add = TRUE)
+  h5[[object_path]]$create_attr(attr_name, robj = value)
+  invisible(NULL)
+}
+
+
+#' Resolve a storage backend from a path and user preference
+#' @noRd
+.resolve_storage_backend <- function(filepath, backend = c("auto", "hdf5", "tiledb")) {
+  backend <- match.arg(backend)
+  if (backend != "auto") {
+    return(backend)
+  }
+
+  if (dir.exists(filepath)) {
+    return("tiledb")
+  }
+  if (grepl("\\.tdb/?$", filepath, ignore.case = TRUE)) {
+    return("tiledb")
+  }
+  "hdf5"
+}
+
+
+#' Return the backend retained by a ModelArray object
+#' @noRd
+.modelarray_backend <- function(x, filepath = x@path[1]) {
+  stored_backend <- tryCatch(
+    methods::slot(x, "backend"),
+    error = function(e) character(0)
+  )
+
+  if (length(stored_backend) > 1L && length(x@path) == length(stored_backend)) {
+    path_index <- match(filepath, x@path)
+    if (!is.na(path_index)) {
+      stored_backend <- stored_backend[path_index]
+    }
+  }
+
+  stored_backend <- stored_backend[1]
+  if (
+    length(stored_backend) == 0L ||
+      is.na(stored_backend) ||
+      !stored_backend %in% c("hdf5", "tiledb")
+  ) {
+    return(.resolve_storage_backend(filepath, "auto"))
+  }
+  stored_backend
+}
+
+
+#' Require TileDB packages for TileDB-backed operations
+#' @noRd
+.require_tiledb_support <- function() {
+  missing <- c(
+    if (!requireNamespace("tiledb", quietly = TRUE)) "tiledb",
+    if (!requireNamespace("TileDBArray", quietly = TRUE)) "TileDBArray",
+    if (!requireNamespace("jsonlite", quietly = TRUE)) "jsonlite"
+  )
+  if (length(missing) > 0) {
+    stop(
+      "TileDB support requires the optional package(s): ",
+      paste(missing, collapse = ", "),
+      ". Install them before using a TileDB-backed ModelArray.",
+      call. = FALSE
+    )
+  }
+}
+
+
+#' Join path segments for local paths and TileDB URIs
+#' @noRd
+.modelarray_path <- function(...) {
+  parts <- c(...)
+  parts <- gsub("/+$", "", parts)
+  parts <- gsub("^/+", "", parts)
+  first <- c(...)[[1]]
+  first <- gsub("/+$", "", first)
+  paste(c(first, parts[-1]), collapse = "/")
+}
+
+
+#' Validate a storage object name as one safe path component
+#' @noRd
+.validate_storage_component <- function(value, argument) {
+  if (
+    !is.character(value) ||
+      length(value) != 1L ||
+      is.na(value) ||
+      !nzchar(value)
+  ) {
+    stop(argument, " must be a non-empty character string", call. = FALSE)
+  }
+  if (value %in% c(".", "..") || grepl("[/\\\\]", value)) {
+    stop(
+      argument,
+      " must be a single storage name, cannot be '.' or '..', and cannot contain '/' or '\\'",
+      call. = FALSE
+    )
+  }
+  value
+}
+
+
+#' Build a storage child path and verify local-path containment
+#' @noRd
+.storage_child_path <- function(parent, component, argument) {
+  component <- .validate_storage_component(component, argument)
+  child <- .modelarray_path(parent, component)
+
+  is_uri <- grepl("^[[:alpha:]][[:alnum:]+.-]*://", parent)
+  if (!is_uri) {
+    normalized_parent <- normalizePath(parent, winslash = "/", mustWork = FALSE)
+    normalized_child <- if (file.exists(child) || dir.exists(child)) {
+      normalizePath(child, winslash = "/", mustWork = FALSE)
+    } else {
+      file.path(normalized_parent, component)
+    }
+    parent_prefix <- paste0(sub("/+$", "", normalized_parent), "/")
+    if (!startsWith(normalized_child, parent_prefix)) {
+      stop(argument, " resolves outside its storage parent", call. = FALSE)
+    }
+  }
+
+  child
+}
+
+
+#' Normalize vectors read from metadata or companion datasets
+#' @noRd
+.clean_name_vector <- function(x) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+  if (is.list(x) && !is.data.frame(x)) {
+    x <- unlist(x, use.names = FALSE)
+  }
+  x <- as.vector(x)
+  x <- as.character(x)
+  x <- gsub("[\\x00]+$", "", x, perl = TRUE, useBytes = TRUE)
+  trimws(x)
+}
+
+
+#' Read names from HDF5 attributes, falling back to datasets
+#' @noRd
+.read_hdf5_names <- function(filepath, attr_path, attr_name, dataset_paths, label) {
+  attrs <- rhdf5::h5readAttributes(filepath, name = attr_path)
+  names_attr <- attrs[[attr_name]]
+  if (!is.null(names_attr)) {
+    return(.clean_name_vector(names_attr))
+  }
+
+  colnames_ds <- NULL
+  last_error <- NULL
+  for (p in dataset_paths) {
+    tmp <- tryCatch(
+      rhdf5::h5read(filepath, p),
+      error = function(e) {
+        last_error <<- e
+        NULL
+      }
+    )
+    if (!is.null(tmp)) {
+      colnames_ds <- tmp
+      if (grepl("^scalars/scalars/", p)) {
+        warning(
+          "Column names found at nested path '", p, "'. ",
+          "This is a known quirk from some converters (e.g., concifti).",
+          call. = FALSE
+        )
+      }
+      break
+    }
+  }
+
+  if (is.null(colnames_ds)) {
+    stop(paste0(
+      "Neither attribute '", attr_name, "' nor a dataset with ", label, " found. Tried: ",
+      paste(dataset_paths, collapse = ", "),
+      if (!is.null(last_error)) paste0(". Last error: ", conditionMessage(last_error)) else ""
+    ))
+  }
+  .clean_name_vector(colnames_ds)
+}
+
+
+#' Return a TileDB object type, or INVALID when lookup fails
+#' @noRd
+.tiledb_object_type <- function(uri) {
+  .require_tiledb_support()
+  tryCatch(tiledb::tiledb_object_type(uri), error = function(e) "INVALID")
+}
+
+
+#' Does a TileDB object exist?
+#' @noRd
+.tiledb_object_exists <- function(uri, type = NULL) {
+  object_type <- .tiledb_object_type(uri)
+  if (is.null(type)) {
+    return(toupper(object_type) %in% c("ARRAY", "GROUP"))
+  }
+  identical(toupper(object_type), toupper(type))
+}
+
+
+#' Convert TileDB metadata values to a character vector
+#' @noRd
+.parse_tiledb_names <- function(x) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+  if (is.raw(x)) {
+    x <- rawToChar(x)
+  }
+  if (is.list(x) && length(x) == 1L) {
+    x <- x[[1]]
+  }
+  x <- .clean_name_vector(x)
+  if (length(x) == 1L && jsonlite::validate(x)) {
+    x <- jsonlite::fromJSON(x)
+  }
+  .clean_name_vector(x)
+}
+
+
+#' Read metadata from a TileDB array
+#' @noRd
+.read_tiledb_array_metadata <- function(uri, key) {
+  .require_tiledb_support()
+  if (!.tiledb_object_exists(uri, "ARRAY")) {
+    return(NULL)
+  }
+  arr <- tiledb::tiledb_array(uri, query_type = "READ", keep_open = TRUE)
+  on.exit(try(tiledb::tiledb_array_close(arr), silent = TRUE), add = TRUE)
+  tryCatch(tiledb::tiledb_get_metadata(arr, key), error = function(e) NULL)
+}
+
+
+#' Read metadata from a TileDB group
+#' @noRd
+.read_tiledb_group_metadata <- function(uri, key) {
+  .require_tiledb_support()
+  if (!.tiledb_object_exists(uri, "GROUP")) {
+    return(NULL)
+  }
+  grp <- tiledb::tiledb_group(uri, type = "READ")
+  on.exit(try(tiledb::tiledb_group_close(grp), silent = TRUE), add = TRUE)
+  tryCatch(tiledb::tiledb_group_get_metadata(grp, key), error = function(e) NULL)
+}
+
+
+#' Read the "values" attribute from a 1-D TileDB array
+#' @noRd
+.read_tiledb_values_array <- function(uri) {
+  .require_tiledb_support()
+  if (!.tiledb_object_exists(uri, "ARRAY")) {
+    return(NULL)
+  }
+  arr <- tiledb::tiledb_array(
+    uri,
+    query_type = "READ",
+    attrs = "values",
+    return_as = "data.frame"
+  )
+  on.exit(try(tiledb::tiledb_array_close(arr), silent = TRUE), add = TRUE)
+  values <- tryCatch(arr[], error = function(e) NULL)
+  if (is.null(values)) {
+    return(NULL)
+  }
+  if (is.data.frame(values) && "values" %in% names(values)) {
+    return(.clean_name_vector(values[["values"]]))
+  }
+  if (is.list(values) && "values" %in% names(values)) {
+    return(.clean_name_vector(values[["values"]]))
+  }
+  .clean_name_vector(values)
+}
+
+
+#' Return dimensions for a dense TileDB array
+#' @noRd
+.tiledb_array_dims <- function(uri) {
+  .require_tiledb_support()
+  arr <- tiledb::tiledb_array(uri, query_type = "READ", keep_open = TRUE)
+  on.exit(try(tiledb::tiledb_array_close(arr), silent = TRUE), add = TRUE)
+
+  dom <- tiledb::domain(tiledb::schema(arr))
+  ndim <- tiledb::tiledb_ndim(dom)
+  vapply(seq_len(ndim), function(i) {
+    extent <- tiledb::tiledb_array_get_non_empty_domain_from_index(arr, i)
+    as.integer(as.numeric(extent[2]) - as.numeric(extent[1]) + 1)
+  }, integer(1))
+}
+
+
+#' Read scalar column names for HDF5 or TileDB backends
+#' @noRd
+.read_scalar_column_names <- function(filepath, scalar_type, backend) {
+  if (identical(backend, "hdf5")) {
+    return(.read_hdf5_names(
+      filepath = filepath,
+      attr_path = sprintf("scalars/%s/values", scalar_type),
+      attr_name = "column_names",
+      dataset_paths = c(
+        sprintf("scalars/%s/column_names", scalar_type),
+        sprintf("scalars/%s/values/column_names", scalar_type),
+        sprintf("scalars/scalars/%s/values/column_names", scalar_type),
+        sprintf("scalars/scalars/%s/column_names", scalar_type)
+      ),
+      label = "column names"
+    ))
+  }
+
+  .require_tiledb_support()
+  value_uri <- .modelarray_path(filepath, "scalars", scalar_type, "values")
+  scalar_uri <- .modelarray_path(filepath, "scalars", scalar_type)
+  names <- .parse_tiledb_names(.read_tiledb_array_metadata(value_uri, "column_names"))
+  if (is.null(names)) {
+    names <- .parse_tiledb_names(.read_tiledb_group_metadata(scalar_uri, "column_names"))
+  }
+  if (is.null(names)) {
+    names <- .read_tiledb_values_array(.modelarray_path(scalar_uri, "column_names"))
+  }
+  if (is.null(names)) {
+    stop(
+      "No TileDB column names found for scalar '", scalar_type, "'. ",
+      "Expected column_names metadata on ", value_uri,
+      " or a values array at ", .modelarray_path(scalar_uri, "column_names"),
+      call. = FALSE
+    )
+  }
+  names
+}
+
+
+#' Read result column names for HDF5 or TileDB backends
+#' @noRd
+.read_result_column_names <- function(filepath, analysis_name, backend) {
+  if (identical(backend, "hdf5")) {
+    return(.read_hdf5_names(
+      filepath = filepath,
+      attr_path = sprintf("results/%s/results_matrix", analysis_name),
+      attr_name = "colnames",
+      dataset_paths = c(
+        sprintf("results/%s/column_names", analysis_name),
+        sprintf("results/%s/results_matrix/column_names", analysis_name)
+      ),
+      label = "column names for results"
+    ))
+  }
+
+  .require_tiledb_support()
+  matrix_uri <- .modelarray_path(filepath, "results", analysis_name, "results_matrix")
+  analysis_uri <- .modelarray_path(filepath, "results", analysis_name)
+  names <- .parse_tiledb_names(.read_tiledb_array_metadata(matrix_uri, "colnames"))
+  if (is.null(names)) {
+    names <- .parse_tiledb_names(.read_tiledb_array_metadata(matrix_uri, "column_names"))
+  }
+  if (is.null(names)) {
+    names <- .parse_tiledb_names(.read_tiledb_group_metadata(analysis_uri, "column_names"))
+  }
+  if (is.null(names)) {
+    names <- .read_tiledb_values_array(.modelarray_path(analysis_uri, "column_names"))
+  }
+  if (is.null(names)) {
+    stop("No TileDB column names found for analysis '", analysis_name, "'.", call. = FALSE)
+  }
+  names
+}
+
+
+#' Test for result groups/arrays in either supported backend
+#' @noRd
+.results_group_exists <- function(filepath, backend) {
+  if (identical(backend, "hdf5")) {
+    return(flagResultsGroupExistInh5(filepath))
+  }
+  .tiledb_object_exists(.modelarray_path(filepath, "results"), "GROUP") ||
+    dir.exists(.modelarray_path(filepath, "results"))
+}
+
+
+#' Test for a named analysis in either supported backend
+#' @noRd
+.analysis_exists <- function(filepath, analysis_name, backend) {
+  if (identical(backend, "hdf5")) {
+    return(flagAnalysisExistInh5(filepath, analysis_name = analysis_name))
+  }
+  analysis_uri <- .modelarray_path(filepath, "results", analysis_name)
+  matrix_uri <- .modelarray_path(analysis_uri, "results_matrix")
+  .tiledb_object_exists(analysis_uri) ||
+    dir.exists(analysis_uri) ||
+    .tiledb_object_exists(matrix_uri, "ARRAY")
+}
+
+
+#' Test for a named object in either supported backend
+#' @noRd
+.stored_object_exists <- function(filepath, group_name, object_name, backend) {
+  if (identical(backend, "hdf5")) {
+    return(flagObjectExistInh5(filepath, group_name = group_name, object_name = object_name))
+  }
+  group_uri <- .modelarray_path(filepath, gsub("^/", "", group_name))
+  object_uri <- .modelarray_path(group_uri, object_name)
+  .tiledb_object_exists(object_uri, "ARRAY") ||
+    !is.null(.read_tiledb_array_metadata(.modelarray_path(group_uri, "results_matrix"), object_name)) ||
+    !is.null(.read_tiledb_group_metadata(group_uri, object_name))
+}
+
+
+#' Read a result look-up table for either supported backend
+#' @noRd
+.read_result_lut <- function(filepath, analysis_name, object_name, backend) {
+  if (identical(backend, "hdf5")) {
+    if (!flagObjectExistInh5(
+      filepath,
+      group_name = paste0("/results/", analysis_name),
+      object_name = object_name
+    )) {
+      return(NULL)
+    }
+    return(ModelArraySeed(
+      filepath,
+      name = paste0("results/", analysis_name, "/", object_name),
+      type = NA,
+      backend = "hdf5"
+    ) %>%
+      DelayedArray::DelayedArray() %>%
+      as.character())
+  }
+
+  analysis_uri <- .modelarray_path(filepath, "results", analysis_name)
+  matrix_uri <- .modelarray_path(analysis_uri, "results_matrix")
+  lut <- .parse_tiledb_names(.read_tiledb_array_metadata(matrix_uri, object_name))
+  if (is.null(lut)) {
+    lut <- .parse_tiledb_names(.read_tiledb_group_metadata(analysis_uri, object_name))
+  }
+  if (is.null(lut)) {
+    lut <- .read_tiledb_values_array(.modelarray_path(analysis_uri, object_name))
+  }
+  lut
+}
+
+
+#' Recode one results matrix column from stored LUT indices to labels
+#' @noRd
+.recode_result_lut_column <- function(results_matrix, i_col, lut) {
+  lut <- as.character(lut)
+  stored_values <- as.character(as.vector(results_matrix[, i_col]))
+  lut_index <- match(stored_values, as.character(seq_along(lut)))
+  recoded_values <- stored_values
+  recoded_values[!is.na(lut_index)] <- lut[lut_index[!is.na(lut_index)]]
+  results_matrix[, i_col] <- recoded_values
+  results_matrix
+}
+
+
+#' Coerce result data.frame columns to storage-friendly numeric columns
+#' @noRd
+.prepare_results_for_storage <- function(df.output) {
+  luts <- list()
+  for (i_col in seq_len(ncol(df.output))) {
+    col <- df.output[[i_col]]
+    not_numeric_or_int <- !is.numeric(col) && !is.integer(col)
+    if (not_numeric_or_int) {
+      message(
+        paste0(
+          "the column #",
+          as.character(i_col),
+          " of df.output to save: ",
+          "data class is not numeric or integer...fixing it"
+        )
+      )
+
+      factors <- factor(col)
+      df.output[[i_col]] <- as.numeric(factors)
+      luts[[paste0("lut_forcol", as.character(i_col))]] <- levels(factors)
+    }
+  }
+  list(data = df.output, luts = luts)
+}
+
+
+#' Write metadata to a TileDB array, ignoring close failures
+#' @noRd
+.write_tiledb_array_metadata <- function(uri, values) {
+  .require_tiledb_support()
+  arr <- tiledb::tiledb_array(uri, query_type = "WRITE", keep_open = TRUE)
+  on.exit(try(tiledb::tiledb_array_close(arr), silent = TRUE), add = TRUE)
+  for (key in names(values)) {
+    value <- values[[key]]
+    if (inherits(value, "json")) {
+      value <- as.character(value)
+    }
+    tiledb::tiledb_put_metadata(arr, key, value)
+  }
+  invisible(NULL)
+}
+
+
+#' Write ModelArray results to a TileDB store
+#' @noRd
+.write_results_tiledb <- function(fn.output, df.output, analysis_name, overwrite) {
+  .require_tiledb_support()
+
+  if (
+    !is.character(fn.output) ||
+      length(fn.output) != 1L ||
+      is.na(fn.output) ||
+      !nzchar(fn.output)
+  ) {
+    stop("fn.output must be a non-empty character path", call. = FALSE)
+  }
+  results_uri <- .modelarray_path(fn.output, "results")
+  analysis_uri <- .storage_child_path(results_uri, analysis_name, "analysis_name")
+
+  prepared <- .prepare_results_for_storage(df.output)
+  df.output <- prepared$data
+
+  if (!dir.exists(fn.output)) {
+    dir.create(fn.output, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  matrix_uri <- .modelarray_path(analysis_uri, "results_matrix")
+  analysis_exists <- dir.exists(analysis_uri) || .tiledb_object_exists(analysis_uri)
+
+  if (analysis_exists && !overwrite) {
+    warning(paste0(analysis_name, " exists but not to overwrite!"))
+    return(invisible(NULL))
+  }
+  if (analysis_exists && overwrite) {
+    unlink(analysis_uri, recursive = TRUE, force = TRUE)
+  }
+
+  dir.create(analysis_uri, recursive = TRUE, showWarnings = FALSE)
+  TileDBArray::writeTileDBArray(
+    as.matrix(df.output),
+    path = matrix_uri,
+    attr = "values"
+  )
+
+  metadata <- c(
+    list(column_names = jsonlite::toJSON(as.character(colnames(df.output)), auto_unbox = TRUE)),
+    stats::setNames(
+      lapply(prepared$luts, jsonlite::toJSON, auto_unbox = TRUE),
+      names(prepared$luts)
+    )
+  )
+  .write_tiledb_array_metadata(matrix_uri, metadata)
+  invisible(NULL)
+}
+
+
 #' print the additional arguments settings
 #' @param FUN The function, e.g. mgcv::gam, without "()"
 #' @param argu_name The argument name of the function
@@ -99,8 +657,9 @@ check_validity_correctPValue <- function(correct.list, name.correct.list,
           "p.value was not included in ",
           name.var.list,
           ", so not to perform its p.value corrections"
-        )
-      ) # TODO: why this warning comes out after ModelArray.aModel is done?
+        ),
+        immediate. = TRUE
+      )
     }
   }
 }
@@ -527,29 +1086,40 @@ bind_cols_check_emptyTibble <- function(a, b) {
 }
 
 
-#' Summarize an HDF5 file without loading a full ModelArray
+#' Summarize ModelArray storage without loading a full ModelArray
 #'
 #' @description
-#' Reads the HDF5 file structure and returns a summary of available scalars,
+#' Reads the storage structure and returns a summary of available scalars,
 #' their dimensions, and any saved analyses. Useful for inspecting large files
 #' without constructing a full \linkS4class{ModelArray} object.
 #'
 #' @details
-#' This function opens the HDF5 file read-only via \code{\link[rhdf5]{h5ls}},
-#' inspects the group structure under \code{/scalars/} and \code{/results/},
-#' and closes the file. It does not load any data into memory. The returned
+#' For HDF5, this function opens the file read-only via
+#' \code{\link[rhdf5]{h5ls}}. For TileDB, it inspects arrays under
+#' \code{/scalars/} and \code{/results/}. It does not load full data matrices
+#' into memory. The returned
 #' object has a \code{print} method that displays a formatted summary.
 #'
-#' @param filepath Character. Path to an HDF5 (\code{.h5}) file.
+#' \code{h5summary()} is a backward-compatible alias for
+#' \code{ModelArraySummary()}. Despite the historical name, it supports both
+#' HDF5 files and TileDB stores.
 #'
-#' @return An object of class \code{"h5summary"}, which is a list with
-#'   components:
+#' @param filepath Character. Path to an HDF5 (\code{.h5}) file or TileDB
+#'   (\code{.tdb}) store.
+#' @param backend Character. Storage backend: \code{"auto"} (default),
+#'   \code{"hdf5"}, or \code{"tiledb"}.
+#'
+#' @return \code{ModelArraySummary()} returns an object of class
+#'   \code{c("ModelArraySummary", "h5summary")}. \code{h5summary()} returns
+#'   an object of class \code{"h5summary"} for backward compatibility. Both
+#'   are lists with components:
 #'   \describe{
 #'     \item{scalars}{A data.frame with columns \code{name},
 #'       \code{nElements}, and \code{nInputFiles}.}
 #'     \item{analyses}{Character vector of analysis names found under
 #'       \code{/results/}.}
 #'     \item{filepath}{The input filepath.}
+#'     \item{backend}{The resolved storage backend.}
 #'   }
 #'
 #' @seealso \code{\link{ModelArray}} for loading the full object,
@@ -557,20 +1127,120 @@ bind_cols_check_emptyTibble <- function(a, b) {
 #'
 #' @examples
 #' \dontrun{
-#' h5summary("path/to/data.h5")
+#' ModelArraySummary("path/to/data.h5")
+#' ModelArraySummary("path/to/store.tdb")
 #'
 #' # Inspect before deciding which scalars to load
-#' info <- h5summary("path/to/data.h5")
+#' info <- ModelArraySummary("path/to/data.h5")
 #' info$scalars$name
 #' ma <- ModelArray("path/to/data.h5", scalar_types = info$scalars$name)
+#'
+#' # Historical alias, still supported
+#' h5summary("path/to/data.h5")
 #' }
 #'
-#' @rdname h5summary
+#' @rdname ModelArraySummary
 #' @export
-h5summary <- function(filepath) {
+ModelArraySummary <- function(filepath, backend = c("auto", "hdf5", "tiledb")) {
+  structure(
+    .modelarray_summary_impl(filepath, backend = backend),
+    class = c("ModelArraySummary", "h5summary")
+  )
+}
+
+#' @rdname ModelArraySummary
+#' @export
+h5summary <- function(filepath, backend = c("auto", "hdf5", "tiledb")) {
+  structure(
+    .modelarray_summary_impl(filepath, backend = backend),
+    class = "h5summary"
+  )
+}
+
+#' @noRd
+.modelarray_summary_impl <- function(filepath, backend = c("auto", "hdf5", "tiledb")) {
   if (!file.exists(filepath)) {
     stop("File not found: ", filepath)
   }
+  backend <- .resolve_storage_backend(filepath, backend)
+  if (identical(backend, "tiledb")) {
+    .require_tiledb_support()
+    scalars_dir <- .modelarray_path(filepath, "scalars")
+    scalar_candidates <- if (dir.exists(scalars_dir)) {
+      basename(list.dirs(scalars_dir, recursive = FALSE, full.names = TRUE))
+    } else {
+      character(0)
+    }
+    scalar_names <- scalar_candidates[vapply(
+      scalar_candidates,
+      function(scalar_name) {
+        .tiledb_object_exists(
+          .modelarray_path(filepath, "scalars", scalar_name, "values"),
+          "ARRAY"
+        )
+      },
+      logical(1)
+    )]
+    scalar_info <- do.call(rbind, lapply(scalar_names, function(scalar_name) {
+      values_uri <- .modelarray_path(filepath, "scalars", scalar_name, "values")
+      dims <- .tiledb_array_dims(values_uri)
+      source_names <- .read_scalar_column_names(filepath, scalar_name, backend)
+      n_input_files <- length(source_names)
+      if (dims[2] == n_input_files) {
+        n_elements <- dims[1]
+      } else if (dims[1] == n_input_files) {
+        n_elements <- dims[2]
+      } else {
+        stop(
+          "TileDB scalar '", scalar_name, "' dimensions ",
+          paste(dims, collapse = " x "),
+          " do not match its ", n_input_files, " stored column names",
+          call. = FALSE
+        )
+      }
+      data.frame(
+        name = scalar_name,
+        nElements = as.integer(n_elements),
+        nInputFiles = as.integer(n_input_files),
+        stringsAsFactors = FALSE
+      )
+    }))
+    if (is.null(scalar_info)) {
+      scalar_info <- data.frame(
+        name = character(0),
+        nElements = integer(0),
+        nInputFiles = integer(0),
+        stringsAsFactors = FALSE
+      )
+    }
+
+    results_dir <- .modelarray_path(filepath, "results")
+    analysis_candidates <- if (dir.exists(results_dir)) {
+      basename(list.dirs(results_dir, recursive = FALSE, full.names = TRUE))
+    } else {
+      character(0)
+    }
+    analyses <- analysis_candidates[vapply(
+      analysis_candidates,
+      function(analysis_name) {
+        .tiledb_object_exists(
+          .modelarray_path(filepath, "results", analysis_name, "results_matrix"),
+          "ARRAY"
+        )
+      },
+      logical(1)
+    )]
+
+    return(
+      list(
+        scalars = scalar_info,
+        analyses = analyses,
+        filepath = filepath,
+        backend = backend
+      )
+    )
+  }
+
   listing <- rhdf5::h5ls(filepath)
   rhdf5::h5closeAll()
 
@@ -601,29 +1271,40 @@ h5summary <- function(filepath) {
   ]
   analyses <- result_groups$name
 
-  structure(
-    list(
-      scalars = scalar_info,
-      analyses = analyses,
-      filepath = filepath
-    ),
-    class = "h5summary"
+  list(
+    scalars = scalar_info,
+    analyses = analyses,
+    filepath = filepath,
+    backend = backend
   )
 }
 
-#' @rdname h5summary
+#' @rdname ModelArraySummary
 #'
-#' @param x An \code{h5summary} object as returned by
-#'   \code{\link{h5summary}}.
+#' @param x A \code{ModelArraySummary} or \code{h5summary} object.
 #' @param ... Additional arguments (currently ignored).
 #'
 #' @return Invisible \code{x}. Called for its side effect of printing a
 #'   human-readable summary to the console.
 #'
+#' @method print ModelArraySummary
+#' @export
+print.ModelArraySummary <- function(x, ...) {
+  .print_modelarray_summary(x, ...)
+}
+
+#' @rdname ModelArraySummary
 #' @method print h5summary
 #' @export
 print.h5summary <- function(x, ...) {
-  cat("H5 file:", x$filepath, "\n\n")
+  .print_modelarray_summary(x, ...)
+}
+
+#' @noRd
+.print_modelarray_summary <- function(x, ...) {
+  backend <- if (is.null(x$backend)) "hdf5" else x$backend
+  label <- if (identical(backend, "tiledb")) "TileDB store" else "H5 file"
+  cat(label, ":", x$filepath, "\n\n", sep = "")
   if (nrow(x$scalars) > 0) {
     cat("Scalars:\n")
     for (i in seq_len(nrow(x$scalars))) {

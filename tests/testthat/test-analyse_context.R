@@ -85,7 +85,7 @@ test_that(".build_base_context attaches only requested scalars when scalar_subse
 test_that(".build_base_context detects collision between scalar names and phenotype columns", {
   fix <- make_test_modelarray(scalars = c("FD"))
   phen_collision <- fix$phen
-  phen_collision$FD <- 1:nrow(phen_collision)
+  phen_collision$FD <- seq_len(nrow(phen_collision))
 
   expect_error(
     .build_base_context(fix$ma, phen_collision, scalar = "FD",
@@ -309,6 +309,187 @@ test_that(".assemble_element_data intersection mask works across scalars", {
   expect_equal(elem$num_valid, 4)
   expect_equal(nrow(elem$dat), 4)
   expect_false(any(is.nan(elem$dat$FC)))
+})
+
+test_that(".with_scalar_row_cache serves cached rows for TileDB-style stores", {
+  store <- tempfile(fileext = ".tdb")
+  dir.create(store)
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+
+  old_block_size <- getOption("ModelArray.tiledb_read_block_size")
+  on.exit(options(ModelArray.tiledb_read_block_size = old_block_size), add = TRUE)
+  options(ModelArray.tiledb_read_block_size = 2L)
+
+  src <- paste0("sub", 1:4)
+  values <- matrix(seq_len(12), nrow = 3, ncol = 4)
+  colnames(values) <- src
+  ma <- methods::new("ModelArray",
+                     sources = list(FD = src),
+                     scalars = list(FD = values),
+                     results = list(),
+                     path = store
+  )
+  phen <- data.frame(
+    source_file = src,
+    age = seq(20, by = 10, length.out = length(src))
+  )
+
+  ctx <- .build_lm_context(FD ~ age, ma, phen, scalar = "FD")
+  cached_ctx <- .with_scalar_row_cache(ctx, as.integer(c(3, 1)))
+
+  expect_named(cached_ctx$scalar_row_cache, "FD")
+  expect_equal(cached_ctx$scalar_row_cache[["FD"]], values[c(3, 1), , drop = FALSE])
+
+  cached_ctx$modelarray@scalars[["FD"]][, ] <- 999
+  elem <- .assemble_element_data(3L, cached_ctx, num.subj.lthr = 0)
+
+  expect_true(elem$sufficient)
+  expect_equal(as.numeric(elem$dat$FD), as.numeric(values[3, ]))
+})
+
+test_that("TileDB row caching honors the backend retained by ModelArray", {
+  path_with_tiledb_suffix <- tempfile(fileext = ".tdb")
+  file.create(path_with_tiledb_suffix)
+  on.exit(unlink(path_with_tiledb_suffix), add = TRUE)
+
+  src <- c("sub1", "sub2")
+  values <- matrix(seq_len(4), nrow = 2, ncol = 2)
+  colnames(values) <- src
+  ma <- methods::new(
+    "ModelArray",
+    sources = list(FD = src),
+    scalars = list(FD = values),
+    results = list(),
+    path = path_with_tiledb_suffix,
+    backend = "hdf5"
+  )
+  phen <- data.frame(source_file = src, age = c(20, 30))
+  ctx <- .build_lm_context(FD ~ age, ma, phen, scalar = "FD")
+
+  expect_identical(.modelarray_backend(ma, path_with_tiledb_suffix), "hdf5")
+  expect_false(.has_tiledb_attached_scalar(ctx))
+  expect_null(.scalar_read_block_size(ctx))
+})
+
+test_that("TileDB read block sizing is memory bounded without a hard row cap", {
+  store <- tempfile(fileext = ".tdb")
+  dir.create(store)
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+
+  old_block_size <- getOption("ModelArray.tiledb_read_block_size")
+  old_block_mb <- getOption("ModelArray.tiledb_read_block_mb")
+  on.exit(options(
+    ModelArray.tiledb_read_block_size = old_block_size,
+    ModelArray.tiledb_read_block_mb = old_block_mb
+  ), add = TRUE)
+  options(
+    ModelArray.tiledb_read_block_size = NULL,
+    ModelArray.tiledb_read_block_mb = 1
+  )
+
+  src <- paste0("sub", 1:2)
+  values <- matrix(seq_len(4), nrow = 2, ncol = 2)
+  colnames(values) <- src
+  ma <- methods::new("ModelArray",
+                     sources = list(FD = src),
+                     scalars = list(FD = values),
+                     results = list(),
+                     path = store
+  )
+  phen <- data.frame(source_file = src, age = c(20, 30))
+  ctx <- .build_lm_context(FD ~ age, ma, phen, scalar = "FD")
+
+  expect_equal(.scalar_read_block_size(ctx), 65536L)
+
+  options(ModelArray.tiledb_read_block_mb = -1)
+  expect_error(
+    .scalar_read_block_size(ctx),
+    "ModelArray.tiledb_read_block_mb must be a positive single number"
+  )
+})
+
+test_that(".report_iteration_progress labels chunked progress bars", {
+  out <- capture.output(
+    .report_iteration_progress(
+      iteration = 1L,
+      total_iterations = 3L,
+      chunk_start = 1L,
+      chunk_end = 10L,
+      total_elements = 25L,
+      pbar = TRUE
+    ),
+    type = "message"
+  )
+  expect_match(paste(out, collapse = "\n"), "iteration 1/3")
+  expect_match(paste(out, collapse = "\n"), "elements 1-10 of 25")
+
+  quiet <- capture.output(
+    .report_iteration_progress(1L, 1L, 1L, 10L, 10L, TRUE),
+    type = "message"
+  )
+  expect_length(quiet, 0L)
+})
+
+test_that("ModelArray.lm returns same output with TileDB-style row cache enabled", {
+  store <- tempfile(fileext = ".tdb")
+  dir.create(store)
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+
+  old_block_size <- getOption("ModelArray.tiledb_read_block_size")
+  on.exit(options(ModelArray.tiledb_read_block_size = old_block_size), add = TRUE)
+
+  src <- paste0("sub", 1:8)
+  values <- matrix(c(
+    1, 3, 2, 7, 5, 9, 8, 6,
+    2, 1, 4, 3, 6, 5, 7, 8,
+    3, 2, 5, 4, 7, 6, 8, 9,
+    4, 6, 5, 8, 9, 7, 10, 11
+  ), nrow = 4, byrow = TRUE)
+  colnames(values) <- src
+  ma <- methods::new("ModelArray",
+                     sources = list(FD = src),
+                     scalars = list(FD = values),
+                     results = list(),
+                     path = store
+  )
+  phen <- data.frame(source_file = src, age = seq(10, 80, by = 10))
+  element_subset <- as.integer(c(4, 1, 3, 2))
+
+  options(ModelArray.tiledb_read_block_size = 2L)
+  cached <- ModelArray.lm(
+    FD ~ age,
+    data = ma,
+    phenotypes = phen,
+    scalar = "FD",
+    element.subset = element_subset,
+    var.terms = c("estimate"),
+    var.model = c("adj.r.squared"),
+    correct.p.value.terms = c("none"),
+    correct.p.value.model = c("none"),
+    num.subj.lthr.abs = 0,
+    n_cores = 1,
+    pbar = FALSE,
+    verbose = FALSE
+  )
+
+  options(ModelArray.tiledb_read_block_size = 0L)
+  uncached <- ModelArray.lm(
+    FD ~ age,
+    data = ma,
+    phenotypes = phen,
+    scalar = "FD",
+    element.subset = element_subset,
+    var.terms = c("estimate"),
+    var.model = c("adj.r.squared"),
+    correct.p.value.terms = c("none"),
+    correct.p.value.model = c("none"),
+    num.subj.lthr.abs = 0,
+    n_cores = 1,
+    pbar = FALSE,
+    verbose = FALSE
+  )
+
+  expect_equal(cached, uncached)
 })
 
 

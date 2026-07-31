@@ -7,7 +7,12 @@
 \alias{show,ModelArray-method}
 \title{ModelArray class}
 \usage{
-ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
+ModelArray(
+  filepath,
+  scalar_types = c("FD"),
+  analysis_names = character(0),
+  backend = c("auto", "hdf5", "tiledb")
+)
 
 \S4method{show}{ModelArray}(object)
 }
@@ -22,19 +27,19 @@ to the console.
 A ModelArray wraps one or more element-wise scalar matrices (e.g., FD, FC,
 log_FC for fixel data) read lazily via \pkg{DelayedArray}, along with any
 previously saved analysis results. The object holds references to the
-underlying HDF5 file and reads data on demand, making it suitable for
+underlying storage and reads data on demand, making it suitable for
 large-scale neuroimaging datasets.
 
-Prints a summary of the ModelArray including file path, scalar dimensions,
+Prints a summary of the ModelArray including file path, source count,
 and any saved analysis names.
 }
 \details{
 ModelArray is an S4 class that represents element-wise scalar data and
-associated statistical results backed by an HDF5 file on disk.
+associated statistical results backed by an HDF5 file or TileDB store on disk.
 
-Each scalar in the HDF5 file is stored at \code{/scalars/<name>/values}
+Each scalar is stored at \code{/scalars/<name>/values}
 as a matrix of elements (rows) by source files (columns). Source filenames
-are read from HDF5 attributes or companion datasets. Analysis results, if
+are read from storage metadata or companion datasets. Analysis results, if
 present, live under \code{/results/<analysis_name>/results_matrix}.
 
 ModelArray objects are typically created with the \code{\link{ModelArray}}
@@ -55,7 +60,10 @@ Each matrix has elements as rows and source files as columns.}
 list containing at minimum \code{results_matrix} (a
 \link[DelayedArray:DelayedArray-class]{DelayedArray::DelayedArray}).}
 
-\item{\code{path}}{Character. Path(s) to the HDF5 file(s) on disk.}
+\item{\code{path}}{Character. Path(s) to the HDF5 file(s) or TileDB store(s) on disk.}
+
+\item{\code{backend}}{Character. Resolved storage backend(s) for \code{path}:
+\code{"hdf5"} or \code{"tiledb"}.}
 }}
 
 \seealso{

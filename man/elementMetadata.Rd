@@ -14,13 +14,15 @@ elementMetadata(x)
 }
 \value{
 A matrix or data.frame of element metadata if found, or \code{NULL}
-if no known metadata dataset exists in the HDF5 file.
+if no known metadata dataset exists.
 }
 \description{
 Reads element metadata (e.g., greyordinates for CIFTI data, or fixel/voxel
-coordinate information) from the HDF5 file if present. The function searches
-for known metadata dataset names (\code{"greyordinates"}, \code{"fixels"},
-\code{"voxels"}) at the top level of the HDF5 file.
+coordinate information) from the HDF5 file or TileDB store if present. The
+function searches for known metadata dataset names (\code{"greyordinates"},
+\code{"fixels"}, \code{"voxels"}) at the top level of the storage backend.
+It uses the backend retained when the \code{ModelArray} was constructed, so
+an explicit constructor choice is preserved.
 }
 \examples{
 \dontrun{

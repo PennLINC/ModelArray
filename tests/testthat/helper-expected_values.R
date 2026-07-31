@@ -76,7 +76,7 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
   onemodel.tidy.parametricTerms <- onemodel %>% broom::tidy(parametric = TRUE)
   # needs to use broom::glance instead of broom::glance.gam()!
   onemodel.glance <- onemodel %>% broom::glance()
-  onemodel.summary <- onemodel %>% summary.gam()
+  onemodel.summary <- onemodel %>% mgcv::summary.gam()
   # add additional model's stat to onemodel.glance():
   onemodel.glance[["adj.r.squared"]] <- onemodel.summary$r.sq
   onemodel.glance[["dev.expl"]] <- onemodel.summary$dev.expl
@@ -142,17 +142,17 @@ calcu_stat_gam <- function(formula, data, i_element = idx.fixel.gam, ...) {
   # all(union) = c(TRUE, FALSE, ...)
   temp <- union(temp_colnames, "term")
   # just an empty tibble (so below, all(dim(onemodel.tidy.smoothTerms)) = FALSE)
-  if (all(temp == "term")) onemodel.tidy.smoothTerms <- tibble()
+  if (all(temp == "term")) onemodel.tidy.smoothTerms <- tibble::tibble()
 
   temp_colnames <- onemodel.tidy.parametricTerms %>% colnames()
   temp <- union(temp_colnames, "term")
   # just an empty tibble
-  if (all(temp == "term")) onemodel.tidy.parametricTerms <- tibble()
+  if (all(temp == "term")) onemodel.tidy.parametricTerms <- tibble::tibble()
 
   temp_colnames <- onemodel.glance %>% colnames()
   temp <- union(temp_colnames, "term")
   # just an empty tibble
-  if (all(temp == "term")) onemodel.glance <- tibble()
+  if (all(temp == "term")) onemodel.glance <- tibble::tibble()
 
 
   ## flatten:
@@ -256,7 +256,7 @@ helper_generate_expect_lm <- function(fn.phenotypes,
 
   fd.simu <- h5d[idx.fixel.lm, ]
 
-  h5closeAll()
+  rhdf5::h5closeAll()
 
 
   data <- phenotypes
@@ -355,7 +355,7 @@ helper_generate_expect_gam <- function(fn.phenotypes,
 
   fd.simu <- h5d[idx.fixel.gam, ]
 
-  h5closeAll()
+  rhdf5::h5closeAll()
 
   data <- phenotypes
   data$FD <- fd.simu
@@ -554,7 +554,7 @@ helper_gen_exp_accessors <- function(fn.h5) {
   scalar.value.full <- h5f$scalars$FD$values # enter the dataset
   # ^ has been realized as matrix, taking ~70MB of memory if using n50_fixels.h5 file
 
-  h5closeAll()
+  rhdf5::h5closeAll()
 
   scalar.value.full
 }

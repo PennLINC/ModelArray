@@ -7,12 +7,13 @@
 \description{
 The ModelArray package provides an S4 class and associated methods for
 performing massively univariate statistical analyses on element-wise
-(fixel, voxel, or vertex) neuroimaging data stored in HDF5 files.
+(fixel, voxel, or vertex) neuroimaging data stored in HDF5 files or
+TileDB stores.
 }
 \details{
 The core workflow is:
 \enumerate{
-\item Inspect an HDF5 file with \code{\link{h5summary}()}
+\item Inspect storage with \code{\link{ModelArraySummary}()}
 \item Load data with \code{\link{ModelArray}()}
 \item Fit models with \code{\link{ModelArray.lm}},
 \code{\link{ModelArray.gam}}, or \code{\link{ModelArray.wrap}}
@@ -40,7 +41,7 @@ analysis of fixel-wise data. \emph{NeuroImage}, 271, 120037.
 \linkS4class{ModelArray}, \code{\link{ModelArray}},
 \code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}},
 \code{\link{ModelArray.wrap}}, \code{\link{mergeModelArrays}},
-\code{\link{h5summary}}
+\code{\link{ModelArraySummary}}
 }
 \author{
 \strong{Maintainer}: Matthew Cieslak \email{Matthew.Cieslak@pennmedicine.upenn.edu}

@@ -20,8 +20,8 @@ test_that("S4 accessors and helpers cover low-hanging branches", {
 
   # show() formatting branch
   shown <- paste(capture.output(show(modelarray)), collapse = "\n")
-  expect_match(shown, "elements x")
-  expect_match(shown, "input files")
+  expect_match(shown, "Source files:\\s+2")
+  expect_match(shown, "Scalars:\\s+FD, FA")
   expect_match(shown, "Analyses:")
 
   # helper success + error branches
@@ -53,6 +53,13 @@ test_that("S4 accessors and helpers cover low-hanging branches", {
   )
 })
 
+write_test_hdf5_attribute <- function(filepath, object_path, attr_name, value) {
+  h5 <- hdf5r::H5File$new(filepath, mode = "a")
+  on.exit(h5$close_all(), add = TRUE)
+  h5[[object_path]]$create_attr(attr_name, robj = value)
+  invisible(NULL)
+}
+
 test_that("ModelArray constructor falls back to dataset column names and transposes values", {
   h5_path <- tempfile(fileext = ".h5")
   on.exit(unlink(h5_path), add = TRUE)
@@ -76,6 +83,25 @@ test_that("ModelArray constructor falls back to dataset column names and transpo
   expect_identical(colnames(scalars(modelarray)$FD), c("subA", "subB"))
   # No /results group in file, so requesting analyses should return empty list.
   expect_identical(results(modelarray), list())
+})
+
+test_that("elementMetadata honors the constructor's explicit backend", {
+  h5_path <- tempfile(fileext = ".tdb")
+  on.exit(unlink(h5_path), add = TRUE)
+
+  metadata <- matrix(c(10, 20, 30, 40, 50, 60), nrow = 3, byrow = TRUE)
+  h5 <- hdf5r::H5File$new(h5_path, mode = "w")
+  scalars_grp <- h5$create_group("scalars")
+  fd_grp <- scalars_grp$create_group("FD")
+  fd_grp[["values"]] <- matrix(1:6, nrow = 3, ncol = 2)
+  fd_grp[["column_names"]] <- c("subA", "subB")
+  h5[["fixels"]] <- metadata
+  h5$close_all()
+
+  modelarray <- ModelArray(h5_path, scalar_types = "FD", backend = "hdf5")
+
+  expect_identical(modelarray@backend, "hdf5")
+  expect_equal(elementMetadata(modelarray), metadata)
 })
 
 test_that("ModelArray constructor errors when scalar column names are unavailable", {
@@ -102,22 +128,12 @@ test_that("ModelArray constructor supports backward-compatible column-name attri
   rhdf5::h5createGroup(h5_path, "scalars")
   rhdf5::h5createGroup(h5_path, "scalars/FD")
   rhdf5::h5write(matrix(1:6, nrow = 3, ncol = 2), h5_path, "scalars/FD/values")
-  rhdf5::h5writeAttribute(
-    attr = c("attr_sub1", "attr_sub2"),
-    h5obj = h5_path,
-    name = "column_names",
-    h5loc = "scalars/FD/values"
-  )
+  write_test_hdf5_attribute(h5_path, "scalars/FD/values", "column_names", c("attr_sub1", "attr_sub2"))
 
   rhdf5::h5createGroup(h5_path, "results")
   rhdf5::h5createGroup(h5_path, "results/my_analysis")
   rhdf5::h5write(matrix(c(10, 20, 30, 40), nrow = 2, ncol = 2), h5_path, "results/my_analysis/results_matrix")
-  rhdf5::h5writeAttribute(
-    attr = c("beta", "p.value"),
-    h5obj = h5_path,
-    name = "colnames",
-    h5loc = "results/my_analysis/results_matrix"
-  )
+  write_test_hdf5_attribute(h5_path, "results/my_analysis/results_matrix", "colnames", c("beta", "p.value"))
 
   modelarray <- ModelArray(
     h5_path,
@@ -141,23 +157,18 @@ test_that("ModelArray constructor prefers attributes over dataset column-name fa
   rhdf5::h5createGroup(h5_path, "scalars")
   rhdf5::h5createGroup(h5_path, "scalars/FD")
   rhdf5::h5write(matrix(1:6, nrow = 3, ncol = 2), h5_path, "scalars/FD/values")
-  rhdf5::h5writeAttribute(
-    attr = c("attr_sub1", "attr_sub2"),
-    h5obj = h5_path,
-    name = "column_names",
-    h5loc = "scalars/FD/values"
-  )
+  write_test_hdf5_attribute(h5_path, "scalars/FD/values", "column_names", c("attr_sub1", "attr_sub2"))
   # Conflicting fallback path should be ignored when attribute exists.
   rhdf5::h5write(c("fallback_sub1", "fallback_sub2"), h5_path, "scalars/FD/column_names")
 
   rhdf5::h5createGroup(h5_path, "results")
   rhdf5::h5createGroup(h5_path, "results/my_analysis")
   rhdf5::h5write(matrix(c(10, 20, 30, 40), nrow = 2, ncol = 2), h5_path, "results/my_analysis/results_matrix")
-  rhdf5::h5writeAttribute(
-    attr = c("attr_beta", "attr_p.value"),
-    h5obj = h5_path,
-    name = "colnames",
-    h5loc = "results/my_analysis/results_matrix"
+  write_test_hdf5_attribute(
+    h5_path,
+    "results/my_analysis/results_matrix",
+    "colnames",
+    c("attr_beta", "attr_p.value")
   )
   # Conflicting fallback path should be ignored when attribute exists.
   rhdf5::h5write(c("fallback_beta", "fallback_p"), h5_path, "results/my_analysis/column_names")
