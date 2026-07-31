@@ -7,11 +7,11 @@ same model independently at every spatial location within the brain
 mask. We call each spatial location an **element**. Depending on the
 imaging modality, an element is one of:
 
-| Modality               | Element type                     | Typical count    | File format            |
-|:-----------------------|:---------------------------------|:-----------------|:-----------------------|
-| Fixel-based analysis   | Fixel (fiber population element) | ~600,000         | `.mif`                 |
-| Voxel-based analysis   | Voxel                            | ~200,000–400,000 | NIfTI (`.nii.gz`)      |
-| Surface-based analysis | Greyordinate (cortical vertex)   | ~330,000         | CIFTI (`.dscalar.nii`) |
+| Modality | Element type | Typical count | File format |
+|:---|:---|:---|:---|
+| Fixel-based analysis | Fixel (fiber population element) | ~600,000 | `.mif` |
+| Voxel-based analysis | Voxel | ~200,000–400,000 | NIfTI (`.nii.gz`) |
+| Surface-based analysis | Greyordinate (cortical vertex) | ~330,000 | CIFTI (`.dscalar.nii`) |
 
 Despite the differences in what they represent, ModelArray treats all of
 these uniformly. The same analysis functions -
@@ -35,6 +35,7 @@ Each cell contains the scalar value (e.g., FDC, cortical thickness, FA)
 for that element in that input file.
 
 ``` r
+
 library(ModelArray)
 
 # Create a ModelArray object from an HDF5 file
@@ -43,6 +44,25 @@ modelarray <- ModelArray("path/to/data.h5", scalar_types = c("FDC"))
 # View the scalar matrix
 scalars(modelarray)[["FDC"]]
 ```
+
+**TileDB**
+
+For TileDB-backed data, the same scalar matrix is stored in a
+directory-backed `.tdb` store instead of a single `.h5` file:
+
+``` r
+
+library(ModelArray)
+
+# Create a ModelArray object from a TileDB store
+modelarray <- ModelArray("path/to/data.tdb", scalar_types = c("FDC"))
+
+# View the scalar matrix
+scalars(modelarray)[["FDC"]]
+```
+
+ModelArray auto-detects paths ending in `.tdb`; you can also pass
+`backend = "tiledb"` explicitly.
 
 ``` console
 <602229 x 100> matrix of class DelayedMatrix and type "double":
@@ -56,8 +76,15 @@ scalars(modelarray)[["FDC"]]
 This is a `DelayedMatrix`, meaning the data lives on disk in the HDF5
 file and is only read into memory when accessed. This is what makes
 ModelArray memory-efficient — see
-[`vignette("hdf5-large-analyses")`](https://pennlinc.github.io/ModelArray/articles/hdf5-large-analyses.md)
+[`vignette("large-scale-analyses")`](https://pennlinc.github.io/ModelArray/articles/large-scale-analyses.md)
 for details.
+
+**TileDB**
+
+TileDB-backed scalar matrices are also exposed through the
+`DelayedArray` interface. Values are read from the `.tdb` store only
+when requested, so the same accessor and modelling code works for both
+backends.
 
 ## Element IDs
 
@@ -70,6 +97,7 @@ When you run a model with ModelArray, the output data frame includes an
 element:
 
 ``` r
+
 result <- ModelArray.lm(FDC ~ Age + sex, modelarray, phenotypes, "FDC",
   element.subset = 1:5
 )
@@ -83,6 +111,7 @@ result$element_id
 You can check the total number of elements with:
 
 ``` r
+
 numElementsTotal(modelarray, "FDC")
 ```
 
@@ -107,6 +136,7 @@ matrix. For example, `element.subset = 1:100` runs on elements with IDs
 0 through 99 (the first 100 rows of the matrix).
 
 ``` r
+
 # Test on the first 100 elements
 result_test <- ModelArray.lm(FDC ~ Age + sex, modelarray, phenotypes, "FDC",
   element.subset = 1:100
@@ -138,6 +168,7 @@ values exceeds **both** thresholds. Otherwise, the voxel is skipped and
 its outputs are set to `NaN`.
 
 ``` r
+
 # Require at least 10 subjects AND at least 20% of total subjects
 result <- ModelArray.lm(FA ~ Age + sex, modelarray, phenotypes, "FA",
   num.subj.lthr.abs = 10,

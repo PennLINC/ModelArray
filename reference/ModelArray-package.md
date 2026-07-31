@@ -2,14 +2,15 @@
 
 The ModelArray package provides an S4 class and associated methods for
 performing massively univariate statistical analyses on element-wise
-(fixel, voxel, or vertex) neuroimaging data stored in HDF5 files.
+(fixel, voxel, or vertex) neuroimaging data stored in HDF5 files or
+TileDB stores.
 
 ## Details
 
 The core workflow is:
 
-1.  Inspect an HDF5 file with
-    [`h5summary()`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+1.  Inspect storage with
+    [`ModelArraySummary()`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
 
 2.  Load data with
     [`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html)
@@ -50,7 +51,7 @@ analysis of fixel-wise data. *NeuroImage*, 271, 120037.
 [`ModelArray.gam`](https://pennlinc.github.io/ModelArray/reference/ModelArray.gam.md),
 [`ModelArray.wrap`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md),
 [`mergeModelArrays`](https://pennlinc.github.io/ModelArray/reference/mergeModelArrays.md),
-[`h5summary`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+[`ModelArraySummary`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
 
 ## Author
 

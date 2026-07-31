@@ -7,8 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Developer documentation • ModelArray</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Developer documentation">
 </head>
@@ -35,8 +35,8 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-introduction">
 <li><a class="dropdown-item" href="../articles/elements.html">Elements: The Unit of Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/element-splitting.html">Splitting Element IDs</a></li>
-    <li><a class="dropdown-item" href="../articles/hdf5-format.html">Understanding the HDF5 File</a></li>
-    <li><a class="dropdown-item" href="../articles/hdf5-large-analyses.html">HDF5 for Large-Scale Analyses</a></li>
+    <li><a class="dropdown-item" href="../articles/modelarray-storage.html">Understanding ModelArray Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/large-scale-analyses.html">Large-Scale Analyses</a></li>
   </ul>
 </li>
 <li class="active nav-item dropdown">
@@ -44,7 +44,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-case-studies">
 <li><a class="dropdown-item" href="../articles/walkthrough.html">End-to-End Walkthrough</a></li>
     <li><a class="dropdown-item" href="../articles/modelling.html">Modelling in Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/exploring-h5.html">Exploring Data with Convenience Functions</a></li>
+    <li><a class="dropdown-item" href="../articles/exploring-modelarray-data.html">Exploring Data with Convenience Functions</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Resources</h6></li>
     <li><a class="dropdown-item" href="../articles/container.html">Containers</a></li>
@@ -145,20 +145,19 @@ instance of <code>ModelArray</code> class) has several slots:</p>
 data)</li>
 <li>scalars: scalar matrix (or matrices)</li>
 <li>results: statistical result matrices (if any)</li>
-<li>path: the path to the h5 file on disk</li>
+<li>path: the path to the HDF5 file or TileDB store</li>
+<li>backend: the resolved storage backend (<code>"hdf5"</code> or
+<code>"tiledb"</code>)</li>
 </ul>
-<p>The key feature of an <code>ModelArray</code> object is memory
-efficient. This is because the entire dataset in HDF5 (.h5) file was not
-loaded into the memory; only minimal data was loaded. To achieve this,
-we first need <code>ModelArraySeed()</code>, which utilizes
-<code><a href="https://rdrr.io/pkg/HDF5Array/man/HDF5ArraySeed-class.html" class="external-link">HDF5Array::HDF5ArraySeed()</a></code>, acting as a pointer to the
-.hdf5 file on disk. To make the arrays in the <code>ModelArray</code>
-object look more like “real” arrays, e.g. common array operations such
-as indexing and transposing can be applied, we utilize package
-<code>DelayedArray</code> to wraps the data in on-disk HDF5 file into a
-<code>DelayedArray</code> object. Finally a <code>ModelArray</code>
-class is defined by integrating above slots together. This is done in
-the <code><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray()</a></code> function.</p>
+<p>The key feature of a <code>ModelArray</code> object is memory
+efficiency: the full dataset is not loaded into memory.
+<code>ModelArraySeed()</code> creates an
+<code><a href="https://rdrr.io/pkg/HDF5Array/man/HDF5ArraySeed-class.html" class="external-link">HDF5Array::HDF5ArraySeed()</a></code> or
+<code><a href="https://rdrr.io/pkg/TileDBArray/man/TileDBArray.html" class="external-link">TileDBArray::TileDBArraySeed()</a></code> that points to the on-disk
+data. The <code>DelayedArray</code> package wraps that seed so common
+array operations, such as indexing and transposing, remain available.
+The <code><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray()</a></code> function combines these delayed arrays
+with the other slots above.</p>
 <p>Above functions and setups can be found in script
 <code>R/ModelArray_Constructor.R</code></p>
 </div>
@@ -371,7 +370,7 @@ more details on these setups.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

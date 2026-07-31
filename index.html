@@ -7,8 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>An R package for statistical analysis of fixel-wise data and beyond • ModelArray</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="An R package for statistical analysis of fixel-wise data and beyond">
 <meta name="description" content="ModelArray is an R package for statistical analysis of fixel-wise data and beyond.">
@@ -37,8 +37,8 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-introduction">
 <li><a class="dropdown-item" href="articles/elements.html">Elements: The Unit of Analysis</a></li>
     <li><a class="dropdown-item" href="articles/element-splitting.html">Splitting Element IDs</a></li>
-    <li><a class="dropdown-item" href="articles/hdf5-format.html">Understanding the HDF5 File</a></li>
-    <li><a class="dropdown-item" href="articles/hdf5-large-analyses.html">HDF5 for Large-Scale Analyses</a></li>
+    <li><a class="dropdown-item" href="articles/modelarray-storage.html">Understanding ModelArray Storage</a></li>
+    <li><a class="dropdown-item" href="articles/large-scale-analyses.html">Large-Scale Analyses</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -46,7 +46,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-case-studies">
 <li><a class="dropdown-item" href="articles/walkthrough.html">End-to-End Walkthrough</a></li>
     <li><a class="dropdown-item" href="articles/modelling.html">Modelling in Depth</a></li>
-    <li><a class="dropdown-item" href="articles/exploring-h5.html">Exploring Data with Convenience Functions</a></li>
+    <li><a class="dropdown-item" href="articles/exploring-modelarray-data.html">Exploring Data with Convenience Functions</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Resources</h6></li>
     <li><a class="dropdown-item" href="articles/container.html">Containers</a></li>
@@ -87,7 +87,7 @@
 <div class="section level2">
 <h2 id="why-modelarray">Why ModelArray?<a class="anchor" aria-label="anchor" href="#why-modelarray"></a>
 </h2>
-<p><strong>It scales.</strong> ModelArray uses <a href="https://www.hdfgroup.org/solutions/hdf5/" class="external-link">HDF5</a> for on-disk storage and <a href="https://bioconductor.org/packages/DelayedArray/" class="external-link">DelayedArray</a> for lazy access. An ABCC dMRI dataset has ~350,000 voxels × ~26,000-sessions - about 291 GB if loaded in its entirety - never enters RAM. ModelArray reads one element at a time, so memory usage stays flat regardless of dataset size.</p>
+<p><strong>It scales.</strong> ModelArray uses <a href="https://www.hdfgroup.org/solutions/hdf5/" class="external-link">HDF5</a> by default, and can also read TileDB stores when the optional <a href="https://tiledb.com/" class="external-link">TileDB</a> R packages are installed. Both backends use <a href="https://bioconductor.org/packages/DelayedArray/" class="external-link">DelayedArray</a> for lazy access. An ABCC dMRI dataset has ~350,000 voxels × ~26,000-sessions - about 291 GB if loaded in its entirety - never enters RAM. ModelArray reads one element at a time, so memory usage stays flat regardless of dataset size.</p>
 <p><strong>It’s flexible.</strong> Beyond linear models, ModelArray supports:</p>
 <ul>
 <li>
@@ -95,16 +95,14 @@
 <li>
 <strong>Any R modeling function</strong> (<code><a href="reference/ModelArray.wrap.html">ModelArray.wrap()</a></code>) — if you can write a function that takes a data frame and returns a row of statistics, ModelArray will run it across your entire dataset</li>
 </ul>
-<p><strong>It works with what you have.</strong> ModelArray is modality-agnostic — the same code works for fixel-wise data, voxel-wise data, and surface-based greyordinate data. The companion tool <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a> handles conversion from <code>.mif</code>, NIfTI, and CIFTI formats into the HDF5 file that ModelArray expects.</p>
+<p><strong>It works with what you have.</strong> ModelArray is modality-agnostic — the same code works for fixel-wise data, voxel-wise data, and surface-based greyordinate data. The companion tool <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a> handles conversion from <code>.mif</code>, NIfTI, and CIFTI formats into HDF5 files or TileDB stores that ModelArray can read.</p>
 <p><strong>It’s been peer-reviewed.</strong> ModelArray was published in <em>NeuroImage</em> in 2023 and has been used in studies of lifespan brain development.</p>
 </div>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
 <center>
-<figure><img src="reference/figures/overview_structure.svg" alt="Overview"><figcaption aria-hidden="true">
-Overview
-</figcaption></figure>
+<p><a href="https://github.com/PennLINC/ModelArrayIO/blob/main/docs/_static/overview_structure.png" class="external-link"><img src="https://raw.githubusercontent.com/PennLINC/ModelArrayIO/main/docs/_static/overview_structure.png" alt="Overview"></a></p>
 </center>
 </div>
 <div class="section level2">
@@ -119,6 +117,14 @@ Overview
 </ol>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"PennLINC/ModelArray"</span><span class="op">)</span></span></code></pre></div>
+<p>Optional TileDB support:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"jsonlite"</span>, <span class="st">"tiledb"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"BiocManager"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu">install</span><span class="op">(</span><span class="st">"TileDBArray"</span><span class="op">)</span></span></code></pre></div>
 <p>Prefer a container? A <a href="https://hub.docker.com/r/pennlinc/modelarray_confixel" class="external-link">Docker/Singularity image</a> with ModelArray and ModelArrayIO pre-installed is available — useful for HPC clusters where you can’t install system libraries.</p>
 </div>
 <div class="section level2">
@@ -182,7 +188,7 @@ Overview
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

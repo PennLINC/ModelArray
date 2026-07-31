@@ -104,12 +104,12 @@ ModelArray.wrap(
 - write_scalar_name:
 
   Optional character. If provided, selected output columns are written
-  into `scalars/<write_scalar_name>/values` in the HDF5 file specified
-  by `write_scalar_file`.
+  into `scalars/<write_scalar_name>/values` in the output specified by
+  `write_scalar_file`.
 
 - write_scalar_file:
 
-  Optional character. HDF5 output file path. Required when
+  Optional character. HDF5 file path or TileDB store path. Required when
   `write_scalar_name` is provided.
 
 - write_scalar_columns:
@@ -130,23 +130,25 @@ ModelArray.wrap(
 
 - write_scalar_storage_mode:
 
-  Character. Storage mode for scalar writes (e.g. `"double"`). Default
-  `"double"`.
+  Character. Storage mode for scalar writes (e.g. `"double"`). TileDB
+  supports `"logical"`, `"integer"`, and `"double"`. Default `"double"`.
 
 - write_scalar_compression_level:
 
-  Integer 0–9. Gzip compression level for scalar writes. Default 4.
+  Integer 0–9. Gzip compression level for HDF5 and TileDB scalar writes.
+  Default 4.
 
 - write_results_name:
 
   Optional character. If provided, results are incrementally written to
-  `results/<write_results_name>/results_matrix` in the HDF5 file
-  specified by `write_results_file`.
+  `results/<write_results_name>/results_matrix` in the output specified
+  by `write_results_file`.
 
 - write_results_file:
 
-  Optional character. HDF5 file path for incremental result writes.
-  Required when `write_results_name` is provided.
+  Optional character. HDF5 file path or TileDB store path for
+  incremental result writes. Required when `write_results_name` is
+  provided.
 
 - write_results_flush_every:
 
@@ -164,8 +166,8 @@ ModelArray.wrap(
 - return_output:
 
   Logical. If `TRUE` (default), return the combined data.frame. If
-  `FALSE`, return `invisible(NULL)`; useful when writing large outputs
-  directly to HDF5.
+  `FALSE`, return `invisible(NULL)`; useful when writing outputs
+  directly to storage.
 
 - ...:
 

@@ -7,8 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>End-to-End Walkthrough • ModelArray</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="End-to-End Walkthrough">
 </head>
@@ -35,8 +35,8 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-introduction">
 <li><a class="dropdown-item" href="../articles/elements.html">Elements: The Unit of Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/element-splitting.html">Splitting Element IDs</a></li>
-    <li><a class="dropdown-item" href="../articles/hdf5-format.html">Understanding the HDF5 File</a></li>
-    <li><a class="dropdown-item" href="../articles/hdf5-large-analyses.html">HDF5 for Large-Scale Analyses</a></li>
+    <li><a class="dropdown-item" href="../articles/modelarray-storage.html">Understanding ModelArray Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/large-scale-analyses.html">Large-Scale Analyses</a></li>
   </ul>
 </li>
 <li class="active nav-item dropdown">
@@ -44,7 +44,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-case-studies">
 <li><a class="dropdown-item" href="../articles/walkthrough.html">End-to-End Walkthrough</a></li>
     <li><a class="dropdown-item" href="../articles/modelling.html">Modelling in Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/exploring-h5.html">Exploring Data with Convenience Functions</a></li>
+    <li><a class="dropdown-item" href="../articles/exploring-modelarray-data.html">Exploring Data with Convenience Functions</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Resources</h6></li>
     <li><a class="dropdown-item" href="../articles/container.html">Containers</a></li>
@@ -85,6 +85,20 @@ in three steps. We use demo fixel-wise FDC data from 100 subjects (ages
 <p>For deeper background on the concepts here, see the <a href="../articles/elements.html">Introductions</a> vignettes. For more
 modelling options (GAMs, custom functions), see
 <code><a href="../articles/modelling.html">vignette("modelling")</a></code>.</p>
+<style>
+.tiledb-toggle {
+  background-color: #eaf4ff;
+  border-left: 4px solid #2b6cb0;
+  border-radius: 6px;
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+}
+
+.tiledb-toggle summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+</style>
 <div class="section level2">
 <h2 id="step-1--prepare-data-and-convert-to-hdf5">Step 1. Prepare data and convert to HDF5<a class="anchor" aria-label="anchor" href="#step-1--prepare-data-and-convert-to-hdf5"></a>
 </h2>
@@ -115,9 +129,9 @@ and two required columns:</p>
 <code>scalar_name</code>: the metric name (e.g.,
 <code>FDC</code>)</li>
 <li>
-<code>source_file</code>: path to that subject’s data file, relative
-to <code>--relative-root</code>
-</li>
+<code>source_file</code>: path to that subject’s data file, either
+absolute or relative to the directory from which
+<code>modelarrayio</code> is run</li>
 </ul>
 <table class="table">
 <colgroup>
@@ -167,18 +181,65 @@ to <code>--relative-root</code>
 <div class="section level3">
 <h3 id="convert-to-hdf5">Convert to HDF5<a class="anchor" aria-label="anchor" href="#convert-to-hdf5"></a>
 </h3>
-<p>Use the <code>confixel</code> command from <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a> to
+<p>Use the <code>modelarrayio to-modelarray</code> command from <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a> to
 convert the <code>.mif</code> files into an HDF5 file (see
-<code><a href="../articles/hdf5-format.html">vignette("hdf5-format")</a></code> for what this file contains):</p>
+<code><a href="../articles/modelarray-storage.html">vignette("modelarray-storage")</a></code> for what this file
+contains):</p>
 <pre class="console"><code>$ conda activate modelarray
-$ confixel \
+$ modelarrayio to-modelarray \
+    --backend hdf5 \
     --index-file FDC/index.mif \
     --directions-file FDC/directions.mif \
     --cohort-file cohort_FDC_n100.csv \
-    --relative-root /home/&lt;username&gt;/Desktop/myProject \
-    --output-hdf5 demo_FDC_n100.h5</code></pre>
-<p>For voxel-wise data, use <code>convoxel</code> instead. For CIFTI
-surface data, use <code>concifti</code>. See the <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO docs</a>
+    --output demo_FDC_n100.h5</code></pre>
+<details class="tiledb-toggle"><summary><strong>TileDB</strong>
+</summary><p>Use <code>--backend tiledb</code> to create a directory-backed TileDB
+ModelArray store instead of a single <code>.h5</code> file:</p>
+<pre class="console"><code>$ conda activate modelarray
+$ modelarrayio to-modelarray \
+    --backend tiledb \
+    --index-file FDC/index.mif \
+    --directions-file FDC/directions.mif \
+    --cohort-file cohort_FDC_n100.csv \
+    --output demo_FDC_n100.tdb</code></pre>
+<p>TileDB support in R requires the optional <code>tiledb</code> and
+<code>TileDBArray</code> packages. See the optional TileDB installation
+notes in <code><a href="../articles/installations.html">vignette("installations")</a></code>.</p>
+</details><p>Use the same conversion command for other modalities, changing only
+the modality-specific arguments:</p>
+<table class="table">
+<colgroup>
+<col width="29%">
+<col width="24%">
+<col width="45%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Data type</th>
+<th align="left">Command</th>
+<th align="left">Extra arguments</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Fixel</td>
+<td align="left"><code>modelarrayio to-modelarray</code></td>
+<td align="left">
+<code>--index-file</code> and
+<code>--directions-file</code>
+</td>
+</tr>
+<tr class="even">
+<td align="left">Voxel</td>
+<td align="left"><code>modelarrayio to-modelarray</code></td>
+<td align="left"><code>--mask</code></td>
+</tr>
+<tr class="odd">
+<td align="left">CIFTI</td>
+<td align="left"><code>modelarrayio to-modelarray</code></td>
+<td align="left">No extra arguments</td>
+</tr>
+</tbody>
+</table>
+<p>See the <a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO docs</a>
 for details.</p>
 </div>
 </div>
@@ -189,7 +250,7 @@ for details.</p>
 <div class="section level3">
 <h3 id="load-the-data">Load the data<a class="anchor" aria-label="anchor" href="#load-the-data"></a>
 </h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pennlinc.github.io/ModelArray">ModelArray</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">h5_path</span> <span class="op">&lt;-</span> <span class="st">"~/Desktop/myProject/demo_FDC_n100.h5"</span></span>
@@ -202,7 +263,20 @@ for details.</p>
   Source files:     100
   Scalars:          FDC
   Analyses:</code></pre>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<details class="tiledb-toggle"><summary><strong>TileDB</strong>
+</summary><p>When the path ends in <code>.tdb</code>, ModelArray auto-detects the
+TileDB backend:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pennlinc.github.io/ModelArray">ModelArray</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tdb_path</span> <span class="op">&lt;-</span> <span class="st">"~/Desktop/myProject/demo_FDC_n100.tdb"</span></span>
+<span><span class="va">csv_path</span> <span class="op">&lt;-</span> <span class="st">"~/Desktop/myProject/cohort_FDC_n100.csv"</span></span>
+<span></span>
+<span><span class="va">modelarray</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="va">tdb_path</span>, scalar_types <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FDC"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">modelarray</span></span></code></pre></div>
+<p>You can also be explicit with <code>backend = "tiledb"</code> if you
+prefer.</p>
+</details><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">phenotypes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">csv_path</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -210,7 +284,7 @@ for details.</p>
 </h3>
 <p>Always test on a small subset of elements first to verify the model
 runs correctly:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">formula.lm</span> <span class="op">&lt;-</span> <span class="va">FDC</span> <span class="op">~</span> <span class="va">Age</span> <span class="op">+</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">dti64MeanRelRMS</span></span>
 <span></span>
 <span><span class="va">result_test</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">formula.lm</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FDC"</span>,</span>
@@ -236,7 +310,7 @@ each statistic:</p>
 </h3>
 <p>Once the test looks right, run on all elements. Use
 <code>n_cores</code> to speed things up:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result_full</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ModelArray.lm.html">ModelArray.lm</a></span><span class="op">(</span><span class="va">formula.lm</span>, <span class="va">modelarray</span>, <span class="va">phenotypes</span>, <span class="st">"FDC"</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -246,10 +320,21 @@ this takes about 2.5 hours for 602,229 fixels.</p>
 <div class="section level3">
 <h3 id="save-results-to-hdf5">Save results to HDF5<a class="anchor" aria-label="anchor" href="#save-results-to-hdf5"></a>
 </h3>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span><span class="va">h5_path</span>, df.output <span class="op">=</span> <span class="va">result_full</span>, analysis_name <span class="op">=</span> <span class="st">"results_lm"</span><span class="op">)</span></span></code></pre></div>
-<p>You can verify the results were saved:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<details class="tiledb-toggle"><summary><strong>TileDB</strong>
+</summary><p>Write the same result table back into a TileDB store by using the
+<code>.tdb</code> path. The explicit backend argument is optional for
+<code>.tdb</code> paths, but shown here for clarity:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span></span>
+<span>  fn.output <span class="op">=</span> <span class="va">tdb_path</span>,</span>
+<span>  df.output <span class="op">=</span> <span class="va">result_full</span>,</span>
+<span>  analysis_name <span class="op">=</span> <span class="st">"results_lm"</span>,</span>
+<span>  backend <span class="op">=</span> <span class="st">"tiledb"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</details><p>You can verify the results were saved:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">modelarray_new</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span><span class="va">h5_path</span>,</span>
 <span>  scalar_types <span class="op">=</span> <span class="st">"FDC"</span>,</span>
 <span>  analysis_names <span class="op">=</span> <span class="st">"results_lm"</span></span>
@@ -260,6 +345,16 @@ this takes about 2.5 hours for 602,229 fixels.</p>
   Source files:     100
   Scalars:          FDC
   Analyses:         results_lm</code></pre>
+<details class="tiledb-toggle"><summary><strong>TileDB</strong>
+</summary><p>Load saved analyses from the TileDB store the same way:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">modelarray_new</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray</a></span><span class="op">(</span></span>
+<span>  <span class="va">tdb_path</span>,</span>
+<span>  scalar_types <span class="op">=</span> <span class="st">"FDC"</span>,</span>
+<span>  analysis_names <span class="op">=</span> <span class="st">"results_lm"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">modelarray_new</span></span></code></pre></div>
+</details>
 </div>
 </div>
 <div class="section level2">
@@ -268,20 +363,80 @@ this takes about 2.5 hours for 602,229 fixels.</p>
 <div class="section level3">
 <h3 id="convert-to-fixel--mif-format">Convert to fixel <code>.mif</code> format<a class="anchor" aria-label="anchor" href="#convert-to-fixel--mif-format"></a>
 </h3>
-<p>Use the <code>fixelstats_write</code> command from
+<p>Use the <code>modelarrayio export-results</code> command from
 <code>ModelArrayIO</code> to convert the results back to
 <code>.mif</code> files for visualization:</p>
 <pre class="console"><code>$ conda activate modelarray
-$ fixelstats_write \
+$ modelarrayio export-results \
     --index-file FDC/index.mif \
     --directions-file FDC/directions.mif \
     --cohort-file cohort_FDC_n100.csv \
-    --relative-root /home/&lt;username&gt;/Desktop/myProject \
     --analysis-name results_lm \
     --input-hdf5 demo_FDC_n100.h5 \
     --output-dir results_lm</code></pre>
-<p>For voxel data, use <code>voxelstats_write</code>. For CIFTI, use
-<code>ciftistats_write</code>.</p>
+<details class="tiledb-toggle"><summary><strong>TileDB</strong>
+</summary><p><code>modelarrayio export-results</code> currently only exports
+statistical results from HDF5 ModelArray files via
+<code>--input-hdf5</code>. If you model with TileDB and need viewer
+files, keep or write an HDF5 results file for the export step:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/writeResults.html">writeResults</a></span><span class="op">(</span></span>
+<span>  fn.output <span class="op">=</span> <span class="st">"demo_FDC_n100_results_for_export.h5"</span>,</span>
+<span>  df.output <span class="op">=</span> <span class="va">result_full</span>,</span>
+<span>  analysis_name <span class="op">=</span> <span class="st">"results_lm"</span>,</span>
+<span>  backend <span class="op">=</span> <span class="st">"hdf5"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Then export from that HDF5 results file:</p>
+<pre class="console"><code>$ modelarrayio export-results \
+    --index-file FDC/index.mif \
+    --directions-file FDC/directions.mif \
+    --cohort-file cohort_FDC_n100.csv \
+    --analysis-name results_lm \
+    --input-hdf5 demo_FDC_n100_results_for_export.h5 \
+    --output-dir results_lm</code></pre>
+</details><p>Use the same export command for other ModelArray HDF5 results,
+changing only the modality-specific template arguments:</p>
+<table class="table">
+<colgroup>
+<col width="24%">
+<col width="20%">
+<col width="37%">
+<col width="17%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Data type</th>
+<th align="left">Command</th>
+<th align="left">Extra arguments</th>
+<th align="left">Viewer</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Fixel</td>
+<td align="left"><code>modelarrayio export-results</code></td>
+<td align="left">
+<code>--index-file</code>,
+<code>--directions-file</code>, and <code>--cohort-file</code> or
+<code>--example-file</code>
+</td>
+<td align="left">MRtrix MRView</td>
+</tr>
+<tr class="even">
+<td align="left">Voxel</td>
+<td align="left"><code>modelarrayio export-results</code></td>
+<td align="left"><code>--mask</code></td>
+<td align="left">FSLeyes, MRView</td>
+</tr>
+<tr class="odd">
+<td align="left">CIFTI</td>
+<td align="left"><code>modelarrayio export-results</code></td>
+<td align="left">
+<code>--cohort-file</code> or
+<code>--example-file</code>
+</td>
+<td align="left">Connectome Workbench</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section level3">
 <h3 id="view-in-mrview">View in MRView<a class="anchor" aria-label="anchor" href="#view-in-mrview"></a>
@@ -319,16 +474,16 @@ terms, or run arbitrary custom functions with
 <li>
 <strong>Explore your data</strong>: use ModelArray’s accessor
 functions to inspect scalars, results, and per-element data frames — see
-<code><a href="../articles/exploring-h5.html">vignette("exploring-h5")</a></code>
+<code><a href="../articles/exploring-modelarray-data.html">vignette("exploring-modelarray-data")</a></code>
 </li>
 <li>
 <strong>Scale up</strong>: split large analyses across HPC jobs —
 see <code><a href="../articles/element-splitting.html">vignette("element-splitting")</a></code>
 </li>
 <li>
-<strong>Understand the file format</strong>: learn about chunking,
-compression, and memory efficiency — see
-<code><a href="../articles/hdf5-large-analyses.html">vignette("hdf5-large-analyses")</a></code>
+<strong>Understand large-scale analyses</strong>: learn about
+chunking, compression, and memory efficiency — see
+<code><a href="../articles/large-scale-analyses.html">vignette("large-scale-analyses")</a></code>
 </li>
 </ul>
 </div>
@@ -343,7 +498,7 @@ compression, and memory efficiency — see
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

@@ -38,8 +38,8 @@ The CSV file contains one row per subject with columns for covariates
 and two required columns:
 
 - `scalar_name`: the metric name (e.g., `FDC`)
-- `source_file`: path to that subject’s data file, relative to
-  `--relative-root`
+- `source_file`: path to that subject’s data file, either absolute or
+  relative to the directory from which `modelarrayio` is run
 
 | subject_id  | Age  | sex | dti64MeanRelRMS | scalar_name |     source_file     |
 |:-----------:|:----:|:---:|:---------------:|:-----------:|:-------------------:|
@@ -49,25 +49,52 @@ and two required columns:
 
 ### Convert to HDF5
 
-Use the `confixel` command from
+Use the `modelarrayio to-modelarray` command from
 [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) to convert the
 `.mif` files into an HDF5 file (see
-[`vignette("hdf5-format")`](https://pennlinc.github.io/ModelArray/articles/hdf5-format.md)
+[`vignette("modelarray-storage")`](https://pennlinc.github.io/ModelArray/articles/modelarray-storage.md)
 for what this file contains):
 
 ``` console
 $ conda activate modelarray
-$ confixel \
+$ modelarrayio to-modelarray \
+    --backend hdf5 \
     --index-file FDC/index.mif \
     --directions-file FDC/directions.mif \
     --cohort-file cohort_FDC_n100.csv \
-    --relative-root /home/<username>/Desktop/myProject \
-    --output-hdf5 demo_FDC_n100.h5
+    --output demo_FDC_n100.h5
 ```
 
-For voxel-wise data, use `convoxel` instead. For CIFTI surface data, use
-`concifti`. See the [ModelArrayIO
-docs](https://github.com/PennLINC/ModelArrayIO) for details.
+**TileDB**
+
+Use `--backend tiledb` to create a directory-backed TileDB ModelArray
+store instead of a single `.h5` file:
+
+``` console
+$ conda activate modelarray
+$ modelarrayio to-modelarray \
+    --backend tiledb \
+    --index-file FDC/index.mif \
+    --directions-file FDC/directions.mif \
+    --cohort-file cohort_FDC_n100.csv \
+    --output demo_FDC_n100.tdb
+```
+
+TileDB support in R requires the optional `tiledb` and `TileDBArray`
+packages. See the optional TileDB installation notes in
+[`vignette("installations")`](https://pennlinc.github.io/ModelArray/articles/installations.md).
+
+Use the same conversion command for other modalities, changing only the
+modality-specific arguments:
+
+| Data type | Command | Extra arguments |
+|:---|:---|:---|
+| Fixel | `modelarrayio to-modelarray` | `--index-file` and `--directions-file` |
+| Voxel | `modelarrayio to-modelarray` | `--mask` |
+| CIFTI | `modelarrayio to-modelarray` | No extra arguments |
+
+See the [ModelArrayIO docs](https://github.com/PennLINC/ModelArrayIO)
+for details.
 
 ## Step 2. Fit a linear model with ModelArray
 
@@ -76,6 +103,7 @@ All commands in this step are run in R (or RStudio).
 ### Load the data
 
 ``` r
+
 library(ModelArray)
 
 h5_path <- "~/Desktop/myProject/demo_FDC_n100.h5"
@@ -93,7 +121,26 @@ ModelArray located at ~/Desktop/myProject/demo_FDC_n100.h5
   Analyses:
 ```
 
+**TileDB**
+
+When the path ends in `.tdb`, ModelArray auto-detects the TileDB
+backend:
+
 ``` r
+
+library(ModelArray)
+
+tdb_path <- "~/Desktop/myProject/demo_FDC_n100.tdb"
+csv_path <- "~/Desktop/myProject/cohort_FDC_n100.csv"
+
+modelarray <- ModelArray(tdb_path, scalar_types = c("FDC"))
+modelarray
+```
+
+You can also be explicit with `backend = "tiledb"` if you prefer.
+
+``` r
+
 phenotypes <- read.csv(csv_path)
 ```
 
@@ -103,6 +150,7 @@ Always test on a small subset of elements first to verify the model runs
 correctly:
 
 ``` r
+
 formula.lm <- FDC ~ Age + sex + dti64MeanRelRMS
 
 result_test <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
@@ -125,6 +173,7 @@ Once the test looks right, run on all elements. Use `n_cores` to speed
 things up:
 
 ``` r
+
 result_full <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
   n_cores = 4
 )
@@ -136,12 +185,30 @@ takes about 2.5 hours for 602,229 fixels.
 ### Save results to HDF5
 
 ``` r
+
 writeResults(h5_path, df.output = result_full, analysis_name = "results_lm")
+```
+
+**TileDB**
+
+Write the same result table back into a TileDB store by using the `.tdb`
+path. The explicit backend argument is optional for `.tdb` paths, but
+shown here for clarity:
+
+``` r
+
+writeResults(
+  fn.output = tdb_path,
+  df.output = result_full,
+  analysis_name = "results_lm",
+  backend = "tiledb"
+)
 ```
 
 You can verify the results were saved:
 
 ``` r
+
 modelarray_new <- ModelArray(h5_path,
   scalar_types = "FDC",
   analysis_names = "results_lm"
@@ -157,27 +224,75 @@ ModelArray located at ~/Desktop/myProject/demo_FDC_n100.h5
   Analyses:         results_lm
 ```
 
+**TileDB**
+
+Load saved analyses from the TileDB store the same way:
+
+``` r
+
+modelarray_new <- ModelArray(
+  tdb_path,
+  scalar_types = "FDC",
+  analysis_names = "results_lm"
+)
+modelarray_new
+```
+
 ## Step 3. Convert results back and visualize
 
 ### Convert to fixel `.mif` format
 
-Use the `fixelstats_write` command from `ModelArrayIO` to convert the
-results back to `.mif` files for visualization:
+Use the `modelarrayio export-results` command from `ModelArrayIO` to
+convert the results back to `.mif` files for visualization:
 
 ``` console
 $ conda activate modelarray
-$ fixelstats_write \
+$ modelarrayio export-results \
     --index-file FDC/index.mif \
     --directions-file FDC/directions.mif \
     --cohort-file cohort_FDC_n100.csv \
-    --relative-root /home/<username>/Desktop/myProject \
     --analysis-name results_lm \
     --input-hdf5 demo_FDC_n100.h5 \
     --output-dir results_lm
 ```
 
-For voxel data, use `voxelstats_write`. For CIFTI, use
-`ciftistats_write`.
+**TileDB**
+
+`modelarrayio export-results` currently only exports statistical results
+from HDF5 ModelArray files via `--input-hdf5`. If you model with TileDB
+and need viewer files, keep or write an HDF5 results file for the export
+step:
+
+``` r
+
+writeResults(
+  fn.output = "demo_FDC_n100_results_for_export.h5",
+  df.output = result_full,
+  analysis_name = "results_lm",
+  backend = "hdf5"
+)
+```
+
+Then export from that HDF5 results file:
+
+``` console
+$ modelarrayio export-results \
+    --index-file FDC/index.mif \
+    --directions-file FDC/directions.mif \
+    --cohort-file cohort_FDC_n100.csv \
+    --analysis-name results_lm \
+    --input-hdf5 demo_FDC_n100_results_for_export.h5 \
+    --output-dir results_lm
+```
+
+Use the same export command for other ModelArray HDF5 results, changing
+only the modality-specific template arguments:
+
+| Data type | Command | Extra arguments | Viewer |
+|:---|:---|:---|:---|
+| Fixel | `modelarrayio export-results` | `--index-file`, `--directions-file`, and `--cohort-file` or `--example-file` | MRtrix MRView |
+| Voxel | `modelarrayio export-results` | `--mask` | FSLeyes, MRView |
+| CIFTI | `modelarrayio export-results` | `--cohort-file` or `--example-file` | Connectome Workbench |
 
 ### View in MRView
 
@@ -208,9 +323,9 @@ An example view of fixel-wise linear model results
   [`vignette("modelling")`](https://pennlinc.github.io/ModelArray/articles/modelling.md)
 - **Explore your data**: use ModelArray’s accessor functions to inspect
   scalars, results, and per-element data frames — see
-  [`vignette("exploring-h5")`](https://pennlinc.github.io/ModelArray/articles/exploring-h5.md)
+  [`vignette("exploring-modelarray-data")`](https://pennlinc.github.io/ModelArray/articles/exploring-modelarray-data.md)
 - **Scale up**: split large analyses across HPC jobs — see
   [`vignette("element-splitting")`](https://pennlinc.github.io/ModelArray/articles/element-splitting.md)
-- **Understand the file format**: learn about chunking, compression, and
-  memory efficiency — see
-  [`vignette("hdf5-large-analyses")`](https://pennlinc.github.io/ModelArray/articles/hdf5-large-analyses.md)
+- **Understand large-scale analyses**: learn about chunking,
+  compression, and memory efficiency — see
+  [`vignette("large-scale-analyses")`](https://pennlinc.github.io/ModelArray/articles/large-scale-analyses.md)

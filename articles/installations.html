@@ -7,8 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Get Started • ModelArray</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Get Started">
 </head>
@@ -35,8 +35,8 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-introduction">
 <li><a class="dropdown-item" href="../articles/elements.html">Elements: The Unit of Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/element-splitting.html">Splitting Element IDs</a></li>
-    <li><a class="dropdown-item" href="../articles/hdf5-format.html">Understanding the HDF5 File</a></li>
-    <li><a class="dropdown-item" href="../articles/hdf5-large-analyses.html">HDF5 for Large-Scale Analyses</a></li>
+    <li><a class="dropdown-item" href="../articles/modelarray-storage.html">Understanding ModelArray Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/large-scale-analyses.html">Large-Scale Analyses</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -44,7 +44,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-case-studies">
 <li><a class="dropdown-item" href="../articles/walkthrough.html">End-to-End Walkthrough</a></li>
     <li><a class="dropdown-item" href="../articles/modelling.html">Modelling in Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/exploring-h5.html">Exploring Data with Convenience Functions</a></li>
+    <li><a class="dropdown-item" href="../articles/exploring-modelarray-data.html">Exploring Data with Convenience Functions</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Resources</h6></li>
     <li><a class="dropdown-item" href="../articles/container.html">Containers</a></li>
@@ -107,17 +107,16 @@ dependent packages and libraries, and finally install
 <p>We first create a conda environment <code>modelarray</code> for
 installing the companion software <code>ModelArrayIO</code> etc. We’ll
 install python version 3.9:</p>
-<pre class="console"><code>foo@bar:~$ conda create --name modelarray python=3.9
+<pre class="console"><code>foo@bar:~$ conda create --name modelarray python=3.11
 foo@bar:~$ conda activate modelarray</code></pre>
 </div>
 <div class="section level3">
 <h3 id="install-mrtrix-only-required-for-fixel-wise-data">Install MRtrix (Only required for fixel-wise data)<a class="anchor" aria-label="anchor" href="#install-mrtrix-only-required-for-fixel-wise-data"></a>
 </h3>
-<p>When converting fixel-wise data (<code>.mif</code>), the
-<code>confixel</code> command from <code>ModelArrayIO</code> uses
-<code>mrconvert</code> from MRtrix, so please make sure MRtrix has been
-installed. It can either be installed via <code>conda</code> in this
-conda environment we just created, or be compiled from source. See <a href="https://www.mrtrix.org/download/" class="external-link">MRtrix’s webpage</a> for more.
+<p>When working with fixel-wise data (<code>.mif</code>), install MRtrix
+so you can inspect and visualize MIF inputs and outputs. It can either
+be installed via <code>conda</code> in this conda environment we just
+created, or be compiled from source. See <a href="https://www.mrtrix.org/download/" class="external-link">MRtrix’s webpage</a> for more.
 Type <code>mrview</code> in the terminal to check whether MRtrix
 installation is successful.</p>
 <p>If your input data is voxel-wise data, you can skip this step.</p>
@@ -125,9 +124,11 @@ installation is successful.</p>
 <div class="section level3">
 <h3 id="install-hdf5-libraries-in-the-system">Install HDF5 libraries in the system<a class="anchor" aria-label="anchor" href="#install-hdf5-libraries-in-the-system"></a>
 </h3>
-<p>Because ModelArray works with the Hierarchical Data Format 5 (HDF5)
-file format, we need to make sure necessary libraries of HDF5 are
-installed in the system.</p>
+<p>ModelArray always supports data backed by the Hierarchical Data
+Format 5 (HDF5) file format, so we need to make sure the necessary HDF5
+libraries are installed in the system. TileDB support is optional and
+requires additional R packages; see the optional TileDB section below if
+you plan to use TileDB-backed stores.</p>
 <div class="section level4">
 <h4 id="on-a-linux-ubuntu-system">On a Linux Ubuntu system<a class="anchor" aria-label="anchor" href="#on-a-linux-ubuntu-system"></a>
 </h4>
@@ -152,10 +153,11 @@ foo@bar:~$ sudo apt-get install -y libhdf5-dev</code></pre>
 <h3 id="install-modelarrayio-python-package-from-github">Install ModelArrayIO python package from GitHub<a class="anchor" aria-label="anchor" href="#install-modelarrayio-python-package-from-github"></a>
 </h3>
 <p><a href="https://github.com/PennLINC/ModelArrayIO" class="external-link">ModelArrayIO</a>
-provides file format conversion commands (<code>confixel</code>,
-<code>convoxel</code>, <code>concifti</code>) for fixel-wise data
-(<code>.mif</code>), voxel-wise data (NIfTI), and CIFTI data. Follow the
-commands below to install it from GitHub:</p>
+provides the <code>modelarrayio</code> command-line tool for converting
+fixel-wise data (<code>.mif</code>), voxel-wise data (NIfTI), and CIFTI
+data into ModelArray storage, and for exporting saved ModelArray results
+back to neuroimaging formats. Follow the commands below to install it
+from GitHub:</p>
 <pre class="console"><code># We first activate the conda environment we just created:
 foo@bar:~$ conda activate modelarray  
 
@@ -168,6 +170,11 @@ foo@bar:myProject$ pip install .
 # You may remove the original source code if you are an end user instead of a developer:
 foo@bar:myProject$ cd ..
 foo@bar:myProject$ rm -r ModelArrayIO</code></pre>
+<p>After installation, conversion is done with
+<code>modelarrayio to-modelarray</code>. The command auto-detects the
+imaging modality from the source files in the cohort CSV. For
+example:</p>
+<pre class="console"><code>foo@bar:myProject$ modelarrayio to-modelarray --help</code></pre>
 </div>
 <div class="section level3">
 <h3 id="install-r">Install R<a class="anchor" aria-label="anchor" href="#install-r"></a>
@@ -188,7 +195,7 @@ download it from <a href="https://www.rstudio.com/products/rstudio/download/" cl
 </h3>
 <p>ModelArray R package’s source code is available on GitHub. To install
 it in R:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># First, load library "devtools":</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://devtools.r-lib.org/" class="external-link">devtools</a></span><span class="op">)</span></span>
 <span></span>
@@ -196,8 +203,31 @@ it in R:</p>
 <span></span>
 <span><span class="co"># Then, install ModelArray:</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"PennLINC/ModelArray"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="optional-install-tiledb-backend-dependencies">(Optional) Install TileDB backend dependencies<a class="anchor" aria-label="anchor" href="#optional-install-tiledb-backend-dependencies"></a>
+</h3>
+<p>ModelArray can also read and write TileDB-backed stores. This is
+optional: you only need these packages if you plan to use
+<code>backend = "tiledb"</code> or paths ending in
+<code>.tdb</code>.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"jsonlite"</span>, <span class="st">"tiledb"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"BiocManager"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu">install</span><span class="op">(</span><span class="st">"TileDBArray"</span><span class="op">)</span></span></code></pre></div>
+<p>You can verify TileDB support with:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pennlinc.github.io/ModelArray">ModelArray</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/h5summary.html">ModelArraySummary</a></span><span class="op">(</span><span class="st">"path/to/store.tdb"</span>, backend <span class="op">=</span> <span class="st">"tiledb"</span><span class="op">)</span></span></code></pre></div>
+<p>If installing the <code>tiledb</code> R package fails, install the
+TileDB system library first. On macOS:</p>
+<pre class="console"><code>foo@bar:~$ brew install tiledb</code></pre>
 <p>Now, ModelArray is ready to use:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pennlinc.github.io/ModelArray">ModelArray</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -226,7 +256,7 @@ system, you may try out <code>sudo apt-get</code> to install them.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

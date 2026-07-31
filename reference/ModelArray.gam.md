@@ -147,13 +147,14 @@ ModelArray.gam(
 - write_results_name:
 
   Optional character. If provided, results are incrementally written to
-  `results/<write_results_name>/results_matrix` in the HDF5 file
-  specified by `write_results_file`.
+  `results/<write_results_name>/results_matrix` in the output specified
+  by `write_results_file`.
 
 - write_results_file:
 
-  Optional character. HDF5 file path for incremental result writes.
-  Required when `write_results_name` is provided.
+  Optional character. HDF5 file path or TileDB store path for
+  incremental result writes. Required when `write_results_name` is
+  provided.
 
 - write_results_flush_every:
 
@@ -171,8 +172,8 @@ ModelArray.gam(
 - return_output:
 
   Logical. If `TRUE` (default), return the combined data.frame. If
-  `FALSE`, return `invisible(NULL)`; useful when writing large outputs
-  directly to HDF5.
+  `FALSE`, return `invisible(NULL)`; useful when writing outputs
+  directly to storage.
 
 - ...:
 

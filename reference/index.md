@@ -11,7 +11,7 @@
   [`show(`*`<ModelArray>`*`)`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
   : ModelArray class
 - [`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.md)
-  : Load element-wise data from an HDF5 file
+  : Load element-wise data from an HDF5 file or TileDB store
 
 ## Accessors
 
@@ -63,10 +63,12 @@ users should not call them directly.
 ## Utilities
 
 - [`writeResults()`](https://pennlinc.github.io/ModelArray/reference/writeResults.md)
-  : Write outputs from element-wise statistical analysis to an HDF5 file
-- [`h5summary()`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+  : Write outputs from element-wise statistical analysis to storage
+- [`ModelArraySummary()`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+  [`h5summary()`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+  [`print(`*`<ModelArraySummary>`*`)`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
   [`print(`*`<h5summary>`*`)`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
-  : Summarize an HDF5 file without loading a full ModelArray
+  : Summarize ModelArray storage without loading a full ModelArray
 - [`numElementsTotal()`](https://pennlinc.github.io/ModelArray/reference/numElementsTotal.md)
   : Number of elements in ModelArray
 - [`gen_gamFormula_fxSmooth()`](https://pennlinc.github.io/ModelArray/reference/gen_gamFormula_fxSmooth.md)

@@ -8,6 +8,7 @@ for the end-to-end workflow, and
 for background on what an element is.
 
 ``` r
+
 library(ModelArray)
 
 # Using the PNC fixel demo data (see walkthrough for download instructions)
@@ -25,6 +26,7 @@ fits [`lm()`](https://rdrr.io/r/stats/lm.html) independently at every
 element. Define a formula with the scalar name as the response variable:
 
 ``` r
+
 formula.lm <- FDC ~ Age + sex + dti64MeanRelRMS
 
 result <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
@@ -57,6 +59,7 @@ And for the overall model:
 Use `full.outputs = TRUE` to get additional statistics:
 
 ``` r
+
 result_full <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
   element.subset = 1:100,
   full.outputs = TRUE
@@ -69,6 +72,7 @@ By default, FDR correction is applied. You can request additional
 correction methods:
 
 ``` r
+
 result <- ModelArray.lm(formula.lm, modelarray, phenotypes, "FDC",
   element.subset = 1:100,
   correct.p.value.terms = c("fdr", "bonferroni")
@@ -89,6 +93,7 @@ Use `s()` to specify smooth terms. The `k` parameter sets an upper limit
 on the degrees of freedom for the smooth function:
 
 ``` r
+
 formula.gam <- FDC ~ s(Age, k = 4) + sex + dti64MeanRelRMS
 
 result <- ModelArray.gam(formula.gam, modelarray, phenotypes, "FDC",
@@ -137,6 +142,7 @@ GAM output differs from lm for smooth terms vs parametric terms:
 Smooth terms and parametric terms have separate correction arguments:
 
 ``` r
+
 result <- ModelArray.gam(formula.gam, modelarray, phenotypes, "FDC",
   element.subset = 1:100,
   correct.p.value.smoothTerms = c("fdr", "bonferroni"),
@@ -167,6 +173,7 @@ patterns:
 `y ~ orderedFactor + s(x) + s(x, by=orderedFactor)`:
 
 ``` r
+
 result <- gen_gamFormula_fxSmooth(
   response.var = "FDC",
   factor.var = "group",
@@ -183,6 +190,7 @@ phenotypes <- result$phenotypes # may contain new ordered factor column
 `y ~ ti(x) + ti(z) + ti(x, z)`:
 
 ``` r
+
 formula <- gen_gamFormula_contIx(
   response.var = "FDC",
   cont1.var = "Age",
@@ -204,6 +212,7 @@ Before writing your function, use
 to see what a per-element data frame looks like:
 
 ``` r
+
 # Using the HBN cortical thickness data
 h5_path <- "path/to/thickness.h5"
 modelarray <- ModelArray(h5_path, scalar_types = c("thickness"))
@@ -220,6 +229,7 @@ column for the scalar value at that element. You can explore it like any
 data frame:
 
 ``` r
+
 library(ggplot2)
 ggplot(example_df, aes(x = age, y = thickness, color = study_site)) +
   geom_point() +
@@ -233,6 +243,7 @@ Your function must accept a single argument named `data` and return a
 single-row data frame (or tibble):
 
 ``` r
+
 my_site_analysis <- function(data) {
   # Compute mean thickness per site
   site_means <- data %>%
@@ -267,6 +278,7 @@ Use
 to verify your function works in ModelArray’s machinery:
 
 ``` r
+
 analyseOneElement.wrap(
   12345, my_site_analysis, modelarray, phenotypes, "thickness",
   num.subj.lthr = 10, flag_initiate = TRUE, on_error = "debug"
@@ -276,6 +288,7 @@ analyseOneElement.wrap(
 ### Running across all elements
 
 ``` r
+
 result <- ModelArray.wrap(
   FUN = my_site_analysis,
   data = modelarray,
@@ -298,6 +311,7 @@ directly into `/scalars`, and then loads that harmonized scalar in a new
 `ModelArray`.
 
 ``` r
+
 library(covfam)
 
 # Assume phenotypes has harmonization variables, e.g.:
@@ -362,25 +376,6 @@ scalars), use `write_results_name` and `write_results_file` in
 or
 [`ModelArray.wrap()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md).
 
-#### Quick QA: export one harmonized image to inspect
-
-After writing `thickness_covfam` into `/scalars`, you can export one row
-back to an image and open it in your usual viewer as a spot-check. Use
-`--column-index` to select which row from
-`scalars/thickness_covfam/values` to export.
-
-``` bash
-modelarrayio h5-export-nifti-file \
-  --input-hdf5 thickness_harmonized.h5 \
-  --scalar-name thickness_covfam \
-  --column-index 0 \
-  --group-mask-file group_mask_thickness.nii.gz \
-  --output-file qa_thickness_covfam_col000.nii.gz
-```
-
-If your workflow uses CIFTI or MIF instead of NIfTI, use the matching
-export command: `h5-export-cifti-file` or `h5-export-mif-file`.
-
 ## Modelling across multiple h5 files with `mergeModelArrays()`
 
 When scalars live in separate h5 files — for example, cortical thickness
@@ -393,6 +388,7 @@ Each h5 file gets its own ModelArray and phenotypes data frame. The
 phenotypes must share a common identifier column (e.g., `subject_id`):
 
 ``` r
+
 ma_thick <- ModelArray("thickness.h5", scalar_types = "thickness")
 ma_curv <- ModelArray("curv.h5", scalar_types = "curv")
 
@@ -406,6 +402,7 @@ phen_curv <- read.csv("phenotypes_curv.csv")
 ### Merging
 
 ``` r
+
 merged <- mergeModelArrays(
   list(ma_thick, ma_curv),
   list(phen_thick, phen_curv),
@@ -428,6 +425,7 @@ present in both files. The result is a list with:
 Now you can use one scalar as a predictor for another:
 
 ``` r
+
 result <- ModelArray.lm(
   thickness ~ curv + Age + sex,
   data = merged$data,
@@ -448,6 +446,7 @@ too.
 accepts any number of ModelArrays:
 
 ``` r
+
 merged <- mergeModelArrays(
   list(ma_thick, ma_curv, ma_sulc),
   list(phen_thick, phen_curv, phen_sulc),
@@ -461,14 +460,32 @@ All scalar names must be unique across the inputs.
 
 After
 [`writeResults()`](https://pennlinc.github.io/ModelArray/reference/writeResults.md),
-use the appropriate ModelArrayIO tool to convert results back to the
-original image format for visualization:
+use the unified `ModelArrayIO` exporter to convert saved model
+statistics back to the original image format for visualization. The CLI
+entry point is `modelarrayio export-results`, which calls the
+`export_results()` exporter and infers the output modality from the
+arguments you provide.
 
-| Data type | Command            | Viewer               |
-|:----------|:-------------------|:---------------------|
-| Fixel     | `fixelstats_write` | MRtrix MRView        |
-| Voxel     | `voxelstats_write` | FSLeyes, MRView      |
-| Surface   | `ciftistats_write` | Connectome Workbench |
+For the fixel example used in this vignette:
+
+``` console
+$ modelarrayio export-results \
+    --index-file ~/Desktop/myProject/FDC/index.mif \
+    --directions-file ~/Desktop/myProject/FDC/directions.mif \
+    --cohort-file ~/Desktop/myProject/cohort_FDC_n100.csv \
+    --analysis-name results_lm \
+    --input-hdf5 ~/Desktop/myProject/demo_FDC_n100.h5 \
+    --output-dir ~/Desktop/myProject/results_lm
+```
+
+Use the same command for other ModelArray HDF5 results, changing only
+the modality-specific template arguments:
+
+| Data type | Command | Extra arguments | Viewer |
+|:---|:---|:---|:---|
+| Fixel | `modelarrayio export-results` | `--index-file`, `--directions-file`, and `--cohort-file` or `--example-file` | MRtrix MRView |
+| Voxel | `modelarrayio export-results` | `--mask` | FSLeyes, MRView |
+| Surface | `modelarrayio export-results` | `--cohort-file` or `--example-file` | Connectome Workbench |
 
 See the [ModelArrayIO
 documentation](https://github.com/PennLINC/ModelArrayIO) for

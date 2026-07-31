@@ -18,9 +18,33 @@ Use
 to get the total element count, then divide it into ranges:
 
 ``` r
+
 library(ModelArray)
 
 modelarray <- ModelArray("data.h5", scalar_types = c("FDC"))
+n_total <- numElementsTotal(modelarray, "FDC")
+
+# Split into chunks of 100,000 elements
+chunk_size <- 100000
+starts <- seq(1, n_total, by = chunk_size)
+ends <- pmin(starts + chunk_size - 1, n_total)
+
+# Each job gets one of these ranges
+for (i in seq_along(starts)) {
+  cat(sprintf("Job %d: element.subset = %d:%d\n", i, starts[i], ends[i]))
+}
+```
+
+**TileDB**
+
+Use the TileDB store path when constructing the `ModelArray`. The split
+range logic is otherwise unchanged, but the full TileDB version is:
+
+``` r
+
+library(ModelArray)
+
+modelarray <- ModelArray("data.tdb", scalar_types = c("FDC"))
 n_total <- numElementsTotal(modelarray, "FDC")
 
 # Split into chunks of 100,000 elements
@@ -50,6 +74,7 @@ Each job runs the same model on its assigned range of elements. For
 example, an R script parameterized by job index:
 
 ``` r
+
 # run_chunk.R
 # Usage: Rscript run_chunk.R <job_index>
 
@@ -79,6 +104,42 @@ chunk_h5 <- sprintf("result_chunk_%d.h5", job_index)
 writeResults(chunk_h5, df.output = result, analysis_name = "results_lm_chunk")
 ```
 
+**TileDB**
+
+For a TileDB-backed analysis, load `data.tdb` in each job. Save each
+partial result to a separate `.rds` file, then combine those files in a
+single final write step:
+
+``` r
+
+# run_chunk.R
+# Usage: Rscript run_chunk.R <job_index>
+
+args <- commandArgs(trailingOnly = TRUE)
+job_index <- as.integer(args[1])
+
+library(ModelArray)
+
+modelarray <- ModelArray("data.tdb", scalar_types = c("FDC"))
+phenotypes <- read.csv("cohort.csv")
+
+chunk_size <- 100000
+n_total <- numElementsTotal(modelarray, "FDC")
+start <- (job_index - 1) * chunk_size + 1
+end <- min(job_index * chunk_size, n_total)
+
+result <- ModelArray.lm(
+  FDC ~ Age + sex + motion,
+  modelarray, phenotypes, "FDC",
+  element.subset = start:end,
+  n_cores = 4
+)
+
+# Safe because each job writes to a different file
+chunk_rds <- sprintf("result_chunk_%d.rds", job_index)
+saveRDS(result, chunk_rds)
+```
+
 On an HPC cluster with a job array (e.g., SLURM):
 
 ``` console
@@ -95,6 +156,7 @@ After all jobs complete, read each chunk `.h5`, concatenate rows, then
 write one final result to `data.h5`:
 
 ``` r
+
 library(ModelArray)
 library(rhdf5)
 
@@ -134,5 +196,46 @@ writeResults("data.h5", df.output = full_result, analysis_name = "results_lm")
 
 **Important**: only one process should write to the HDF5 file at a time.
 HDF5 does not support concurrent writes from multiple processes — see
-[`vignette("hdf5-large-analyses")`](https://pennlinc.github.io/ModelArray/articles/hdf5-large-analyses.md)
+[`vignette("large-scale-analyses")`](https://pennlinc.github.io/ModelArray/articles/large-scale-analyses.md)
 for details on why.
+
+**TileDB**
+
+After all jobs complete, read each chunk `.rds`, concatenate rows, then
+write one final result to `data.tdb`:
+
+``` r
+
+library(ModelArray)
+
+chunk_files <- Sys.glob("result_chunk_*.rds")
+if (length(chunk_files) == 0) {
+  stop("No chunk RDS files found (expected files like result_chunk_1.rds).")
+}
+chunk_ids <- as.integer(sub("result_chunk_([0-9]+)\\.rds$", "\\1", basename(chunk_files)))
+if (anyNA(chunk_ids)) {
+  stop("Could not parse chunk index from one or more chunk filenames.")
+}
+chunk_files <- chunk_files[order(chunk_ids)]
+
+results_list <- lapply(chunk_files, readRDS)
+
+if (!all(vapply(results_list[-1], function(x) identical(colnames(x), colnames(results_list[[1]])), logical(1)))) {
+  stop("Column names differ across chunks; cannot concatenate safely.")
+}
+
+full_result <- do.call(rbind, results_list)
+
+# Verify we have all elements
+cat("Total rows:", nrow(full_result), "\n")
+
+writeResults(
+  "data.tdb",
+  df.output = full_result,
+  analysis_name = "results_lm",
+  backend = "tiledb"
+)
+```
+
+Use the same single-writer pattern for TileDB stores: one final process
+should create or replace the analysis result in the shared `.tdb` store.

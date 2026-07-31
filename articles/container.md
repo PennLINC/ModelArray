@@ -6,7 +6,7 @@ Target audience: Any user who wants to use a container to run
 `ModelArray` and/or `ModelArrayIO` commands
 
 What is covered on this page? How to use the container image of
-`ModelArray + ModelArrayIO`.
+`ModelArray + ModelArrayIO`, including the optional TileDB backend.
 
 What is not covered on this page? Step by step details on how to run
 `ModelArray` and `ModelArrayIO` commands. For a full walkthrough on how
@@ -21,7 +21,8 @@ computer, users also have an option to run them on High Performance
 Computing (HPC) clusters. When using HPC clusters, users may not have
 full privilege to install all the dependent packages. Therefore, we
 provide the option to download our software as a container image that
-includes `ModelArray + ModelArrayIO`.
+includes `ModelArray`, `ModelArrayIO`, and the R packages needed for
+TileDB-backed ModelArray stores.
 
 Our container image is publicly available at [Docker
 Hub](https://hub.docker.com/r/pennlinc/modelarray_confixel). Although
@@ -59,6 +60,14 @@ You should now be inside an R environment with the capability to load
 the `ModelArray` R package as you would in RStudio:
 [`library(ModelArray)`](https://pennlinc.github.io/ModelArray).
 
+You can also check that the optional TileDB backend is available:
+
+``` console
+singularity run --cleanenv \
+    modelarray_confixel_<tagName>.sif \
+    Rscript -e 'library(ModelArray); stopifnot(requireNamespace("tiledb", quietly = TRUE)); stopifnot(requireNamespace("TileDBArray", quietly = TRUE))'
+```
+
 This is also the way to interactively use this container image to run R,
 but please make sure you mount necessary directories with `-B` - see
 below for explanations.
@@ -81,8 +90,22 @@ exists inside your current working directory, you might do `-B $PWD`;
 full path to the singularity image (`.sif`) you pulled;
 
 `ModelArray` and `ModelArrayIO` are both included in this container. To
-run conversion tools, simply replace `<command you want to run>` with a
-`ModelArrayIO` command (e.g., `confixel`).
+convert data, replace `<command you want to run>` with the current
+`ModelArrayIO` CLI, `modelarrayio to-modelarray`. For example, to create
+a TileDB-backed store:
+
+``` console
+singularity run --cleanenv -B /directory/of/your/data \
+  /path/to/singularity/image/modelarray_confixel_<tagName>.sif \
+  modelarrayio to-modelarray \
+    --backend tiledb \
+    --cohort-file /directory/of/your/data/cohort.csv \
+    --output /directory/of/your/data/modelarray.tdb
+```
+
+For HDF5 output, omit `--backend tiledb` or set `--backend hdf5` and use
+an `.h5` output path. For MIF/fixel data, also provide `--index-file`
+and `--directions-file`; for NIfTI data, provide `--mask`.
 
 To run `ModelArray`, you may first save the R commands into an R script,
 then replace `<command you want to run>` with

@@ -1,7 +1,7 @@
-# Write outputs from element-wise statistical analysis to an HDF5 file
+# Write outputs from element-wise statistical analysis to storage
 
-Creates a group named `analysis_name` under `/results/` in the HDF5
-file, then writes the statistical results data.frame (i.e. for one
+Creates a group named `analysis_name` under `/results/` in the storage
+backend, then writes the statistical results data.frame (i.e. for one
 analysis) into it as `results_matrix` along with column names.
 
 ## Usage
@@ -11,7 +11,8 @@ writeResults(
   fn.output,
   df.output,
   analysis_name = "myAnalysis",
-  overwrite = TRUE
+  overwrite = TRUE,
+  backend = c("auto", "hdf5", "tiledb")
 )
 ```
 
@@ -19,9 +20,8 @@ writeResults(
 
 - fn.output:
 
-  Character. The HDF5 (`.h5`) filename for the output. The file must
-  already exist; use an absolute path if you encounter file-not-found
-  errors.
+  Character. The HDF5 (`.h5`) filename or TileDB (`.tdb`) store for the
+  output. Use an absolute path if you encounter file-not-found errors.
 
 - df.output:
 
@@ -40,19 +40,22 @@ writeResults(
 - overwrite:
 
   Logical. If a group with the same `analysis_name` already exists in
-  the HDF5 file, whether to overwrite it (`TRUE`) or skip with a warning
-  (`FALSE`). Default is `TRUE`.
+  the storage backend, whether to overwrite it (`TRUE`) or skip with a
+  warning (`FALSE`). Default is `TRUE`.
+
+- backend:
+
+  Character. Storage backend: `"auto"` (default), `"hdf5"`, or
+  `"tiledb"`.
 
 ## Value
 
-Invisible `NULL`. Called for its side effect of writing results to the
-HDF5 file.
+Invisible `NULL`. Called for its side effect of writing results.
 
 ## Details
 
 The results are stored at `/results/<analysis_name>/results_matrix` with
-column names saved as a separate dataset at
-`/results/<analysis_name>/column_names`.
+column names saved as a separate HDF5 dataset or TileDB metadata.
 
 If any column of `df.output` is not numeric or integer, it is coerced to
 numeric via [`factor()`](https://rdrr.io/r/base/factor.html) and the
@@ -73,7 +76,7 @@ which produce the `df.output`,
 [`results`](https://pennlinc.github.io/ModelArray/reference/results.md)
 for reading results back from a
 [ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md),
-[`h5summary`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+[`ModelArraySummary`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
 for inspecting what has been written.
 
 ## Examples
@@ -98,6 +101,6 @@ writeResults(
 )
 
 # Verify
-h5summary("data.h5")
+ModelArraySummary("data.h5")
 } # }
 ```

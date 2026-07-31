@@ -16,6 +16,7 @@ data frame of statistics - one row per element - ready for thresholding
 and visualization.
 
 ``` r
+
 library(ModelArray)
 
 modelarray <- ModelArray("data.h5", scalar_types = c("FDC"))
@@ -32,7 +33,9 @@ That’s it. `results` is a data frame with estimates, *t*-statistics,
 ## Why ModelArray?
 
 **It scales.** ModelArray uses
-[HDF5](https://www.hdfgroup.org/solutions/hdf5/) for on-disk storage and
+[HDF5](https://www.hdfgroup.org/solutions/hdf5/) by default, and can
+also read TileDB stores when the optional [TileDB](https://tiledb.com/)
+R packages are installed. Both backends use
 [DelayedArray](https://bioconductor.org/packages/DelayedArray/) for lazy
 access. An ABCC dMRI dataset has ~350,000 voxels × ~26,000-sessions -
 about 291 GB if loaded in its entirety - never enters RAM. ModelArray
@@ -54,17 +57,15 @@ dataset size.
 same code works for fixel-wise data, voxel-wise data, and surface-based
 greyordinate data. The companion tool
 [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) handles
-conversion from `.mif`, NIfTI, and CIFTI formats into the HDF5 file that
-ModelArray expects.
+conversion from `.mif`, NIfTI, and CIFTI formats into HDF5 files or
+TileDB stores that ModelArray can read.
 
 **It’s been peer-reviewed.** ModelArray was published in *NeuroImage* in
 2023 and has been used in studies of lifespan brain development.
 
 ## Overview
 
-![Overview](reference/figures/overview_structure.svg)
-
-Overview
+[![Overview](https://raw.githubusercontent.com/PennLINC/ModelArrayIO/main/docs/_static/overview_structure.png)](https://github.com/PennLINC/ModelArrayIO/blob/main/docs/_static/overview_structure.png)
 
 ## Installation
 
@@ -81,7 +82,20 @@ The short version:
 3.  Install ModelArray from GitHub:
 
 ``` r
+
 devtools::install_github("PennLINC/ModelArray")
+```
+
+Optional TileDB support:
+
+``` r
+
+install.packages(c("jsonlite", "tiledb"))
+
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+BiocManager::install("TileDBArray")
 ```
 
 Prefer a container? A [Docker/Singularity
@@ -132,7 +146,7 @@ If you use ModelArray, please cite:
   [`show(`*`<ModelArray>`*`)`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
   : ModelArray class
 - [`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.md)
-  : Load element-wise data from an HDF5 file
+  : Load element-wise data from an HDF5 file or TileDB store
 
 ## Accessors
 
@@ -184,10 +198,12 @@ users should not call them directly.
 ## Utilities
 
 - [`writeResults()`](https://pennlinc.github.io/ModelArray/reference/writeResults.md)
-  : Write outputs from element-wise statistical analysis to an HDF5 file
-- [`h5summary()`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+  : Write outputs from element-wise statistical analysis to storage
+- [`ModelArraySummary()`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+  [`h5summary()`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+  [`print(`*`<ModelArraySummary>`*`)`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
   [`print(`*`<h5summary>`*`)`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
-  : Summarize an HDF5 file without loading a full ModelArray
+  : Summarize ModelArray storage without loading a full ModelArray
 - [`numElementsTotal()`](https://pennlinc.github.io/ModelArray/reference/numElementsTotal.md)
   : Number of elements in ModelArray
 - [`gen_gamFormula_fxSmooth()`](https://pennlinc.github.io/ModelArray/reference/gen_gamFormula_fxSmooth.md)
@@ -207,14 +223,14 @@ users should not call them directly.
   Processing](https://pennlinc.github.io/ModelArray/articles/element-splitting.md):
 - [Elements: The Unit of
   Analysis](https://pennlinc.github.io/ModelArray/articles/elements.md):
-- [Exploring HDF5 Data with Convenience
-  Functions](https://pennlinc.github.io/ModelArray/articles/exploring-h5.md):
-- [Understanding the HDF5
-  File](https://pennlinc.github.io/ModelArray/articles/hdf5-format.md):
-- [Using HDF5 for Large-Scale
-  Analyses](https://pennlinc.github.io/ModelArray/articles/hdf5-large-analyses.md):
+- [Exploring ModelArray Data with Convenience
+  Functions](https://pennlinc.github.io/ModelArray/articles/exploring-modelarray-data.md):
 - [Get
   Started](https://pennlinc.github.io/ModelArray/articles/installations.md):
+- [Large-Scale
+  Analyses](https://pennlinc.github.io/ModelArray/articles/large-scale-analyses.md):
+- [Understanding ModelArray
+  Storage](https://pennlinc.github.io/ModelArray/articles/modelarray-storage.md):
 - [Modelling in Depth: lm, gam, and
   wrap](https://pennlinc.github.io/ModelArray/articles/modelling.md):
 - [End-to-End

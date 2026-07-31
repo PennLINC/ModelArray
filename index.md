@@ -16,6 +16,7 @@ data frame of statistics - one row per element - ready for thresholding
 and visualization.
 
 ``` r
+
 library(ModelArray)
 
 modelarray <- ModelArray("data.h5", scalar_types = c("FDC"))
@@ -32,7 +33,9 @@ That’s it. `results` is a data frame with estimates, *t*-statistics,
 ## Why ModelArray?
 
 **It scales.** ModelArray uses
-[HDF5](https://www.hdfgroup.org/solutions/hdf5/) for on-disk storage and
+[HDF5](https://www.hdfgroup.org/solutions/hdf5/) by default, and can
+also read TileDB stores when the optional [TileDB](https://tiledb.com/)
+R packages are installed. Both backends use
 [DelayedArray](https://bioconductor.org/packages/DelayedArray/) for lazy
 access. An ABCC dMRI dataset has ~350,000 voxels × ~26,000-sessions -
 about 291 GB if loaded in its entirety - never enters RAM. ModelArray
@@ -54,17 +57,15 @@ dataset size.
 same code works for fixel-wise data, voxel-wise data, and surface-based
 greyordinate data. The companion tool
 [ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) handles
-conversion from `.mif`, NIfTI, and CIFTI formats into the HDF5 file that
-ModelArray expects.
+conversion from `.mif`, NIfTI, and CIFTI formats into HDF5 files or
+TileDB stores that ModelArray can read.
 
 **It’s been peer-reviewed.** ModelArray was published in *NeuroImage* in
 2023 and has been used in studies of lifespan brain development.
 
 ## Overview
 
-![Overview](reference/figures/overview_structure.svg)
-
-Overview
+[![Overview](https://raw.githubusercontent.com/PennLINC/ModelArrayIO/main/docs/_static/overview_structure.png)](https://github.com/PennLINC/ModelArrayIO/blob/main/docs/_static/overview_structure.png)
 
 ## Installation
 
@@ -81,7 +82,20 @@ The short version:
 3.  Install ModelArray from GitHub:
 
 ``` r
+
 devtools::install_github("PennLINC/ModelArray")
+```
+
+Optional TileDB support:
+
+``` r
+
+install.packages(c("jsonlite", "tiledb"))
+
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+BiocManager::install("TileDBArray")
 ```
 
 Prefer a container? A [Docker/Singularity

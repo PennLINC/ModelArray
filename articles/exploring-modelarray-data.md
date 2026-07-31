@@ -1,18 +1,51 @@
-# Exploring HDF5 Data with Convenience Functions
+# Exploring ModelArray Data with Convenience Functions
 
 ModelArray provides several accessor functions for inspecting your data
-without writing analysis code. This vignette walks through each one.
+without writing analysis code. This vignette walks through each one for
+either HDF5 files or TileDB stores. The main examples use HDF5, with
+TileDB-specific setup shown in blue toggles where the code differs.
 
 ``` r
+
 library(ModelArray)
 
-h5_path <- "~/Desktop/myProject/demo_FDC_n100.h5"
-modelarray <- ModelArray(h5_path,
+modelarray_path <- "~/Desktop/myProject/demo_FDC_n100.h5"
+csv_path <- "~/Desktop/myProject/cohort_FDC_n100.csv"
+
+modelarray <- ModelArray(modelarray_path,
   scalar_types = c("FDC"),
   analysis_names = c("results_lm")
 )
-phenotypes <- read.csv("~/Desktop/myProject/cohort_FDC_n100.csv")
+phenotypes <- read.csv(csv_path)
 ```
+
+**TileDB**
+
+For a TileDB-backed store created by
+`modelarrayio to-modelarray --backend tiledb`, use the `.tdb` directory
+path. ModelArray auto-detects `.tdb` paths; you can also pass
+`backend = "tiledb"` explicitly.
+
+``` r
+
+library(ModelArray)
+
+modelarray_path <- "~/Desktop/myProject/demo_FDC_n100.tdb"
+csv_path <- "~/Desktop/myProject/cohort_FDC_n100.csv"
+
+modelarray <- ModelArray(modelarray_path,
+  scalar_types = c("FDC"),
+  analysis_names = c("results_lm")
+)
+phenotypes <- read.csv(csv_path)
+```
+
+TileDB support in R requires the optional `tiledb` and `TileDBArray`
+packages. See the optional TileDB installation notes in
+[`vignette("installations")`](https://pennlinc.github.io/ModelArray/articles/installations.md).
+
+The accessor examples below start from `modelarray`, so they are
+identical for HDF5 and TileDB once the object has been constructed.
 
 ## `show()` — Object summary
 
@@ -20,6 +53,7 @@ Simply typing the object name (or calling
 [`show()`](https://rdrr.io/r/methods/show.html)) prints a summary:
 
 ``` r
+
 modelarray
 ```
 
@@ -31,12 +65,25 @@ ModelArray located at ~/Desktop/myProject/demo_FDC_n100.h5
   Analyses:         results_lm
 ```
 
-This tells you at a glance: the file path, how many sources, which
+This tells you at a glance: the storage path, how many sources, which
 scalars are loaded, and which analyses have been saved.
+
+**TileDB**
+
+For a TileDB-backed object, the printed path points to the `.tdb` store:
+
+``` console
+ModelArray located at ~/Desktop/myProject/demo_FDC_n100.tdb
+
+  Source files:     100
+  Scalars:          FDC
+  Analyses:         results_lm
+```
 
 ## `sources()` — Source files
 
 ``` r
+
 src <- sources(modelarray)[["FDC"]]
 length(src) # number of sources
 head(src) # first few filenames
@@ -56,10 +103,11 @@ that the ordering matches your phenotypes CSV.
 Access the full scalar matrix or a specific scalar:
 
 ``` r
+
 # All scalars (returns a named list)
 scalars(modelarray)
 
-# A specific scalar (returns a DelayedMatrix)
+# A specific scalar (returns a DelayedArray-backed matrix)
 fdc_matrix <- scalars(modelarray)[["FDC"]]
 dim(fdc_matrix)
 ```
@@ -71,6 +119,7 @@ dim(fdc_matrix)
 ### Extracting a single element’s data across all subjects
 
 ``` r
+
 # Values at element 12345 (row 12345) for all 100 subjects
 element_values <- as.numeric(fdc_matrix[12345, ])
 summary(element_values)
@@ -79,14 +128,15 @@ summary(element_values)
 ### Extracting a single subject’s data across all elements
 
 ``` r
+
 # All element values for the first subject
 subject_values <- as.numeric(fdc_matrix[, 1])
 length(subject_values)
 ```
 
-Note: because the data is stored on disk as a `DelayedMatrix`, accessing
-a row or column triggers an HDF5 read. Avoid looping over many rows
-manually: that’s what
+Note: because the data is stored on disk and exposed through
+`DelayedArray`, accessing a row or column triggers a backend read from
+HDF5 or TileDB. Avoid looping over many rows manually: that’s what
 [`ModelArray.lm()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.lm.md)
 and friends are optimized for.
 
@@ -96,11 +146,12 @@ If you loaded analysis names when creating the object, you can access
 them:
 
 ``` r
+
 # All analyses (returns a named list)
 results(modelarray)
 
 # A specific analysis
-lm_results <- results(modelarray)[["results_lm"]]
+lm_results <- results(modelarray)[["results_lm"]]$results_matrix
 dim(lm_results)
 colnames(lm_results)
 ```
@@ -110,38 +161,59 @@ in the `analysis_names` argument when calling
 [`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html):
 
 ``` r
+
 # This loads results; without analysis_names, the results slot is empty
-modelarray <- ModelArray(h5_path,
+modelarray <- ModelArray(modelarray_path,
   scalar_types = "FDC",
   analysis_names = c("results_lm")
 )
 ```
 
-## Quick inspection with `h5summary()`
+## Quick inspection with `ModelArraySummary()`
 
-Before constructing a full ModelArray, you can inspect an h5 file’s
+Before constructing a full ModelArray, you can inspect the storage
 structure:
 
 ``` r
-h5summary(h5_path)
+
+ModelArraySummary(modelarray_path)
 ```
 
 ``` console
-ModelArray HDF5 summary: ~/Desktop/myProject/demo_FDC_n100.h5
+H5 file: ~/Desktop/myProject/demo_FDC_n100.h5
 
-  Scalars:
-       name nElements nInputFiles
-    1:  FDC    602229         100
+Scalars:
+  FDC: 602229 elements x 100 input files
 
-  Analyses: results_lm
+Analyses: results_lm
 ```
 
-This is lightweight — it reads the h5 metadata without loading any data
+**TileDB**
+
+Use the TileDB store path the same way. The explicit backend argument is
+optional for `.tdb` paths:
+
+``` r
+
+ModelArraySummary("~/Desktop/myProject/demo_FDC_n100.tdb", backend = "tiledb")
+```
+
+``` console
+TileDB store: ~/Desktop/myProject/demo_FDC_n100.tdb
+
+Scalars:
+  FDC: 602229 elements x 100 input files
+
+Analyses: results_lm
+```
+
+This is lightweight — it reads storage metadata without loading any data
 into memory.
 
 ## Dimension accessors
 
 ``` r
+
 # Number of elements (rows) in the scalar matrix
 nElements(modelarray)       # 602229
 nElements(modelarray, "FDC") # same, explicit scalar
@@ -167,20 +239,23 @@ are more concise.
 
 ## `elementMetadata()` — Spatial metadata
 
-Some h5 files contain per-element metadata (e.g., greyordinate labels
-for cifti data, fixel directions, or voxel coordinates). Access it with:
+Some ModelArray stores contain per-element metadata (e.g., greyordinate
+labels for cifti data, fixel directions, or voxel coordinates). Access
+it with:
 
 ``` r
+
 em <- elementMetadata(modelarray)
 dim(em)   # e.g. 602229 x 3
 head(em)
 ```
 
-Returns `NULL` if the h5 file does not contain element metadata.
+Returns `NULL` if the store does not contain element metadata.
 
 ## `numElementsTotal()` — Element count (legacy)
 
 ``` r
+
 numElementsTotal(modelarray, "FDC")
 ```
 
@@ -196,6 +271,7 @@ It returns a copy of your phenotypes data frame with the scalar values
 for a single element added as a new column:
 
 ``` r
+
 df <- exampleElementData(modelarray,
   scalar = "FDC", i_element = 12345, phenotypes = phenotypes
 )
@@ -207,6 +283,7 @@ containing each subject’s value at element 12345. You can explore it
 with standard R tools:
 
 ``` r
+
 library(ggplot2)
 
 # Distribution of FDC at this element
@@ -233,6 +310,7 @@ For voxel-wise data with subject-specific masks, some elements may have
 `NaN` values for certain subjects:
 
 ``` r
+
 element_values <- as.numeric(scalars(modelarray)[["FDC"]][12345, ])
 sum(!is.na(element_values))
 ```
@@ -243,7 +321,8 @@ After running a model, you can query the saved results to find the most
 significant elements:
 
 ``` r
-lm_results <- results(modelarray)[["results_lm"]]
+
+lm_results <- results(modelarray)[["results_lm"]]$results_matrix
 
 # Find the column index for Age p-value (FDR-corrected)
 col_idx <- which(colnames(lm_results) == "Age.p.value.fdr")

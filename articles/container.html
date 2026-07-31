@@ -7,8 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Getting started with containers • ModelArray</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Getting started with containers">
 </head>
@@ -35,8 +35,8 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-introduction">
 <li><a class="dropdown-item" href="../articles/elements.html">Elements: The Unit of Analysis</a></li>
     <li><a class="dropdown-item" href="../articles/element-splitting.html">Splitting Element IDs</a></li>
-    <li><a class="dropdown-item" href="../articles/hdf5-format.html">Understanding the HDF5 File</a></li>
-    <li><a class="dropdown-item" href="../articles/hdf5-large-analyses.html">HDF5 for Large-Scale Analyses</a></li>
+    <li><a class="dropdown-item" href="../articles/modelarray-storage.html">Understanding ModelArray Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/large-scale-analyses.html">Large-Scale Analyses</a></li>
   </ul>
 </li>
 <li class="active nav-item dropdown">
@@ -44,7 +44,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-case-studies">
 <li><a class="dropdown-item" href="../articles/walkthrough.html">End-to-End Walkthrough</a></li>
     <li><a class="dropdown-item" href="../articles/modelling.html">Modelling in Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/exploring-h5.html">Exploring Data with Convenience Functions</a></li>
+    <li><a class="dropdown-item" href="../articles/exploring-modelarray-data.html">Exploring Data with Convenience Functions</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Resources</h6></li>
     <li><a class="dropdown-item" href="../articles/container.html">Containers</a></li>
@@ -85,7 +85,8 @@
 <p>Target audience: Any user who wants to use a container to run
 <code>ModelArray</code> and/or <code>ModelArrayIO</code> commands</p>
 <p>What is covered on this page? How to use the container image of
-<code>ModelArray + ModelArrayIO</code>.</p>
+<code>ModelArray + ModelArrayIO</code>, including the optional TileDB
+backend.</p>
 <p>What is not covered on this page? Step by step details on how to run
 <code>ModelArray</code> and <code>ModelArrayIO</code> commands. For a
 full walkthrough on how to use our software, please refer to
@@ -100,7 +101,8 @@ commands on a local computer, users also have an option to run them on
 High Performance Computing (HPC) clusters. When using HPC clusters,
 users may not have full privilege to install all the dependent packages.
 Therefore, we provide the option to download our software as a container
-image that includes <code>ModelArray + ModelArrayIO</code>.</p>
+image that includes <code>ModelArray</code>, <code>ModelArrayIO</code>,
+and the R packages needed for TileDB-backed ModelArray stores.</p>
 <p>Our container image is publicly available at <a href="https://hub.docker.com/r/pennlinc/modelarray_confixel" class="external-link">Docker
 Hub</a>. Although HPC clusters do not usually support
 <code>docker</code> commands, this container image can be run with
@@ -130,6 +132,10 @@ the image:</p>
 <p>You should now be inside an R environment with the capability to load
 the <code>ModelArray</code> R package as you would in RStudio:
 <code><a href="https://pennlinc.github.io/ModelArray">library(ModelArray)</a></code>.</p>
+<p>You can also check that the optional TileDB backend is available:</p>
+<pre class="console"><code>singularity run --cleanenv \
+    modelarray_confixel_&lt;tagName&gt;.sif \
+    Rscript -e 'library(ModelArray); stopifnot(requireNamespace("tiledb", quietly = TRUE)); stopifnot(requireNamespace("TileDBArray", quietly = TRUE))'</code></pre>
 <p>This is also the way to interactively use this container image to run
 R, but please make sure you mount necessary directories with
 <code>-B</code> - see below for explanations.</p>
@@ -149,9 +155,21 @@ you might do <code>-B $PWD</code>;</p>
 is the full path to the singularity image (<code>.sif</code>) you
 pulled;</p>
 <p><code>ModelArray</code> and <code>ModelArrayIO</code> are both
-included in this container. To run conversion tools, simply replace
-<code>&lt;command you want to run&gt;</code> with a
-<code>ModelArrayIO</code> command (e.g., <code>confixel</code>).</p>
+included in this container. To convert data, replace
+<code>&lt;command you want to run&gt;</code> with the current
+<code>ModelArrayIO</code> CLI, <code>modelarrayio to-modelarray</code>.
+For example, to create a TileDB-backed store:</p>
+<pre class="console"><code>singularity run --cleanenv -B /directory/of/your/data \
+  /path/to/singularity/image/modelarray_confixel_&lt;tagName&gt;.sif \
+  modelarrayio to-modelarray \
+    --backend tiledb \
+    --cohort-file /directory/of/your/data/cohort.csv \
+    --output /directory/of/your/data/modelarray.tdb</code></pre>
+<p>For HDF5 output, omit <code>--backend tiledb</code> or set
+<code>--backend hdf5</code> and use an <code>.h5</code> output path. For
+MIF/fixel data, also provide <code>--index-file</code> and
+<code>--directions-file</code>; for NIfTI data, provide
+<code>--mask</code>.</p>
 <p>To run <code>ModelArray</code>, you may first save the R commands
 into an R script, then replace
 <code>&lt;command you want to run&gt;</code> with
@@ -183,7 +201,7 @@ tutorial on how to use both.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

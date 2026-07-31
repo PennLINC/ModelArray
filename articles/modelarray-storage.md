@@ -1,4 +1,4 @@
-# Understanding the HDF5 File
+# Understanding ModelArray Storage
 
 ## What is HDF5?
 
@@ -15,7 +15,15 @@ computing because they support on-disk access (reading data without
 loading the entire file into memory), compression, and efficient chunked
 storage.
 
-## The ModelArray HDF5 layout
+**TileDB**
+
+TileDB is an optional backend for storing the same ModelArray content in
+a directory-backed `.tdb` store. A TileDB store is organized as groups
+and arrays rather than groups and datasets, but it provides the same
+core features that ModelArray needs: on-disk access, compression, and
+tiled array storage.
+
+## The ModelArray storage layout
 
 ModelArray expects a specific structure inside the HDF5 file. This
 structure is created by companion tools —
@@ -33,6 +41,23 @@ The layout follows this pattern:
         └── <analysis_name>/        # e.g., "results_lm", "results_gam"
             ├── results_matrix      # Dataset: elements × statistics matrix
             └── column_names        # Dataset (text): statistic column names
+
+**TileDB**
+
+TileDB-backed stores use the same conceptual layout, represented by
+TileDB groups and arrays under a `.tdb` directory:
+
+``` text
+data.tdb/
+├── scalars/
+│   └── <scalar_name>/          # e.g., "FDC", "FA", "thickness"
+│       ├── values              # TileDB array: elements x source files matrix
+│       └── column_names        # Optional companion array or metadata
+└── results/                    # Created by writeResults()
+    └── <analysis_name>/        # e.g., "results_lm", "results_gam"
+        ├── results_matrix      # TileDB array: elements x statistics matrix
+        └── column_names        # Optional companion array or metadata
+```
 
 ### The scalars group
 
@@ -69,6 +94,38 @@ The corresponding statistic names are stored in
 If both are present, prefer the `column_names` dataset as the canonical
 source and treat attributes as backward-compatibility metadata.
 
+**TileDB**
+
+TileDB-backed stores use metadata and/or companion arrays for column
+names. ModelArray handles the supported TileDB locations internally;
+most users should use
+[`sources()`](https://pennlinc.github.io/ModelArray/reference/sources.md),
+[`scalarNames()`](https://pennlinc.github.io/ModelArray/reference/scalarNames.md),
+[`analysisNames()`](https://pennlinc.github.io/ModelArray/reference/analysisNames.md),
+and
+[`results()`](https://pennlinc.github.io/ModelArray/reference/results.md)
+rather than reading TileDB metadata directly.
+
+``` r
+
+library(ModelArray)
+
+modelarray <- ModelArray(
+  "data.tdb",
+  scalar_types = c("FDC"),
+  analysis_names = c("results_lm")
+)
+
+# Scalar names and source filenames
+scalarNames(modelarray)
+head(sources(modelarray)[["FDC"]])
+
+# Saved analysis names and result column names
+analysisNames(modelarray)
+lm_results <- results(modelarray)[["results_lm"]]$results_matrix
+colnames(lm_results)
+```
+
 ## How ModelArray reads HDF5
 
 When you create a ModelArray object, the scalar data is **not** loaded
@@ -77,6 +134,7 @@ into memory. Instead, ModelArray uses the
 framework to create a lazy reference to the on-disk data:
 
 ``` r
+
 library(ModelArray)
 
 modelarray <- ModelArray("data.h5", scalar_types = c("FDC"))
@@ -96,12 +154,32 @@ During model fitting, ModelArray reads **one element (row) at a time** —
 pulling a single row of ~N subject values, fitting the model, and moving
 on. At no point is the full matrix loaded into RAM.
 
+**TileDB**
+
+TileDB-backed stores are exposed through the same `DelayedArray`
+interface via `TileDBArray`:
+
+``` r
+
+library(ModelArray)
+
+modelarray <- ModelArray("data.tdb", scalar_types = c("FDC"))
+scalars(modelarray)[["FDC"]]
+```
+
+Values are still read lazily from disk. During model fitting, ModelArray
+may materialize bounded row blocks for TileDB-backed scalars to avoid
+slow one-row TileDB reads; see
+[`vignette("large-scale-analyses")`](https://pennlinc.github.io/ModelArray/articles/large-scale-analyses.md)
+for details.
+
 ## Inspecting an HDF5 file
 
 You can explore the structure of any HDF5 file using
 [`rhdf5::h5ls()`](https://huber-group-embl.github.io/rhdf5/reference/h5ls.html):
 
 ``` r
+
 rhdf5::h5ls("data.h5")
 ```
 
@@ -120,6 +198,7 @@ rhdf5::h5ls("data.h5")
 You can also read specific pieces of data directly:
 
 ``` r
+
 # Preferred: read names from the text dataset
 rhdf5::h5read("data.h5", "scalars/FDC/column_names")
 
@@ -130,18 +209,47 @@ rhdf5::h5readAttributes("data.h5", "scalars/FDC/values")$column_names
 rhdf5::h5read("data.h5", "scalars/FDC/values", index = list(1:5, 1:3))
 ```
 
+**TileDB**
+
+Use ModelArray accessors for backend-independent inspection:
+
+``` r
+
+library(ModelArray)
+
+ModelArraySummary("data.tdb", backend = "tiledb")
+
+modelarray <- ModelArray("data.tdb", scalar_types = c("FDC"))
+sources(modelarray)[["FDC"]]
+as.matrix(scalars(modelarray)[["FDC"]][1:5, 1:3])
+```
+
 ## Creating HDF5 files
 
 ModelArray does not create HDF5 files from raw imaging data — that’s the
-job of the companion conversion tools:
+job of the companion conversion tool:
 
-| Data type                | Command    |
-|:-------------------------|:-----------|
-| Fixel (`.mif`)           | `confixel` |
-| Voxel (`.nii.gz`)        | `convoxel` |
-| Surface (`.dscalar.nii`) | `concifti` |
+| Data type | Command |
+|:---|:---|
+| Fixel (`.mif`) | `modelarrayio to-modelarray --backend hdf5 --cohort-file <cohort.csv> --index-file <index.mif> --directions-file <directions.mif> --output <data.h5>` |
+| Voxel (`.nii.gz`) | `modelarrayio to-modelarray --backend hdf5 --cohort-file <cohort.csv> --mask <group_mask.nii.gz> --output <data.h5>` |
+| Surface (`.dscalar.nii`) | `modelarrayio to-modelarray --backend hdf5 --cohort-file <cohort.csv> --output <data.h5>` |
 
-Each command reads the source imaging files listed in a cohort CSV and
+The command reads the source imaging files listed in a cohort CSV and
 writes them into the HDF5 layout described above. See the [ModelArrayIO
 documentation](https://github.com/PennLINC/ModelArrayIO) for detailed
 usage instructions.
+
+**TileDB**
+
+Use the same `modelarrayio to-modelarray` command with
+`--backend tiledb` and a `.tdb` output path:
+
+| Data type | Command |
+|:---|:---|
+| Fixel (`.mif`) | `modelarrayio to-modelarray --backend tiledb --cohort-file <cohort.csv> --index-file <index.mif> --directions-file <directions.mif> --output <data.tdb>` |
+| Voxel (`.nii.gz`) | `modelarrayio to-modelarray --backend tiledb --cohort-file <cohort.csv> --mask <group_mask.nii.gz> --output <data.tdb>` |
+| Surface (`.dscalar.nii`) | `modelarrayio to-modelarray --backend tiledb --cohort-file <cohort.csv> --output <data.tdb>` |
+
+The command reads the source imaging files listed in a cohort CSV and
+writes them into the TileDB-backed layout described above.

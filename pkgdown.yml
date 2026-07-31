@@ -1,18 +1,18 @@
-pandoc: 3.1.11
-pkgdown: 2.2.0
+pandoc: 3.8.3
+pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   container: container.html
   doc_for_developer: doc_for_developer.html
   element-splitting: element-splitting.html
   elements: elements.html
-  exploring-h5: exploring-h5.html
-  hdf5-format: hdf5-format.html
-  hdf5-large-analyses: hdf5-large-analyses.html
+  exploring-modelarray-data: exploring-modelarray-data.html
   installations: installations.html
+  large-scale-analyses: large-scale-analyses.html
+  modelarray-storage: modelarray-storage.html
   modelling: modelling.html
   walkthrough: walkthrough.html
-last_built: 2026-04-28T18:03Z
+last_built: 2026-07-31T13:14Z
 urls:
   reference: https://pennlinc.github.io/ModelArray/reference
   article: https://pennlinc.github.io/ModelArray/articles

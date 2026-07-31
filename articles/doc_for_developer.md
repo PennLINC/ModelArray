@@ -59,21 +59,19 @@ slots:
   data)
 - scalars: scalar matrix (or matrices)
 - results: statistical result matrices (if any)
-- path: the path to the h5 file on disk
+- path: the path to the HDF5 file or TileDB store
+- backend: the resolved storage backend (`"hdf5"` or `"tiledb"`)
 
-The key feature of an `ModelArray` object is memory efficient. This is
-because the entire dataset in HDF5 (.h5) file was not loaded into the
-memory; only minimal data was loaded. To achieve this, we first need
-`ModelArraySeed()`, which utilizes
-[`HDF5Array::HDF5ArraySeed()`](https://rdrr.io/pkg/HDF5Array/man/HDF5ArraySeed-class.html),
-acting as a pointer to the .hdf5 file on disk. To make the arrays in the
-`ModelArray` object look more like “real” arrays, e.g. common array
-operations such as indexing and transposing can be applied, we utilize
-package `DelayedArray` to wraps the data in on-disk HDF5 file into a
-`DelayedArray` object. Finally a `ModelArray` class is defined by
-integrating above slots together. This is done in the
+The key feature of a `ModelArray` object is memory efficiency: the full
+dataset is not loaded into memory. `ModelArraySeed()` creates an
+[`HDF5Array::HDF5ArraySeed()`](https://rdrr.io/pkg/HDF5Array/man/HDF5ArraySeed-class.html)
+or
+[`TileDBArray::TileDBArraySeed()`](https://rdrr.io/pkg/TileDBArray/man/TileDBArray.html)
+that points to the on-disk data. The `DelayedArray` package wraps that
+seed so common array operations, such as indexing and transposing,
+remain available. The
 [`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html)
-function.
+function combines these delayed arrays with the other slots above.
 
 Above functions and setups can be found in script
 `R/ModelArray_Constructor.R`
@@ -219,6 +217,7 @@ Developers can run the tests locally to see if unit tests in a test file
 (in `tests/testthat` folder) can run without errors:
 
 ``` r
+
 rm(list = ls())
 devtools::load_all()
 ```
@@ -233,6 +232,7 @@ Use `styler` to format all package code before committing changes.
 Install `styler` if needed:
 
 ``` r
+
 if (!requireNamespace("styler", quietly = TRUE)) {
   install.packages("styler")
 }
@@ -241,12 +241,14 @@ if (!requireNamespace("styler", quietly = TRUE)) {
 Apply code styling to the package using the tidyverse style guide:
 
 ``` r
+
 styler::style_pkg(style = styler::tidyverse_style)
 ```
 
 Optionally, run a dry check to confirm no files would be reformatted:
 
 ``` r
+
 result <- styler::style_pkg(
   dry = "on",
   style = styler::tidyverse_style

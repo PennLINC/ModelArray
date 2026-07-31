@@ -31,26 +31,28 @@ We first create a conda environment `modelarray` for installing the
 companion software `ModelArrayIO` etc. We’ll install python version 3.9:
 
 ``` console
-foo@bar:~$ conda create --name modelarray python=3.9
+foo@bar:~$ conda create --name modelarray python=3.11
 foo@bar:~$ conda activate modelarray
 ```
 
 ### Install MRtrix (Only required for fixel-wise data)
 
-When converting fixel-wise data (`.mif`), the `confixel` command from
-`ModelArrayIO` uses `mrconvert` from MRtrix, so please make sure MRtrix
-has been installed. It can either be installed via `conda` in this conda
-environment we just created, or be compiled from source. See [MRtrix’s
-webpage](https://www.mrtrix.org/download/) for more. Type `mrview` in
-the terminal to check whether MRtrix installation is successful.
+When working with fixel-wise data (`.mif`), install MRtrix so you can
+inspect and visualize MIF inputs and outputs. It can either be installed
+via `conda` in this conda environment we just created, or be compiled
+from source. See [MRtrix’s webpage](https://www.mrtrix.org/download/)
+for more. Type `mrview` in the terminal to check whether MRtrix
+installation is successful.
 
 If your input data is voxel-wise data, you can skip this step.
 
 ### Install HDF5 libraries in the system
 
-Because ModelArray works with the Hierarchical Data Format 5 (HDF5) file
-format, we need to make sure necessary libraries of HDF5 are installed
-in the system.
+ModelArray always supports data backed by the Hierarchical Data Format 5
+(HDF5) file format, so we need to make sure the necessary HDF5 libraries
+are installed in the system. TileDB support is optional and requires
+additional R packages; see the optional TileDB section below if you plan
+to use TileDB-backed stores.
 
 #### On a Linux Ubuntu system
 
@@ -82,10 +84,11 @@ For details you may refer to the webpage
 
 ### Install ModelArrayIO python package from GitHub
 
-[ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) provides file
-format conversion commands (`confixel`, `convoxel`, `concifti`) for
-fixel-wise data (`.mif`), voxel-wise data (NIfTI), and CIFTI data.
-Follow the commands below to install it from GitHub:
+[ModelArrayIO](https://github.com/PennLINC/ModelArrayIO) provides the
+`modelarrayio` command-line tool for converting fixel-wise data
+(`.mif`), voxel-wise data (NIfTI), and CIFTI data into ModelArray
+storage, and for exporting saved ModelArray results back to neuroimaging
+formats. Follow the commands below to install it from GitHub:
 
 ``` console
 # We first activate the conda environment we just created:
@@ -100,6 +103,14 @@ foo@bar:myProject$ pip install .
 # You may remove the original source code if you are an end user instead of a developer:
 foo@bar:myProject$ cd ..
 foo@bar:myProject$ rm -r ModelArrayIO
+```
+
+After installation, conversion is done with
+`modelarrayio to-modelarray`. The command auto-detects the imaging
+modality from the source files in the cohort CSV. For example:
+
+``` console
+foo@bar:myProject$ modelarrayio to-modelarray --help
 ```
 
 ### Install R
@@ -121,6 +132,7 @@ ModelArray R package’s source code is available on GitHub. To install it
 in R:
 
 ``` r
+
 # First, load library "devtools":
 library(devtools)
 
@@ -130,9 +142,42 @@ library(devtools)
 devtools::install_github("PennLINC/ModelArray")
 ```
 
+### (Optional) Install TileDB backend dependencies
+
+ModelArray can also read and write TileDB-backed stores. This is
+optional: you only need these packages if you plan to use
+`backend = "tiledb"` or paths ending in `.tdb`.
+
+``` r
+
+install.packages(c("jsonlite", "tiledb"))
+
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+BiocManager::install("TileDBArray")
+```
+
+You can verify TileDB support with:
+
+``` r
+
+library(ModelArray)
+
+ModelArraySummary("path/to/store.tdb", backend = "tiledb")
+```
+
+If installing the `tiledb` R package fails, install the TileDB system
+library first. On macOS:
+
+``` console
+foo@bar:~$ brew install tiledb
+```
+
 Now, ModelArray is ready to use:
 
 ``` r
+
 library(ModelArray)
 ```
 
