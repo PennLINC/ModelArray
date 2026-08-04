@@ -324,10 +324,10 @@ test_that(".with_scalar_row_cache serves cached rows for TileDB-style stores", {
   values <- matrix(seq_len(12), nrow = 3, ncol = 4)
   colnames(values) <- src
   ma <- methods::new("ModelArray",
-                     sources = list(FD = src),
-                     scalars = list(FD = values),
-                     results = list(),
-                     path = store
+    sources = list(FD = src),
+    scalars = list(FD = values),
+    results = list(),
+    path = store
   )
   phen <- data.frame(
     source_file = src,
@@ -391,10 +391,10 @@ test_that("TileDB read block sizing is memory bounded without a hard row cap", {
   values <- matrix(seq_len(4), nrow = 2, ncol = 2)
   colnames(values) <- src
   ma <- methods::new("ModelArray",
-                     sources = list(FD = src),
-                     scalars = list(FD = values),
-                     results = list(),
-                     path = store
+    sources = list(FD = src),
+    scalars = list(FD = values),
+    results = list(),
+    path = store
   )
   phen <- data.frame(source_file = src, age = c(20, 30))
   ctx <- .build_lm_context(FD ~ age, ma, phen, scalar = "FD")
@@ -447,10 +447,10 @@ test_that("ModelArray.lm returns same output with TileDB-style row cache enabled
   ), nrow = 4, byrow = TRUE)
   colnames(values) <- src
   ma <- methods::new("ModelArray",
-                     sources = list(FD = src),
-                     scalars = list(FD = values),
-                     results = list(),
-                     path = store
+    sources = list(FD = src),
+    scalars = list(FD = values),
+    results = list(),
+    path = store
   )
   phen <- data.frame(source_file = src, age = seq(10, 80, by = 10))
   element_subset <- as.integer(c(4, 1, 3, 2))

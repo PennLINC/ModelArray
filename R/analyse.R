@@ -79,7 +79,8 @@
 #'   specified by \code{write_results_file}.
 #' @param write_results_file Optional character. HDF5 file path or TileDB
 #'   store path for incremental result writes. Required when
-#'   \code{write_results_name} is provided.
+#'   \code{write_results_name} is provided. The backend is detected from the
+#'   path, so use a \code{.tdb} suffix to stream into a TileDB store.
 #' @param write_results_flush_every Positive integer. Number of elements
 #'   per write block. Default 1000.
 #' @param write_results_storage_mode Character. Storage mode for HDF5
@@ -891,7 +892,9 @@ ModelArray.gam <- function(formula, data, phenotypes, scalar = NULL, element.sub
 #'   \code{scalars/<write_scalar_name>/values} in the output specified by
 #'   \code{write_scalar_file}.
 #' @param write_scalar_file Optional character. HDF5 file path or TileDB store
-#'   path. Required when \code{write_scalar_name} is provided.
+#'   path. Required when \code{write_scalar_name} is provided. The backend is
+#'   detected from the path, so use a \code{.tdb} suffix to write a TileDB
+#'   store.
 #' @param write_scalar_columns Optional character or integer vector
 #'   selecting which output columns to save as scalar values. If
 #'   \code{NULL} (default), uses all output columns except

@@ -11,10 +11,24 @@ commands:
               r-cran-devtools \
               r-bioc-rhdf5 \
               r-bioc-delayedarray \
+              r-cran-tiledb \
+              r-cran-jsonlite \
               pandoc
       - run:
           name: Install package dependencies
           command: R -e "devtools::install_deps(dep = TRUE, dependencies = TRUE)"
+      - run:
+          # TileDBArray is Bioconductor-only, so install_deps() cannot resolve
+          # it from CRAN. Without this the TileDB tests skip silently and the
+          # backend reads as covered when it is not.
+          name: Install TileDBArray (Bioconductor)
+          command: |
+            R -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")'
+            R -e 'BiocManager::install("TileDBArray", ask = FALSE, update = FALSE)'
+      - run:
+          name: Verify optional TileDB stack is installed
+          command: |
+            R -q -e 'for (p in c("tiledb", "TileDBArray", "jsonlite")) if (!requireNamespace(p, quietly = TRUE)) stop("TileDB test dependency missing: ", p)'
 
 jobs:
   check_package:

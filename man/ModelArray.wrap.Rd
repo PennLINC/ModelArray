@@ -80,7 +80,9 @@ output columns are written into
 \code{write_scalar_file}.}
 
 \item{write_scalar_file}{Optional character. HDF5 file path or TileDB store
-path. Required when \code{write_scalar_name} is provided.}
+path. Required when \code{write_scalar_name} is provided. The backend is
+detected from the path, so use a \code{.tdb} suffix to write a TileDB
+store.}
 
 \item{write_scalar_columns}{Optional character or integer vector
 selecting which output columns to save as scalar values. If
@@ -108,7 +110,8 @@ specified by \code{write_results_file}.}
 
 \item{write_results_file}{Optional character. HDF5 file path or TileDB
 store path for incremental result writes. Required when
-\code{write_results_name} is provided.}
+\code{write_results_name} is provided. The backend is detected from the
+path, so use a \code{.tdb} suffix to stream into a TileDB store.}
 
 \item{write_results_flush_every}{Positive integer. Number of elements
 per write block. Default 1000.}

@@ -109,7 +109,8 @@ specified by \code{write_results_file}.}
 
 \item{write_results_file}{Optional character. HDF5 file path or TileDB
 store path for incremental result writes. Required when
-\code{write_results_name} is provided.}
+\code{write_results_name} is provided. The backend is detected from the
+path, so use a \code{.tdb} suffix to stream into a TileDB store.}
 
 \item{write_results_flush_every}{Positive integer. Number of elements
 per write block. Default 1000.}

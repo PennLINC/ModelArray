@@ -23,8 +23,11 @@ Must match group names in the file.}
 \code{/results/} to load. Default is \code{character(0)} (none).}
 
 \item{backend}{Character. Storage backend: \code{"auto"} (default),
-\code{"hdf5"}, or \code{"tiledb"}. Auto-detection treats directories
-and \code{.tdb} paths as TileDB stores, otherwise HDF5.}
+\code{"hdf5"}, or \code{"tiledb"}. Auto-detection resolves to TileDB for
+a \code{.tdb} path, or for a directory that already contains a
+\code{scalars/} or \code{results/} subdirectory; everything else is
+treated as HDF5. Pass \code{"tiledb"} explicitly for a TileDB store that
+is neither.}
 }
 \value{
 A \linkS4class{ModelArray} object.

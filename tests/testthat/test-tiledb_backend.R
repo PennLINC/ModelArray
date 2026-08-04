@@ -619,9 +619,13 @@ test_that("HDF5 and TileDB outputs are identical for regular and streamed writes
       analysis_name,
       backend
     )
-    if (ncol(saved) != length(column_names)) {
-      saved <- t(saved)
-    }
+    # Assert the stored orientation rather than normalizing it — silently
+    # transposing here would mask a backend writing elements x stats the
+    # wrong way round, which is the whole point of this comparison.
+    expect_identical(
+      ncol(saved), length(column_names),
+      info = paste("unexpected orientation for", backend, analysis_name)
+    )
     colnames(saved) <- column_names
     saved
   }
@@ -745,4 +749,223 @@ test_that("elementMetadata returns NULL when no TileDB metadata arrays exist", {
   )
 
   expect_null(elementMetadata(ma))
+})
+
+test_that("HDF5 and TileDB writeResults agree on classed-numeric columns", {
+  skip_if_no_tiledb()
+
+  h5_file <- tempfile(fileext = ".h5")
+  store <- tempfile(fileext = ".tdb")
+  on.exit(unlink(h5_file), add = TRUE)
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+  rhdf5::h5createFile(h5_file)
+
+  # `scaled` is numeric underneath but carries an extra class attribute, so a
+  # deparsed-class check mistakes it for a factor candidate and replaces the
+  # values with LUT indices. Both backends must store the numbers as-is.
+  df <- data.frame(element_id = 0:2, estimate = c(0.5, 1.5, 2.5))
+  df$scaled <- structure(c(10.5, 20.5, 30.5), class = c("myscale", "numeric"))
+  df$label <- c("a", "b", "a")
+
+  writeResults(h5_file, df, analysis_name = "cmp", overwrite = TRUE)
+  writeResults(store, df, analysis_name = "cmp", overwrite = TRUE)
+
+  read_back <- function(path, backend) {
+    ma <- ModelArray(path,
+      scalar_types = character(0),
+      analysis_names = "cmp", backend = backend
+    )
+    as.matrix(results(ma)[["cmp"]]$results_matrix)
+  }
+  from_h5 <- read_back(h5_file, "hdf5")
+  from_tiledb <- read_back(store, "tiledb")
+
+  expect_identical(from_h5, from_tiledb)
+  # numeric column survives intact rather than becoming 1/2/3 LUT indices
+  expect_equal(as.numeric(from_h5[, 3]), c(10.5, 20.5, 30.5))
+  # the genuinely character column still round-trips through its LUT
+  expect_identical(as.character(from_h5[, 4]), df$label)
+
+  # ...and the LUTs themselves match across backends
+  luts <- function(path, backend) {
+    vapply(seq_len(ncol(df)), function(i) {
+      lut <- .read_result_lut(path, "cmp", paste0("lut_forcol", i), backend)
+      if (is.null(lut)) NA_character_ else paste(lut, collapse = "|")
+    }, character(1))
+  }
+  expect_identical(luts(h5_file, "hdf5"), luts(store, "tiledb"))
+})
+
+test_that("writeResults honors overwrite = FALSE on a TileDB store", {
+  skip_if_no_tiledb()
+
+  store <- tempfile(fileext = ".tdb")
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+
+  first <- data.frame(element_id = 0:1, estimate = c(1, 2))
+  second <- data.frame(element_id = 0:1, estimate = c(99, 99))
+  writeResults(store, first, analysis_name = "keep", overwrite = TRUE)
+
+  expect_warning(
+    writeResults(store, second, analysis_name = "keep", overwrite = FALSE),
+    "exists but not to overwrite"
+  )
+  kept <- ModelArray(store, scalar_types = character(0), analysis_names = "keep")
+  expect_equal(
+    as.numeric(as.matrix(results(kept)[["keep"]]$results_matrix)[, 2]),
+    first$estimate
+  )
+
+  writeResults(store, second, analysis_name = "keep", overwrite = TRUE)
+  replaced <- ModelArray(store, scalar_types = character(0), analysis_names = "keep")
+  expect_equal(
+    as.numeric(as.matrix(results(replaced)[["keep"]]$results_matrix)[, 2]),
+    second$estimate
+  )
+})
+
+test_that("multi-scalar TileDB stores drive scalar predictors in a model", {
+  skip_if_no_tiledb()
+
+  store <- tempfile(fileext = ".tdb")
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+
+  src <- paste0("sub-", 1:6)
+  set.seed(7)
+  fd <- matrix(stats::rnorm(18), nrow = 3, ncol = 6)
+  fc <- matrix(stats::rnorm(18), nrow = 3, ncol = 6)
+  write_tiledb_scalar(store, "FD", fd, src)
+  write_tiledb_scalar(store, "FC", fc, src)
+
+  ma <- ModelArray(store, scalar_types = c("FD", "FC"))
+  expect_identical(sort(names(scalars(ma))), c("FC", "FD"))
+
+  phen <- data.frame(source_file = src, age = seq(10, 60, by = 10))
+  out <- ModelArray.lm(
+    FD ~ age + FC,
+    data = ma, phenotypes = phen, scalar = "FD",
+    element.subset = 1:3,
+    var.terms = c("estimate"), var.model = c("adj.r.squared"),
+    correct.p.value.terms = c("none"), correct.p.value.model = c("none"),
+    num.subj.lthr.abs = 0, n_cores = 1, pbar = FALSE, verbose = FALSE
+  )
+  expect_equal(nrow(out), 3L)
+
+  # same fit computed by hand from the in-memory matrices
+  expected <- vapply(1:3, function(i) {
+    d <- data.frame(FD = fd[i, ], age = phen$age, FC = fc[i, ])
+    unname(stats::coef(stats::lm(FD ~ age + FC, data = d))[["FC"]])
+  }, numeric(1))
+  expect_equal(out$FC.estimate, expected)
+})
+
+test_that("chunked TileDB reads match unchunked reads and survive forking", {
+  skip_if_no_tiledb()
+
+  store <- tempfile(fileext = ".tdb")
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+  old_block <- getOption("ModelArray.tiledb_read_block_size")
+  on.exit(options(ModelArray.tiledb_read_block_size = old_block), add = TRUE)
+
+  src <- paste0("sub-", 1:6)
+  set.seed(42)
+  values <- matrix(stats::rnorm(60), nrow = 10, ncol = 6)
+  write_tiledb_scalar(store, "FD", values, src)
+  ma <- ModelArray(store, scalar_types = "FD")
+  phen <- data.frame(source_file = src, age = seq(10, 60, by = 10))
+
+  run <- function(element_subset, n_cores) {
+    ModelArray.lm(
+      FD ~ age,
+      data = ma, phenotypes = phen, scalar = "FD",
+      element.subset = element_subset,
+      var.terms = c("estimate"), var.model = c("adj.r.squared"),
+      correct.p.value.terms = c("none"), correct.p.value.model = c("none"),
+      num.subj.lthr.abs = 0, n_cores = n_cores, pbar = FALSE, verbose = FALSE
+    )
+  }
+
+  options(ModelArray.tiledb_read_block_size = 0L)
+  unchunked <- run(1:10, 1)
+
+  # block size 3 over 10 elements forces four real chunked reads
+  options(ModelArray.tiledb_read_block_size = 3L)
+  expect_equal(.scalar_read_block_size(.build_lm_context(FD ~ age, ma, phen, scalar = "FD")), 3L)
+  expect_equal(run(1:10, 1), unchunked)
+
+  # out-of-order subset exercises the non-contiguous cache position lookup
+  shuffled <- as.integer(c(7, 2, 9, 1, 4, 10, 3, 8, 5, 6))
+  expect_equal(run(shuffled, 1), unchunked[shuffled, ], ignore_attr = TRUE)
+
+  # forked workers must see the parent's materialized block
+  skip_on_os("windows")
+  expect_equal(run(1:10, 2), unchunked)
+})
+
+test_that("mergeModelArrays records a backend per scalar across storage types", {
+  skip_if_no_tiledb()
+
+  store <- tempfile(fileext = ".tdb")
+  h5_file <- tempfile(fileext = ".h5")
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+  on.exit(unlink(h5_file), add = TRUE)
+
+  src <- paste0("sub-", 1:4)
+  fd <- matrix(seq_len(12), nrow = 3, ncol = 4)
+  fc <- matrix(seq_len(12) * 2, nrow = 3, ncol = 4)
+  write_tiledb_scalar(store, "FD", fd, src)
+
+  h5 <- hdf5r::H5File$new(h5_file, mode = "w")
+  fc_grp <- h5$create_group("scalars")$create_group("FC")
+  fc_grp[["values"]] <- fc
+  fc_grp[["column_names"]] <- src
+  h5$close_all()
+
+  ma_tiledb <- ModelArray(store, scalar_types = "FD")
+  ma_hdf5 <- ModelArray(h5_file, scalar_types = "FC")
+  expect_identical(ma_tiledb@backend, "tiledb")
+  expect_identical(ma_hdf5@backend, "hdf5")
+
+  phen_tiledb <- data.frame(
+    subject_id = paste0("subj_", 1:4),
+    source_file = src,
+    age = c(10, 20, 30, 40),
+    stringsAsFactors = FALSE
+  )
+  phen_hdf5 <- data.frame(
+    subject_id = paste0("subj_", 1:4),
+    source_file = src,
+    stringsAsFactors = FALSE
+  )
+  merged <- mergeModelArrays(
+    list(ma_tiledb, ma_hdf5),
+    list(phen_tiledb, phen_hdf5),
+    merge_on = "subject_id"
+  )
+
+  expect_identical(merged$data@backend[["FD"]], "tiledb")
+  expect_identical(merged$data@backend[["FC"]], "hdf5")
+  # per-scalar lookup resolves through the named path vector
+  expect_identical(.modelarray_backend(merged$data, merged$data@path[["FD"]]), "tiledb")
+  expect_identical(.modelarray_backend(merged$data, merged$data@path[["FC"]]), "hdf5")
+  # a mixed merge still counts as TileDB-attached, so row caching engages
+  ctx <- .build_lm_context(FD ~ age + FC, merged$data, merged$phenotypes, scalar = "FD")
+  expect_true(.has_tiledb_attached_scalar(ctx))
+})
+
+test_that("auto-detection does not mistake a plain directory for a TileDB store", {
+  plain_dir <- tempfile()
+  on.exit(unlink(plain_dir, recursive = TRUE), add = TRUE)
+  dir.create(plain_dir)
+
+  expect_identical(.resolve_storage_backend(plain_dir, "auto"), "hdf5")
+  expect_identical(.resolve_storage_backend(file.path(plain_dir, "out.h5"), "auto"), "hdf5")
+
+  # a .tdb suffix declares intent even before the store exists
+  expect_identical(.resolve_storage_backend(tempfile(fileext = ".tdb"), "auto"), "tiledb")
+  # ...as does a directory actually shaped like a store
+  dir.create(file.path(plain_dir, "scalars"))
+  expect_identical(.resolve_storage_backend(plain_dir, "auto"), "tiledb")
+  # an explicit choice always wins
+  expect_identical(.resolve_storage_backend(plain_dir, "hdf5"), "hdf5")
 })

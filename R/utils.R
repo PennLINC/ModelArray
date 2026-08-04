@@ -38,8 +38,25 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
 .write_hdf5_attribute <- function(filepath, object_path, attr_name, value) {
   h5 <- hdf5r::H5File$new(filepath, mode = "a")
   on.exit(h5$close_all(), add = TRUE)
-  h5[[object_path]]$create_attr(attr_name, robj = value)
+  object <- h5[[object_path]]
+  # create_attr() errors if the attribute is already there, unlike the
+  # rhdf5::h5writeAttribute() it replaces, which overwrote silently.
+  if (object$attr_exists(attr_name)) {
+    object$attr_delete(attr_name)
+  }
+  object$create_attr(attr_name, robj = value)
   invisible(NULL)
+}
+
+
+#' Does a directory look like a ModelArray storage tree?
+#'
+#' Filesystem-only on purpose: this runs for HDF5 paths too, so it must not
+#' reach for the optional TileDB packages.
+#' @noRd
+.looks_like_modelarray_store <- function(filepath) {
+  dir.exists(file.path(filepath, "scalars")) ||
+    dir.exists(file.path(filepath, "results"))
 }
 
 
@@ -51,10 +68,15 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
     return(backend)
   }
 
-  if (dir.exists(filepath)) {
+  # A `.tdb` suffix declares intent, whether or not the store exists yet, so it
+  # is also how a *new* TileDB store gets created without passing `backend`.
+  if (grepl("\\.tdb/?$", filepath, ignore.case = TRUE)) {
     return("tiledb")
   }
-  if (grepl("\\.tdb/?$", filepath, ignore.case = TRUE)) {
+  # Otherwise only claim a directory when it actually holds a store. Writers
+  # delete the group they are about to replace, so a mistyped output directory
+  # must not be mistaken for one.
+  if (dir.exists(filepath) && .looks_like_modelarray_store(filepath)) {
     return("tiledb")
   }
   "hdf5"
@@ -76,7 +98,11 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
     }
   }
 
-  stored_backend <- stored_backend[1]
+  # unname(): mergeModelArrays() stores one backend per scalar name, and every
+  # caller compares the result with identical(., "tiledb") — a surviving name
+  # makes that FALSE, which would silently disable TileDB handling on any
+  # merged object.
+  stored_backend <- unname(stored_backend[1])
   if (
     length(stored_backend) == 0L ||
       is.na(stored_backend) ||
@@ -1304,7 +1330,7 @@ print.h5summary <- function(x, ...) {
 .print_modelarray_summary <- function(x, ...) {
   backend <- if (is.null(x$backend)) "hdf5" else x$backend
   label <- if (identical(backend, "tiledb")) "TileDB store" else "H5 file"
-  cat(label, ":", x$filepath, "\n\n", sep = "")
+  cat(label, ": ", x$filepath, "\n\n", sep = "")
   if (nrow(x$scalars) > 0) {
     cat("Scalars:\n")
     for (i in seq_len(nrow(x$scalars))) {

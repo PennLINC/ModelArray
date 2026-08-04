@@ -109,8 +109,11 @@ ModelArraySeed <- function(filepath, name, type = NA, backend = c("hdf5", "tiled
 #' @param analysis_names Character vector. Subfolder names under
 #'   \code{/results/} to load. Default is \code{character(0)} (none).
 #' @param backend Character. Storage backend: \code{"auto"} (default),
-#'   \code{"hdf5"}, or \code{"tiledb"}. Auto-detection treats directories
-#'   and \code{.tdb} paths as TileDB stores, otherwise HDF5.
+#'   \code{"hdf5"}, or \code{"tiledb"}. Auto-detection resolves to TileDB for
+#'   a \code{.tdb} path, or for a directory that already contains a
+#'   \code{scalars/} or \code{results/} subdirectory; everything else is
+#'   treated as HDF5. Pass \code{"tiledb"} explicitly for a TileDB store that
+#'   is neither.
 #'
 #' @return A \linkS4class{ModelArray} object.
 #'
@@ -1026,7 +1029,11 @@ analyseOneElement.wrap <- function(i_element,
 #'   already exists in the storage backend, whether to overwrite it (\code{TRUE})
 #'   or skip with a warning (\code{FALSE}). Default is \code{TRUE}.
 #' @param backend Character. Storage backend: \code{"auto"} (default),
-#'   \code{"hdf5"}, or \code{"tiledb"}.
+#'   \code{"hdf5"}, or \code{"tiledb"}. Auto-detection resolves to TileDB for
+#'   a \code{.tdb} path, or for a directory that already contains a
+#'   \code{scalars/} or \code{results/} subdirectory; everything else is
+#'   treated as HDF5. To create a new TileDB store at a path without a
+#'   \code{.tdb} suffix, pass \code{"tiledb"} explicitly.
 #'
 #' @return Invisible \code{NULL}. Called for its side effect of writing
 #'   results.
@@ -1119,37 +1126,13 @@ writeResults <- function(fn.output,
     results.analysis.grp <- results.grp$create_group(analysis_name)
     # create a subgroup called analysis_name under results.grp
 
-    # check "df.output": make sure all columns are floats (i.e. numeric)
-    for (i_col in seq(1, ncol(df.output), by = 1)) {
-      # for each column of df.output
-      col_class <- as.character(sapply(df.output, class)[i_col]) # class of this column
-
-      not_numeric_or_int <- (col_class != "numeric") &&
-        (col_class != "integer")
-      if (not_numeric_or_int) {
-        # the column class is not numeric or integer
-        message(
-          paste0(
-            "the column #",
-            as.character(i_col),
-            " of df.output to save: ",
-            "data class is not numeric or integer...fixing it"
-          )
-        )
-
-        # turn into numeric && write the notes in .h5 file...:
-        factors <- df.output %>%
-          dplyr::pull(., var = i_col) %>%
-          factor()
-        df.output[, i_col] <- df.output %>%
-          dplyr::pull(., var = i_col) %>%
-          factor() %>%
-          as.numeric(.) # change into numeric of 1,2,3....
-
-        # write a LUT for this column:
-        results.analysis.grp[[paste0("lut_forcol", as.character(i_col))]] <- levels(factors)
-        # save lut to .h5/results/<myAnalysis>/lut_col<?>
-      }
+    # check "df.output": make sure all columns are floats (i.e. numeric).
+    # Shared with the TileDB writer so both backends derive the same LUTs.
+    prepared <- .prepare_results_for_storage(df.output)
+    df.output <- prepared$data
+    for (lut_name in names(prepared$luts)) {
+      # save lut to .h5/results/<myAnalysis>/lut_forcol<?>
+      results.analysis.grp[[lut_name]] <- prepared$luts[[lut_name]]
     }
 
     # save:

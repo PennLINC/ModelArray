@@ -31,7 +31,11 @@ already exists in the storage backend, whether to overwrite it (\code{TRUE})
 or skip with a warning (\code{FALSE}). Default is \code{TRUE}.}
 
 \item{backend}{Character. Storage backend: \code{"auto"} (default),
-\code{"hdf5"}, or \code{"tiledb"}.}
+\code{"hdf5"}, or \code{"tiledb"}. Auto-detection resolves to TileDB for
+a \code{.tdb} path, or for a directory that already contains a
+\code{scalars/} or \code{results/} subdirectory; everything else is
+treated as HDF5. To create a new TileDB store at a path without a
+\code{.tdb} suffix, pass \code{"tiledb"} explicitly.}
 }
 \value{
 Invisible \code{NULL}. Called for its side effect of writing

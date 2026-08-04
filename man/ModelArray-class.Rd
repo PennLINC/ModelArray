@@ -31,7 +31,7 @@ underlying storage and reads data on demand, making it suitable for
 large-scale neuroimaging datasets.
 
 Prints a summary of the ModelArray including file path, source count,
-and any saved analysis names.
+each scalar with its element count, and any saved analysis names.
 }
 \details{
 ModelArray is an S4 class that represents element-wise scalar data and

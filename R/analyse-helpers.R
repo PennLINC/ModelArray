@@ -511,11 +511,10 @@
     if (isTRUE(ctx$scalar_row_cache_contiguous)) {
       pos <- as.integer(i_element - ctx$scalar_row_cache_first + 1L)
     } else {
-      pos <- ctx$scalar_row_cache_position[[as.character(i_element)]]
-      if (is.null(pos)) {
-        pos <- NA_integer_
-      }
-      pos <- unname(pos)
+      # Single-bracket: `[[` on a named vector raises "subscript out of
+      # bounds" for an absent name rather than returning NULL, which would
+      # defeat the fall-through to a direct storage read below.
+      pos <- unname(ctx$scalar_row_cache_position[as.character(i_element)])
     }
     if (!is.na(pos) && pos >= 1L && pos <= nrow(cache[[sname]])) {
       return(as.vector(cache[[sname]][pos, ]))
@@ -1063,6 +1062,10 @@
     stop("write_results_flush_every must be a positive integer")
   }
   flush_every <- as.integer(flush_every)
+  compression_level <- .validate_stream_compression_level(
+    compression_level,
+    "write_results_compression_level"
+  )
 
   backend <- .resolve_storage_backend(write_results_file, "auto")
   if (identical(backend, "tiledb")) {
@@ -1071,10 +1074,6 @@
       .modelarray_path(write_results_file, "results"),
       write_results_name,
       "write_results_name"
-    )
-    compression_level <- .validate_stream_compression_level(
-      compression_level,
-      "write_results_compression_level"
     )
     values_uri <- .modelarray_path(analysis_uri, "results_matrix")
     .create_tiledb_values_array(
@@ -1129,7 +1128,7 @@
     dims = c(n_rows, length(column_names)),
     storage.mode = storage_mode,
     chunk = c(chunk_rows, length(column_names)),
-    level = as.integer(compression_level)
+    level = compression_level
   )
 
   list(

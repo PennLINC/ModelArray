@@ -21,8 +21,8 @@ test_that("S4 accessors and helpers cover low-hanging branches", {
   # show() formatting branch
   shown <- paste(capture.output(show(modelarray)), collapse = "\n")
   expect_match(shown, "Source files:\\s+2")
-  expect_match(shown, "Scalars:\\s+FD, FA")
-  expect_match(shown, "Analyses:")
+  expect_match(shown, "Scalars:\\s+FD \\(3 elements\\), FA \\(3 elements\\)")
+  expect_match(shown, "Analyses:\\s+my_analysis")
 
   # helper success + error branches
   phenotypes <- data.frame(source_file = src, age = c(20, 30))
@@ -52,13 +52,6 @@ test_that("S4 accessors and helpers cover low-hanging branches", {
     "scalar_name requested in not in modelarray"
   )
 })
-
-write_test_hdf5_attribute <- function(filepath, object_path, attr_name, value) {
-  h5 <- hdf5r::H5File$new(filepath, mode = "a")
-  on.exit(h5$close_all(), add = TRUE)
-  h5[[object_path]]$create_attr(attr_name, robj = value)
-  invisible(NULL)
-}
 
 test_that("ModelArray constructor falls back to dataset column names and transposes values", {
   h5_path <- tempfile(fileext = ".h5")
@@ -128,12 +121,12 @@ test_that("ModelArray constructor supports backward-compatible column-name attri
   rhdf5::h5createGroup(h5_path, "scalars")
   rhdf5::h5createGroup(h5_path, "scalars/FD")
   rhdf5::h5write(matrix(1:6, nrow = 3, ncol = 2), h5_path, "scalars/FD/values")
-  write_test_hdf5_attribute(h5_path, "scalars/FD/values", "column_names", c("attr_sub1", "attr_sub2"))
+  .write_hdf5_attribute(h5_path, "scalars/FD/values", "column_names", c("attr_sub1", "attr_sub2"))
 
   rhdf5::h5createGroup(h5_path, "results")
   rhdf5::h5createGroup(h5_path, "results/my_analysis")
   rhdf5::h5write(matrix(c(10, 20, 30, 40), nrow = 2, ncol = 2), h5_path, "results/my_analysis/results_matrix")
-  write_test_hdf5_attribute(h5_path, "results/my_analysis/results_matrix", "colnames", c("beta", "p.value"))
+  .write_hdf5_attribute(h5_path, "results/my_analysis/results_matrix", "colnames", c("beta", "p.value"))
 
   modelarray <- ModelArray(
     h5_path,
@@ -157,14 +150,14 @@ test_that("ModelArray constructor prefers attributes over dataset column-name fa
   rhdf5::h5createGroup(h5_path, "scalars")
   rhdf5::h5createGroup(h5_path, "scalars/FD")
   rhdf5::h5write(matrix(1:6, nrow = 3, ncol = 2), h5_path, "scalars/FD/values")
-  write_test_hdf5_attribute(h5_path, "scalars/FD/values", "column_names", c("attr_sub1", "attr_sub2"))
+  .write_hdf5_attribute(h5_path, "scalars/FD/values", "column_names", c("attr_sub1", "attr_sub2"))
   # Conflicting fallback path should be ignored when attribute exists.
   rhdf5::h5write(c("fallback_sub1", "fallback_sub2"), h5_path, "scalars/FD/column_names")
 
   rhdf5::h5createGroup(h5_path, "results")
   rhdf5::h5createGroup(h5_path, "results/my_analysis")
   rhdf5::h5write(matrix(c(10, 20, 30, 40), nrow = 2, ncol = 2), h5_path, "results/my_analysis/results_matrix")
-  write_test_hdf5_attribute(
+  .write_hdf5_attribute(
     h5_path,
     "results/my_analysis/results_matrix",
     "colnames",

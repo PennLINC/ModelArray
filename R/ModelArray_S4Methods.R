@@ -5,7 +5,7 @@
 #'
 #' @description
 #' Prints a summary of the ModelArray including file path, source count,
-#' and any saved analysis names.
+#' each scalar with its element count, and any saved analysis names.
 #'
 #' @param object A \linkS4class{ModelArray} object.
 #'
@@ -38,8 +38,13 @@ setMethod("show", "ModelArray", function(object) { # , group_name_results="resul
     n_source_files, "\n",
     sep = ""
   )
+  # Element counts come from the array dimensions, which both backends carry
+  # in their schema — reporting them here costs no data read.
+  scalar_labels <- vapply(scalar_names, function(sn) {
+    paste0(sn, " (", nrow(scalars(object)[[sn]]), " elements)")
+  }, character(1))
   cat(format("  Scalars:", justify = "left", width = 20),
-    paste0(scalar_names, collapse = ", "), "\n",
+    paste0(scalar_labels, collapse = ", "), "\n",
     sep = ""
   )
 
