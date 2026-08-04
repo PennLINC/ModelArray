@@ -11,7 +11,7 @@ test_that("ModelArray interface works as expected", {
       # ^ has been realized as matrix, taking ~70MB of memory if using n50_fixels.h5 file
     },
     finally = { # regardless try is successful or not:
-      h5closeAll()
+      rhdf5::h5closeAll()
     }
   )
 

@@ -99,10 +99,10 @@ test_that("test that ModelArray.gam() works as expected", {
     }
 
     # now, remove any fdr, etc corrections:
-    actual <- actual %>% select(-ends_with(p.adjust.methods))
+    actual <- actual %>% dplyr::select(-ends_with(p.adjust.methods))
 
     # also remove any effect size calculations:
-    actual <- actual %>% select(-ends_with(c(
+    actual <- actual %>% dplyr::select(-ends_with(c(
       "delta.adj.rsq",
       "partial.rsq"
     )))
@@ -120,7 +120,7 @@ test_that("test that ModelArray.gam() works as expected", {
     ## test if actual = expected values:
     expect_equal(
       actual,
-      expected %>% select(col.names)
+      expected %>% dplyr::select(col.names)
     )
   }
 
@@ -658,8 +658,8 @@ test_that("test that ModelArray.gam() works as expected", {
     mygam_fullOutputs %>% colnames()
   )
   expect_equal(
-    mygam_changedrsq_oneSmoothTerm_sex %>% select(colnames_intersect),
-    mygam_fullOutputs %>% select(colnames_intersect)
+    mygam_changedrsq_oneSmoothTerm_sex %>% dplyr::select(colnames_intersect),
+    mygam_fullOutputs %>% dplyr::select(colnames_intersect)
   )
   # compared to fdr:
   expect_equal(
@@ -750,8 +750,8 @@ test_that("test that ModelArray.gam() works as expected", {
     mygam_twoSmoothTerm_withoutChangedRsq %>% colnames()
   )
   expect_equal(
-    mygam_changedRsq_twoSmoothTerm %>% select(colnames_intersect),
-    mygam_twoSmoothTerm_withoutChangedRsq %>% select(colnames_intersect)
+    mygam_changedRsq_twoSmoothTerm %>% dplyr::select(colnames_intersect),
+    mygam_twoSmoothTerm_withoutChangedRsq %>% dplyr::select(colnames_intersect)
   )
   # compared to fdr:
   expect_equal(

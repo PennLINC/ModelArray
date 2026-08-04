@@ -84,4 +84,22 @@ test_that("ModelArray.wrap write-scalar mode validates column metadata", {
     ),
     "length\\(write_scalar_column_names\\) must equal number of selected write_scalar_columns"
   )
+
+  expect_error(
+    ModelArray.wrap(
+      FUN = simple_fun,
+      data = modelarray,
+      phenotypes = phen,
+      scalar = "FD",
+      element.subset = as.integer(c(1, 2)),
+      n_cores = 1,
+      pbar = FALSE,
+      verbose = FALSE,
+      num.subj.lthr.abs = 0,
+      write_scalar_name = "FD_harmonized",
+      write_scalar_file = h5_out,
+      write_scalar_compression_level = 10L
+    ),
+    "write_scalar_compression_level must be a single integer between 0 and 9"
+  )
 })

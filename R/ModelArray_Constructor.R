@@ -2,19 +2,19 @@
 #' ModelArray class
 #'
 #' ModelArray is an S4 class that represents element-wise scalar data and
-#' associated statistical results backed by an HDF5 file on disk.
+#' associated statistical results backed by an HDF5 file or TileDB store on disk.
 #'
 #' @description
 #' A ModelArray wraps one or more element-wise scalar matrices (e.g., FD, FC,
 #' log_FC for fixel data) read lazily via \pkg{DelayedArray}, along with any
 #' previously saved analysis results. The object holds references to the
-#' underlying HDF5 file and reads data on demand, making it suitable for
+#' underlying storage and reads data on demand, making it suitable for
 #' large-scale neuroimaging datasets.
 #'
 #' @details
-#' Each scalar in the HDF5 file is stored at \code{/scalars/<name>/values}
+#' Each scalar is stored at \code{/scalars/<name>/values}
 #' as a matrix of elements (rows) by source files (columns). Source filenames
-#' are read from HDF5 attributes or companion datasets. Analysis results, if
+#' are read from storage metadata or companion datasets. Analysis results, if
 #' present, live under \code{/results/<analysis_name>/results_matrix}.
 #'
 #' ModelArray objects are typically created with the \code{\link{ModelArray}}
@@ -29,7 +29,9 @@
 #' @slot results A named list of analysis results. Each element is itself a
 #'   list containing at minimum \code{results_matrix} (a
 #'   [DelayedArray::DelayedArray][DelayedArray-class]).
-#' @slot path Character. Path(s) to the HDF5 file(s) on disk.
+#' @slot path Character. Path(s) to the HDF5 file(s) or TileDB store(s) on disk.
+#' @slot backend Character. Resolved storage backend(s) for \code{path}:
+#'   \code{"hdf5"} or \code{"tiledb"}.
 #'
 #' @seealso \code{\link{ModelArray}} for the constructor,
 #'   \code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}},
@@ -47,41 +49,49 @@ ModelArray <- setClass(
     results = "list",
     sources = "list",
     scalars = "list",
-    path = "character"
-  )
+    path = "character",
+    backend = "character"
+  ),
+  prototype = list(backend = "auto")
 )
 
 #' ModelArraySeed
 #'
-#' Generates a "seed" for the h5 file format. A wrapper around HDF5ArraySeed
-#' used to instantiate a delayed array
+#' Generates a DelayedArray seed for the requested storage backend.
 #'
-#' @param filepath Path to an existing h5 file.
-#' @param name Name of the group/field in the h5 file.
+#' @param filepath Path to an existing h5 file or TileDB store.
+#' @param name Relative path to the dataset/array.
 #' @param type Type of DelayedArray object, used as an argument for `HDF5Array::HDF5ArraySeed`.
+#' @param backend Storage backend.
 #' @noRd
 #'
-ModelArraySeed <- function(filepath, name, type = NA) {
+ModelArraySeed <- function(filepath, name, type = NA, backend = c("hdf5", "tiledb")) {
   # NOTE: the checker for if h5 groups fixels/voxels/scalars exist
   # (a.k.a valid fixel-wise data) is deleted, as ModelArray is generalized to any modality.
 
-  seed <- HDF5Array::HDF5ArraySeed(filepath, name = name, type = type) # HDF5Array is also from BioConductor...
+  backend <- match.arg(backend)
+  if (identical(backend, "hdf5")) {
+    seed <- HDF5Array::HDF5ArraySeed(filepath, name = name, type = type) # HDF5Array is also from BioConductor...
+  } else {
+    .require_tiledb_support()
+    seed <- TileDBArray::TileDBArraySeed(.modelarray_path(filepath, name), attr = "values")
+  }
 
   seed
 }
 
 
-#' Load element-wise data from an HDF5 file
+#' Load element-wise data from an HDF5 file or TileDB store
 #'
 #' @description
 #' Reads scalar matrices and (optionally) saved analysis results from
-#' an HDF5 file and returns a \linkS4class{ModelArray} object.
+#' an HDF5 file or TileDB store and returns a \linkS4class{ModelArray} object.
 #'
 #' @details
 #' The constructor reads each scalar listed in \code{scalar_types} from
 #' \code{/scalars/<scalar_type>/values}, wrapping them as
 #' [DelayedArray::DelayedArray][DelayedArray-class] objects. Source filenames are extracted
-#' from HDF5 attributes or companion datasets.
+#' from storage metadata or companion datasets.
 #'
 #' If \code{analysis_names} is non-empty, saved results are loaded from
 #' \code{/results/<name>/results_matrix}.
@@ -92,17 +102,23 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' \code{rhdf5::h5ls(filepath)}.
 #'
 #' @param filepath Character. Path to an existing HDF5 (\code{.h5})
-#'   file containing element-wise scalar data.
+#'   file or TileDB (\code{.tdb}) store containing element-wise scalar data.
 #' @param scalar_types Character vector. Names of scalar groups to read
-#'   from \code{/scalars/} in the HDF5 file. Default is \code{c("FD")}.
+#'   from \code{/scalars/}. Default is \code{c("FD")}.
 #'   Must match group names in the file.
 #' @param analysis_names Character vector. Subfolder names under
 #'   \code{/results/} to load. Default is \code{character(0)} (none).
+#' @param backend Character. Storage backend: \code{"auto"} (default),
+#'   \code{"hdf5"}, or \code{"tiledb"}. Auto-detection resolves to TileDB for
+#'   a \code{.tdb} path, or for a directory that already contains a
+#'   \code{scalars/} or \code{results/} subdirectory; everything else is
+#'   treated as HDF5. Pass \code{"tiledb"} explicitly for a TileDB store that
+#'   is neither.
 #'
 #' @return A \linkS4class{ModelArray} object.
 #'
 #' @seealso \linkS4class{ModelArray} for the class definition,
-#'   \code{\link{h5summary}} for inspecting an HDF5 file.
+#'   \code{\link{ModelArraySummary}} for inspecting storage.
 #'
 #' @examples
 #' \dontrun{
@@ -115,7 +131,8 @@ ModelArraySeed <- function(filepath, name, type = NA) {
 #' @export
 ModelArray <- function(filepath,
                        scalar_types = c("FD"),
-                       analysis_names = character(0)) {
+                       analysis_names = character(0),
+                       backend = c("auto", "hdf5", "tiledb")) {
   # TODO: try and use hdf5r instead of rhdf5 and delayedarray here
   # fn.h5 <- H5File$new(filepath, mode="a")
   # open; "a": creates a new file or opens an existing one for read/write
@@ -126,6 +143,11 @@ ModelArray <- function(filepath,
 
   # TODO: IN THE FUTURE, THE SCALAR_TYPES AND ANALYSIS_NAMES ARE AUTOMATICALLY DETECTED
   # (at least detect + provide some options)
+
+  backend <- .resolve_storage_backend(filepath, backend)
+  if (identical(backend, "tiledb")) {
+    .require_tiledb_support()
+  }
 
   ## scalar_data:
   sources <- vector("list", length(scalar_types))
@@ -138,67 +160,11 @@ ModelArray <- function(filepath,
     scalar_data[[x]] <- ModelArraySeed(
       filepath,
       name = sprintf("scalars/%s/values", scalar_types[x]),
-      type = NA
+      type = NA,
+      backend = backend
     ) %>% DelayedArray::DelayedArray()
 
-    # load source filenames (column_names): prefer attribute; fallback to dataset
-    attrs <- rhdf5::h5readAttributes(filepath, name = sprintf("scalars/%s/values", scalar_types[x]))
-    colnames_attr <- attrs$column_names
-    if (is.null(colnames_attr)) {
-      # Fallback: attempt to read from dataset-based column names
-      # Try multiple plausible locations for compatibility across writers
-      paths_to_try <- c(
-        sprintf("scalars/%s/column_names", scalar_types[x]),
-        sprintf("scalars/%s/values/column_names", scalar_types[x]),
-        sprintf("scalars/scalars/%s/values/column_names", scalar_types[x]),
-        sprintf("scalars/scalars/%s/column_names", scalar_types[x])
-      )
-
-      colnames_ds <- NULL
-      last_error <- NULL
-      for (p in paths_to_try) {
-        tmp <- tryCatch(
-          {
-            rhdf5::h5read(filepath, p)
-          },
-          error = function(e) {
-            last_error <<- e
-            NULL
-          }
-        )
-        if (!is.null(tmp)) {
-          colnames_ds <- tmp
-          if (grepl("^scalars/scalars/", p)) {
-            warning(
-              "Column names found at nested path '", p, "'. ",
-              "This is a known quirk from some converters (e.g., concifti).",
-              call. = FALSE
-            )
-          }
-          break
-        }
-      }
-      if (is.null(colnames_ds)) {
-        stop(paste0(
-          "Neither attribute 'column_names' nor a dataset with column names found. Tried: ",
-          paste(paths_to_try, collapse = ", "),
-          if (!is.null(last_error)) paste0(". Last error: ", conditionMessage(last_error)) else ""
-        ))
-      }
-      # Ensure character vector, not list/matrix; trim potential null terminators and whitespace
-      if (is.list(colnames_ds)) {
-        colnames_ds <- unlist(colnames_ds, use.names = FALSE)
-      }
-      colnames_ds <- as.vector(colnames_ds)
-      colnames_ds <- as.character(colnames_ds)
-      # Trim any trailing NULs (hex 00) and surrounding whitespace for cross-language string compatibility
-      # Use escaped hex in pattern to avoid embedding a NUL in the source code
-      colnames_ds <- gsub("[\\x00]+$", "", colnames_ds, perl = TRUE, useBytes = TRUE)
-      colnames_ds <- trimws(colnames_ds)
-      sources[[x]] <- colnames_ds
-    } else {
-      sources[[x]] <- as.character(colnames_attr)
-    }
+    sources[[x]] <- .read_scalar_column_names(filepath, scalar_types[x], backend)
 
     # transpose scalar_data[[x]] if needed:
     if (dim(scalar_data[[x]])[2] == length(sources[[x]])) {
@@ -230,8 +196,8 @@ ModelArray <- function(filepath,
     # user did not request any analyses; do not touch /results
     results_data <- list()
   } else {
-    # user requested analyses; check if results group exists in this .h5 file
-    flag_results_exist <- flagResultsGroupExistInh5(filepath)
+    # user requested analyses; check if results group exists in this storage
+    flag_results_exist <- .results_group_exists(filepath, backend)
     # message(flag_results_exist)
     if (flag_results_exist == FALSE) {
       results_data <- list()
@@ -242,57 +208,13 @@ ModelArray <- function(filepath,
       for (x in seq_along(analysis_names)) {
         analysis_name <- analysis_names[x]
 
-        # we need to check if this subfolder exists in this .h5 file:
-        flag_analysis_exist <- flagAnalysisExistInh5(filepath, analysis_name = analysis_name)
+        # we need to check if this subfolder exists in this storage:
+        flag_analysis_exist <- .analysis_exists(filepath, analysis_name = analysis_name, backend = backend)
         if (flag_analysis_exist == FALSE) {
           stop(paste0("This analysis: ", analysis_name, " does not exist..."))
         } else {
           # exists
-          # Load column names for results: prefer attribute; fallback to dataset
-          attrs <- rhdf5::h5readAttributes(filepath,
-            name = sprintf("results/%s/results_matrix", analysis_name)
-          )
-          names_results_matrix <- attrs$colnames
-          if (is.null(names_results_matrix)) {
-            # Fallback to dataset-based column names (similar to scalar handling)
-            paths_to_try <- c(
-              sprintf("results/%s/column_names", analysis_name),
-              sprintf("results/%s/results_matrix/column_names", analysis_name)
-            )
-            colnames_ds <- NULL
-            last_error <- NULL
-            for (p in paths_to_try) {
-              tmp <- tryCatch(
-                {
-                  rhdf5::h5read(filepath, p)
-                },
-                error = function(e) {
-                  last_error <<- e
-                  NULL
-                }
-              )
-              if (!is.null(tmp)) {
-                colnames_ds <- tmp
-                break
-              }
-            }
-            if (is.null(colnames_ds)) {
-              stop(paste0(
-                "Neither attribute 'colnames' nor a dataset with column names found for results. Tried: ",
-                paste(paths_to_try, collapse = ", "),
-                if (!is.null(last_error)) paste0(". Last error: ", conditionMessage(last_error)) else ""
-              ))
-            }
-            if (is.list(colnames_ds)) {
-              colnames_ds <- unlist(colnames_ds, use.names = FALSE)
-            }
-            colnames_ds <- as.vector(colnames_ds)
-            colnames_ds <- as.character(colnames_ds)
-            # Trim trailing NULs and whitespace
-            colnames_ds <- gsub("[\\x00]+$", "", colnames_ds, perl = TRUE, useBytes = TRUE)
-            colnames_ds <- trimws(colnames_ds)
-            names_results_matrix <- colnames_ds
-          }
+          names_results_matrix <- .read_result_column_names(filepath, analysis_name, backend)
 
           # names_results_matrix <- ModelArraySeed(filepath, name = sprintf(
           #   "results/%s/has_names", analysis_name), type = NA) %>%
@@ -305,7 +227,8 @@ ModelArray <- function(filepath,
           results_data[[x]]$results_matrix <- ModelArraySeed(
             filepath,
             name = sprintf("results/%s/results_matrix", analysis_name),
-            type = NA
+            type = NA,
+            backend = backend
           ) %>% DelayedArray::DelayedArray()
 
           if (dim(results_data[[x]]$results_matrix)[2] != length(names_results_matrix)) {
@@ -322,28 +245,25 @@ ModelArray <- function(filepath,
           # /results/<analysis_name>/lut_col?:   # LOOP OVER # OF COL OF $RESULTS_MATRIX, AND SEE IF THERE IS LUT_COL
           for (i_col in seq_along(names_results_matrix)) {
             object_name <- paste0("lut_forcol", as.character(i_col))
-            flag_lut_exist <- flagObjectExistInh5(
+            flag_lut_exist <- .stored_object_exists(
               filepath,
               group_name = paste0("/results/", analysis_name),
-              object_name = object_name
+              object_name = object_name,
+              backend = backend
             )
             if (flag_lut_exist == TRUE) {
-              lut <- ModelArraySeed(
-                filepath,
-                name = paste0("results/", analysis_name, "/", object_name),
-                type = NA
-              ) %>% DelayedArray::DelayedArray()
+              lut <- .read_result_lut(filepath, analysis_name, object_name, backend)
 
               # results_data[[x]]$lut[[i_col]] <- lut
 
               # turn values in results_matrix into factors |
               # HOWEVER, this also makes the entire $results_matrix into type "character"....
-              lut <- lut %>% as.character()
-              for (j_lut in seq_along(lut)) {
-                str_lut <- lut[j_lut]
-                idx_list <- results_data[[x]]$results_matrix[, i_col] %in% c(j_lut)
-                results_data[[x]]$results_matrix[idx_list, i_col] <- lut[j_lut]
-              }
+              lut <- as.character(lut)
+              results_data[[x]]$results_matrix <- .recode_result_lut_column(
+                results_data[[x]]$results_matrix,
+                i_col,
+                lut
+              )
 
               # } else {  # the lut for this column does not exist
               #   results_data[[x]]$lut[[i_col]] <- NULL
@@ -369,7 +289,8 @@ ModelArray <- function(filepath,
     scalars = scalar_data,
     results = results_data,
     # TODO: issue: LHS SHOULD BE THE SAME AS THE NAME IN THE H5 FILE, NOT NECESSARY CALLED "results"
-    path = filepath
+    path = filepath,
+    backend = backend
   )
 }
 
@@ -1072,18 +993,17 @@ analyseOneElement.wrap <- function(i_element,
   }
 }
 
-#' Write outputs from element-wise statistical analysis to an HDF5 file
+#' Write outputs from element-wise statistical analysis to storage
 #'
 #' @description
 #' Creates a group named \code{analysis_name} under \code{/results/} in the
-#' HDF5 file, then writes the statistical results data.frame (i.e. for one
+#' storage backend, then writes the statistical results data.frame (i.e. for one
 #' analysis) into it as \code{results_matrix} along with column names.
 #'
 #' @details
 #' The results are stored at
 #' \code{/results/<analysis_name>/results_matrix} with column names saved
-#' as a separate dataset at
-#' \code{/results/<analysis_name>/column_names}.
+#' as a separate HDF5 dataset or TileDB metadata.
 #'
 #' If any column of \code{df.output} is not numeric or integer, it is
 #' coerced to numeric via \code{factor()} and the factor levels are saved
@@ -1095,9 +1015,9 @@ analyseOneElement.wrap <- function(i_element,
 #' check if the message mentions "No such file or directory". Try using an
 #' absolute path for the \code{fn.output} argument.
 #'
-#' @param fn.output Character. The HDF5 (\code{.h5}) filename for the output.
-#'   The file must already exist; use an absolute path if you encounter
-#'   file-not-found errors.
+#' @param fn.output Character. The HDF5 (\code{.h5}) filename or TileDB
+#'   (\code{.tdb}) store for the output. Use an absolute path if you
+#'   encounter file-not-found errors.
 #' @param df.output A data.frame of element-wise statistical results, as
 #'   returned by \code{\link{ModelArray.lm}},
 #'   \code{\link{ModelArray.gam}}, or \code{\link{ModelArray.wrap}}.
@@ -1106,17 +1026,23 @@ analyseOneElement.wrap <- function(i_element,
 #'   as the group name under \code{/results/} in the HDF5 file.
 #'   Default is \code{"myAnalysis"}.
 #' @param overwrite Logical. If a group with the same \code{analysis_name}
-#'   already exists in the HDF5 file, whether to overwrite it (\code{TRUE})
+#'   already exists in the storage backend, whether to overwrite it (\code{TRUE})
 #'   or skip with a warning (\code{FALSE}). Default is \code{TRUE}.
+#' @param backend Character. Storage backend: \code{"auto"} (default),
+#'   \code{"hdf5"}, or \code{"tiledb"}. Auto-detection resolves to TileDB for
+#'   a \code{.tdb} path, or for a directory that already contains a
+#'   \code{scalars/} or \code{results/} subdirectory; everything else is
+#'   treated as HDF5. To create a new TileDB store at a path without a
+#'   \code{.tdb} suffix, pass \code{"tiledb"} explicitly.
 #'
 #' @return Invisible \code{NULL}. Called for its side effect of writing
-#'   results to the HDF5 file.
+#'   results.
 #'
 #' @seealso \code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}},
 #'   \code{\link{ModelArray.wrap}} which produce the \code{df.output},
 #'   \code{\link{results}} for reading results back from a
-#'   \linkS4class{ModelArray}, \code{\link{h5summary}} for inspecting what
-#'   has been written.
+#'   \linkS4class{ModelArray}, \code{\link{ModelArraySummary}} for inspecting
+#'   what has been written.
 #'
 #' @examples
 #' \dontrun{
@@ -1138,7 +1064,7 @@ analyseOneElement.wrap <- function(i_element,
 #' )
 #'
 #' # Verify
-#' h5summary("data.h5")
+#' ModelArraySummary("data.h5")
 #' }
 #'
 #' @rdname writeResults
@@ -1146,12 +1072,23 @@ analyseOneElement.wrap <- function(i_element,
 writeResults <- function(fn.output,
                          df.output,
                          analysis_name = "myAnalysis",
-                         overwrite = TRUE) {
+                         overwrite = TRUE,
+                         backend = c("auto", "hdf5", "tiledb")) {
   # This is enhanced version with: 1) change to hdf5r; 2) write results with only one row for one element
 
   # check "df.output"
   if (!("data.frame" %in% class(df.output))) {
     stop("Results dataset is not correct; must be data of type `data.frame`")
+  }
+
+  backend <- .resolve_storage_backend(fn.output, backend)
+  if (identical(backend, "tiledb")) {
+    return(.write_results_tiledb(
+      fn.output = fn.output,
+      df.output = df.output,
+      analysis_name = analysis_name,
+      overwrite = overwrite
+    ))
   }
 
   fn.output.h5 <- hdf5r::H5File$new(fn.output, mode = "a")
@@ -1189,37 +1126,13 @@ writeResults <- function(fn.output,
     results.analysis.grp <- results.grp$create_group(analysis_name)
     # create a subgroup called analysis_name under results.grp
 
-    # check "df.output": make sure all columns are floats (i.e. numeric)
-    for (i_col in seq(1, ncol(df.output), by = 1)) {
-      # for each column of df.output
-      col_class <- as.character(sapply(df.output, class)[i_col]) # class of this column
-
-      not_numeric_or_int <- (col_class != "numeric") &&
-        (col_class != "integer")
-      if (not_numeric_or_int) {
-        # the column class is not numeric or integer
-        message(
-          paste0(
-            "the column #",
-            as.character(i_col),
-            " of df.output to save: ",
-            "data class is not numeric or integer...fixing it"
-          )
-        )
-
-        # turn into numeric && write the notes in .h5 file...:
-        factors <- df.output %>%
-          dplyr::pull(., var = i_col) %>%
-          factor()
-        df.output[, i_col] <- df.output %>%
-          dplyr::pull(., var = i_col) %>%
-          factor() %>%
-          as.numeric(.) # change into numeric of 1,2,3....
-
-        # write a LUT for this column:
-        results.analysis.grp[[paste0("lut_forcol", as.character(i_col))]] <- levels(factors)
-        # save lut to .h5/results/<myAnalysis>/lut_col<?>
-      }
+    # check "df.output": make sure all columns are floats (i.e. numeric).
+    # Shared with the TileDB writer so both backends derive the same LUTs.
+    prepared <- .prepare_results_for_storage(df.output)
+    df.output <- prepared$data
+    for (lut_name in names(prepared$luts)) {
+      # save lut to .h5/results/<myAnalysis>/lut_forcol<?>
+      results.analysis.grp[[lut_name]] <- prepared$luts[[lut_name]]
     }
 
     # save:

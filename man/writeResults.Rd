@@ -2,19 +2,20 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{writeResults}
 \alias{writeResults}
-\title{Write outputs from element-wise statistical analysis to an HDF5 file}
+\title{Write outputs from element-wise statistical analysis to storage}
 \usage{
 writeResults(
   fn.output,
   df.output,
   analysis_name = "myAnalysis",
-  overwrite = TRUE
+  overwrite = TRUE,
+  backend = c("auto", "hdf5", "tiledb")
 )
 }
 \arguments{
-\item{fn.output}{Character. The HDF5 (\code{.h5}) filename for the output.
-The file must already exist; use an absolute path if you encounter
-file-not-found errors.}
+\item{fn.output}{Character. The HDF5 (\code{.h5}) filename or TileDB
+(\code{.tdb}) store for the output. Use an absolute path if you
+encounter file-not-found errors.}
 
 \item{df.output}{A data.frame of element-wise statistical results, as
 returned by \code{\link{ModelArray.lm}},
@@ -26,23 +27,29 @@ as the group name under \code{/results/} in the HDF5 file.
 Default is \code{"myAnalysis"}.}
 
 \item{overwrite}{Logical. If a group with the same \code{analysis_name}
-already exists in the HDF5 file, whether to overwrite it (\code{TRUE})
+already exists in the storage backend, whether to overwrite it (\code{TRUE})
 or skip with a warning (\code{FALSE}). Default is \code{TRUE}.}
+
+\item{backend}{Character. Storage backend: \code{"auto"} (default),
+\code{"hdf5"}, or \code{"tiledb"}. Auto-detection resolves to TileDB for
+a \code{.tdb} path, or for a directory that already contains a
+\code{scalars/} or \code{results/} subdirectory; everything else is
+treated as HDF5. To create a new TileDB store at a path without a
+\code{.tdb} suffix, pass \code{"tiledb"} explicitly.}
 }
 \value{
 Invisible \code{NULL}. Called for its side effect of writing
-results to the HDF5 file.
+results.
 }
 \description{
 Creates a group named \code{analysis_name} under \code{/results/} in the
-HDF5 file, then writes the statistical results data.frame (i.e. for one
+storage backend, then writes the statistical results data.frame (i.e. for one
 analysis) into it as \code{results_matrix} along with column names.
 }
 \details{
 The results are stored at
 \code{/results/<analysis_name>/results_matrix} with column names saved
-as a separate dataset at
-\code{/results/<analysis_name>/column_names}.
+as a separate HDF5 dataset or TileDB metadata.
 
 If any column of \code{df.output} is not numeric or integer, it is
 coerced to numeric via \code{factor()} and the factor levels are saved
@@ -74,7 +81,7 @@ writeResults(
 )
 
 # Verify
-h5summary("data.h5")
+ModelArraySummary("data.h5")
 }
 
 }
@@ -82,6 +89,6 @@ h5summary("data.h5")
 \code{\link{ModelArray.lm}}, \code{\link{ModelArray.gam}},
 \code{\link{ModelArray.wrap}} which produce the \code{df.output},
 \code{\link{results}} for reading results back from a
-\linkS4class{ModelArray}, \code{\link{h5summary}} for inspecting what
-has been written.
+\linkS4class{ModelArray}, \code{\link{ModelArraySummary}} for inspecting
+what has been written.
 }

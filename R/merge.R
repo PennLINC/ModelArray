@@ -160,6 +160,7 @@ mergeModelArrays <- function(modelarrays, phenotypes_list, merge_on) {
   combined_scalars <- list()
   combined_sources <- list()
   combined_paths <- character()
+  combined_backends <- character()
 
   for (i in seq_along(modelarrays)) {
     ma <- modelarrays[[i]]
@@ -193,6 +194,7 @@ mergeModelArrays <- function(modelarrays, phenotypes_list, merge_on) {
       colnames(combined_scalars[[sn]]) <- unified_source_id
       combined_sources[[sn]] <- unified_source_id
       combined_paths[sn] <- ma@path[1]
+      combined_backends[sn] <- .modelarray_backend(ma, ma@path[1])
     }
   }
 
@@ -253,7 +255,8 @@ mergeModelArrays <- function(modelarrays, phenotypes_list, merge_on) {
     scalars = combined_scalars,
     sources = combined_sources,
     results = list(),
-    path = combined_paths
+    path = combined_paths,
+    backend = combined_backends
   )
 
   list(data = combined_ma, phenotypes = merged_phen)

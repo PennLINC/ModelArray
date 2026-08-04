@@ -399,6 +399,132 @@
 # This replaces duplicated logic across analyseOneElement.lm,
 # analyseOneElement.gam, and analyseOneElement.wrap.
 
+#' Return the storage path associated with one scalar
+#' @noRd
+.scalar_storage_path <- function(modelarray, scalar) {
+  paths <- modelarray@path
+  if (length(paths) == 0L) {
+    return(NA_character_)
+  }
+  if (!is.null(names(paths)) && scalar %in% names(paths)) {
+    return(paths[[scalar]])
+  }
+  paths[[1]]
+}
+
+
+#' Return TRUE when any attached scalar is TileDB-backed
+#' @noRd
+.has_tiledb_attached_scalar <- function(ctx) {
+  any(vapply(ctx$attached_scalars, function(sname) {
+    path <- .scalar_storage_path(ctx$modelarray, sname)
+    if (is.na(path) || is.null(path)) {
+      return(FALSE)
+    }
+    identical(.modelarray_backend(ctx$modelarray, path), "tiledb")
+  }, logical(1)))
+}
+
+
+#' Resolve the scalar row cache block size for a context
+#'
+#' TileDB row-at-a-time reads are expensive in element-wise analyses. When a
+#' TileDB-backed scalar participates in the model, materialize rows in chunks
+#' before dispatching to workers. Set option `ModelArray.tiledb_read_block_size`
+#' to override the memory-bounded default, or set it to 0 to disable. Set
+#' `ModelArray.tiledb_read_block_mb` to tune the default memory target.
+#' @noRd
+.scalar_read_block_size <- function(ctx) {
+  if (!.has_tiledb_attached_scalar(ctx)) {
+    return(NULL)
+  }
+
+  block_size <- getOption("ModelArray.tiledb_read_block_size", NULL)
+  if (is.null(block_size)) {
+    block_mb <- getOption("ModelArray.tiledb_read_block_mb", 512)
+    if (!is.numeric(block_mb) || length(block_mb) != 1L || is.na(block_mb) || block_mb <= 0) {
+      stop("Option ModelArray.tiledb_read_block_mb must be a positive single number")
+    }
+    n_cols <- max(vapply(ctx$attached_scalars, function(sname) {
+      ncol(scalars(ctx$modelarray)[[sname]])
+    }, numeric(1)), 1L)
+    bytes_per_row <- max(1L, n_cols) * max(1L, length(ctx$attached_scalars)) * 8L
+    target_bytes <- block_mb * 1024^2
+    block_size <- max(1L, min(.Machine$integer.max, floor(target_bytes / bytes_per_row)))
+  }
+
+  if (!is.numeric(block_size) || length(block_size) != 1L || is.na(block_size)) {
+    stop("Option ModelArray.tiledb_read_block_size must be a single number")
+  }
+  block_size <- as.integer(min(block_size, .Machine$integer.max))
+  if (block_size <= 0L) {
+    return(NULL)
+  }
+  max(block_size, 1L)
+}
+
+
+#' Add a materialized scalar row cache to an analysis context
+#'
+#' The cache is intentionally chunk-local. In forked parallel execution this
+#' lets the parent process perform the TileDB I/O once and workers reuse the
+#' in-memory block through copy-on-write.
+#' @noRd
+.with_scalar_row_cache <- function(ctx, element.subset) {
+  if (is.null(.scalar_read_block_size(ctx))) {
+    return(ctx)
+  }
+
+  element.subset <- as.integer(element.subset)
+  if (length(element.subset) == 0L) {
+    return(ctx)
+  }
+
+  cache <- stats::setNames(
+    vector("list", length(ctx$attached_scalars)),
+    ctx$attached_scalars
+  )
+  for (sname in ctx$attached_scalars) {
+    cache[[sname]] <- as.matrix(
+      scalars(ctx$modelarray)[[sname]][element.subset, , drop = FALSE]
+    )
+  }
+
+  ctx$scalar_row_cache <- cache
+  ctx$scalar_row_cache_elements <- element.subset
+  ctx$scalar_row_cache_contiguous <- length(element.subset) == 1L ||
+    all(diff(element.subset) == 1L)
+  ctx$scalar_row_cache_first <- element.subset[[1]]
+  ctx$scalar_row_cache_position <- stats::setNames(
+    seq_along(element.subset),
+    as.character(element.subset)
+  )
+  ctx
+}
+
+
+#' Return a cached or storage-backed scalar row
+#' @noRd
+.read_scalar_row <- function(ctx, sname, i_element) {
+  cache <- ctx$scalar_row_cache
+  if (!is.null(cache) && !is.null(cache[[sname]])) {
+    if (isTRUE(ctx$scalar_row_cache_contiguous)) {
+      pos <- as.integer(i_element - ctx$scalar_row_cache_first + 1L)
+    } else {
+      # Single-bracket: `[[` on a named vector raises "subscript out of
+      # bounds" for an absent name rather than returning NULL, which would
+      # defeat the fall-through to a direct storage read below.
+      pos <- unname(ctx$scalar_row_cache_position[as.character(i_element)])
+    }
+    if (!is.na(pos) && pos >= 1L && pos <= nrow(cache[[sname]])) {
+      return(as.vector(cache[[sname]][pos, ]))
+    }
+  }
+
+  as.vector(scalars(ctx$modelarray)[[sname]][i_element, ])
+}
+
+
 #' Assemble per-element data.frame from precomputed context
 #'
 #' Reads scalar rows from the ModelArray, applies precomputed reorder
@@ -423,7 +549,7 @@
 #' @noRd
 .assemble_element_data <- function(i_element, ctx, num.subj.lthr) {
   # Read the response scalar row — the only mandatory per-element I/O
-  response_vals <- scalars(ctx$modelarray)[[ctx$scalar]][i_element, ]
+  response_vals <- .read_scalar_row(ctx, ctx$scalar, i_element)
 
   # Start the validity mask with the response scalar
   valid_mask <- is.finite(response_vals)
@@ -434,7 +560,7 @@
 
   other_scalars <- setdiff(ctx$attached_scalars, ctx$scalar)
   for (sname in other_scalars) {
-    s_vals <- scalars(ctx$modelarray)[[sname]][i_element, ]
+    s_vals <- .read_scalar_row(ctx, sname, i_element)
 
     # Apply precomputed reorder index (or use as-is if NULL)
     reorder_idx <- ctx$predictor_reorder[[sname]]
@@ -593,6 +719,23 @@
   fits
 }
 
+
+#' Print progress context for chunked element dispatch
+#' @noRd
+.report_iteration_progress <- function(iteration, total_iterations,
+                                       chunk_start, chunk_end,
+                                       total_elements, pbar) {
+  if (!isTRUE(pbar) || total_iterations <= 1L) {
+    return(invisible(NULL))
+  }
+  message(
+    "iteration ", iteration, "/", total_iterations,
+    " (elements ", chunk_start, "-", chunk_end,
+    " of ", total_elements, ")"
+  )
+  invisible(NULL)
+}
+
 # P-value correction ----
 #' Correct p-values for a set of terms and append corrected columns
 #'
@@ -622,6 +765,274 @@
 }
 
 # Streaming writes ----
+#' Validate a gzip compression level used by a streaming writer
+#' @noRd
+.validate_stream_compression_level <- function(compression_level, argument) {
+  if (!is.numeric(compression_level) ||
+        length(compression_level) != 1L ||
+        is.na(compression_level) ||
+        !is.finite(compression_level) ||
+        compression_level != floor(compression_level) ||
+        compression_level < 0L ||
+        compression_level > 9L) {
+    stop(argument, " must be a single integer between 0 and 9", call. = FALSE)
+  }
+  as.integer(compression_level)
+}
+
+
+#' Create a dense TileDB values array for streaming
+#' @noRd
+.create_tiledb_values_array <- function(uri,
+                                        n_rows,
+                                        n_cols,
+                                        chunk_rows,
+                                        storage_mode,
+                                        compression_level) {
+  .require_tiledb_support()
+
+  supported_modes <- c("logical", "integer", "double")
+  if (!is.character(storage_mode) ||
+        length(storage_mode) != 1L ||
+        !storage_mode %in% supported_modes) {
+    stop(
+      "TileDB streaming supports storage modes: ",
+      paste(supported_modes, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  parent_uri <- dirname(uri)
+  if (dir.exists(parent_uri) || .tiledb_object_exists(parent_uri)) {
+    unlink(parent_uri, recursive = TRUE, force = TRUE)
+  }
+  dir.create(parent_uri, recursive = TRUE, showWarnings = FALSE)
+
+  dimensions <- list(
+    tiledb::tiledb_dim(
+      name = "d1",
+      domain = c(1L, as.integer(n_rows)),
+      tile = as.integer(chunk_rows),
+      type = "INT32"
+    ),
+    tiledb::tiledb_dim(
+      name = "d2",
+      domain = c(1L, as.integer(n_cols)),
+      tile = as.integer(n_cols),
+      type = "INT32"
+    )
+  )
+  domain <- tiledb::tiledb_domain(dims = dimensions)
+
+  gzip_filter <- tiledb::tiledb_filter("GZIP")
+  gzip_filter <- tiledb::tiledb_filter_set_option(
+    gzip_filter,
+    "COMPRESSION_LEVEL",
+    compression_level
+  )
+  value_filters <- tiledb::tiledb_filter_list(list(gzip_filter))
+  value_attribute <- tiledb::tiledb_attr(
+    name = "values",
+    type = tiledb::r_to_tiledb_type(vector(storage_mode)),
+    filter_list = value_filters
+  )
+  schema <- tiledb::tiledb_array_schema(
+    domain = domain,
+    attrs = list(value_attribute),
+    cell_order = "COL_MAJOR",
+    tile_order = "COL_MAJOR",
+    sparse = FALSE
+  )
+  tiledb::tiledb_array_create(uri, schema)
+
+  .write_tiledb_array_metadata(uri, list(type = storage_mode))
+  invisible(NULL)
+}
+
+
+#' Write one matrix block to a dense TileDB values array
+#' @noRd
+.write_tiledb_values_block <- function(uri, row_idx, n_cols, block) {
+  array <- tiledb::tiledb_array(uri)
+  on.exit(try(tiledb::tiledb_array_close(array), silent = TRUE), add = TRUE)
+  query <- tiledb::tiledb_query(array, "WRITE")
+  query <- tiledb::tiledb_query_set_subarray(
+    query,
+    as.integer(c(range(row_idx), 1L, n_cols)),
+    "INT32"
+  )
+  query <- tiledb::tiledb_query_set_layout(query, "COL_MAJOR")
+  query <- tiledb::tiledb_query_set_buffer(
+    query,
+    "values",
+    as.vector(block)
+  )
+  query <- tiledb::tiledb_query_submit(query)
+  query <- tiledb::tiledb_query_finalize(query)
+  if (!identical(tiledb::tiledb_query_status(query), "COMPLETE")) {
+    stop("TileDB block write did not complete", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+
+#' Initialize an incremental writer for /scalars datasets
+#' @noRd
+.init_scalar_stream_writer <- function(write_scalar_name,
+                                       write_scalar_file,
+                                       n_rows,
+                                       column_names,
+                                       flush_every = 1000L,
+                                       storage_mode = "double",
+                                       compression_level = 4L) {
+  compression_level <- .validate_stream_compression_level(
+    compression_level,
+    "write_scalar_compression_level"
+  )
+  if (!is.character(write_scalar_file) ||
+        length(write_scalar_file) != 1L ||
+        is.na(write_scalar_file) ||
+        !nzchar(write_scalar_file)) {
+    stop("write_scalar_file must be a non-empty character path")
+  }
+  backend <- .resolve_storage_backend(write_scalar_file, "auto")
+  n_cols <- length(column_names)
+  chunk_rows <- min(flush_every, n_rows)
+
+  if (identical(backend, "tiledb")) {
+    scalar_uri <- .storage_child_path(
+      .modelarray_path(write_scalar_file, "scalars"),
+      write_scalar_name,
+      "write_scalar_name"
+    )
+    values_uri <- .modelarray_path(scalar_uri, "values")
+    .create_tiledb_values_array(
+      uri = values_uri,
+      n_rows = n_rows,
+      n_cols = n_cols,
+      chunk_rows = chunk_rows,
+      storage_mode = storage_mode,
+      compression_level = compression_level
+    )
+    return(list(
+      backend = "tiledb",
+      file = write_scalar_file,
+      scalar_name = write_scalar_name,
+      values_uri = values_uri,
+      column_names = as.character(column_names),
+      storage_mode = storage_mode,
+      n_cols = n_cols,
+      write_row_cursor = 1L
+    ))
+  }
+
+  if (!file.exists(write_scalar_file)) {
+    rhdf5::h5createFile(write_scalar_file)
+  }
+  scalar_group <- paste0("scalars/", write_scalar_name)
+  h5_write <- hdf5r::H5File$new(write_scalar_file, mode = "a")
+  if (!h5_write$exists("scalars")) {
+    h5_write$create_group("scalars")
+  }
+  scalars_group <- h5_write$open("scalars")
+  if (scalars_group$exists(write_scalar_name)) {
+    scalars_group$link_delete(write_scalar_name)
+  }
+  scalars_group$create_group(write_scalar_name)
+  h5_write$close_all()
+
+  dataset_path <- paste0(scalar_group, "/values")
+  rhdf5::h5createDataset(
+    file = write_scalar_file,
+    dataset = dataset_path,
+    dims = c(n_rows, n_cols),
+    storage.mode = storage_mode,
+    chunk = c(chunk_rows, n_cols),
+    level = compression_level
+  )
+
+  list(
+    backend = "hdf5",
+    file = write_scalar_file,
+    scalar_name = write_scalar_name,
+    dataset_path = dataset_path,
+    column_names = as.character(column_names),
+    storage_mode = storage_mode,
+    n_cols = n_cols,
+    write_row_cursor = 1L
+  )
+}
+
+
+#' Append one block to an incremental /scalars writer
+#' @noRd
+.scalar_stream_write_block <- function(writer, block) {
+  if (is.null(writer)) {
+    return(writer)
+  }
+  block <- as.matrix(block)
+  if (ncol(block) != writer$n_cols) {
+    stop("Scalar block does not match the initialized writer column count")
+  }
+  storage.mode(block) <- writer$storage_mode
+  row_idx <- writer$write_row_cursor:(writer$write_row_cursor + nrow(block) - 1L)
+
+  if (identical(writer$backend, "tiledb")) {
+    .write_tiledb_values_block(
+      uri = writer$values_uri,
+      row_idx = row_idx,
+      n_cols = writer$n_cols,
+      block = block
+    )
+  } else {
+    rhdf5::h5write(
+      obj = block,
+      file = writer$file,
+      name = writer$dataset_path,
+      index = list(row_idx, seq_len(writer$n_cols))
+    )
+  }
+
+  writer$write_row_cursor <- writer$write_row_cursor + nrow(block)
+  writer
+}
+
+
+#' Finalize an incremental /scalars writer
+#' @noRd
+.finalize_scalar_stream_writer <- function(writer) {
+  if (is.null(writer)) {
+    return(invisible(NULL))
+  }
+  if (identical(writer$backend, "tiledb")) {
+    .write_tiledb_array_metadata(
+      writer$values_uri,
+      list(
+        column_names = jsonlite::toJSON(
+          writer$column_names,
+          auto_unbox = TRUE
+        )
+      )
+    )
+    return(invisible(NULL))
+  }
+
+  .write_hdf5_attribute(
+    writer$file,
+    writer$dataset_path,
+    "column_names",
+    writer$column_names
+  )
+  rhdf5::h5write(
+    obj = writer$column_names,
+    file = writer$file,
+    name = paste0("scalars/", writer$scalar_name, "/column_names")
+  )
+  rhdf5::h5closeAll()
+  invisible(NULL)
+}
+
+
 #' Initialize an incremental writer for /results datasets
 #' @noRd
 .init_results_stream_writer <- function(write_results_name,
@@ -634,16 +1045,64 @@
   if (is.null(write_results_name)) {
     return(NULL)
   }
-  if (!is.character(write_results_name) || length(write_results_name) != 1L || write_results_name == "") {
+  if (!is.character(write_results_name) ||
+        length(write_results_name) != 1L ||
+        is.na(write_results_name) ||
+        !nzchar(write_results_name)) {
     stop("write_results_name must be a non-empty character string when provided")
   }
-  if (is.null(write_results_file) || !is.character(write_results_file) || length(write_results_file) != 1L) {
+  if (is.null(write_results_file) ||
+        !is.character(write_results_file) ||
+        length(write_results_file) != 1L ||
+        is.na(write_results_file) ||
+        !nzchar(write_results_file)) {
     stop("write_results_file must be a single character path when write_results_name is provided")
   }
   if (!is.numeric(flush_every) || length(flush_every) != 1L || flush_every <= 0) {
     stop("write_results_flush_every must be a positive integer")
   }
   flush_every <- as.integer(flush_every)
+  compression_level <- .validate_stream_compression_level(
+    compression_level,
+    "write_results_compression_level"
+  )
+
+  backend <- .resolve_storage_backend(write_results_file, "auto")
+  if (identical(backend, "tiledb")) {
+    .require_tiledb_support()
+    analysis_uri <- .storage_child_path(
+      .modelarray_path(write_results_file, "results"),
+      write_results_name,
+      "write_results_name"
+    )
+    values_uri <- .modelarray_path(analysis_uri, "results_matrix")
+    .create_tiledb_values_array(
+      uri = values_uri,
+      n_rows = n_rows,
+      n_cols = length(column_names),
+      chunk_rows = min(flush_every, n_rows),
+      storage_mode = storage_mode,
+      compression_level = compression_level
+    )
+    return(list(
+      backend = "tiledb",
+      file = write_results_file,
+      analysis_name = write_results_name,
+      values_uri = values_uri,
+      column_names = as.character(column_names),
+      storage_mode = storage_mode,
+      n_cols = length(column_names),
+      write_row_cursor = 1L
+    ))
+  }
+
+  if (!identical(backend, "hdf5")) {
+    stop(
+      "Unsupported write_results_file backend: ",
+      backend,
+      call. = FALSE
+    )
+  }
 
   if (!file.exists(write_results_file)) {
     rhdf5::h5createFile(write_results_file)
@@ -669,11 +1128,13 @@
     dims = c(n_rows, length(column_names)),
     storage.mode = storage_mode,
     chunk = c(chunk_rows, length(column_names)),
-    level = as.integer(compression_level)
+    level = compression_level
   )
 
   list(
+    backend = "hdf5",
     file = write_results_file,
+    analysis_name = write_results_name,
     dataset_path = dataset_path,
     names_path = paste0("results/", write_results_name, "/column_names"),
     column_names = as.character(column_names),
@@ -689,8 +1150,23 @@
   if (is.null(writer)) {
     return(writer)
   }
+  if (ncol(block_df) != writer$n_cols) {
+    stop("Result block does not match the initialized writer column count")
+  }
   block <- as.matrix(block_df)
   row_idx <- writer$write_row_cursor:(writer$write_row_cursor + nrow(block) - 1L)
+  if (identical(writer$backend, "tiledb")) {
+    storage.mode(block) <- writer$storage_mode
+    .write_tiledb_values_block(
+      uri = writer$values_uri,
+      row_idx = row_idx,
+      n_cols = writer$n_cols,
+      block = block
+    )
+    writer$write_row_cursor <- writer$write_row_cursor + nrow(block)
+    return(writer)
+  }
+
   rhdf5::h5write(
     obj = block,
     file = writer$file,
@@ -708,6 +1184,19 @@
   if (is.null(writer)) {
     return(invisible(NULL))
   }
+  if (identical(writer$backend, "tiledb")) {
+    .write_tiledb_array_metadata(
+      writer$values_uri,
+      list(
+        column_names = jsonlite::toJSON(
+          writer$column_names,
+          auto_unbox = TRUE
+        )
+      )
+    )
+    return(invisible(NULL))
+  }
+
   rhdf5::h5write(
     obj = writer$column_names,
     file = writer$file,

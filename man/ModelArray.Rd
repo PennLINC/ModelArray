@@ -2,33 +2,45 @@
 % Please edit documentation in R/ModelArray_Constructor.R
 \name{ModelArray}
 \alias{ModelArray}
-\title{Load element-wise data from an HDF5 file}
+\title{Load element-wise data from an HDF5 file or TileDB store}
 \usage{
-ModelArray(filepath, scalar_types = c("FD"), analysis_names = character(0))
+ModelArray(
+  filepath,
+  scalar_types = c("FD"),
+  analysis_names = character(0),
+  backend = c("auto", "hdf5", "tiledb")
+)
 }
 \arguments{
 \item{filepath}{Character. Path to an existing HDF5 (\code{.h5})
-file containing element-wise scalar data.}
+file or TileDB (\code{.tdb}) store containing element-wise scalar data.}
 
 \item{scalar_types}{Character vector. Names of scalar groups to read
-from \code{/scalars/} in the HDF5 file. Default is \code{c("FD")}.
+from \code{/scalars/}. Default is \code{c("FD")}.
 Must match group names in the file.}
 
 \item{analysis_names}{Character vector. Subfolder names under
 \code{/results/} to load. Default is \code{character(0)} (none).}
+
+\item{backend}{Character. Storage backend: \code{"auto"} (default),
+\code{"hdf5"}, or \code{"tiledb"}. Auto-detection resolves to TileDB for
+a \code{.tdb} path, or for a directory that already contains a
+\code{scalars/} or \code{results/} subdirectory; everything else is
+treated as HDF5. Pass \code{"tiledb"} explicitly for a TileDB store that
+is neither.}
 }
 \value{
 A \linkS4class{ModelArray} object.
 }
 \description{
 Reads scalar matrices and (optionally) saved analysis results from
-an HDF5 file and returns a \linkS4class{ModelArray} object.
+an HDF5 file or TileDB store and returns a \linkS4class{ModelArray} object.
 }
 \details{
 The constructor reads each scalar listed in \code{scalar_types} from
 \code{/scalars/<scalar_type>/values}, wrapping them as
 \link[DelayedArray:DelayedArray-class]{DelayedArray::DelayedArray} objects. Source filenames are extracted
-from HDF5 attributes or companion datasets.
+from storage metadata or companion datasets.
 
 If \code{analysis_names} is non-empty, saved results are loaded from
 \code{/results/<name>/results_matrix}.
@@ -47,5 +59,5 @@ ma
 }
 \seealso{
 \linkS4class{ModelArray} for the class definition,
-\code{\link{h5summary}} for inspecting an HDF5 file.
+\code{\link{ModelArraySummary}} for inspecting storage.
 }

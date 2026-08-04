@@ -122,3 +122,21 @@ test_that("ModelArray.wrap can stream results to HDF5 without returning output",
   mat_h5 <- rhdf5::h5read(h5_out, "results/wrap_stream/results_matrix")
   expect_equal(dim(mat_h5), c(2, 3))
 })
+
+test_that(".init_results_stream_writer validates compression level for both backends", {
+  # Validation is hoisted above the backend branch, so an out-of-range level is
+  # rejected for HDF5 too, not only for TileDB.
+  for (path in c(tempfile(fileext = ".h5"), tempfile(fileext = ".tdb"))) {
+    expect_error(
+      .init_results_stream_writer(
+        write_results_name = "an_analysis",
+        write_results_file = path,
+        n_rows = 2L,
+        column_names = c("element_id", "estimate"),
+        compression_level = 10L
+      ),
+      "write_results_compression_level must be a single integer between 0 and 9"
+    )
+    expect_false(file.exists(path))
+  }
+})

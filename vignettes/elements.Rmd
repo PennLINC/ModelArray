@@ -7,6 +7,21 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<style>
+.tiledb-toggle {
+  background-color: #eaf4ff;
+  border-left: 4px solid #2b6cb0;
+  border-radius: 6px;
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+}
+
+.tiledb-toggle summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+</style>
+
 ## What is an element?
 
 ModelArray performs mass-univariate statistical analysis - 
@@ -44,6 +59,27 @@ modelarray <- ModelArray("path/to/data.h5", scalar_types = c("FDC"))
 scalars(modelarray)[["FDC"]]
 ```
 
+<details class="tiledb-toggle">
+<summary><strong>TileDB</strong></summary>
+
+For TileDB-backed data, the same scalar matrix is stored in a directory-backed
+`.tdb` store instead of a single `.h5` file:
+
+```{r scalar_matrix_tiledb, eval=FALSE}
+library(ModelArray)
+
+# Create a ModelArray object from a TileDB store
+modelarray <- ModelArray("path/to/data.tdb", scalar_types = c("FDC"))
+
+# View the scalar matrix
+scalars(modelarray)[["FDC"]]
+```
+
+ModelArray auto-detects paths ending in `.tdb`; you can also pass
+`backend = "tiledb"` explicitly.
+
+</details>
+
 ```{.console}
 <602229 x 100> matrix of class DelayedMatrix and type "double":
           FDC/sub-6fee490.mif FDC/sub-647f86c.mif ... FDC/sub-063fd82.mif
@@ -54,7 +90,16 @@ scalars(modelarray)[["FDC"]]
 ```
 
 This is a `DelayedMatrix`, meaning the data lives on disk in the HDF5 file and is only read into memory when accessed.
-This is what makes ModelArray memory-efficient — see `vignette("hdf5-large-analyses")` for details.
+This is what makes ModelArray memory-efficient — see `vignette("large-scale-analyses")` for details.
+
+<details class="tiledb-toggle">
+<summary><strong>TileDB</strong></summary>
+
+TileDB-backed scalar matrices are also exposed through the `DelayedArray`
+interface. Values are read from the `.tdb` store only when requested, so the
+same accessor and modelling code works for both backends.
+
+</details>
 
 ## Element IDs
 
