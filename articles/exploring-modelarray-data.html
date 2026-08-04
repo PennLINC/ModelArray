@@ -142,7 +142,7 @@ a summary:</p>
 <pre class="console"><code>ModelArray located at ~/Desktop/myProject/demo_FDC_n100.h5
 
   Source files:     100
-  Scalars:          FDC
+  Scalars:          FDC (602229 elements)
   Analyses:         results_lm</code></pre>
 <p>This tells you at a glance: the storage path, how many sources, which
 scalars are loaded, and which analyses have been saved.</p>
@@ -152,7 +152,7 @@ scalars are loaded, and which analyses have been saved.</p>
 <pre class="console"><code>ModelArray located at ~/Desktop/myProject/demo_FDC_n100.tdb
 
   Source files:     100
-  Scalars:          FDC
+  Scalars:          FDC (602229 elements)
   Analyses:         results_lm</code></pre>
 </details>
 </div>
@@ -234,7 +234,7 @@ it in the <code>analysis_names</code> argument when calling
 <p>Before constructing a full ModelArray, you can inspect the storage
 structure:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5summary.html">ModelArraySummary</a></span><span class="op">(</span><span class="va">modelarray_path</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/ModelArraySummary.html">ModelArraySummary</a></span><span class="op">(</span><span class="va">modelarray_path</span><span class="op">)</span></span></code></pre></div>
 <pre class="console"><code>H5 file: ~/Desktop/myProject/demo_FDC_n100.h5
 
 Scalars:
@@ -245,7 +245,7 @@ Analyses: results_lm</code></pre>
 </summary><p>Use the TileDB store path the same way. The explicit backend argument
 is optional for <code>.tdb</code> paths:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5summary.html">ModelArraySummary</a></span><span class="op">(</span><span class="st">"~/Desktop/myProject/demo_FDC_n100.tdb"</span>, backend <span class="op">=</span> <span class="st">"tiledb"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/ModelArraySummary.html">ModelArraySummary</a></span><span class="op">(</span><span class="st">"~/Desktop/myProject/demo_FDC_n100.tdb"</span>, backend <span class="op">=</span> <span class="st">"tiledb"</span><span class="op">)</span></span></code></pre></div>
 <pre class="console"><code>TileDB store: ~/Desktop/myProject/demo_FDC_n100.tdb
 
 Scalars:

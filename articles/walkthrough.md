@@ -117,7 +117,7 @@ modelarray
 ModelArray located at ~/Desktop/myProject/demo_FDC_n100.h5
 
   Source files:     100
-  Scalars:          FDC
+  Scalars:          FDC (602229 elements)
   Analyses:
 ```
 
@@ -220,7 +220,7 @@ modelarray_new
 ModelArray located at ~/Desktop/myProject/demo_FDC_n100.h5
 
   Source files:     100
-  Scalars:          FDC
+  Scalars:          FDC (602229 elements)
   Analyses:         results_lm
 ```
 

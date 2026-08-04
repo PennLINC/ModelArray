@@ -46,7 +46,11 @@ writeResults(
 - backend:
 
   Character. Storage backend: `"auto"` (default), `"hdf5"`, or
-  `"tiledb"`.
+  `"tiledb"`. Auto-detection resolves to TileDB for a `.tdb` path, or
+  for a directory that already contains a `scalars/` or `results/`
+  subdirectory; everything else is treated as HDF5. To create a new
+  TileDB store at a path without a `.tdb` suffix, pass `"tiledb"`
+  explicitly.
 
 ## Value
 
@@ -76,7 +80,7 @@ which produce the `df.output`,
 [`results`](https://pennlinc.github.io/ModelArray/reference/results.md)
 for reading results back from a
 [ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md),
-[`ModelArraySummary`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+[`ModelArraySummary`](https://pennlinc.github.io/ModelArray/reference/ModelArraySummary.md)
 for inspecting what has been written.
 
 ## Examples

@@ -166,7 +166,9 @@ output columns are written into
 
 <dt id="arg-write-scalar-file">write_scalar_file<a class="anchor" aria-label="anchor" href="#arg-write-scalar-file"></a></dt>
 <dd><p>Optional character. HDF5 file path or TileDB store
-path. Required when <code>write_scalar_name</code> is provided.</p></dd>
+path. Required when <code>write_scalar_name</code> is provided. The backend is
+detected from the path, so use a <code>.tdb</code> suffix to write a TileDB
+store.</p></dd>
 
 
 <dt id="arg-write-scalar-columns">write_scalar_columns<a class="anchor" aria-label="anchor" href="#arg-write-scalar-columns"></a></dt>
@@ -208,7 +210,8 @@ specified by <code>write_results_file</code>.</p></dd>
 <dt id="arg-write-results-file">write_results_file<a class="anchor" aria-label="anchor" href="#arg-write-results-file"></a></dt>
 <dd><p>Optional character. HDF5 file path or TileDB
 store path for incremental result writes. Required when
-<code>write_results_name</code> is provided.</p></dd>
+<code>write_results_name</code> is provided. The backend is detected from the
+path, so use a <code>.tdb</code> suffix to stream into a TileDB store.</p></dd>
 
 
 <dt id="arg-write-results-flush-every">write_results_flush_every<a class="anchor" aria-label="anchor" href="#arg-write-results-flush-every"></a></dt>

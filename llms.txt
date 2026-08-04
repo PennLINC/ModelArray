@@ -199,10 +199,10 @@ users should not call them directly.
 
 - [`writeResults()`](https://pennlinc.github.io/ModelArray/reference/writeResults.md)
   : Write outputs from element-wise statistical analysis to storage
-- [`ModelArraySummary()`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
-  [`h5summary()`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
-  [`print(`*`<ModelArraySummary>`*`)`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
-  [`print(`*`<h5summary>`*`)`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+- [`ModelArraySummary()`](https://pennlinc.github.io/ModelArray/reference/ModelArraySummary.md)
+  [`h5summary()`](https://pennlinc.github.io/ModelArray/reference/ModelArraySummary.md)
+  [`print(`*`<ModelArraySummary>`*`)`](https://pennlinc.github.io/ModelArray/reference/ModelArraySummary.md)
+  [`print(`*`<h5summary>`*`)`](https://pennlinc.github.io/ModelArray/reference/ModelArraySummary.md)
   : Summarize ModelArray storage without loading a full ModelArray
 - [`numElementsTotal()`](https://pennlinc.github.io/ModelArray/reference/numElementsTotal.md)
   : Number of elements in ModelArray

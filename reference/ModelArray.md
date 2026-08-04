@@ -36,8 +36,10 @@ ModelArray(
 - backend:
 
   Character. Storage backend: `"auto"` (default), `"hdf5"`, or
-  `"tiledb"`. Auto-detection treats directories and `.tdb` paths as
-  TileDB stores, otherwise HDF5.
+  `"tiledb"`. Auto-detection resolves to TileDB for a `.tdb` path, or
+  for a directory that already contains a `scalars/` or `results/`
+  subdirectory; everything else is treated as HDF5. Pass `"tiledb"`
+  explicitly for a TileDB store that is neither.
 
 ## Value
 
@@ -65,7 +67,7 @@ If `analysis_names` is non-empty, saved results are loaded from
 
 [ModelArray](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.md)
 for the class definition,
-[`ModelArraySummary`](https://pennlinc.github.io/ModelArray/reference/h5summary.md)
+[`ModelArraySummary`](https://pennlinc.github.io/ModelArray/reference/ModelArraySummary.md)
 for inspecting storage.
 
 ## Examples

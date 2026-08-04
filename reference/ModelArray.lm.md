@@ -136,7 +136,8 @@ ModelArray.lm(
 
   Optional character. HDF5 file path or TileDB store path for
   incremental result writes. Required when `write_results_name` is
-  provided.
+  provided. The backend is detected from the path, so use a `.tdb`
+  suffix to stream into a TileDB store.
 
 - write_results_flush_every:
 

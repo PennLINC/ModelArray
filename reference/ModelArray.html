@@ -88,8 +88,11 @@ Must match group names in the file.</p></dd>
 
 <dt id="arg-backend">backend<a class="anchor" aria-label="anchor" href="#arg-backend"></a></dt>
 <dd><p>Character. Storage backend: <code>"auto"</code> (default),
-<code>"hdf5"</code>, or <code>"tiledb"</code>. Auto-detection treats directories
-and <code>.tdb</code> paths as TileDB stores, otherwise HDF5.</p></dd>
+<code>"hdf5"</code>, or <code>"tiledb"</code>. Auto-detection resolves to TileDB for
+a <code>.tdb</code> path, or for a directory that already contains a
+<code>scalars/</code> or <code>results/</code> subdirectory; everything else is
+treated as HDF5. Pass <code>"tiledb"</code> explicitly for a TileDB store that
+is neither.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -112,7 +115,7 @@ from storage metadata or companion datasets.</p>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><a href="ModelArray-class.html">ModelArray</a> for the class definition,
-<code><a href="h5summary.html">ModelArraySummary</a></code> for inspecting storage.</p></div>
+<code><a href="ModelArraySummary.html">ModelArraySummary</a></code> for inspecting storage.</p></div>
     </div>
 
     <div class="section level2">
