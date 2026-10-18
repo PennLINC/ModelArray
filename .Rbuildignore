@@ -16,3 +16,4 @@
 ^Apptainer\.def$
 ^README\.Rmd$
 ^README\.html$
+^binder$

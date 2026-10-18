@@ -1,0 +1,986 @@
+---
+title: "ModelArray on a TileDB store in S3: cortical thickness across the sensorimotor-association axis"
+date: "`r format(Sys.time(), '%Y-%m-%d %H:%M %Z')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    df_print: paged
+params:
+  store_uri: "s3://fcp-indi/data/Projects/RBC/RBC_FreeSurfer-Post_ModelArray/rbc_freesurferpost.tdb"
+  cohort_url: "https://fcp-indi.s3.amazonaws.com/data/Projects/RBC/RBC_FreeSurfer-Post_ModelArray/rbc_freesurferpost_cohort.csv"
+  s3_region: "us-east-1"
+  n_cores: 4
+  out_dir: "~/rbc_s3_example"
+  cache_dir: NULL
+  quick: TRUE
+  hemispheres: NULL
+  parcels: NULL
+  max_tiles_per_parcel: NULL
+  max_vertices_per_parcel: NULL
+  allocation_mb: 512
+  max_age: 23
+  harmonize: TRUE
+  write_cifti: TRUE
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, comment = "#>")
+report_started <- Sys.time()
+
+# ---- presets -----------------------------------------------------------------
+# Binder gives one core and about 2 GB, so default to the smallest run there.
+on_binder <- nzchar(Sys.getenv("BINDER_REPO_URL"))
+p <- params
+p$out_dir <- path.expand(p$out_dir)
+if (is.null(p$cache_dir)) p$cache_dir <- file.path(p$out_dir, "cache")
+p$cache_dir <- path.expand(p$cache_dir)
+if (on_binder) {
+  p$quick <- TRUE
+  p$n_cores <- 1L
+  p$allocation_mb <- min(p$allocation_mb, 256)
+}
+if (is.null(p$hemispheres)) p$hemispheres <- if (p$quick) "L" else "LR"
+if (is.null(p$parcels)) p$parcels <- c("3b", "46")
+if (is.null(p$max_tiles_per_parcel)) p$max_tiles_per_parcel <- if (on_binder) 1L else if (p$quick) 2L else 6L
+if (is.null(p$max_vertices_per_parcel)) p$max_vertices_per_parcel <- if (on_binder) 150L else if (p$quick) 300L else 500L
+dir.create(p$out_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(p$cache_dir, recursive = TRUE, showWarnings = FALSE)
+
+# ---- packages ----------------------------------------------------------------
+needed <- c("ModelArray", "tiledb", "TileDBArray", "jsonlite", "rhdf5", "mgcv", "ggplot2", "MASS")
+missing_pkgs <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)]
+if (length(missing_pkgs) > 0) {
+  stop("Please install these packages first: ", paste(missing_pkgs, collapse = ", "),
+       ". See vignette('rbc-s3-tiledb') for the install commands.", call. = FALSE)
+}
+have_combat <- requireNamespace("ComBatFamily", quietly = TRUE)
+have_lme4 <- requireNamespace("lme4", quietly = TRUE)
+have_gamm4 <- requireNamespace("gamm4", quietly = TRUE)
+have_gratia <- requireNamespace("gratia", quietly = TRUE)
+have_cowplot <- requireNamespace("cowplot", quietly = TRUE)   # optional: brain-locator insets on the figures
+harmonize <- isTRUE(p$harmonize) && have_combat
+suppressPackageStartupMessages({
+  library(ModelArray)
+  library(ggplot2)
+})
+if (!exists(".require_tiledb_support", envir = asNamespace("ModelArray"))) {
+  stop("This ModelArray predates TileDB support. Install the current GitHub main (see the vignette).", call. = FALSE)
+}
+
+# ---- Connectome Workbench ------------------------------------------------------
+wb <- Sys.which("wb_command")
+if (!nzchar(wb)) {
+  for (candidate in c("/Applications/wb_view.app/Contents/usr/bin/wb_command",
+                      "/Applications/ConnectomeWorkbench.app/Contents/usr/bin/wb_command",
+                      path.expand("~/.wb/bin/wb_command"))) {
+    if (file.exists(candidate)) { wb <- candidate; break }
+  }
+}
+have_wb <- nzchar(wb) && isTRUE(p$write_cifti)
+wb_run <- function(...) {
+  out <- system2(wb, c(...), stdout = TRUE, stderr = TRUE)
+  if (!is.null(attr(out, "status")) && attr(out, "status") != 0) {
+    stop("wb_command failed:\n", paste(out, collapse = "\n"), call. = FALSE)
+  }
+  invisible(out)
+}
+
+# ---- TileDB read settings and helpers ----------------------------------------
+# tiledb's R package reads a query in passes sized by this preference (10 MiB by
+# default). Each pass re-fetches the tiles it touches, so a read of a few tiles can
+# download them six times over. One pass per parcel read needs about 67 MB per tile.
+tiledb::set_allocation_size_preference(as.integer(p$allocation_mb) * 1024^2)
+TILE_ROWS <- 964L                      # vertices per tile in this store
+N_SESSIONS <- 8696L
+TILE_MB <- TILE_ROWS * N_SESSIONS * 4 / 1024^2
+tile_of <- function(i) (as.integer(i) - 1L) %/% TILE_ROWS   # 1-based element -> 0-based tile
+
+runtime <- data.frame(step = character(), secs = numeric(), tiles = numeric(),
+                      mb_uncompressed = numeric(), mb_wire = numeric(), stringsAsFactors = FALSE)
+stat_value <- function(raw, key) {
+  m <- regmatches(raw, regexpr(sprintf('"%s": *[0-9.]+', key), raw))
+  if (length(m) == 0) return(NA_real_)
+  as.numeric(sub(".*: *", "", m))
+}
+# Run expr with TileDB statistics on, and record time, tiles and bytes for the table.
+tdb_measure <- function(step, expr) {
+  tiledb::tiledb_stats_reset()
+  tiledb::tiledb_stats_enable()
+  t0 <- Sys.time()
+  value <- force(expr)
+  secs <- as.numeric(Sys.time() - t0, units = "secs")
+  raw <- paste(suppressMessages(suppressWarnings(tiledb::tiledb_stats_raw_get())), collapse = "")
+  tiledb::tiledb_stats_disable()
+  runtime[nrow(runtime) + 1, ] <<- list(step, secs,
+    stat_value(raw, "Context.Query.Reader.num_tiles_read"),
+    stat_value(raw, "Context.Query.Reader.read_unfiltered_byte_num") / 1024^2,
+    stat_value(raw, "Context.VFS.read_byte_num") / 1024^2)
+  value
+}
+# Time a local computation (no S3 traffic) into the same table.
+timed <- function(step, expr) {
+  t0 <- Sys.time()
+  value <- force(expr)
+  runtime[nrow(runtime) + 1, ] <<- list(step, as.numeric(Sys.time() - t0, units = "secs"), NA_real_, NA_real_, NA_real_)
+  value
+}
+last_runtime <- function() runtime[nrow(runtime), ]
+cached_download <- function(url, name = basename(url)) {
+  if (file.exists(url)) return(url)                # a local file was given instead of a URL
+  dest <- file.path(p$cache_dir, name)
+  if (!file.exists(dest) || file.size(dest) == 0) {
+    utils::download.file(url, dest, mode = "wb", quiet = TRUE)
+  }
+  dest
+}
+fmt_secs <- function(s) if (s < 90) sprintf("%.1f s", s) else sprintf("%.1f min", s / 60)
+```
+
+This report fits models to the [Reproducible Brain Charts](https://reprobrainchart.github.io/)
+FreeSurferPost cortical thickness data **without downloading the dataset**. The data
+live in a 553 GB TileDB store on a public S3 bucket; ModelArray reads only the pieces
+it needs. The question is one with a known answer, so you can judge the result:
+
+> The cortex thins through childhood and adolescence, but not everywhere at the same
+> time. Primary sensory and motor cortex matures first: its thinning is mostly over by
+> mid-adolescence. Association cortex matures last: it keeps thinning through the teens
+> and into the twenties. This example contrasts two parcels at opposite ends of the
+> sensorimotor–association (S-A) axis of Sydnor et al. (2021): area **3b**, primary
+> somatosensory cortex (S-A rank 7), and area **46**, dorsolateral prefrontal
+> association cortex (S-A rank 174). 3b should do most of its thinning early and flatten
+> by mid-adolescence; 46 should still be thinning in the late teens and twenties.
+
+Settings for this run: `quick = `r p$quick``, hemispheres `r p$hemispheres`, parcels
+`r paste(p$parcels, collapse = ", ")`, at most `r p$max_tiles_per_parcel` tile(s) and
+`r p$max_vertices_per_parcel` vertices per parcel, ages up to `r p$max_age` for the
+vertex-wise models, `r p$n_cores` core(s), site harmonization
+`r if (harmonize) "on (CovBat)" else "off (site as a covariate)"`.
+`r if (on_binder) "Running on Binder, so the smallest settings are used." else ""`
+
+## 1. Point TileDB at the bucket
+
+ModelArray talks to TileDB through the package's default *context*. Two settings make
+the public bucket readable: the region, and "do not sign requests" (no AWS account
+needed). Set them once, before `ModelArray()`.
+
+```{r tiledb-context}
+cfg <- tiledb::tiledb_config()
+cfg["vfs.s3.region"] <- p$s3_region
+cfg["vfs.s3.no_sign_request"] <- "true"
+tiledb::tiledb_ctx(cfg)
+
+reachable <- tryCatch(tiledb::tiledb_vfs_is_dir(p$store_uri, tiledb::tiledb_vfs()), error = function(e) e)
+if (!isTRUE(reachable)) {
+  cat("Could not reach", p$store_uri, "\n",
+      if (inherits(reachable, "error")) conditionMessage(reachable) else "", "\n",
+      "Check your network and proxy settings, or try again later.\n")
+  knitr::knit_exit()
+}
+```
+
+The same two settings can come from environment variables instead
+(`TILEDB_VFS_S3_REGION`, `TILEDB_VFS_S3_NO_SIGN_REQUEST`), which is what the Binder
+image does.
+
+## 2. What is in the store
+
+`ModelArraySummary()` lists the scalars without loading any data. Every scalar is a
+dense matrix of 327,684 fsLR-164k vertices by 8,696 sessions, stored in tiles of
+`r TILE_ROWS` vertices × all sessions (about `r round(TILE_MB)` MB each before
+compression). Reading one vertex means reading its whole tile; that is the unit all
+the costs below are counted in.
+
+```{r summary}
+info <- tdb_measure("ModelArraySummary (70 scalars)", ModelArraySummary(p$store_uri))
+cat(sprintf("%d scalars, each %d vertices x %d sessions; %s\n",
+            nrow(info$scalars), info$scalars$nElements[1], info$scalars$nInputFiles[1],
+            fmt_secs(last_runtime()$secs)))
+print(info$scalars$name)
+```
+
+## 3. The cohort
+
+The cohort CSV sits next to the store. It is long format (one row per session per
+scalar), so we keep the `thickness` rows: one per session, with age, sex and scanning
+site. Sessions without a sex or site (some HBN sessions) keep an empty value; models
+and harmonization skip them where they need the column.
+
+```{r cohort}
+cohort_file <- cached_download(p$cohort_url, "rbc_freesurferpost_cohort.csv")
+cohort <- read.csv(cohort_file, na.strings = c("", "NA"), stringsAsFactors = FALSE)
+phen <- cohort[cohort$scalar_name == "thickness", ]
+phen$subject <- paste(phen$dataset, phen$subject_id)
+have_covariates <- all(c("sex", "site") %in% names(phen))
+if (have_covariates) {
+  phen$sex <- factor(phen$sex)
+  phen$site <- factor(phen$site)
+} else {
+  cat("This cohort file has no sex/site columns yet; using the study (dataset) as the batch variable.\n")
+  phen$site <- factor(phen$dataset)
+  phen$sex <- factor(rep("unknown", nrow(phen)))
+}
+use_sex <- nlevels(phen$sex) > 1
+sex_term <- if (use_sex) " + sex" else ""
+site_term <- if (nlevels(phen$site) > 1) " + site" else ""
+harmonize_covariates <- c("Age", if (use_sex) "sex")
+
+by_study <- split(phen, phen$dataset)
+sessions <- data.frame(
+  dataset = names(by_study),
+  sessions = vapply(by_study, nrow, integer(1)),
+  subjects = vapply(by_study, function(d) length(unique(d$subject)), integer(1)),
+  age_min = vapply(by_study, function(d) round(min(d$Age), 1), numeric(1)),
+  age_max = vapply(by_study, function(d) round(max(d$Age), 1), numeric(1)),
+  no_sex = vapply(by_study, function(d) sum(is.na(d$sex)), integer(1)),
+  no_site = vapply(by_study, function(d) sum(is.na(d$site)), integer(1)),
+  row.names = NULL
+)
+sessions
+cat(sprintf("%d sessions, %d subjects, %d sites\n", nrow(phen), length(unique(phen$subject)), nlevels(phen$site)))
+```
+
+## 4. Open the store
+
+Only the scalar we name gets opened; nothing is read yet. The `curv` scalar would be a
+natural second covariate, but ModelArray attaches a second scalar only when it lists
+the same source files as the phenotypes, and in this store each scalar has its own
+file per session. So the models here use `thickness` alone.
+
+```{r open}
+ma <- tdb_measure("ModelArray() open", ModelArray(p$store_uri, scalar_types = "thickness"))
+ma
+src <- sources(ma)[["thickness"]]
+stopifnot(setequal(src, phen$source_file))
+phen <- phen[match(src, phen$source_file), ]           # same order as the store's columns
+cat(sprintf("Opened in %s\n", fmt_secs(last_runtime()$secs)))
+```
+
+## 5. Parcels and tiles
+
+A Glasser (HCP-MMP1.0) label for each of the 327,684 columns ships with the example,
+together with each parcel's S-A rank. Before reading anything we can count how many
+tiles a parcel touches. fsLR numbers its vertices in nested rings, so a parcel's
+vertices are spread over many tiles; the report keeps the vertices in each parcel's
+most populated tiles, which caps the download while keeping hundreds of vertices.
+
+```{r atlas}
+labels <- readRDS(system.file("examples/rbc-s3-tiledb/glasser360_fsLR164k_labels.rds", package = "ModelArray"))
+stopifnot(length(labels$key) == nrow(scalars(ma)[["thickness"]]))
+ladder <- labels$table[labels$table$region %in% p$parcels & labels$table$hemi %in% strsplit(p$hemispheres, "")[[1]], ]
+ladder <- ladder[order(ladder$sa_rank, ladder$hemi), ]
+
+pick_vertices <- function(key) {
+  idx <- which(labels$key == key)
+  tiles <- sort(table(tile_of(idx)), decreasing = TRUE)
+  keep_tiles <- as.integer(names(tiles))[seq_len(min(p$max_tiles_per_parcel, length(tiles)))]
+  idx <- idx[tile_of(idx) %in% keep_tiles]
+  if (length(idx) > p$max_vertices_per_parcel) {
+    set.seed(2026)
+    idx <- sort(sample(idx, p$max_vertices_per_parcel))
+  }
+  list(idx = idx, n_all = sum(tiles), n_tiles_all = length(tiles), tiles = sort(keep_tiles))
+}
+selection <- lapply(ladder$key, pick_vertices)
+names(selection) <- ladder$name
+ladder$vertices_in_parcel <- vapply(selection, function(s) s$n_all, numeric(1))
+ladder$tiles_in_parcel <- vapply(selection, function(s) s$n_tiles_all, numeric(1))
+ladder$tiles_read <- vapply(selection, function(s) length(s$tiles), numeric(1))
+ladder$vertices_used <- vapply(selection, function(s) length(s$idx), numeric(1))
+ladder$predicted_mb <- round(ladder$tiles_read * TILE_MB)
+ladder[, c("name", "sa_rank", "vertices_in_parcel", "tiles_in_parcel", "tiles_read", "vertices_used", "predicted_mb")]
+```
+
+## 6. Where the two parcels sit on the brain
+
+The two parcels sit at opposite ends of the sensorimotor–association (S-A) axis of
+Sydnor et al. (2021). The figure below is that axis on the left inflated cortex, in
+Sydnor's colour scheme (Figure 2A): gold at the sensorimotor pole (low rank), through
+white, to purple at the association pole (high rank). Area 3b (rank 7) is deep in the
+gold sensorimotor end; area 46 (rank 174) is deep in the purple association end. Every
+figure below colours the two parcels by these same S-A colours, so a parcel's colour
+tells you where it sits on the axis. The brain image ships with the example and is a
+left-lateral view (right-hemisphere parcels are shown at their left-hemisphere homolog).
+
+```{r fig-helpers}
+# Sydnor et al. 2021 (Neuron) Fig 2A S-A colour scheme: gold (sensorimotor) -> white -> purple (association)
+SA_COLS <- c("goldenrod1", "white", "#6f1282"); SA_MID <- 90; SA_RANGE <- c(1, 180)
+sa_rank_col <- function(r) scales::gradient_n_pal(SA_COLS)(scales::rescale_mid(r, to = c(0, 1), from = SA_RANGE, mid = SA_MID))
+parcel_regions <- unique(ladder$region[order(ladder$sa_rank)])
+parcel_ranks <- vapply(parcel_regions, function(rg) ladder$sa_rank[ladder$region == rg][1], numeric(1))
+parcel_cols <- stats::setNames(sa_rank_col(parcel_ranks), parcel_regions)
+
+# The shipped S-A brains, as overlay grobs: "axis" (3b and 46 outlined and labelled) and
+# one per parcel ("3b", "46", outlined only) for the per-panel locators.
+brain_files <- c(axis = "brain_sa_axis.png", "3b" = "brain_sa_3b.png", "46" = "brain_sa_46.png")
+brain_paths <- vapply(brain_files, function(f) system.file(file.path("examples/rbc-s3-tiledb", f), package = "ModelArray"), character(1))
+have_brain <- have_cowplot && all(nzchar(brain_paths)) && requireNamespace("png", quietly = TRUE)
+brain_grobs <- if (have_brain) lapply(brain_paths, function(p) grid::rasterGrob(png::readPNG(p), interpolate = TRUE)) else NULL
+add_brain <- function(plot, which = "axis", x = 0.0, y = 0.6, w = 0.3, h = 0.3) {
+  if (!have_brain) return(plot)
+  cowplot::ggdraw(plot) + cowplot::draw_grob(brain_grobs[[which]], x = x, y = y, width = w, height = h)
+}
+```
+
+```{r sa-axis-figure, fig.width = 7, fig.height = 3}
+if (have_brain) {
+  bar <- data.frame(rank = SA_RANGE[1]:SA_RANGE[2])
+  ticks <- data.frame(rank = parcel_ranks, lab = parcel_regions)
+  colourbar <- ggplot(bar, aes(rank, 1, fill = rank)) + geom_tile() +
+    scale_fill_gradient2(low = SA_COLS[1], mid = SA_COLS[2], high = SA_COLS[3], midpoint = SA_MID, guide = "none") +
+    geom_point(data = ticks, aes(rank, 1), inherit.aes = FALSE, shape = 25, size = 2.4, fill = "black") +
+    geom_text(data = ticks, aes(rank, 1.9, label = lab), inherit.aes = FALSE, fontface = 2, size = 3.4) +
+    annotate("text", x = SA_RANGE[1], y = -1.2, label = "sensorimotor", hjust = 0, size = 3.2) +
+    annotate("text", x = SA_RANGE[2], y = -1.2, label = "association", hjust = 1, size = 3.2) +
+    scale_y_continuous(limits = c(-2, 2.8)) + theme_void()
+  print(cowplot::plot_grid(cowplot::ggdraw() + cowplot::draw_grob(brain_grobs[["axis"]]),
+                           colourbar, ncol = 1, rel_heights = c(3, 1)))
+} else {
+  cat("Install cowplot and png to show the S-A axis brain figure.\n")
+}
+```
+
+## 7. One vertex at a time
+
+`exampleElementData()` returns the data frame a per-vertex model sees: the cohort plus
+that vertex's values. We take one vertex near the middle of the lower-ranked parcel
+(3b) and one near the middle of the higher-ranked parcel (46). The medial wall is
+stored as zeros, which is a handy check that the labels line up with the data.
+
+```{r vertex-data}
+mid_vertex <- function(sel) sel$idx[which.min(abs(sel$idx - median(sel$idx)))]
+low_name <- names(selection)[which.min(ladder$sa_rank)]
+top_name <- names(selection)[which.max(ladder$sa_rank)]
+v_low <- mid_vertex(selection[[low_name]])
+v_top <- mid_vertex(selection[[top_name]])
+low_region <- ladder$region[ladder$name == low_name]; low_rank <- ladder$sa_rank[ladder$name == low_name]
+top_region <- ladder$region[ladder$name == top_name]; top_rank <- ladder$sa_rank[ladder$name == top_name]
+
+# a medial-wall vertex in a tile we will read anyway, if there is one; otherwise the nearest one
+tiles_planned <- unique(unlist(lapply(selection, `[[`, "tiles")))
+wall_all <- which(labels$key == 0L)
+wall_in_plan <- wall_all[tile_of(wall_all) %in% tiles_planned]
+wall <- if (length(wall_in_plan)) wall_in_plan[1] else wall_all[which.min(abs(wall_all - v_low))]
+n_tiles <- length(unique(tile_of(c(v_low, wall))))
+
+two <- tdb_measure(sprintf("1 %s vertex + 1 medial-wall vertex (%d tile%s)", low_region, n_tiles, if (n_tiles > 1) "s" else ""),
+                   as.matrix(scalars(ma)[["thickness"]][c(v_low, wall), ]))
+cat(sprintf("%s vertex %d: mean thickness %.2f mm; medial-wall vertex %d: all zero = %s (%s, %.0f MB)\n",
+            low_region, v_low, mean(two[1, ]), wall, all(two[2, ] == 0), fmt_secs(last_runtime()$secs), last_runtime()$mb_wire))
+
+df_top <- exampleElementData(ma, scalar = "thickness", i_element = v_top, phenotypes = phen)
+df_low <- exampleElementData(ma, scalar = "thickness", i_element = v_low, phenotypes = phen)
+str(df_top[, c("dataset", "Age", "sex", "site", "thickness")])
+```
+
+```{r vertex-figure, fig.width = 9, fig.height = 4.5}
+low_lab <- sprintf("%s (S-A rank %s)", low_region, low_rank)
+top_lab <- sprintf("%s (S-A rank %s)", top_region, top_rank)
+both <- rbind(cbind(df_low, parcel = low_lab), cbind(df_top, parcel = top_lab))
+both$parcel <- factor(both$parcel, levels = c(low_lab, top_lab))
+fig1 <- ggplot(both, aes(Age, thickness)) +
+  geom_point(aes(colour = dataset), alpha = 0.15, size = 0.6) +
+  geom_smooth(method = "gam", formula = y ~ s(x, k = 4), colour = "black") +
+  facet_wrap(~parcel) +
+  guides(colour = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  labs(x = "Age (years)", y = "Cortical thickness (mm)", colour = "Study",
+       title = sprintf("Thickness against age at one vertex in each parcel (all %s sessions)", format(nrow(phen), big.mark = ","))) +
+  theme_minimal() + theme(plot.title = element_text(size = 11))
+# a small brain to the left of each panel's title: 3b by the 3b panel, 46 by the 46 panel
+if (have_brain && all(c(low_region, top_region) %in% names(brain_grobs))) {
+  fig1 <- cowplot::ggdraw(fig1) +
+    cowplot::draw_grob(brain_grobs[[low_region]], x = 0.10, y = 0.80, width = 0.11, height = 0.15) +
+    cowplot::draw_grob(brain_grobs[[top_region]], x = 0.47, y = 0.80, width = 0.11, height = 0.15)
+}
+fig1
+ggsave(file.path(p$out_dir, "fig1_vertex_thickness_vs_age.png"), fig1, width = 9, height = 4.5, dpi = 150)
+```
+
+A plain GAM at the area-`r top_region` vertex over the whole age range, with site as
+a covariate, shows the lifespan picture: thickness peaks in early childhood and
+declines from then on (Bethlehem et al., 2022), so the slope should be negative in
+old age too (ages above 23 come from NKI only). Two checks go with it: the derivative
+of the age curve computed two ways, and a mixed model that treats repeat sessions
+(two waves in BHRC, several in NKI) properly, which the vertex-wise GAM does not.
+
+```{r vertex-gam}
+AGE_GRID <- seq(5, 85, by = 0.5)
+
+# Slope of the age smooth by central finite differences, with a simultaneous 95%
+# interval from posterior simulation (the same construction as gratia::derivatives()).
+smooth_derivative <- function(fit, newdata, var = "Age", eps = 0.05, nsim = 1000) {
+  lo <- newdata; lo[[var]] <- newdata[[var]] - eps
+  hi <- newdata; hi[[var]] <- newdata[[var]] + eps
+  X <- (predict(fit, hi, type = "lpmatrix") - predict(fit, lo, type = "lpmatrix")) / (2 * eps)
+  X[, !grepl(paste0("s(", var, ")"), colnames(X), fixed = TRUE)] <- 0
+  b <- coef(fit)
+  Vb <- vcov(fit)
+  d <- drop(X %*% b)
+  se <- sqrt(rowSums((X %*% Vb) * X))
+  sims <- X %*% t(MASS::mvrnorm(nsim, b, Vb))
+  crit <- stats::quantile(apply(abs(sims - d) / se, 2, max), 0.95)
+  data.frame(Age = newdata[[var]], derivative = d, lower = d - crit * se, upper = d + crit * se)
+}
+# A data frame of typical covariate values (most common level of each factor) along the age grid.
+typical_newdata <- function(d, cov_cols, ages = AGE_GRID) {
+  ref <- d[1, cov_cols, drop = FALSE]
+  for (v in setdiff(cov_cols, "Age")) {
+    ref[[v]] <- factor(names(which.max(table(d[[v]]))), levels = levels(d[[v]]))
+  }
+  nd <- ref[rep(1, length(ages)), , drop = FALSE]
+  nd$Age <- ages
+  nd
+}
+
+d_demo <- df_top[stats::complete.cases(df_top[, c("thickness", "Age", "sex", "site")]), ]
+d_demo$site <- droplevels(d_demo$site)
+f_demo <- stats::as.formula(paste0("thickness ~ s(Age, k = 4)", sex_term, site_term))
+fit_demo <- mgcv::gam(f_demo, data = d_demo, method = "REML")
+summary(fit_demo)$s.table
+nd_demo <- typical_newdata(d_demo, c("Age", if (use_sex) "sex", if (nzchar(site_term)) "site"))
+deriv_demo <- smooth_derivative(fit_demo, nd_demo)
+cat(sprintf("Mean slope 8-22: %.1f microns/yr; 60-80: %.1f microns/yr\n",
+            1000 * mean(deriv_demo$derivative[deriv_demo$Age >= 8 & deriv_demo$Age <= 22]),
+            1000 * mean(deriv_demo$derivative[deriv_demo$Age >= 60 & deriv_demo$Age <= 80])))
+if (have_gratia) {
+  g <- gratia::derivatives(fit_demo, select = "s(Age)", n = 50, interval = "simultaneous")
+  ours <- smooth_derivative(fit_demo, typical_newdata(d_demo, names(nd_demo), ages = g$Age))
+  cat(sprintf("Derivative check against gratia::derivatives(): max |difference| = %.1e mm/yr\n", max(abs(ours$derivative - g$.derivative))))
+}
+if (have_lme4) {
+  f_mixed <- stats::as.formula(paste0("thickness ~ Age", sex_term, site_term, " + (1 | subject)"))
+  mixed <- lme4::lmer(f_mixed, data = d_demo)
+  cat(sprintf("Mixed model (%d subjects with repeat sessions): linear age slope = %.1f microns/yr (SE %.1f)\n",
+              sum(table(d_demo$subject) > 1), 1000 * lme4::fixef(mixed)[["Age"]], 1000 * sqrt(diag(as.matrix(vcov(mixed))))[["Age"]]))
+}
+```
+
+## 8. Pull each parcel from S3 and harmonize it
+
+Nine scanning sites contributed, and they differ in the mean and the spread of
+thickness, so a `site` covariate removes only part of the difference. CovBat
+(`ComBatFamily::covfam()`) harmonizes mean, variance and the covariance between
+features across sites while keeping the age and sex effects (`y ~ s(Age, k = 4) + sex`).
+Its features here are the vertices of a parcel, read from S3 in one go: that is
+what the method is built for, and it is far cheaper than harmonizing vertex by vertex.
+
+The raw and harmonized blocks go into a small local ModelArray store, one row per
+selected vertex, so that the per-vertex models in section 8 run with the usual
+ModelArray functions. Nothing is written back to S3.
+
+```{r parcel-harmonize}
+local_h5 <- file.path(p$out_dir, "rbc_parcels_local.h5")
+if (file.exists(local_h5)) unlink(local_h5)
+write_local_scalar <- function(file, name, mat, column_names) {
+  if (!file.exists(file)) rhdf5::h5createFile(file)
+  if (!"scalars" %in% rhdf5::h5ls(file, recursive = FALSE)$name) rhdf5::h5createGroup(file, "scalars")
+  rhdf5::h5createGroup(file, paste0("scalars/", name))
+  # one row (element) per chunk: ModelArray reads elements one at a time
+  rhdf5::h5createDataset(file, paste0("scalars/", name, "/values"), dims = dim(mat), storage.mode = "double",
+                         chunk = c(1L, ncol(mat)), level = 4L)
+  rhdf5::h5write(mat, file, paste0("scalars/", name, "/values"))
+  rhdf5::h5write(column_names, file, paste0("scalars/", name, "/column_names"))
+  rhdf5::h5closeAll()
+}
+
+# Read one parcel at a time, so each read can be checked against the tile prediction
+raw_blocks <- list(); elements <- list()
+for (nm in names(selection)) {
+  sel <- selection[[nm]]
+  block <- tdb_measure(sprintf("read %s (%d vertices, %d tile%s)", nm, length(sel$idx), length(sel$tiles), if (length(sel$tiles) > 1) "s" else ""),
+                       as.matrix(scalars(ma)[["thickness"]][sel$idx, ]))
+  r <- last_runtime()
+  cat(sprintf("%-12s %4d vertices  %5.1f s  tiles read %2.0f (predicted %2d) %s  %4.0f MB on the wire\n",
+              nm, nrow(block), r$secs, r$tiles, length(sel$tiles),
+              if (is.na(r$tiles) || r$tiles <= length(sel$tiles)) "PASS" else "FAIL", r$mb_wire))
+  usable <- apply(block, 1, function(v) all(is.finite(v)) && stats::sd(v) > 0)
+  raw_blocks[[nm]] <- block[usable, , drop = FALSE]
+  elements[[nm]] <- data.frame(vertex = sel$idx[usable], name = nm, stringsAsFactors = FALSE)
+}
+```
+
+CovBat fits one GAM per vertex and keeps every fit. Each fit carries copies of the
+data (about 5 MB at this sample size) that `covfam()` never uses again, so
+`slim_gam()` drops them; the harmonized values are identical. Parcels are harmonized
+independently, so they can run at the same time, one per core (forked processes;
+on Windows they run one after another). Each worker needs about 1 GB per 300 vertices.
+
+```{r parcel-covbat}
+ok_batch <- stats::complete.cases(phen[, c("site", harmonize_covariates)])
+d_batch <- droplevels(phen[ok_batch, , drop = FALSE])
+slim_gam <- function(...) {
+  fit <- mgcv::gam(...)
+  fit[c("call", "model", "y", "fitted.values", "residuals", "linear.predictors", "weights", "prior.weights",
+        "working.weights", "hat", "offset", "R", "qrx", "db.drho", "dw.drho", "F")] <- NULL
+  fit
+}
+covbat_block <- function(block) {
+  h <- suppressWarnings(ComBatFamily::covfam(
+    data = t(block[, ok_batch, drop = FALSE]), bat = d_batch$site,
+    covar = d_batch[, harmonize_covariates, drop = FALSE], model = slim_gam,
+    formula = stats::as.formula(paste0("y ~ s(Age, k = 4)", sex_term)), eb = TRUE))
+  harm <- matrix(NA_real_, nrow(block), ncol(block))
+  harm[, ok_batch] <- t(as.matrix(h$dat.covbat))
+  harm
+}
+covbat_cores <- if (.Platform$OS.type == "windows") 1L else max(1L, min(as.integer(p$n_cores), length(raw_blocks)))
+if (harmonize) {
+  harm_blocks <- timed(sprintf("CovBat, %d parcels on %d core%s", length(raw_blocks), covbat_cores, if (covbat_cores > 1) "s" else ""),
+    if (covbat_cores > 1) {
+      parallel::mclapply(raw_blocks, covbat_block, mc.cores = covbat_cores, mc.preschedule = FALSE)
+    } else {
+      lapply(raw_blocks, covbat_block)
+    })
+  failed <- vapply(harm_blocks, function(x) inherits(x, "try-error") || is.null(x), logical(1))
+  if (any(failed)) {
+    stop("CovBat failed for ", paste(names(harm_blocks)[failed], collapse = ", "), ": ",
+         paste(unique(vapply(harm_blocks[failed], function(x) if (is.null(x)) "worker returned nothing (out of memory?)" else as.character(x), "")), collapse = "; "),
+         "\nTry a smaller n_cores or max_vertices_per_parcel.", call. = FALSE)
+  }
+  cat(sprintf("CovBat on %d sessions x %d vertices (%d parcels, %d core%s) in %s\n", sum(ok_batch), sum(vapply(raw_blocks, nrow, integer(1))),
+              length(raw_blocks), covbat_cores, if (covbat_cores > 1) "s" else "", fmt_secs(last_runtime()$secs)))
+} else {
+  harm_blocks <- lapply(raw_blocks, function(b) matrix(NA_real_, nrow(b), ncol(b)))
+}
+
+elements <- do.call(rbind, elements)
+elements$element_id <- seq_len(nrow(elements)) - 1L               # ModelArray's 0-based ids in the local store
+elements <- merge(elements, ladder[, c("name", "hemi", "region", "sa_rank")], by = "name", sort = FALSE)
+elements <- elements[order(elements$element_id), c("element_id", "vertex", "name", "hemi", "region", "sa_rank")]
+rownames(elements) <- NULL
+write_local_scalar(local_h5, "thickness_raw", do.call(rbind, raw_blocks), src)
+if (harmonize) write_local_scalar(local_h5, "thickness_covbat", do.call(rbind, harm_blocks), src)
+utils::write.csv(elements, file.path(p$out_dir, "elements.csv"), row.names = FALSE)
+cat(sprintf("\nLocal store %s: %d vertices x %d sessions, %.0f MB\n", basename(local_h5), nrow(elements), length(src), file.size(local_h5) / 1024^2))
+```
+
+```{r site-figure, fig.width = 9, fig.height = 4}
+if (harmonize) {
+  row_top <- match(v_top, elements$vertex[elements$name == top_name])
+  dh <- data.frame(site = phen$site, Age = phen$Age,
+                   raw = raw_blocks[[top_name]][row_top, ],
+                   harmonized = harm_blocks[[top_name]][row_top, ])
+  dh <- dh[ok_batch, ]
+  dh$site <- droplevels(dh$site)
+  site_stats <- data.frame(site = levels(dh$site),
+                           n = as.vector(table(dh$site)),
+                           mean_raw = round(tapply(dh$raw, dh$site, mean), 3),
+                           sd_raw = round(tapply(dh$raw, dh$site, sd), 3),
+                           mean_harmonized = round(tapply(dh$harmonized, dh$site, mean), 3),
+                           sd_harmonized = round(tapply(dh$harmonized, dh$site, sd), 3), row.names = NULL)
+  site_stats
+  long <- rbind(data.frame(site = dh$site, thickness = dh$raw, stage = "raw"),
+                data.frame(site = dh$site, thickness = dh$harmonized, stage = "CovBat-harmonized"))
+  long$stage <- factor(long$stage, levels = c("raw", "CovBat-harmonized"))
+  fig_sites <- ggplot(long, aes(site, thickness, fill = site)) +
+    geom_boxplot(outlier.size = 0.3, linewidth = 0.3) + facet_wrap(~stage) +
+    scale_fill_brewer(palette = "Set3", guide = "none") +
+    labs(x = NULL, y = "Thickness (mm)",
+         title = sprintf("Area %s vertex %d: thickness by site, before and after harmonization", top_region, v_top)) +
+    theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(size = 11))
+  fig_sites
+  ggsave(file.path(p$out_dir, "fig_site_boxplots.png"), fig_sites, width = 9, height = 4, dpi = 150)
+} else {
+  cat("Harmonization is off (ComBatFamily not installed or harmonize = FALSE); site enters the models as a covariate.\n")
+}
+```
+
+Site means still differ a little after harmonization because the age and sex mix
+differs between sites, and those effects are kept on purpose.
+
+## 9. Models at every vertex
+
+The developmental question is about ages 5–`r p$max_age`, which is where four of the
+five studies sit. ModelArray needs the phenotype table to list every session in the
+store, so instead of dropping the older sessions we blank their age; `mgcv` then
+leaves them out of every fit.
+
+### The built-in GAM runner, from S3 and from the local store
+
+`ModelArray.gam()` fits a GAM at every element. First straight from S3 on one parcel,
+with site as a covariate (no harmonization); then on the local store for every parcel,
+on the raw and on the harmonized values. `changed.rsq.term.index = 1` adds the partial
+R² of the age smooth. The three runs give a feel for what harmonization changes.
+(The S3 run reads more tiles than section 7 did for the same vertices: each worker
+fetches its own block of elements, so a tile shared between workers is fetched more
+than once. When a block fits in memory, reading it once yourself is cheaper.)
+
+```{r parcel-gam}
+phen_dev <- phen
+phen_dev$Age[phen_dev$Age > p$max_age] <- NA
+cat(sprintf("%d of %d sessions are aged %s or younger\n", sum(!is.na(phen_dev$Age)), nrow(phen_dev), p$max_age))
+
+gam_args <- list(changed.rsq.term.index = list(1), method = "REML", n_cores = p$n_cores,
+                 on_error = "skip", pbar = FALSE, verbose = FALSE)
+demo_name <- names(selection)[1]
+demo_idx <- elements$vertex[elements$name == demo_name]
+gam_s3 <- tdb_measure(sprintf("ModelArray.gam from S3: %s (%d vertices)", demo_name, length(demo_idx)),
+  do.call(ModelArray.gam, c(list(stats::as.formula(paste0("thickness ~ s(Age, k = 4)", sex_term, site_term)),
+                                 ma, phen_dev, "thickness", element.subset = as.integer(demo_idx)), gam_args)))
+cat(sprintf("S3, %s: %d vertices in %s (%.0f tiles)\n", demo_name, nrow(gam_s3), fmt_secs(last_runtime()$secs), last_runtime()$tiles))
+
+local_scalars <- c("thickness_raw", if (harmonize) "thickness_covbat")
+ma_local <- ModelArray(local_h5, scalar_types = local_scalars)
+ma_local
+gam_local <- list()
+for (sc in local_scalars) {
+  f <- stats::as.formula(paste0(sc, " ~ s(Age, k = 4)", sex_term, if (sc == "thickness_raw") site_term))
+  gam_local[[sc]] <- timed(sprintf("ModelArray.gam local: %s (%d vertices)", sc, nrow(elements)),
+    do.call(ModelArray.gam, c(list(f, ma_local, phen_dev, sc), gam_args)))
+  cat(sprintf("local, %s: %d vertices in %s\n", sc, nrow(gam_local[[sc]]), fmt_secs(last_runtime()$secs)))
+}
+
+gam_summary <- function(res, label) {
+  rsq <- intersect(c("s_Age.partial.rsq", "s_Age.delta.adj.rsq"), names(res))[1]
+  data.frame(run = label, vertices = nrow(res),
+             pct_fdr_sig = round(100 * mean(res$s_Age.p.value.fdr < 0.05, na.rm = TRUE)),
+             median_F = round(median(res$s_Age.statistic, na.rm = TRUE), 1),
+             median_partial_rsq = round(median(res[[rsq]], na.rm = TRUE), 4))
+}
+demo_rows <- elements$element_id[elements$name == demo_name]
+rbind(gam_summary(gam_s3, sprintf("S3, raw + site covariate (%s)", demo_name)),
+      do.call(rbind, lapply(local_scalars, function(sc)
+        gam_summary(gam_local[[sc]][gam_local[[sc]]$element_id %in% demo_rows, ],
+                    sprintf("local, %s%s (%s)", sc, if (sc == "thickness_raw") " + site covariate" else "", demo_name)))))
+```
+
+### A custom per-vertex function with `ModelArray.wrap()`
+
+`fit_vertex()` adds what `ModelArray.gam()` does not report: a test statistic from an
+`fx = TRUE` refit (penalized p-values can be optimistic), ΔR²adj from a reduced model,
+predicted thickness every two years, and the slope of the age curve with a simultaneous
+95% interval. From the slope it takes the mean thinning rate over 8–22, the age at
+which thinning is fastest, the last age at which the slope is still clearly negative,
+and the **late fraction**: the share of the 8–22 thinning that happens after age 14.
+One row of numbers per vertex.
+
+```{r fit-fun}
+response_scalar <- if (harmonize) "thickness_covbat" else "thickness_raw"
+DEV_GRID <- seq(5, p$max_age, by = 0.5)
+PRED_AGES <- seq(6, 22, by = 2)
+fit_vertex <- function(data) {
+  d <- data
+  d$y <- d[[response_scalar]]
+  cov_cols <- c("Age", if (use_sex) "sex", if (!harmonize && nzchar(site_term)) "site")
+  d <- d[stats::complete.cases(d[, c("y", cov_cols)]), ]
+  for (v in setdiff(cov_cols, "Age")) d[[v]] <- droplevels(d[[v]])
+  rhs <- if (length(cov_cols) > 1) paste(cov_cols[-1], collapse = " + ") else "1"
+  fit <- mgcv::gam(stats::as.formula(paste("y ~ s(Age, k = 4) +", rhs)), data = d, method = "REML")
+  fit_fx <- mgcv::gam(stats::as.formula(paste("y ~ s(Age, k = 4, fx = TRUE) +", rhs)), data = d, method = "REML")
+  fit_red <- mgcv::gam(stats::as.formula(paste("y ~", rhs)), data = d, method = "REML")
+  s_pen <- summary(fit)$s.table
+  s_fx <- summary(fit_fx)$s.table
+
+  newdata <- typical_newdata(d, cov_cols, ages = DEV_GRID)
+  pred <- predict(fit, newdata[match(PRED_AGES, DEV_GRID), , drop = FALSE])
+  names(pred) <- PRED_AGES
+  deriv <- smooth_derivative(fit, newdata)
+  in_range <- function(a, b) deriv$Age >= a & deriv$Age <= b
+  sig_ages <- deriv$Age[deriv$upper < 0]
+  out <- data.frame(
+    n = nrow(d),
+    edf = unname(s_pen[1, "edf"]),
+    F_fx = unname(s_fx[1, "F"]),
+    p_fx = unname(s_fx[1, "p-value"]),
+    p_pen = unname(s_pen[1, "p-value"]),
+    delta_adj_rsq = summary(fit)$r.sq - summary(fit_red)$r.sq,
+    rate_8_22 = mean(deriv$derivative[in_range(8, 22)]),
+    rate_8_14 = mean(deriv$derivative[in_range(8, 14)]),
+    rate_14_22 = mean(deriv$derivative[in_range(14, 22)]),
+    late_fraction = unname((pred["14"] - pred["22"]) / (pred["8"] - pred["22"])),
+    age_fastest = deriv$Age[which.min(deriv$derivative)],
+    thinning_until = if (length(sig_ages)) max(sig_ages) else NA_real_,
+    sex_estimate = if (use_sex) unname(coef(fit)[grep("^sex", names(coef(fit)))[1]]) else NA_real_
+  )
+  out[paste0("pred_", PRED_AGES)] <- as.list(unname(pred))
+  out[paste0("slope_", PRED_AGES)] <- as.list(deriv$derivative[match(PRED_AGES, deriv$Age)])
+  out
+}
+
+# Try it on one element the way ModelArray.wrap() will call it
+one <- exampleElementData(ma_local, scalar = response_scalar, i_element = which(elements$vertex == v_top), phenotypes = phen_dev)
+round(t(fit_vertex(one)), 4)
+check <- analyseOneElement.wrap(which(elements$vertex == v_top), fit_vertex, ma_local, phen_dev, response_scalar,
+                                num.subj.lthr = 10, flag_initiate = TRUE, on_error = "stop")
+check$column_names
+```
+
+```{r parcel-wrap}
+vertex_results <- timed(sprintf("ModelArray.wrap fit_vertex (%d vertices)", nrow(elements)),
+  ModelArray.wrap(fit_vertex, ma_local, phen_dev, response_scalar, n_cores = p$n_cores,
+                  on_error = "skip", pbar = FALSE, verbose = FALSE))
+cat(sprintf("%d vertices in %s (%.2f s per vertex per core)\n", nrow(vertex_results), fmt_secs(last_runtime()$secs),
+            last_runtime()$secs * p$n_cores / nrow(vertex_results)))
+vertex_results <- merge(elements, vertex_results, by = "element_id", sort = TRUE)
+vertex_results$p_fx_fdr <- stats::p.adjust(vertex_results$p_fx, method = "fdr")
+head(vertex_results[, c("element_id", "vertex", "name", "edf", "F_fx", "p_fx_fdr", "delta_adj_rsq", "rate_8_22", "late_fraction", "age_fastest")])
+```
+
+### Repeat sessions, at one vertex
+
+CovBat and the vertex-wise GAM treat repeat sessions as independent. A GAMM with a
+subject random intercept (`gamm4`) is the honest alternative for the model, and
+longitudinal ComBat (the `longCombat` package) for the harmonization. The GAMM is far
+slower than a GAM, so the report fits it at the area-`r top_region` vertex only, with
+site as a covariate, and gives up after two minutes.
+
+```{r vertex-gamm}
+if (have_gamm4) {
+  d_long <- d_demo
+  d_long$subject <- factor(d_long$subject)
+  t0 <- Sys.time()
+  gamm_fit <- tryCatch({
+    setTimeLimit(elapsed = 120, transient = TRUE)
+    gamm4::gamm4(f_demo, random = ~ (1 | subject), data = d_long, REML = TRUE)
+  }, error = function(e) e)
+  setTimeLimit(elapsed = Inf)
+  if (inherits(gamm_fit, "error")) {
+    cat("The GAMM did not finish within 2 minutes at one vertex; skipped. (", conditionMessage(gamm_fit), ")\n")
+  } else {
+    nd_gamm <- typical_newdata(d_long, names(nd_demo))
+    deriv_gamm <- smooth_derivative(gamm_fit$gam, nd_gamm)
+    cat(sprintf("GAMM at one vertex took %s; smooth edf = %.2f (GAM: %.2f); mean slope 8-22 = %.1f microns/yr (GAM: %.1f)\n",
+                fmt_secs(as.numeric(Sys.time() - t0, units = "secs")),
+                summary(gamm_fit$gam)$s.table[1, "edf"], summary(fit_demo)$s.table[1, "edf"],
+                1000 * mean(deriv_gamm$derivative[deriv_gamm$Age >= 8 & deriv_gamm$Age <= 22]),
+                1000 * mean(deriv_demo$derivative[deriv_demo$Age >= 8 & deriv_demo$Age <= 22])))
+  }
+}
+```
+
+## 10. Does the result match the literature?
+
+```{r parcel-summary}
+q <- function(x, pr) unname(stats::quantile(x, pr, na.rm = TRUE))
+summ <- do.call(rbind, lapply(split(vertex_results, vertex_results$name), function(v) {
+  data.frame(name = v$name[1], hemi = v$hemi[1], region = v$region[1], sa_rank = v$sa_rank[1],
+             vertices = sum(!is.na(v$late_fraction)),
+             pct_fdr_sig = round(100 * mean(v$p_fx_fdr < 0.05, na.rm = TRUE)),
+             thickness_8 = median(v$pred_8, na.rm = TRUE),
+             rate_8_22 = median(v$rate_8_22, na.rm = TRUE),
+             pct_per_yr_8_22 = median(100 * v$rate_8_22 / v$pred_8, na.rm = TRUE),
+             rate_8_14 = median(v$rate_8_14, na.rm = TRUE),
+             rate_14_22 = median(v$rate_14_22, na.rm = TRUE),
+             late_fraction = median(v$late_fraction, na.rm = TRUE),
+             late_fraction_q25 = q(v$late_fraction, 0.25),
+             late_fraction_q75 = q(v$late_fraction, 0.75),
+             age_fastest = median(v$age_fastest, na.rm = TRUE),
+             thinning_until = median(v$thinning_until, na.rm = TRUE),
+             delta_adj_rsq = median(v$delta_adj_rsq, na.rm = TRUE))
+}))
+summ <- summ[order(summ$sa_rank, summ$hemi), ]
+rownames(summ) <- NULL
+summ_print <- summ
+for (col in c("rate_8_22", "rate_8_14", "rate_14_22")) summ_print[[col]] <- round(1000 * summ_print[[col]], 1)
+names(summ_print) <- sub("^rate_", "um_per_yr_", names(summ_print))
+for (col in c("thickness_8", "pct_per_yr_8_22", "late_fraction", "late_fraction_q25", "late_fraction_q75")) summ_print[[col]] <- round(summ_print[[col]], 2)
+summ_print$delta_adj_rsq <- round(summ_print$delta_adj_rsq, 4)
+summ_print
+
+if (nrow(summ) > 2) {
+  rho_late <- stats::cor(summ$sa_rank, summ$late_fraction, method = "spearman")
+  rho_age <- stats::cor(summ$sa_rank, summ$age_fastest, method = "spearman")
+  cat(sprintf("\nSpearman correlation with S-A rank across %d parcel(s): late fraction rho = %.2f, age of fastest thinning rho = %.2f (both expected positive)\n",
+              nrow(summ), rho_late, rho_age))
+}
+cat(sprintf("All parcels thin between 8 and 22: %s. Earliest-maturing parcel (smallest late fraction): %s (expected: 3b). Latest: %s (expected: the highest rank, %s).\n",
+            all(summ$rate_8_22 < 0), summ$region[which.min(summ$late_fraction)], summ$region[which.max(summ$late_fraction)], summ$region[which.max(summ$sa_rank)]))
+```
+
+```{r parcel-figures, fig.width = 8, fig.height = 4.5}
+# parcels coloured by their S-A position (gold = sensorimotor, purple = association); L/R nudged apart
+summ$xpos <- summ$sa_rank + ifelse(summ$hemi == "L", -4, 4)
+fig2 <- ggplot(summ, aes(xpos, late_fraction, colour = region, shape = hemi)) +
+  geom_errorbar(aes(ymin = late_fraction_q25, ymax = late_fraction_q75), width = 5, linewidth = 0.5) +
+  geom_point(size = 3.4, stroke = 0.7) +
+  geom_text(aes(label = region), vjust = -1.4, size = 3.4, show.legend = FALSE) +
+  scale_colour_manual(values = parcel_cols, guide = "none") +
+  scale_shape_manual(values = c(L = 16, R = 17)) +
+  expand_limits(x = c(0, 180)) +
+  labs(x = "Sensorimotor-association axis rank (1 = sensorimotor, 180 = association)",
+       y = "Share of 8-22 thinning after age 14", shape = "Hemisphere",
+       title = "Later-maturing parcels do more of their thinning late (median, IQR across vertices)") +
+  theme_minimal() + theme(plot.title = element_text(size = 11))
+fig2 <- add_brain(fig2, x = 0.36, y = 0.6, w = 0.22, h = 0.32)
+fig2
+ggsave(file.path(p$out_dir, "fig2_late_fraction_vs_sa_rank.png"), fig2, width = 8, height = 4.5, dpi = 150)
+
+curves <- do.call(rbind, lapply(split(vertex_results, vertex_results$name), function(v) {
+  data.frame(name = v$name[1], region = v$region[1], hemi = v$hemi[1], sa_rank = v$sa_rank[1], Age = PRED_AGES,
+             thickness = vapply(paste0("pred_", PRED_AGES), function(col) median(v[[col]], na.rm = TRUE), numeric(1)),
+             slope = vapply(paste0("slope_", PRED_AGES), function(col) median(v[[col]], na.rm = TRUE), numeric(1)))
+}))
+curves$parcel <- factor(curves$region, levels = parcel_regions)
+fig3 <- ggplot(curves, aes(Age, thickness, colour = parcel, linetype = hemi)) +
+  geom_line(linewidth = 0.9) + geom_point(aes(fill = parcel), shape = 21, colour = "black", size = 2, stroke = 0.4) +
+  scale_colour_manual(values = parcel_cols) + scale_fill_manual(values = parcel_cols, guide = "none") +
+  labs(x = "Age (years)", y = "Predicted thickness (mm), parcel median", colour = "Parcel", linetype = "Hemisphere",
+       title = "Fitted age trajectories by parcel") + theme_minimal() + theme(plot.title = element_text(size = 11))
+fig3
+ggsave(file.path(p$out_dir, "fig3_parcel_trajectories.png"), fig3, width = 8, height = 4.5, dpi = 150)
+fig4 <- ggplot(curves, aes(Age, 1000 * slope, colour = parcel, linetype = hemi)) +
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
+  geom_line(linewidth = 1) + geom_point(aes(fill = parcel), shape = 21, colour = "black", size = 2.2, stroke = 0.5) +
+  scale_colour_manual(values = parcel_cols) + scale_fill_manual(values = parcel_cols, guide = "none") +
+  labs(x = "Age (years)", y = "Slope of the age curve (microns/year), parcel median", colour = "Parcel", linetype = "Hemisphere",
+       title = "When each parcel thins: slope of the thickness-age curve") +
+  theme_minimal() + theme(plot.title = element_text(size = 11))
+fig4 <- add_brain(fig4, x = 0.36, y = 0.58, w = 0.22, h = 0.32)
+fig4
+ggsave(file.path(p$out_dir, "fig4_parcel_slopes.png"), fig4, width = 8, height = 4.5, dpi = 150)
+```
+
+What to expect, from the literature. Shaw et al. (2008, *J Neurosci*) found that
+primary sensory and motor cortex follow simple, early trajectories while association
+cortex follows later and more drawn-out ones. Tamnes et al. (2017, *J Neurosci*),
+studying 8–29-year-olds, found about 1% thinning per year, fastest in prefrontal and
+parietal association cortex and slow in sensorimotor cortex. Sydnor et al. (2021,
+*Neuron*) put these regional differences on one S-A axis along which association
+cortex matures last. Together they predict what the slope-by-age figure should show:
+area 3b (sensorimotor, low rank) thinning fastest in childhood and flattening by
+mid-adolescence, prefrontal area 46 (association, high rank) still thinning in the
+twenties, and a higher late fraction for 46 than for 3b.
+
+## 11. Save the results locally
+
+Results never go back to S3. They are written as CSVs, and the per-vertex table also
+goes into the local store in ModelArray's own results layout, next to the scalars it
+came from.
+
+```{r write-results}
+utils::write.csv(vertex_results, file.path(p$out_dir, "vertex_results.csv"), row.names = FALSE)
+utils::write.csv(summ, file.path(p$out_dir, "parcel_summary.csv"), row.names = FALSE)
+numeric_cols <- vapply(vertex_results, is.numeric, logical(1))
+writeResults(local_h5, df.output = vertex_results[, numeric_cols], analysis_name = "gam_thickness_sa_ladder")
+ModelArray(local_h5, scalar_types = response_scalar, analysis_names = "gam_thickness_sa_ladder")
+cat("Wrote", file.path(p$out_dir, "vertex_results.csv"), "\n      ", file.path(p$out_dir, "parcel_summary.csv"), "\n      ", local_h5, "\n")
+```
+
+## 12. Look at the maps in Connectome Workbench
+
+The per-vertex results become a CIFTI dscalar on the fsLR-164k mesh: one map per
+statistic at the analysed vertices, and parcel-wide maps that paint each parcel with
+its median thinning rate and its S-A rank. Vertices that were not analysed are NaN.
+Workbench needs surfaces to draw on; TemplateFlow publishes fsLR surfaces at 32k, which
+are upsampled to 164k here, and a `.spec` file ties everything together.
+
+```{r cifti-export}
+if (!have_wb) {
+  cat("Connectome Workbench (wb_command) was not found, so no CIFTI files were written.",
+      "Install Workbench and put wb_command on your PATH (or set write_cifti = TRUE) to get them.\n")
+} else {
+  n_vertices <- length(labels$key)
+  maps <- c("sAge_F", "sAge_neglog10_fdr_p", "rate_8_22_mm_per_yr", "late_fraction", "age_fastest",
+            "parcel_median_late_fraction", "parcel_median_rate_8_22", "parcel_SA_rank")
+  m <- matrix(NA_real_, nrow = n_vertices, ncol = length(maps), dimnames = list(NULL, maps))
+  i <- vertex_results$vertex
+  m[i, "sAge_F"] <- vertex_results$F_fx
+  m[i, "sAge_neglog10_fdr_p"] <- -log10(vertex_results$p_fx_fdr)
+  m[i, "rate_8_22_mm_per_yr"] <- vertex_results$rate_8_22
+  m[i, "late_fraction"] <- vertex_results$late_fraction
+  m[i, "age_fastest"] <- vertex_results$age_fastest
+  for (k in seq_len(nrow(summ))) {
+    in_parcel <- labels$key == labels$table$key[labels$table$name == summ$name[k]]
+    m[in_parcel, "parcel_median_late_fraction"] <- summ$late_fraction[k]
+    m[in_parcel, "parcel_median_rate_8_22"] <- summ$rate_8_22[k]
+    m[in_parcel, "parcel_SA_rank"] <- summ$sa_rank[k]
+  }
+  txt <- file.path(p$out_dir, "results_fsLR164k.txt")
+  utils::write.table(m, txt, sep = "\t", row.names = FALSE, col.names = FALSE, na = "NaN")
+  names_file <- file.path(p$out_dir, "map_names.txt")
+  writeLines(maps, names_file)
+
+  template <- cached_download("https://fcp-indi.s3.amazonaws.com/data/Projects/RBC/CCNP_FreeSurfer-Post/SHA256E-s3385504--99c174365d91c22508a0de725b40e19f8e6b572c6efd88dfcd681e392e187267.nii",
+                              "template_fsLR164k.dscalar.nii")
+  stopifnot(file.size(template) == 3385504)
+  dscalar <- file.path(p$out_dir, "results_fsLR164k.dscalar.nii")
+  converted <- tryCatch({
+    wb_run("-cifti-convert", "-from-text", txt, template, dscalar, "-reset-scalars"); TRUE
+  }, error = function(e) FALSE)
+  if (!converted) {
+    # This Workbench build did not accept "NaN" tokens: use a sentinel and turn it into NaN with 0/0
+    utils::write.table(m, txt, sep = "\t", row.names = FALSE, col.names = FALSE, na = "-99999")
+    tmp <- file.path(p$out_dir, "results_fsLR164k_sentinel.dscalar.nii")
+    wb_run("-cifti-convert", "-from-text", txt, template, tmp, "-reset-scalars")
+    wb_run("-cifti-math", "(x > -90000) * x / (x > -90000)", dscalar, "-var", "x", tmp)
+    unlink(tmp)
+  }
+  wb_run("-set-map-names", dscalar, "-name-file", names_file)
+  cat("Wrote", dscalar, "with maps:", paste(maps, collapse = ", "), "\n")
+}
+```
+
+```{r cifti-display}
+if (have_wb) {
+  tf <- "https://templateflow.s3.amazonaws.com/tpl-fsLR"
+  spheres <- list()
+  for (h in c("L", "R")) {
+    for (d in c("32k", "164k")) {
+      spheres[[paste(h, d, "sphere")]] <- cached_download(sprintf("%s/tpl-fsLR_hemi-%s_den-%s_sphere.surf.gii", tf, h, d))
+      spheres[[paste(h, d, "area")]] <- cached_download(sprintf("%s/tpl-fsLR_hemi-%s_den-%s_desc-vaavg_midthickness.shape.gii", tf, h, d))
+    }
+  }
+  spec164 <- file.path(p$out_dir, "results_fsLR164k.spec")
+  if (file.exists(spec164)) unlink(spec164)
+  for (h in c("L", "R")) {
+    structure <- if (h == "L") "CORTEX_LEFT" else "CORTEX_RIGHT"
+    for (surf in c("inflated", "midthickness")) {
+      s32 <- cached_download(sprintf("%s/tpl-fsLR_den-32k_hemi-%s_%s.surf.gii", tf, h, surf))
+      s164 <- file.path(p$out_dir, sprintf("fsLR164k_hemi-%s_%s.surf.gii", h, surf))
+      if (!file.exists(s164)) {
+        wb_run("-surface-resample", s32, spheres[[paste(h, "32k", "sphere")]], spheres[[paste(h, "164k", "sphere")]], "BARYCENTRIC", s164)
+      }
+      wb_run("-add-to-spec-file", spec164, structure, s164)
+    }
+  }
+  wb_run("-add-to-spec-file", spec164, "INVALID", dscalar)
+
+  # A 32k copy for people who have their own 32k surfaces (parcel borders lose one vertex ring to NaN)
+  template32 <- file.path(p$cache_dir, "template_fsLR32k.dscalar.nii")
+  if (!file.exists(template32)) {
+    wb_run("-cifti-create-dense-scalar", template32, "-left-metric", spheres[["L 32k area"]], "-right-metric", spheres[["R 32k area"]])
+  }
+  dscalar32 <- file.path(p$out_dir, "results_fsLR32k.dscalar.nii")
+  wb_run("-cifti-resample", dscalar, "COLUMN", template32, "COLUMN", "ADAP_BARY_AREA", "CUBIC", dscalar32,
+         "-left-spheres", spheres[["L 164k sphere"]], spheres[["L 32k sphere"]],
+         "-left-area-metrics", spheres[["L 164k area"]], spheres[["L 32k area"]],
+         "-right-spheres", spheres[["R 164k sphere"]], spheres[["R 32k sphere"]],
+         "-right-area-metrics", spheres[["R 164k area"]], spheres[["R 32k area"]])
+  spec32 <- file.path(p$out_dir, "results_fsLR32k.spec")
+  if (file.exists(spec32)) unlink(spec32)
+  for (h in c("L", "R")) {
+    structure <- if (h == "L") "CORTEX_LEFT" else "CORTEX_RIGHT"
+    for (surf in c("inflated", "midthickness")) {
+      wb_run("-add-to-spec-file", spec32, structure, cached_download(sprintf("%s/tpl-fsLR_den-32k_hemi-%s_%s.surf.gii", tf, h, surf)))
+    }
+  }
+  wb_run("-add-to-spec-file", spec32, "INVALID", dscalar32)
+
+  cat("Open the results in Workbench with either of:\n\n")
+  cat("  wb_view", spec164, "\n")
+  cat("  wb_view", spec32, "\n\n")
+  cat("Pick the map 'parcel_median_late_fraction' and the inflated surfaces.",
+      "To render a saved scene to PNG without the GUI: wb_command -scene-capture-image <scene> 1 <out.png>\n")
+}
+```
+
+## 13. How long did it take, and how much was read?
+
+```{r runtime-table}
+runtime$secs <- round(runtime$secs, 1)
+runtime$mb_uncompressed <- round(runtime$mb_uncompressed)
+runtime$mb_wire <- round(runtime$mb_wire)
+runtime
+cat(sprintf("\nRead from S3: %.0f MB on the wire (%.0f MB uncompressed) in %s; whole report: %s.\n",
+            sum(runtime$mb_wire, na.rm = TRUE), sum(runtime$mb_uncompressed, na.rm = TRUE),
+            fmt_secs(sum(runtime$secs[!is.na(runtime$tiles)])), fmt_secs(as.numeric(Sys.time() - report_started, units = "secs"))))
+cat(sprintf("For comparison, the thickness scalar alone is %.1f GB; the whole store is 553 GB.\n", 340 * TILE_MB / 1024))
+utils::write.csv(runtime, file.path(p$out_dir, "runtime.csv"), row.names = FALSE)
+
+cat("\nSoftware: ModelArray", as.character(utils::packageVersion("ModelArray")),
+    "| tiledb", as.character(utils::packageVersion("tiledb")), "(libtiledb", paste(tiledb::tiledb_version(), collapse = "."), ")",
+    "| TileDBArray", as.character(utils::packageVersion("TileDBArray")),
+    "| mgcv", as.character(utils::packageVersion("mgcv")),
+    if (have_combat) paste("| ComBatFamily", as.character(utils::packageVersion("ComBatFamily"))) else "| ComBatFamily not installed",
+    if (have_wb) paste("| Workbench", sub("Version: *", "", grep("Version", system2(wb, "-version", stdout = TRUE), value = TRUE)[1])) else "", "\n")
+```

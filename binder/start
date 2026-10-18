@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Runs before the server starts in every Binder session.
+export PATH="$HOME/.wb/bin:$PATH"
+# Anonymous reads from the public RBC bucket; the report also sets these itself.
+export TILEDB_VFS_S3_NO_SIGN_REQUEST=true
+export TILEDB_VFS_S3_REGION=us-east-1
+exec "$@"

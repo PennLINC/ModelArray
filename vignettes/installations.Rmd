@@ -126,6 +126,8 @@ library(ModelArray)
 ModelArraySummary("path/to/store.tdb", backend = "tiledb")
 ```
 
+`ModelArraySummary()` and `ModelArray()` also take a remote TileDB URI such as `s3://bucket/store.tdb`, once the TileDB context knows how to reach it. `vignette("rbc-s3-tiledb")` runs a full analysis on a public S3 store that way.
+
 If installing the `tiledb` R package fails, install the TileDB system library first. On macOS:
 
 ``` {.console}

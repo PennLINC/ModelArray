@@ -50,6 +50,10 @@ access. An ABCC dMRI dataset has ~350,000 voxels × ~26,000-sessions -
 about 291 GB if loaded in its entirety - never enters RAM. ModelArray
 reads one element at a time, so memory usage stays flat regardless of
 dataset size.
+TileDB stores can also live in the cloud: `vignette("rbc-s3-tiledb")`
+fits GAMs to the 553 GB RBC cortical thickness store straight from a
+public S3 bucket, and you can run it in your browser with
+[Binder](https://mybinder.org/v2/gh/PennLINC/ModelArray/tiledb-example?urlpath=rstudio).
 
 **It’s flexible.** Beyond linear models, ModelArray supports:
 

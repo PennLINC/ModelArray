@@ -8,6 +8,7 @@ linters: linters_with_defaults(
   )
 exclusions: list(
     "inst/doc",
+    "inst/examples",
     "man",
     "vignettes",
     "data-raw",

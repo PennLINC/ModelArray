@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Runs once when the Binder image is built (as the notebook user, no root).
+set -euo pipefail
+
+# Connectome Workbench from conda-forge, installed into the home directory with micromamba.
+mkdir -p "$HOME/.local/bin"
+curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C "$HOME/.local" bin/micromamba
+"$HOME/.local/bin/micromamba" create -y -p "$HOME/.wb" -c conda-forge connectome-workbench
+"$HOME/.local/bin/micromamba" clean -y --all
+
+# Put the report where the RStudio session opens, so "Knit" is the only click needed.
+mkdir -p "$HOME/rbc_s3_example"
+cp inst/examples/rbc-s3-tiledb/rbc_s3_tiledb_example.Rmd "$HOME/rbc_s3_example/"

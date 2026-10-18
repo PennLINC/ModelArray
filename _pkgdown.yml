@@ -34,6 +34,8 @@ navbar:
           href: articles/modelling.html
         - text: "Exploring Data with Convenience Functions"
           href: articles/exploring-modelarray-data.html
+        - text: "Cloud TileDB: RBC Cortical Thickness from S3"
+          href: articles/rbc-s3-tiledb.html
         - text: "-------"
         - text: Resources
         - text: "Containers"
