@@ -20,5 +20,7 @@
   Storage](https://pennlinc.github.io/ModelArray/articles/modelarray-storage.md):
 - [Modelling in Depth: lm, gam, and
   wrap](https://pennlinc.github.io/ModelArray/articles/modelling.md):
+- [Cloud TileDB: RBC Cortical Thickness from
+  S3](https://pennlinc.github.io/ModelArray/articles/rbc-s3-tiledb.md):
 - [End-to-End
   Walkthrough](https://pennlinc.github.io/ModelArray/articles/walkthrough.md):

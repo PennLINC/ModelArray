@@ -47,6 +47,7 @@
 <li><a class="dropdown-item" href="articles/walkthrough.html">End-to-End Walkthrough</a></li>
     <li><a class="dropdown-item" href="articles/modelling.html">Modelling in Depth</a></li>
     <li><a class="dropdown-item" href="articles/exploring-modelarray-data.html">Exploring Data with Convenience Functions</a></li>
+    <li><a class="dropdown-item" href="articles/rbc-s3-tiledb.html">Cloud TileDB: RBC Cortical Thickness from S3</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Resources</h6></li>
     <li><a class="dropdown-item" href="articles/container.html">Containers</a></li>
@@ -87,7 +88,7 @@
 <div class="section level2">
 <h2 id="why-modelarray">Why ModelArray?<a class="anchor" aria-label="anchor" href="#why-modelarray"></a>
 </h2>
-<p><strong>It scales.</strong> ModelArray uses <a href="https://www.hdfgroup.org/solutions/hdf5/" class="external-link">HDF5</a> by default, and can also read TileDB stores when the optional <a href="https://tiledb.com/" class="external-link">TileDB</a> R packages are installed. Both backends use <a href="https://bioconductor.org/packages/DelayedArray/" class="external-link">DelayedArray</a> for lazy access. An ABCC dMRI dataset has ~350,000 voxels × ~26,000-sessions - about 291 GB if loaded in its entirety - never enters RAM. ModelArray reads one element at a time, so memory usage stays flat regardless of dataset size.</p>
+<p><strong>It scales.</strong> ModelArray uses <a href="https://www.hdfgroup.org/solutions/hdf5/" class="external-link">HDF5</a> by default, and can also read TileDB stores when the optional <a href="https://tiledb.com/" class="external-link">TileDB</a> R packages are installed. Both backends use <a href="https://bioconductor.org/packages/DelayedArray/" class="external-link">DelayedArray</a> for lazy access. An ABCC dMRI dataset has ~350,000 voxels × ~26,000-sessions - about 291 GB if loaded in its entirety - never enters RAM. ModelArray reads one element at a time, so memory usage stays flat regardless of dataset size. TileDB stores can also live in the cloud: <code><a href="articles/rbc-s3-tiledb.html">vignette("rbc-s3-tiledb")</a></code> fits GAMs to the 553 GB RBC cortical thickness store straight from a public S3 bucket, and you can run it in your browser with <a href="https://mybinder.org/v2/gh/PennLINC/ModelArray/tiledb-example?urlpath=rstudio" class="external-link">Binder</a>.</p>
 <p><strong>It’s flexible.</strong> Beyond linear models, ModelArray supports:</p>
 <ul>
 <li>

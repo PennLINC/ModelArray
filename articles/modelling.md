@@ -301,18 +301,23 @@ head(result)
 writeResults(h5_path, df.output = result, analysis_name = "site_analysis")
 ```
 
-### Case study: harmonize with `covfam` and stream to a new scalar
+### Case study: harmonize with ComBat and stream to a new scalar
 
 You can also use
 [`ModelArray.wrap()`](https://pennlinc.github.io/ModelArray/reference/ModelArray.wrap.md)
 as a transformation engine rather than a test runner. The example below
 applies a harmonization step per element, streams the harmonized values
 directly into `/scalars`, and then loads that harmonized scalar in a new
-`ModelArray`.
+`ModelArray`. It uses
+[ComBatFamily](https://github.com/andy1764/ComBatFamily)
+(`remotes::install_github("andy1764/ComBatFamily")`), whose `comfam()`
+is ComBat and `covfam()` is CovBat; both take the same arguments. A
+worked example on real data, with a GAM age term and CovBat, is in
+[`vignette("rbc-s3-tiledb")`](https://pennlinc.github.io/ModelArray/articles/rbc-s3-tiledb.md).
 
 ``` r
 
-library(covfam)
+library(ComBatFamily)
 
 # Assume phenotypes has harmonization variables, e.g.:
 #   source_file, site, age, sex
@@ -327,44 +332,48 @@ phenotypes <- read.csv("phenotypes.csv")
 # Copy metadata/layout into a new file so we can append new scalars there.
 file.copy(h5_in, h5_harmonized, overwrite = TRUE)
 
-covfam_harmonize_element <- function(data) {
-  # Harmonize one element across subjects.
-  # Adjust arguments here to match your covfam configuration.
-  out <- covfam::covfam(
-    y = data$thickness,
-    batch = data$site,
-    mod = data.frame(age = data$age, sex = data$sex)
+combat_harmonize_element <- function(data) {
+  # Harmonize one element across subjects, keeping the age and sex effects.
+  # ModelArray hands the function one element (one feature) at a time, so the
+  # empirical-Bayes step has nothing to pool across: eb = FALSE.
+  out <- ComBatFamily::comfam(
+    data = data[, "thickness", drop = FALSE],
+    bat = factor(data$site),
+    covar = data[, c("age", "sex")],
+    model = stats::lm,
+    formula = y ~ age + sex,
+    eb = FALSE
   )
 
   # Return named subject-level vector so wrap columns map to source_file order.
-  vals <- out$y_harmonized
+  vals <- out$dat.combat[, "thickness"]
   names(vals) <- data$source_file
   vals
 }
 
-# Stream harmonized subject-level values into scalars/thickness_covfam/values.
+# Stream harmonized subject-level values into scalars/thickness_combat/values.
 # Set return_output = FALSE to avoid keeping the full output table in memory.
 ModelArray.wrap(
-  FUN = covfam_harmonize_element,
+  FUN = combat_harmonize_element,
   data = ma_raw,
   phenotypes = phenotypes,
   scalar = "thickness",
   n_cores = 8,
-  write_scalar_name = "thickness_covfam",
+  write_scalar_name = "thickness_combat",
   write_scalar_file = h5_harmonized,
   write_scalar_flush_every = 2000L,
   return_output = FALSE
 )
 
 # Load the harmonized scalar as a new modelling input
-ma_harmonized <- ModelArray(h5_harmonized, scalar_types = c("thickness_covfam"))
+ma_harmonized <- ModelArray(h5_harmonized, scalar_types = c("thickness_combat"))
 
 # Use harmonized data in downstream models
 fit_harmonized <- ModelArray.lm(
-  thickness_covfam ~ age + sex,
+  thickness_combat ~ age + sex,
   data = ma_harmonized,
   phenotypes = phenotypes,
-  scalar = "thickness_covfam",
+  scalar = "thickness_combat",
   n_cores = 8
 )
 ```

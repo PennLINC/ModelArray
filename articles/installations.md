@@ -167,6 +167,14 @@ library(ModelArray)
 ModelArraySummary("path/to/store.tdb", backend = "tiledb")
 ```
 
+[`ModelArraySummary()`](https://pennlinc.github.io/ModelArray/reference/ModelArraySummary.md)
+and
+[`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html)
+also take a remote TileDB URI such as `s3://bucket/store.tdb`, once the
+TileDB context knows how to reach it.
+[`vignette("rbc-s3-tiledb")`](https://pennlinc.github.io/ModelArray/articles/rbc-s3-tiledb.md)
+runs a full analysis on a public S3 store that way.
+
 If installing the `tiledb` R package fails, install the TileDB system
 library first. On macOS:
 

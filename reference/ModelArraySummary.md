@@ -24,7 +24,9 @@ print(x, ...)
 
 - filepath:
 
-  Character. Path to an HDF5 (`.h5`) file or TileDB (`.tdb`) store.
+  Character. Path to an HDF5 (`.h5`) file or TileDB (`.tdb`) store. A
+  TileDB store may be given as a URI (`s3://...`, `file://...`); HDF5
+  files must be local paths.
 
 - backend:
 
@@ -73,6 +75,22 @@ For TileDB, it inspects arrays under `/scalars/` and `/results/`. It
 does not load full data matrices into memory. The returned object has a
 `print` method that displays a formatted summary.
 
+A TileDB store can also be remote, for example in an S3 bucket.
+Configure the TileDB context before calling, exactly as you would before
+[`ModelArray()`](https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html):
+
+
+    cfg <- tiledb::tiledb_config()
+    cfg["vfs.s3.region"] <- "us-east-1"
+    cfg["vfs.s3.no_sign_request"] <- "true"   # public bucket, no credentials
+    tiledb::tiledb_ctx(cfg)
+    ModelArraySummary("s3://bucket/path/store.tdb")
+
+The same settings can come from environment variables
+(`TILEDB_VFS_S3_REGION`, `TILEDB_VFS_S3_NO_SIGN_REQUEST`). Each scalar
+costs a few requests, so summarizing a store with many scalars over the
+network takes seconds rather than milliseconds.
+
 `h5summary()` is a backward-compatible alias for `ModelArraySummary()`.
 Despite the historical name, it supports both HDF5 files and TileDB
 stores.
@@ -90,6 +108,7 @@ for the class definition.
 if (FALSE) { # \dontrun{
 ModelArraySummary("path/to/data.h5")
 ModelArraySummary("path/to/store.tdb")
+ModelArraySummary("s3://bucket/path/store.tdb") # after configuring the TileDB context
 
 # Inspect before deciding which scalars to load
 info <- ModelArraySummary("path/to/data.h5")

@@ -45,6 +45,7 @@
 <li><a class="dropdown-item" href="../articles/walkthrough.html">End-to-End Walkthrough</a></li>
     <li><a class="dropdown-item" href="../articles/modelling.html">Modelling in Depth</a></li>
     <li><a class="dropdown-item" href="../articles/exploring-modelarray-data.html">Exploring Data with Convenience Functions</a></li>
+    <li><a class="dropdown-item" href="../articles/rbc-s3-tiledb.html">Cloud TileDB: RBC Cortical Thickness from S3</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Resources</h6></li>
     <li><a class="dropdown-item" href="../articles/container.html">Containers</a></li>
@@ -223,6 +224,11 @@ optional: you only need these packages if you plan to use
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://pennlinc.github.io/ModelArray">ModelArray</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/ModelArraySummary.html">ModelArraySummary</a></span><span class="op">(</span><span class="st">"path/to/store.tdb"</span>, backend <span class="op">=</span> <span class="st">"tiledb"</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/ModelArraySummary.html">ModelArraySummary()</a></code> and <code><a href="https://pennlinc.github.io/ModelArray/reference/ModelArray-class.html">ModelArray()</a></code> also
+take a remote TileDB URI such as <code>s3://bucket/store.tdb</code>,
+once the TileDB context knows how to reach it.
+<code><a href="../articles/rbc-s3-tiledb.html">vignette("rbc-s3-tiledb")</a></code> runs a full analysis on a public
+S3 store that way.</p>
 <p>If installing the <code>tiledb</code> R package fails, install the
 TileDB system library first. On macOS:</p>
 <pre class="console"><code>foo@bar:~$ brew install tiledb</code></pre>
