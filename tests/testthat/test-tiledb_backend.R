@@ -98,6 +98,68 @@ test_that("ModelArraySummary summarizes TileDB scalar arrays", {
   expect_equal(legacy$backend, "tiledb")
 })
 
+test_that("ModelArraySummary reads a TileDB store through a file:// URI", {
+  skip_if_no_tiledb()
+
+  store <- tempfile(fileext = ".tdb")
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+  write_tiledb_scalar(store, "FA", matrix(seq_len(12), nrow = 3), paste0("sub-", 1:3))
+  writeResults(store, data.frame(element_id = 0:3, estimate = 1:4), analysis_name = "lm_uri", backend = "tiledb")
+
+  # file.exists() is FALSE for a URI, which is what a remote (s3://) store looks like to R
+  uri <- paste0("file://", normalizePath(store))
+  expect_false(file.exists(uri))
+
+  info <- ModelArraySummary(uri)
+  expect_equal(info$backend, "tiledb")
+  expect_identical(info$filepath, uri)
+  expect_equal(info$scalars$name, "FA")
+  expect_equal(info$scalars$nElements, 4L)
+  expect_equal(info$scalars$nInputFiles, 3L)
+  expect_equal(info$analyses, "lm_uri")
+
+  local_info <- ModelArraySummary(store)
+  expect_equal(info[c("scalars", "analyses")], local_info[c("scalars", "analyses")])
+})
+
+test_that("ModelArraySummary ignores group internals and stray files in a TileDB store", {
+  skip_if_no_tiledb()
+
+  store <- tempfile(fileext = ".tdb")
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+  write_tiledb_scalar(store, "FD", matrix(1:4, nrow = 2), c("s1", "s2"), metadata_location = "group")
+  # Make scalars/ a real TileDB group (adds __tiledb_group.tdb, __group, __meta) and drop stray files
+  write_tiledb_group_metadata(file.path(store, "scalars"), "note", "x")
+  dir.create(file.path(store, "results"))
+  writeLines("x", file.path(store, "scalars", "README.txt"))
+  writeLines("x", file.path(store, "results", "README.txt"))
+
+  info <- ModelArraySummary(paste0("file://", normalizePath(store)))
+  expect_equal(info$scalars$name, "FD")
+  expect_equal(info$analyses, character(0))
+})
+
+test_that("ModelArraySummary errors clearly when a TileDB store is missing", {
+  skip_if_no_tiledb()
+
+  expect_error(ModelArraySummary("file:///nonexistent/store.tdb"), "not found")
+  expect_error(ModelArraySummary(tempfile(fileext = ".tdb")), "not found")
+})
+
+test_that("ModelArray constructs from a file:// TileDB URI", {
+  skip_if_no_tiledb()
+
+  store <- tempfile(fileext = ".tdb")
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+  values <- matrix(seq_len(8), nrow = 2, byrow = TRUE)
+  write_tiledb_scalar(store, "FD", values, c("sub-1.nii.gz", "sub-2.nii.gz"))
+
+  ma <- ModelArray(paste0("file://", normalizePath(store)), scalar_types = "FD")
+  loaded <- as.matrix(scalars(ma)[["FD"]])
+  dimnames(loaded) <- NULL
+  expect_equal(loaded, t(values))
+})
+
 test_that("ModelArraySummary agrees for fake HDF5 and TileDB stores", {
   skip_if_no_tiledb()
 

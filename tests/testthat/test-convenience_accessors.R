@@ -75,3 +75,8 @@ test_that("h5summary errors on missing file", {
 test_that("ModelArraySummary errors on missing file", {
   expect_error(ModelArraySummary("/nonexistent/file.h5"), "not found")
 })
+
+test_that("ModelArraySummary still needs a local path for HDF5", {
+  h5_path <- system.file("extdata", "n50_fixels.h5", package = "ModelArray")
+  expect_error(ModelArraySummary(paste0("file://", normalizePath(h5_path))), "not found")
+})

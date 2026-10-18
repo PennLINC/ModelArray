@@ -73,6 +73,11 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
   if (grepl("\\.tdb/?$", filepath, ignore.case = TRUE)) {
     return("tiledb")
   }
+  # A remote URI (s3://, gcs://, azure://, ...) can only be a TileDB store;
+  # rhdf5 reads local files only. file:// is left to the local checks below.
+  if (.is_remote_uri(filepath)) {
+    return("tiledb")
+  }
   # Otherwise only claim a directory when it actually holds a store. Writers
   # delete the group they are about to replace, so a mistyped output directory
   # must not be mistaken for one.
@@ -266,6 +271,45 @@ flagAnalysisExistInh5 <- function(fn_h5, analysis_name) {
     return(toupper(object_type) %in% c("ARRAY", "GROUP"))
   }
   identical(toupper(object_type), toupper(type))
+}
+
+
+#' Is this a URI with a scheme other than file:// (for example s3://)?
+#' @noRd
+.is_remote_uri <- function(path) {
+  grepl("^[[:alpha:]][[:alnum:]+.-]*://", path) && !grepl("^file://", path, ignore.case = TRUE)
+}
+
+
+#' A TileDB VFS handle on the current default context
+#'
+#' tiledb::tiledb_get_vfs() caches a VFS built from the first context it saw,
+#' which would miss S3 settings a user applied later with tiledb_ctx().
+#' @noRd
+.tiledb_vfs <- function() {
+  tiledb::tiledb_vfs(ctx = tiledb::tiledb_get_context())
+}
+
+
+#' Does a TileDB store root exist, as a local directory or as a URI?
+#' @noRd
+.tiledb_store_exists <- function(uri) {
+  if (dir.exists(uri)) {
+    return(TRUE)
+  }
+  isTRUE(tryCatch(tiledb::tiledb_vfs_is_dir(uri, vfs = .tiledb_vfs()), error = function(e) FALSE))
+}
+
+
+#' Names of the entries directly under a TileDB URI (character(0) when absent)
+#'
+#' Uses TileDB's VFS, so it works for local paths, file:// and remote URIs
+#' alike. Plain directories are listed too (test fixtures store arrays under
+#' them), so callers still check for the array they need.
+#' @noRd
+.tiledb_list_children <- function(uri) {
+  children <- tryCatch(tiledb::tiledb_vfs_ls(uri, vfs = .tiledb_vfs()), error = function(e) character(0))
+  sort(unique(basename(sub("/+$", "", children))))
 }
 
 
@@ -1126,12 +1170,28 @@ bind_cols_check_emptyTibble <- function(a, b) {
 #' into memory. The returned
 #' object has a \code{print} method that displays a formatted summary.
 #'
+#' A TileDB store can also be remote, for example in an S3 bucket. Configure
+#' the TileDB context before calling, exactly as you would before
+#' \code{\link{ModelArray}()}:
+#' \preformatted{
+#' cfg <- tiledb::tiledb_config()
+#' cfg["vfs.s3.region"] <- "us-east-1"
+#' cfg["vfs.s3.no_sign_request"] <- "true"   # public bucket, no credentials
+#' tiledb::tiledb_ctx(cfg)
+#' ModelArraySummary("s3://bucket/path/store.tdb")
+#' }
+#' The same settings can come from environment variables
+#' (\code{TILEDB_VFS_S3_REGION}, \code{TILEDB_VFS_S3_NO_SIGN_REQUEST}).
+#' Each scalar costs a few requests, so summarizing a store with many scalars
+#' over the network takes seconds rather than milliseconds.
+#'
 #' \code{h5summary()} is a backward-compatible alias for
 #' \code{ModelArraySummary()}. Despite the historical name, it supports both
 #' HDF5 files and TileDB stores.
 #'
 #' @param filepath Character. Path to an HDF5 (\code{.h5}) file or TileDB
-#'   (\code{.tdb}) store.
+#'   (\code{.tdb}) store. A TileDB store may be given as a URI
+#'   (\code{s3://...}, \code{file://...}); HDF5 files must be local paths.
 #' @param backend Character. Storage backend: \code{"auto"} (default),
 #'   \code{"hdf5"}, or \code{"tiledb"}.
 #'
@@ -1155,6 +1215,7 @@ bind_cols_check_emptyTibble <- function(a, b) {
 #' \dontrun{
 #' ModelArraySummary("path/to/data.h5")
 #' ModelArraySummary("path/to/store.tdb")
+#' ModelArraySummary("s3://bucket/path/store.tdb") # after configuring the TileDB context
 #'
 #' # Inspect before deciding which scalars to load
 #' info <- ModelArraySummary("path/to/data.h5")
@@ -1185,18 +1246,15 @@ h5summary <- function(filepath, backend = c("auto", "hdf5", "tiledb")) {
 
 #' @noRd
 .modelarray_summary_impl <- function(filepath, backend = c("auto", "hdf5", "tiledb")) {
-  if (!file.exists(filepath)) {
-    stop("File not found: ", filepath)
-  }
   backend <- .resolve_storage_backend(filepath, backend)
   if (identical(backend, "tiledb")) {
     .require_tiledb_support()
-    scalars_dir <- .modelarray_path(filepath, "scalars")
-    scalar_candidates <- if (dir.exists(scalars_dir)) {
-      basename(list.dirs(scalars_dir, recursive = FALSE, full.names = TRUE))
-    } else {
-      character(0)
+    # TileDB stores may live behind a URI (s3://, file://, ...), so existence and
+    # listing go through TileDB's VFS rather than file.exists()/list.dirs().
+    if (!.tiledb_store_exists(filepath)) {
+      stop("TileDB store not found: ", filepath)
     }
+    scalar_candidates <- .tiledb_list_children(.modelarray_path(filepath, "scalars"))
     scalar_names <- scalar_candidates[vapply(
       scalar_candidates,
       function(scalar_name) {
@@ -1240,12 +1298,7 @@ h5summary <- function(filepath, backend = c("auto", "hdf5", "tiledb")) {
       )
     }
 
-    results_dir <- .modelarray_path(filepath, "results")
-    analysis_candidates <- if (dir.exists(results_dir)) {
-      basename(list.dirs(results_dir, recursive = FALSE, full.names = TRUE))
-    } else {
-      character(0)
-    }
+    analysis_candidates <- .tiledb_list_children(.modelarray_path(filepath, "results"))
     analyses <- analysis_candidates[vapply(
       analysis_candidates,
       function(analysis_name) {
@@ -1267,6 +1320,9 @@ h5summary <- function(filepath, backend = c("auto", "hdf5", "tiledb")) {
     )
   }
 
+  if (!file.exists(filepath)) {
+    stop("File not found: ", filepath)
+  }
   listing <- rhdf5::h5ls(filepath)
   rhdf5::h5closeAll()
 

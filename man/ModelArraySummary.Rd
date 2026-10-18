@@ -17,7 +17,8 @@ h5summary(filepath, backend = c("auto", "hdf5", "tiledb"))
 }
 \arguments{
 \item{filepath}{Character. Path to an HDF5 (\code{.h5}) file or TileDB
-(\code{.tdb}) store.}
+(\code{.tdb}) store. A TileDB store may be given as a URI
+(\code{s3://...}, \code{file://...}); HDF5 files must be local paths.}
 
 \item{backend}{Character. Storage backend: \code{"auto"} (default),
 \code{"hdf5"}, or \code{"tiledb"}.}
@@ -55,6 +56,21 @@ For HDF5, this function opens the file read-only via
 into memory. The returned
 object has a \code{print} method that displays a formatted summary.
 
+A TileDB store can also be remote, for example in an S3 bucket. Configure
+the TileDB context before calling, exactly as you would before
+\code{\link{ModelArray}()}:
+\preformatted{
+cfg <- tiledb::tiledb_config()
+cfg["vfs.s3.region"] <- "us-east-1"
+cfg["vfs.s3.no_sign_request"] <- "true"   # public bucket, no credentials
+tiledb::tiledb_ctx(cfg)
+ModelArraySummary("s3://bucket/path/store.tdb")
+}
+The same settings can come from environment variables
+(\code{TILEDB_VFS_S3_REGION}, \code{TILEDB_VFS_S3_NO_SIGN_REQUEST}).
+Each scalar costs a few requests, so summarizing a store with many scalars
+over the network takes seconds rather than milliseconds.
+
 \code{h5summary()} is a backward-compatible alias for
 \code{ModelArraySummary()}. Despite the historical name, it supports both
 HDF5 files and TileDB stores.
@@ -63,6 +79,7 @@ HDF5 files and TileDB stores.
 \dontrun{
 ModelArraySummary("path/to/data.h5")
 ModelArraySummary("path/to/store.tdb")
+ModelArraySummary("s3://bucket/path/store.tdb") # after configuring the TileDB context
 
 # Inspect before deciding which scalars to load
 info <- ModelArraySummary("path/to/data.h5")
